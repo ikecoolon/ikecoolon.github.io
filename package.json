@@ -1,28 +1,34 @@
 {
-  "name": "frontend-standard",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "doob",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "docs:dev": "vuepress dev docs",
-    "docs:build": "vuepress build docs",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "sh deploy.sh",
-    "deploy-dist": "sh deploy-other.sh"
-  },
-  "author": "ikecoolon@hotmail.com",
-  "license": "ISC",
-  "devDependencies": {
-    "@vuepress/plugin-active-header-links": "^1.5.3",
-    "@vuepress/plugin-back-to-top": "^1.5.3",
-    "@vuepress/plugin-medium-zoom": "^1.5.3",
-    "vuepress": "^1.4.0",
-    "vuepress-plugin-code-copy": "^1.0.6",
-    "vuepress-plugin-flowchart": "^1.4.3"
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build"
   },
   "dependencies": {
-    "@antv/g6": "^3.4.7",
-    "moment": "^2.27.0",
-    "vue": "^2.6.11"
+    "@popperjs/core": "^2.11.0",
+    "animate.css": "^4.1.1",
+    "aos": "^2.3.4",
+    "bootstrap": "^5.1.3",
+    "core-js": "^3.6.5",
+    "feather-icons": "^4.28.0",
+    "sass": "^1.45.2",
+    "vue": "^2.6.11",
+    "vue-cool-lightbox": "^2.7.4",
+    "vue-count-to": "^1.0.13",
+    "vue-router": "^3.2.0",
+    "vue-scrollactive": "^0.9.3",
+    "vue-slick-carousel": "^1.0.6",
+    "vue-typed-js": "^0.1.2",
+    "vue-visibility-sensor": "^0.3.0"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "~4.5.0",
+    "@vue/cli-plugin-router": "~4.5.0",
+    "@vue/cli-service": "~4.5.0",
+    "sass-loader": "^8.0.2",
+    "vue-easy-pie-chart": "^1.0.3",
+    "vue-template-compiler": "^2.6.11"
   }
 }
