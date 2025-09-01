@@ -1,0 +1,1 @@
+export { default } from "/Users/zhaoyanlong/Documents/xh-prd-docs/node_modules/@vuepress/plugin-back-to-top/enhanceAppFile.js"

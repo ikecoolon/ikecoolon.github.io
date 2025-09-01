@@ -1,28 +1,32 @@
 {
-  "name": "frontend-standard",
+  "name": "XHPRD",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
-  "scripts": {
-    "docs:dev": "vuepress dev docs",
-    "docs:build": "vuepress build docs",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "sh deploy.sh",
-    "deploy-dist": "sh deploy-other.sh"
-  },
   "author": "ikecoolon@hotmail.com",
-  "license": "ISC",
+  "description": "XH 产品文档",
+  "scripts": {
+    "docs:dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vuepress dev docs --host 0.0.0.0",
+    "docs:build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vuepress build docs",
+    "deploy": "sh deploy.sh",
+    "deploy-dist": "sh deploy-simple.sh"
+  },
   "devDependencies": {
-    "@vuepress/plugin-active-header-links": "^1.5.3",
-    "@vuepress/plugin-back-to-top": "^1.5.3",
-    "@vuepress/plugin-medium-zoom": "^1.5.3",
-    "vuepress": "^1.4.0",
+    "@vuepress/plugin-active-header-links": "^1.9.10",
+    "@vuepress/plugin-back-to-top": "1.9.10",
+    "@vuepress/plugin-medium-zoom": "1.9.10",
+    "cross-env": "^7.0.3",
+    "nodemon": "^3.1.10",
+    "vue": "2.7.16",
+    "vue-server-renderer": "2.7.16",
+    "vue-template-compiler": "2.7.16",
+    "vuepress": "1.9.10",
     "vuepress-plugin-code-copy": "^1.0.6",
-    "vuepress-plugin-flowchart": "^1.4.3"
+    "vuepress-plugin-flowchart": "^1.5.0",
+    "vuepress-theme-hope": "1.30.0"
   },
   "dependencies": {
-    "@antv/g6": "^3.4.7",
-    "moment": "^2.27.0",
-    "vue": "^2.6.11"
-  }
+    "@antv/g6": "3.4.7",
+    "mermaid": "8.13.0",
+    "moment": "2.30.1"
+  },
+  "packageManager": "pnpm@9.5.0+sha512.140036830124618d624a2187b50d04289d5a087f326c9edfc0ccd733d76c4f52c3a313d4fc148794a2a9d81553016004e6742e8cf850670268a7387fc220c903"
 }

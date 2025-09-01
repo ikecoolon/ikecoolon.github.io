@@ -1,14 +1,12 @@
 ---
 home: true
-actionText: 如何参与写作 →
-actionLink: /guide/getting-started
+title: 首页
 features:
+  - title: 标准
+    details: 确保设计的一致性和高质量
   - title: 简洁
-    details: 请用最少的图文示意，说清一件事
-  - title: 可操作
-    details: 尽可能包含实例演示💡
+    details: 规范流程和产出物，减少沟通成本
   - title: 协作
-    details: 共同维护约定与规范
-footer: MIT Licensed | Copyright © 2022-sgse
+    details: 共同约定与维护
+footer: Copyright © 2025 XH Team
 ---
-

@@ -1,121 +1,162 @@
-module.exports = {
-    title: 'sgse文档共享',
-    description: '🤔你有什么想说？写进来吧！😎',
-    base: '/',
+const { config } = require("vuepress-theme-hope");
+
+module.exports = config({
+  base: '/docs/',
+  lang: 'zh-CN',
+  title: '新恒电力文档',
+  description: '产品文档',
+  
+  locales: {
+    '/': {
+      lang: 'zh-CN',
+      title: '新恒电力文档',
+      description: '产品文档'
+    }
+  },
+  
+  theme: 'hope',
+  host: 'localhost',
+  port: 8080,
+  themeConfig: {
+    hostname: 'http://localhost:8080',
+    
     locales: {
-        '/': {
-            lang: 'zh-CN'
-        }
-    },
-    plugins:[
-        ['@vuepress/last-updated', {
-            transformer: (timestamp, lang) => {
-                // 不要忘了安装 moment
-                const moment = require('moment');
-                moment.locale('zh-CN');
-                return moment(timestamp).fromNow()
-            },
-            dateOptions: {
-                hour12: false
-            }
-
-        }],
-        ['@vuepress/back-to-top'],
-        ['@vuepress/active-header-links', {
-            sidebarLinkSelector: '.sidebar-link',
-            headerAnchorSelector: '.header-anchor'
-        }],
-        ['@vuepress/medium-zoom'],
-        ['vuepress-plugin-code-copy', true]
-    ],
-    themeConfig: {
-        smoothScroll: true,
-        nav: [
-            {text: '首页', link: '/'},
-            {
-                text: '指南',
-                items: [
-                    {text: '参与写作', link: '/guide/getting-started.md'},
-                    {text: '系统速查', link: '/guide/getting-address.md'},
-                    {text: 'ios开发版安装指南', link: '/guide/ios-dev-install.md'},
-                    {text: '后台系统标准库', link: '/guide/admin-common.md'},
-                    {text: '微前端', link: '/guide/micro-frontends.md'},
-                    {text: '微前端FAQ', link: '/guide/micro-frontends-faq.md'},
-                    {text: '项目启动脚手架vue+微信小程序', link: '/guide/rondo-cli.md'},
-                    {text: '工作流', link: '/guide/git-flow.md'},
-                ]
-            },
-            {
-                text: '规范',
-                items: [
-                    {text: '浏览器本地存储', link: '/standard/browser.md'},
-                    {text: '微前端-路由规范', link: '/standard/micro-frontends-route.md'},
-                    {text: '微前端-版本管理', link: '/standard/micro-frontends-version-control.md'},
-                    {text: '代码分支管理', link: '/standard/code-version-control.md'},
-
-                ],
-            },
-            {
-                text: 'tips',
-                items: [
-                    {text: '路由模式', link: '/tips/url-mode.md'},
-                    {text: '前端线上多版本', link: '/tips/how-to-keep-multiple-frontends-version-online.md'},
-                ]
-            },
-
-            {
-                text: '组件',
-                items: [
-
-                    {text: '[pc]地图看板', link: '/components/map-dashboard.md'},
-                    {text: '[pc]动态条件框', link: '/components/dynamic-query.md'}
-                ]
-            },
-        ],
-        sidebar: {
-            '/guide/': [
-                {
-                    collapsable: false,
-                    sidebarDepth: 3,
-                    children: [
-                        'getting-started',
-                        'getting-address',
-                        'ios-dev-install',
-                        'admin-common',
-                        'micro-frontends',
-                        'micro-frontends-faq',
-                        'rondo-cli',
-                        'git-flow'
-                    ],
-                },
-
-            ],
-            '/tips/': [
-                {
-                    collapsable: false,
-                    sidebarDepth: 3,
-                    children: [
-                        'url-mode',
-                        'how-to-keep-multiple-frontends-version-online'
-                    ],
-                },
-            ],
-            '/standard/': [
-                {
-                    collapsable: false,
-                    sidebarDepth: 3,
-                    children: [
-                        'browser',
-                        'micro-frontends-route',
-                        'micro-frontends-version-control',
-                        'code-version-control',
-                    ],
-                },
+      '/': {
+        lang: 'zh-CN',
+        selectText: '选择语言',
+        label: '简体中文',
+    nav: [
+      { text: '首页', link: '/' },
+      { 
+        text: '规范', 
+        items: [
+          { text: '规范介绍', link: '/rules/' },
+          { text: '需求分析', link: '/rules/requirement-analysis' },
+          { text: '产品设计', link: '/rules/product-design' },
+          { text: '文档结构', link: '/rules/document-structure' },
+          { text: '业务逻辑', link: '/rules/business-logic' },
+          { text: '原型', link: '/rules/prototype' },
+          { text: '迭代', link: '/rules/iteration' },
+          { text: '上线', link: '/rules/launch' },
+          { text: '协作', link: '/rules/collaboration' },
+          { text: '内容', link: '/rules/content' },
+          { text: '知识管理', link: '/rules/knowledge' }
+        ]
+      },
+      { 
+        text: '产品', 
+        items: [
+          { text: '产品目录', link: '/products/' },
+          { 
+            text: '按年份浏览',
+            items: [
+              { text: '2025年', link: '/products/2025/' },
+              { text: '2024年', link: '/products/2024/' }
             ]
+          },
+          { 
+            text: '按类型浏览',
+            items: [
+              { text: '充电产品', link: '/products/charging-products/'},
+              { text: '虚拟电厂', link: '/products/virtual-power/' }
+            ]
+          }
+        ]
+          }
+    ],
+    sidebar: {
+      '/rules/': [
+        {
+          title: '规范',
+          collapsable: false,
+          children: [
+            '',
+            'requirement-analysis',
+            'product-design',
+            'document-structure',
+            'business-logic',
+            'prototype',
+            'iteration',
+            'launch',
+            'collaboration',
+            'content',
+            'knowledge'
+          ]
+        }
+      ],
+      '/products/': [
+        {
+          title: '产品文档',
+          collapsable: false,
+          children: [
+            '',
+          ]
         },
-        // displayAllHeaders: true,
-        // lastUpdated: '最后更新时间',
-        // editLinks: true,
-
+        {
+          title: '按年份',
+          collapsable: true,
+          children: [
+            '2025/',
+            '2024/'
+          ]
+        },
+        {
+          title: '按类型',
+          children: [
+            'charging-products/',
+            'virtual-power/'
+          ]
+        }
+      ],
+      '/products/charging-products/': [
+        {
+          title: '2025',
+          collapsable: false,
+          children: [
+            '/products/charging-products/2025/5-merchant-mini-program/prd/ninth.md'
+          ]
+        }
+          ]
     },
-};
+    lastUpdated: '上次更新',
+        editLinkText: '编辑此页'
+      }
+    },
+    
+    repo: '',
+    editLinks: false,
+    blog: false,
+    breadcrumb: true,
+    author: "XH Product Team",
+    darkmode: "switch",
+    fullscreen: true,
+    mdEnhance: {
+      enableAll: false,
+      presentation: true,
+      flowchart: true,
+      tabs: true,
+      container: true,
+      codegroup: true,
+      mark: true,
+      tasklist: true,
+      align: true,
+      sup: true,
+      sub: true,
+      footnote: true,
+      katex: true,
+      chart: true,
+      demo: true,
+      mermaid: false
+    },
+  },
+  markdown: {
+    tasklist: true,
+    hint: true,
+    lineNumbers: true,
+    extractHeaders: ['h2', 'h3', 'h4'],
+  },
+  plugins: [
+    '@vuepress/back-to-top',
+    '@vuepress/medium-zoom'
+  ],
+}); 

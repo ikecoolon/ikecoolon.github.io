@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>设备分析 - 充电商户小程序</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <link href="https://unpkg.com/wot-design-uni/components/dist/style/index.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <script src="js/components.js"></script>
+  <style>
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-in {
+      animation: fadeIn 0.3s ease-out forwards;
+      opacity: 0;
+    }
+    body {
+      background-color: #f7f8fa;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .date-selector {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .date-selector::-webkit-scrollbar {
+      display: none;
+    }
+    .date-item {
+      white-space: nowrap;
+      padding: 6px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .date-item.active {
+      background-color: #ffed4a;
+      color: #000;
+      font-weight: 500;
+    }
+    .health-meter {
+      width: 160px;
+      height: 160px;
+      position: relative;
+    }
+    .health-meter-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .health-indicator {
+      font-size: 32px;
+      font-weight: bold;
+      color: #333;
+      line-height: 1;
+    }
+    .health-label {
+      font-size: 14px;
+      color: #666;
+      margin-top: 4px;
+    }
+    .device-status-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 1rem;
+    }
+    .device-status-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 4px;
+    }
+    .chart-container {
+      height: 240px;
+    }
+    /* 添加日期选择相关样式 */
+    .date-popover {
+      position: fixed;
+      bottom: -300px;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      padding: 16px;
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease-out;
+      z-index: 41;
+    }
+    .date-popover.show {
+      transform: translateY(-300px);
+    }
+    .date-popover-item {
+      padding: 12px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      transition: background-color 0.2s;
+    }
+    .date-popover-item.active {
+      background-color: #f0f7ff;
+      color: #1890ff;
+    }
+    .backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s;
+      z-index: 40;
+    }
+    .backdrop.show {
+      opacity: 1;
+      visibility: visible;
+    }
+    .calendar-modal {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      opacity: 0;
+      visibility: hidden;
+      width: 90%;
+      max-width: 320px;
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      transition: all 0.3s;
+      z-index: 42;
+    }
+    .calendar-modal.show {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+      visibility: visible;
+    }
+    /* 场站搜索和标签样式 */
+    .station-search-container {
+      position: relative;
+    }
+    .station-search-input {
+      background-color: #f5f5f5;
+      transition: all 0.3s;
+      padding-right: 30px;
+    }
+    .station-search-input:focus {
+      background-color: #fff;
+      box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    }
+    .station-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      max-height: 200px;
+      overflow-y: auto;
+      display: none;
+    }
+    .station-dropdown.show {
+      display: block;
+    }
+    .station-dropdown-item {
+      padding: 10px 12px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .station-dropdown-item:hover {
+      background-color: #f5f5f5;
+    }
+    .station-tags {
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 6px;
+      margin-top: 8px;
+      overflow-x: hidden;
+      white-space: nowrap;
+      position: relative;
+      padding-right: 40px; /* 为计数器预留空间 */
+    }
+    .station-tag {
+      display: inline-flex;
+      align-items: center;
+      background-color: #e6f7ff;
+      color: #1890ff;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .station-tag .remove-tag {
+      margin-left: 4px;
+      cursor: pointer;
+    }
+    .tags-counter {
+      position: absolute;
+      right: 0;
+      top: 0;
+      background-color: #f0f7ff;
+      color: #1890ff;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: calc(100% - 2px);
+      box-shadow: -4px 0 6px rgba(255, 255, 255, 0.9);
+    }
+    /* 搜索结果保持显示的样式 */
+    .station-search-active .station-dropdown {
+      display: block;
+    }
+    /* 点击搜索框时的高亮样式 */
+    .search-focused {
+      background-color: #fff;
+      box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+    }
+    /* 改进的下拉选择器 */
+    .dropdown-select {
+      position: relative;
+    }
+    .dropdown-select .dropdown-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      padding: 6px 12px;
+      border-radius: 4px;
+      background-color: #f5f5f5;
+      transition: all 0.2s;
+    }
+    .dropdown-select .dropdown-toggle:hover {
+      background-color: #e8e8e8;
+    }
+    .dropdown-select .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      min-width: 150px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      padding: 8px 0;
+      z-index: 20;
+      display: none;
+      margin-top: 5px;
+    }
+    .dropdown-select .dropdown-menu.show {
+      display: block;
+      animation: fadeIn 0.2s ease-out forwards;
+    }
+    .dropdown-select .dropdown-item {
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .dropdown-select .dropdown-item:hover {
+      background-color: #f5f5f5;
+    }
+    .dropdown-select .dropdown-item.active {
+      color: #1890ff;
+      background-color: #f0f7ff;
+    }
+  </style>
+</head>
+<body class="text-gray-800">
+  <!-- iOS 状态栏 -->
+  <div id="statusBar"></div>
+  
+  <!-- 小程序导航栏 -->
+  <div id="navBar"></div>
+  
+  <div class="dev-badge">设计中</div>
+  
+  <!-- 页面容器 -->
+  <div id="pageContainer" class="pt-20 pb-16">
+    <!-- 设备健康度视图 -->
+    <div class="bg-white rounded-lg shadow-sm mb-3 p-4 fade-in" style="animation-delay: 0.2s;">
+      <div class="flex justify-between items-center mb-3">
+        <h3 class="text-base font-medium">设备健康度</h3>
+        <div class="dropdown-select">
+          <div class="dropdown-toggle text-sm flex items-center" id="timeFilterToggle">
+            <span id="selectedTimeRange">近7天</span>
+            <i class="fas fa-chevron-down ml-1 text-xs"></i>
+          </div>
+          <div class="dropdown-menu" id="timeFilterMenu">
+            <div class="dropdown-item active" data-value="7">近7天</div>
+            <div class="dropdown-item" data-value="30">近30天</div>
+            <div class="dropdown-item" data-value="90">近90天</div>
+            <div class="dropdown-item" data-value="custom">自定义时间</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="flex flex-col md:flex-row items-center justify-around">
+        <!-- 健康度仪表盘 -->
+        <!-- <div class="health-meter mb-4 md:mb-0">
+          <canvas id="healthMeter" width="160" height="160"></canvas>
+          <div class="health-meter-text">
+            <div class="health-indicator">85</div>
+            <div class="health-label">健康度良好</div>
+          </div>
+        </div> -->
+        
+        <!-- 设备状态分布 -->
+        <div class="flex-1">
+          <div class="grid grid-cols-2 gap-4">
+            <!-- 第一行第一列 - 充电中 -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="status-dot bg-blue-500"></div>
+                  <span class="text-sm">充电中</span>
+                </div>
+                <div class="flex items-baseline space-x-1">
+                  <span class="font-semibold">18.5%</span>
+                </div>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                <div class="bg-blue-500 h-2 rounded-full" style="width: 18.5%"></div>
+              </div>
+            </div>
+            
+            <!-- 第一行第二列 - 空闲 -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="status-dot bg-green-500"></div>
+                  <span class="text-sm">空闲</span>
+                </div>
+                <div class="flex items-baseline space-x-1">
+                  <span class="font-semibold">74.2%</span>
+                </div>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                <div class="bg-green-500 h-2 rounded-full" style="width: 74.2%"></div>
+              </div>
+            </div>
+            
+            <!-- 第二行第一列 - 故障 -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="status-dot bg-red-500"></div>
+                  <span class="text-sm">故障</span>
+                </div>
+                <div class="flex items-baseline space-x-1">
+                  <span class="font-semibold">2.8%</span>
+                </div>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                <div class="bg-red-500 h-2 rounded-full" style="width: 2.8%"></div>
+              </div>
+            </div>
+            
+            <!-- 第二行第二列 - 离线 -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center">
+                  <div class="status-dot bg-gray-500"></div>
+                  <span class="text-sm">离线</span>
+                </div>
+                <div class="flex items-baseline space-x-1">
+                  <span class="font-semibold">4.5%</span>
+                </div>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2 mb-3">
+                <div class="bg-gray-500 h-2 rounded-full" style="width: 4.5%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 效能分析 -->
+    <div class="bg-white rounded-lg shadow-sm mb-3 p-4 fade-in" style="animation-delay: 0.3s;">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-base font-medium">效能分析</h3>
+        <div class="flex space-x-2">
+          <div class="station-search-container">
+            <input type="text" 
+                   id="stationSearchInput" 
+                   placeholder="搜索场站" 
+                   class="station-search-input w-36 px-3 py-1 rounded-full text-sm focus:outline-none">
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400">
+              <i class="fas fa-search text-sm"></i>
+            </button>
+            <div id="stationDropdown" class="station-dropdown">
+              <div class="station-dropdown-item" data-station-id="1" data-station-name="浙大紫金港站">浙大紫金港站</div>
+              <div class="station-dropdown-item" data-station-id="2" data-station-name="西湖文化广场站">西湖文化广场站</div>
+              <div class="station-dropdown-item" data-station-id="3" data-station-name="钱江新城站">钱江新城站</div>
+              <div class="station-dropdown-item" data-station-id="4" data-station-name="萧山国际机场站">萧山国际机场站</div>
+              <div class="station-dropdown-item" data-station-id="5" data-station-name="余杭区政府站">余杭区政府站</div>
+              <div class="station-dropdown-item" data-station-id="6" data-station-name="滨江区政府站">滨江区政府站</div>
+              <div class="station-dropdown-item" data-station-id="7" data-station-name="杭州东站">杭州东站</div>
+              <div class="station-dropdown-item" data-station-id="8" data-station-name="杭州西站">杭州西站</div>
+              <div class="station-dropdown-item" data-station-id="9" data-station-name="未来科技城站">未来科技城站</div>
+              <div class="station-dropdown-item" data-station-id="10" data-station-name="湘湖站">湘湖站</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div id="stationTags" class="station-tags">
+        <!-- 标签将在这里动态添加 -->
+        <!-- 计数器将在需要时添加 -->
+      </div>
+      
+      <div class="grid grid-cols-3 gap-3 mb-4 mt-3">
+        <div class="bg-blue-50 rounded-lg p-3 text-center">
+          <div class="text-xl font-bold text-blue-500">32.5%</div>
+          <div class="text-sm text-gray-500 mt-1">设备使用率</div>
+        </div>
+        <div class="bg-green-50 rounded-lg p-3 text-center">
+          <div class="text-xl font-bold text-green-500">92.7%</div>
+          <div class="text-sm text-gray-500 mt-1">设备可用率</div>
+        </div>
+        <div class="bg-yellow-50 rounded-lg p-3 text-center">
+          <div class="text-xl font-bold text-yellow-500">良好</div>
+          <div class="text-sm text-gray-500 mt-1">场站设备可用性</div>
+        </div>
+      </div>
+      
+      <!-- 单枪效率图表 -->
+      <div id="efficiencyChart" class="chart-container"></div>
+      
+    </div>
+    
+    <!-- 故障分析 -->
+    <div class="bg-white rounded-lg shadow-sm mb-3 p-4 fade-in" style="animation-delay: 0.4s;">
+      <!-- <div class="flex justify-between items-center mb-3">
+        <h3 class="text-base font-medium">故障分析</h3>
+      </div> -->
+      
+      <div class="chart-container" id="faultChart" style="display: none;"></div>
+      
+      <div class="mt-3">
+        <div class="flex justify-between items-center mb-2">
+          <h4 class="font-medium text-sm">设备预警</h4>
+          <a href="device-alerts.html" class="text-sm text-blue-500 flex items-center">
+            查看全部
+            <i class="fas fa-chevron-right ml-1 text-xs"></i>
+          </a>
+        </div>
+        <div class="bg-red-50 rounded-lg p-3 flex items-center space-x-3">
+          <div class="bg-red-100 rounded-full p-2">
+            <i class="fas fa-exclamation-triangle text-red-500"></i>
+          </div>
+          <div class="flex-1">
+            <div class="font-medium text-sm">西湖文化广场站-桩号A05</div>
+            <div class="text-xs text-gray-500 mt-1">近3天故障告警次数：5次</div>
+          </div>
+        </div>
+        
+        <div class="bg-yellow-50 rounded-lg p-3 flex items-center space-x-3 mt-2">
+          <div class="bg-yellow-100 rounded-full p-2">
+            <i class="fas fa-exclamation-circle text-yellow-500"></i>
+          </div>
+          <div class="flex-1">
+            <div class="font-medium text-sm">钱江新城站-桩号B12</div>
+            <div class="text-xs text-gray-500 mt-1">近3天故障告警次数：3次</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 底部导航栏 -->
+  <div id="tabBar"></div>
+  
+  <!-- 添加日期选择相关组件 -->
+  <!-- 日期选择弹出层 -->
+  <div id="datePopover" class="date-popover">
+    <div class="date-popover-item active" data-value="last7days">
+      <div class="flex items-center justify-between">
+        <span>最近7天</span>
+        <span class="text-xs text-gray-400">5/15-5/21</span>
+      </div>
+    </div>
+    <div class="date-popover-item" data-value="thisMonth">
+      <div class="flex items-center justify-between">
+        <span>本月</span>
+        <span class="text-xs text-gray-400">5/1-5/21</span>
+      </div>
+    </div>
+    <div class="date-popover-item" data-value="lastMonth">
+      <div class="flex items-center justify-between">
+        <span>上月</span>
+        <span class="text-xs text-gray-400">4/1-4/30</span>
+      </div>
+    </div>
+    <div class="date-popover-item" data-value="custom">
+      <div class="flex items-center justify-between">
+        <span>自定义</span>
+        <i class="fas fa-calendar-alt text-gray-400"></i>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 背景遮罩 -->
+  <div id="backdrop" class="backdrop"></div>
+  
+  <!-- 日历选择弹窗 -->
+  <div id="calendarModal" class="calendar-modal">
+    <div class="calendar-container">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-medium">选择日期范围</h3>
+        <button id="closeCalendarBtn" class="text-gray-400">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+      
+      <div class="flex space-x-3 mb-4">
+        <div class="flex-1">
+          <label class="text-xs text-gray-500 mb-1 block">开始日期</label>
+          <input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" value="2025-05-15">
+        </div>
+        <div class="flex-1">
+          <label class="text-xs text-gray-500 mb-1 block">结束日期</label>
+          <input type="date" id="endDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" value="2025-05-21">
+        </div>
+      </div>
+      
+      <div class="flex space-x-3">
+        <button id="cancelDateBtn" class="flex-1 py-2 border border-gray-300 rounded-lg text-sm">取消</button>
+        <button id="confirmDateBtn" class="flex-1 py-2 bg-blue-500 text-white rounded-lg text-sm">确定</button>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    // 页面组件初始化
+    document.getElementById('statusBar').innerHTML = components.statusBar();
+    document.getElementById('navBar').innerHTML = components.miniAppNav('设备分析');
+    document.getElementById('tabBar').innerHTML = components.tabBar('device');
+    
+    // 初始化时间筛选下拉菜单
+    const timeFilterToggle = document.getElementById('timeFilterToggle');
+    const timeFilterMenu = document.getElementById('timeFilterMenu');
+    const timeFilterItems = timeFilterMenu.querySelectorAll('.dropdown-item');
+    
+    timeFilterToggle.addEventListener('click', function(event) {
+      timeFilterMenu.classList.toggle('show');
+      event.stopPropagation();
+    });
+    
+    timeFilterItems.forEach(item => {
+      item.addEventListener('click', function() {
+        const value = this.getAttribute('data-value');
+        const text = this.textContent;
+        
+        // 更新显示文本
+        document.getElementById('selectedTimeRange').textContent = text;
+        
+        // 更新激活状态
+        timeFilterItems.forEach(i => i.classList.remove('active'));
+        this.classList.add('active');
+        
+        // 关闭下拉菜单
+        timeFilterMenu.classList.remove('show');
+        
+        // 如果选择了自定义时间，打开日历选择器
+        if (value === 'custom') {
+          document.getElementById('backdrop').classList.add('show');
+          document.getElementById('calendarModal').classList.add('show');
+        } else {
+          // 这里可以根据选择的时间范围刷新数据
+          console.log('Selected time range:', value);
+        }
+      });
+    });
+    
+
+    
+    // 点击页面其他地方关闭所有下拉菜单
+    document.addEventListener('click', function() {
+      timeFilterMenu.classList.remove('show');
+    });
+    
+    // 日历选择器相关事件
+    document.getElementById('closeCalendarBtn').addEventListener('click', closeCalendar);
+    document.getElementById('cancelDateBtn').addEventListener('click', closeCalendar);
+    document.getElementById('backdrop').addEventListener('click', closeCalendar);
+    
+    function closeCalendar() {
+      document.getElementById('backdrop').classList.remove('show');
+      document.getElementById('calendarModal').classList.remove('show');
+      
+      // 重置为上一个选择的时间范围
+      const activeItem = document.querySelector('#timeFilterMenu .dropdown-item.active:not([data-value="custom"])');
+      if (activeItem) {
+        document.getElementById('selectedTimeRange').textContent = activeItem.textContent;
+      } else {
+        // 如果没有其他选中项，默认选中"近7天"
+        document.getElementById('selectedTimeRange').textContent = "近7天";
+        document.querySelector('#timeFilterMenu .dropdown-item[data-value="7"]').classList.add('active');
+        document.querySelector('#timeFilterMenu .dropdown-item[data-value="custom"]').classList.remove('active');
+      }
+    }
+    
+    document.getElementById('confirmDateBtn').addEventListener('click', function() {
+      const startDate = document.getElementById('startDate').value;
+      const endDate = document.getElementById('endDate').value;
+      
+      if (!startDate || !endDate) {
+        alert('请选择开始和结束日期');
+        return;
+      }
+      
+      // 格式化日期显示
+      const formattedStart = formatDate(new Date(startDate));
+      const formattedEnd = formatDate(new Date(endDate));
+      document.getElementById('selectedTimeRange').textContent = `${formattedStart} - ${formattedEnd}`;
+      
+      // 关闭弹窗
+      document.getElementById('backdrop').classList.remove('show');
+      document.getElementById('calendarModal').classList.remove('show');
+      
+      // 更新数据
+      console.log('Custom date range:', startDate, 'to', endDate);
+    });
+    
+    function formatDate(date) {
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+    
+    // 场站搜索与标签功能
+    const stationSearchInput = document.getElementById('stationSearchInput');
+    const stationDropdown = document.getElementById('stationDropdown');
+    const stationTagsContainer = document.getElementById('stationTags');
+    const stationItems = document.querySelectorAll('.station-dropdown-item');
+    const selectedStations = new Set(); // 存储已选择的场站ID
+    const searchContainer = document.querySelector('.station-search-container');
+    let tagsCounter = null; // 标签计数器元素
+    
+    // 更新标签计数器
+    function updateTagsCounter() {
+      // 如果没有标签，移除计数器
+      if (selectedStations.size === 0) {
+        if (tagsCounter) {
+          tagsCounter.remove();
+          tagsCounter = null;
+        }
+        return;
+      }
+      
+      // 检查是否需要显示计数器（计算标签容器的宽度和内容宽度）
+      const containerWidth = stationTagsContainer.offsetWidth - 40; // 减去计数器预留空间
+      let tagsWidth = 0;
+      let visibleTags = 0;
+      
+      // 计算所有标签的总宽度
+      const tagElements = stationTagsContainer.querySelectorAll('.station-tag');
+      tagElements.forEach(tag => {
+        tagsWidth += tag.offsetWidth + 6; // 加上间距
+        if (tagsWidth <= containerWidth) {
+          visibleTags++;
+        }
+      });
+      
+      // 如果标签总宽度超过容器宽度，显示计数器
+      if (tagsWidth > containerWidth) {
+        const hiddenTags = selectedStations.size - visibleTags;
+        
+        // 创建或更新计数器
+        if (!tagsCounter) {
+          tagsCounter = document.createElement('div');
+          tagsCounter.className = 'tags-counter';
+          stationTagsContainer.appendChild(tagsCounter);
+        }
+        
+        // 更新计数文本
+        tagsCounter.textContent = `+${hiddenTags}`;
+      } else if (tagsCounter) {
+        // 如果所有标签都可见，移除计数器
+        tagsCounter.remove();
+        tagsCounter = null;
+      }
+    }
+    
+    // 在窗口调整大小时更新计数器
+    window.addEventListener('resize', updateTagsCounter);
+    
+    // 打开下拉菜单和高亮搜索框
+    stationSearchInput.addEventListener('focus', function() {
+      searchContainer.classList.add('station-search-active');
+      stationSearchInput.classList.add('search-focused');
+      stationDropdown.classList.add('show');
+    });
+    
+    // 添加场站标签
+    function addStationTag(id, name) {
+      if (selectedStations.has(id)) return; // 已经添加过，不重复添加
+      
+      selectedStations.add(id);
+      
+      const tag = document.createElement('div');
+      tag.className = 'station-tag';
+      tag.dataset.stationId = id;
+      tag.innerHTML = `
+        ${name}
+        <span class="remove-tag ml-1" data-station-id="${id}">&times;</span>
+      `;
+      stationTagsContainer.appendChild(tag);
+      
+      // 添加删除标签的事件
+      tag.querySelector('.remove-tag').addEventListener('click', function() {
+        const stationId = this.getAttribute('data-station-id');
+        removeStationTag(stationId);
+      });
+      
+      // 更新标签计数器
+      updateTagsCounter();
+    }
+    
+    // 移除场站标签
+    function removeStationTag(id) {
+      const tag = stationTagsContainer.querySelector(`.station-tag[data-station-id="${id}"]`);
+      if (tag) {
+        tag.remove();
+        selectedStations.delete(id);
+        updateTagsCounter();
+      }
+    }
+    
+    // 下拉选项点击事件
+    stationItems.forEach(item => {
+      item.addEventListener('click', function() {
+        const id = this.getAttribute('data-station-id');
+        const name = this.getAttribute('data-station-name');
+        addStationTag(id, name);
+        
+        // 清空搜索框
+        stationSearchInput.value = '';
+        
+        // 保持下拉菜单打开状态，方便连续选择
+        stationDropdown.classList.add('show');
+      });
+    });
+    
+    // 搜索框输入事件，实现过滤功能
+    stationSearchInput.addEventListener('input', function() {
+      const searchValue = this.value.toLowerCase();
+      
+      stationItems.forEach(item => {
+        const stationName = item.textContent.toLowerCase();
+        if (stationName.includes(searchValue)) {
+          item.style.display = '';
+        } else {
+          item.style.display = 'none';
+        }
+      });
+      
+      // 确保下拉菜单显示
+      stationDropdown.classList.add('show');
+    });
+    
+    // 点击页面其他位置关闭下拉菜单，但保留标签
+    document.addEventListener('click', function(e) {
+      if (!searchContainer.contains(e.target)) {
+        stationDropdown.classList.remove('show');
+        searchContainer.classList.remove('station-search-active');
+        stationSearchInput.classList.remove('search-focused');
+      }
+    });
+    
+    // 添加一些默认的场站标签作为示例
+    addStationTag('1', '浙大紫金港站');
+    addStationTag('3', '钱江新城站');
+    addStationTag('4', '萧山国际机场站');
+    
+    // 渲染健康度仪表盘
+    const healthMeter = document.getElementById('healthMeter');
+    
+    // 只有在元素存在时才进行操作
+    if (healthMeter) {
+      const ctx = healthMeter.getContext('2d');
+      
+      // 绘制健康度仪表盘
+      function drawHealthMeter(value) {
+        const centerX = healthMeter.width / 2;
+        const centerY = healthMeter.height / 2;
+        const radius = 70;
+        
+        // 清除画布
+        ctx.clearRect(0, 0, healthMeter.width, healthMeter.height);
+        
+        // 绘制灰色背景圆环
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, Math.PI, 2 * Math.PI, false);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = '#f1f1f1';
+        ctx.stroke();
+        
+        // 计算进度角度
+        const progress = value / 100;
+        const startAngle = Math.PI;
+        const endAngle = startAngle + progress * Math.PI;
+        
+        // 确定颜色
+        let color;
+        if (value >= 80) {
+          color = '#4CAF50'; // 绿色
+        } else if (value >= 60) {
+          color = '#FFC107'; // 黄色
+        } else {
+          color = '#F44336'; // 红色
+        }
+        
+        // 绘制进度圆环
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle, false);
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = color;
+        ctx.stroke();
+        
+        // 绘制刻度线
+        for (let i = 0; i <= 10; i++) {
+          const angle = Math.PI + i * Math.PI / 10;
+          const startRadius = radius - 5;
+          const endRadius = radius + 5;
+          
+          const startX = centerX + Math.cos(angle) * startRadius;
+          const startY = centerY + Math.sin(angle) * startRadius;
+          const endX = centerX + Math.cos(angle) * endRadius;
+          const endY = centerY + Math.sin(angle) * endRadius;
+          
+          ctx.beginPath();
+          ctx.moveTo(startX, startY);
+          ctx.lineTo(endX, endY);
+          ctx.lineWidth = i % 5 === 0 ? 2 : 1;
+          ctx.strokeStyle = '#ccc';
+          ctx.stroke();
+        }
+      }
+      
+      // 初始化图表
+      drawHealthMeter(85);
+    }
+    
+    // 初始化echarts
+    const efficiencyChart = echarts.init(document.getElementById('efficiencyChart'));
+    
+    // 效能图表配置
+    const efficiencyOption = {
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+          crossStyle: {
+            color: '#999'
+          }
+        },
+        formatter: function(params) {
+          let result = params[0].name + '<br/>';
+          params.forEach(param => {
+            const marker = `<span style="display:inline-block;margin-right:4px;border-radius:50%;width:10px;height:10px;background-color:${param.color};"></span>`;
+            const value = param.seriesIndex === 0 ? param.value + ' kWh' : param.value + ' 单';
+            result += marker + param.seriesName + ': ' + value + '<br/>';
+          });
+          return result;
+        }
+      },
+      legend: {
+        data: ['日均充电量', '日均订单数'],
+        bottom: 0,
+        textStyle: {
+          fontSize: 12
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '15%',
+        top: '3%',
+        containLabel: true
+      },
+      dataZoom: [
+        {
+          type: 'slider',
+          show: true,
+          start: 0,
+          end: 50, // 初始显示前50%的数据
+          height: 15,
+          bottom: 20,
+          borderColor: 'transparent',
+          backgroundColor: '#f5f5f5',
+          handleSize: 15,
+          handleStyle: {
+            color: '#3B82F6',
+            borderColor: '#3B82F6'
+          },
+          textStyle: {
+            fontSize: 10
+          }
+        },
+        {
+          type: 'inside',
+          start: 0,
+          end: 50
+        }
+      ],
+      xAxis: [
+        {
+          type: 'category',
+          data: ['浙大紫金港', '西湖文化广场', '钱江新城', '萧山机场', '余杭区政府', '滨江区政府', '杭州东站', '杭州西站', '未来科技城', '湘湖站'],
+          axisPointer: {
+            type: 'shadow'
+          },
+          axisLabel: {
+            rotate: 45,
+            interval: 0,
+            fontSize: 10,
+            formatter: function(value) {
+              if(value.length > 5) {
+                return value.substring(0, 5) + '...';
+              }
+              return value;
+            }
+          }
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value',
+          name: '充电量',
+          min: 0,
+          max: 400,
+          interval: 100,
+          axisLabel: {
+            formatter: '{value} kWh',
+            fontSize: 10
+          }
+        },
+        {
+          type: 'value',
+          name: '订单数',
+          min: 0,
+          max: 25,
+          interval: 5,
+          axisLabel: {
+            formatter: '{value} 单',
+            fontSize: 10
+          }
+        }
+      ],
+      series: [
+        {
+          name: '日均充电量',
+          type: 'bar',
+          data: [320, 280, 350, 190, 240, 260, 210, 180, 290, 230],
+          itemStyle: {color: '#3B82F6'}
+        },
+        {
+          name: '日均订单数',
+          type: 'line',
+          yAxisIndex: 1,
+          data: [18, 16, 20, 13, 14, 15, 12, 10, 17, 14],
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: { width: 2 },
+          itemStyle: {color: '#10B981'}
+        }
+      ]
+    };
+    
+    // 渲染效能图表
+    efficiencyChart.setOption(efficiencyOption);
+    
+    // 渲染故障图表
+    const faultChart = echarts.init(document.getElementById('faultChart'));
+    const faultOption = {
+      tooltip: {
+        trigger: 'item'
+      },
+      legend: {
+        orient: 'horizontal',
+        bottom: 0
+      },
+      series: [
+        {
+          name: '故障类型',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['50%', '40%'],
+          avoidLabelOverlap: true,
+          itemStyle: {
+            borderRadius: 6,
+            borderColor: '#fff',
+            borderWidth: 2
+          },
+          label: {
+            show: false,
+            position: 'center'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: '12',
+              fontWeight: 'bold'
+            }
+          },
+          labelLine: {
+            show: false
+          },
+          data: [
+            { value: 35, name: '通信故障' },
+            { value: 30, name: '电压异常' },
+            { value: 15, name: '过温保护' },
+            { value: 10, name: '接口故障' },
+            { value: 10, name: '其他' }
+          ]
+        }
+      ]
+    };
+    faultChart.setOption(faultOption);
+    
+    // 在这个函数内添加对页面宽度的检测和对应的图表调整
+    function adjustChartForMobile() {
+      const pageWidth = window.innerWidth;
+      
+      // 如果是移动端尺寸
+      if (pageWidth < 768) {
+        // 调整图表配置
+        efficiencyOption.grid.bottom = '25%'; // 为下方的滑动条留出更多空间
+        
+        // 设置图例为单行
+        efficiencyOption.legend.orient = 'horizontal';
+        
+        // 增加数据缩放范围，移动端默认显示少量数据
+        efficiencyOption.dataZoom[0].end = 30; // 移动端默认只显示30%的数据
+        efficiencyOption.dataZoom[1].end = 30;
+      } else {
+        // 桌面端恢复默认设置
+        efficiencyOption.grid.bottom = '15%';
+        efficiencyOption.dataZoom[0].end = 50;
+        efficiencyOption.dataZoom[1].end = 50;
+      }
+      
+      // 重新应用配置
+      efficiencyChart.setOption(efficiencyOption);
+    }
+    
+    // 页面加载和窗口大小改变时调整图表
+    adjustChartForMobile();
+    window.addEventListener('resize', function() {
+      adjustChartForMobile();
+      efficiencyChart.resize();
+      faultChart.resize();
+    });
+  </script>
+</body>
+</html>

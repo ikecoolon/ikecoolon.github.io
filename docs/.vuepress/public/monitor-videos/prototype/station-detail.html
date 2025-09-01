@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>场站详情 - 视频监控系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 p-6">
+
+<!-- 场站详情页面 -->
+<div class="station-detail">
+    <!-- 页面头部 -->
+    <div class="flex items-center justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 mb-2"><span data-station-id>YKC</span>场站</h1>
+            <p class="text-gray-600">场站编号: 51070190821108 | 位置: 四川省成都市</p>
+        </div>
+        <div class="flex space-x-2">
+            <button onclick="goHome()" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>返回
+            </button>
+            <button class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                <i class="fas fa-sync-alt mr-2"></i>刷新
+            </button>
+        </div>
+    </div>
+
+    <!-- 场站状态概览 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-video text-green-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-600">摄像头状态</p>
+                    <p class="text-2xl font-semibold text-gray-900">4/4</p>
+                    <p class="text-xs text-green-600">全部在线</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-hdd text-blue-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-600">存储空间</p>
+                    <p class="text-2xl font-semibold text-gray-900">75%</p>
+                    <p class="text-xs text-gray-600">750GB/1TB</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-clock text-purple-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-600">录像保留</p>
+                    <p class="text-2xl font-semibold text-gray-900">30天</p>
+                    <p class="text-xs text-gray-600">预计可用</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex items-center">
+                <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm text-gray-600">告警数量</p>
+                    <p class="text-2xl font-semibold text-gray-900">0</p>
+                    <p class="text-xs text-green-600">正常运行</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能选项卡 -->
+    <div class="bg-white rounded-lg shadow mb-6">
+        <div class="border-b">
+            <nav class="flex space-x-8 px-6" aria-label="Tabs">
+                <button onclick="switchTab('cameras')" id="tab-cameras" class="py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600">
+                    <i class="fas fa-video mr-2"></i>摄像头管理
+                </button>
+                <button onclick="switchTab('monitor')" id="tab-monitor" class="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-eye mr-2"></i>实时监控
+                </button>
+                <button onclick="switchTab('playback')" id="tab-playback" class="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-history mr-2"></i>历史回放
+                </button>
+                <button onclick="switchTab('alerts')" id="tab-alerts" class="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-bell mr-2"></i>智能预警
+                </button>
+                <button onclick="switchTab('downloads')" id="tab-downloads" class="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-download mr-2"></i>下载任务
+                </button>
+            </nav>
+        </div>
+
+        <!-- 摄像头管理选项卡内容 -->
+        <div id="content-cameras" class="tab-content p-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-lg font-medium text-gray-900">摄像头-01</h4>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">在线</span>
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-600 mb-4">
+                        <div class="flex justify-between">
+                            <span>位置:</span>
+                            <span>主入口</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>分辨率:</span>
+                            <span>1920x1080</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>帧率:</span>
+                            <span>25fps</span>
+                        </div>
+                    </div>
+                    <button onclick="viewCamera('cam01')" class="w-full bg-blue-500 text-white px-3 py-2 text-sm rounded hover:bg-blue-600">
+                        <i class="fas fa-eye mr-1"></i>查看实时画面
+                    </button>
+                </div>
+
+                <div class="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-lg font-medium text-gray-900">摄像头-02</h4>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">在线</span>
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-600 mb-4">
+                        <div class="flex justify-between">
+                            <span>位置:</span>
+                            <span>充电区域</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>分辨率:</span>
+                            <span>1920x1080</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>帧率:</span>
+                            <span>25fps</span>
+                        </div>
+                    </div>
+                    <button onclick="viewCamera('cam02')" class="w-full bg-blue-500 text-white px-3 py-2 text-sm rounded hover:bg-blue-600">
+                        <i class="fas fa-eye mr-1"></i>查看实时画面
+                    </button>
+                </div>
+
+                <div class="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-lg font-medium text-gray-900">摄像头-03</h4>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">在线</span>
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-600 mb-4">
+                        <div class="flex justify-between">
+                            <span>位置:</span>
+                            <span>停车区域</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>分辨率:</span>
+                            <span>1920x1080</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>帧率:</span>
+                            <span>25fps</span>
+                        </div>
+                    </div>
+                    <button onclick="viewCamera('cam03')" class="w-full bg-blue-500 text-white px-3 py-2 text-sm rounded hover:bg-blue-600">
+                        <i class="fas fa-eye mr-1"></i>查看实时画面
+                    </button>
+                </div>
+
+                <div class="border rounded-lg p-4 hover:shadow-lg transition-shadow">
+                    <div class="flex items-center justify-between mb-3">
+                        <h4 class="text-lg font-medium text-gray-900">摄像头-04</h4>
+                        <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">在线</span>
+                    </div>
+                    <div class="space-y-2 text-sm text-gray-600 mb-4">
+                        <div class="flex justify-between">
+                            <span>位置:</span>
+                            <span>周边环境</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>分辨率:</span>
+                            <span>1920x1080</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>帧率:</span>
+                            <span>25fps</span>
+                        </div>
+                    </div>
+                    <button onclick="viewCamera('cam04')" class="w-full bg-blue-500 text-white px-3 py-2 text-sm rounded hover:bg-blue-600">
+                        <i class="fas fa-eye mr-1"></i>查看实时画面
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 实时监控选项卡内容 -->
+        <div id="content-monitor" class="tab-content p-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 摄像头列表 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">摄像头列表</h4>
+                    <div class="space-y-2">
+                        <button onclick="selectCamera('cam01')" class="w-full text-left p-3 bg-white rounded border hover:bg-blue-50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium">摄像头-01</span>
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            </div>
+                            <p class="text-sm text-gray-600">主入口</p>
+                        </button>
+                        <button onclick="selectCamera('cam02')" class="w-full text-left p-3 bg-white rounded border hover:bg-blue-50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium">摄像头-02</span>
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            </div>
+                            <p class="text-sm text-gray-600">充电区域</p>
+                        </button>
+                        <button onclick="selectCamera('cam03')" class="w-full text-left p-3 bg-white rounded border hover:bg-blue-50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium">摄像头-03</span>
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            </div>
+                            <p class="text-sm text-gray-600">停车区域</p>
+                        </button>
+                        <button onclick="selectCamera('cam04')" class="w-full text-left p-3 bg-white rounded border hover:bg-blue-50 transition-colors">
+                            <div class="flex items-center justify-between">
+                                <span class="font-medium">摄像头-04</span>
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                            </div>
+                            <p class="text-sm text-gray-600">周边环境</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 视频播放区域 -->
+                <div class="lg:col-span-2">
+                    <div class="bg-black rounded-lg aspect-video flex items-center justify-center relative">
+                        <div class="text-center text-white">
+                            <i class="fas fa-video text-4xl mb-4"></i>
+                            <p class="text-lg">请选择摄像头查看实时画面</p>
+                            <p class="text-sm text-gray-300 mt-2">当前未选择任何摄像头</p>
+                        </div>
+                        <!-- 视频控制栏 -->
+                        <div class="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 rounded px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <button class="text-white hover:text-blue-400">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="text-white hover:text-blue-400">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button class="text-white hover:text-blue-400">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史回放选项卡内容 -->
+        <div id="content-playback" class="tab-content p-6 hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <!-- 控制面板 -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">回放控制</h4>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">选择摄像头</label>
+                            <select class="w-full border border-gray-300 rounded-md px-3 py-2">
+                                <option>摄像头-01 (主入口)</option>
+                                <option>摄像头-02 (充电区域)</option>
+                                <option>摄像头-03 (停车区域)</option>
+                                <option>摄像头-04 (周边环境)</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">开始时间</label>
+                            <input type="datetime-local" id="start-time" class="w-full border border-gray-300 rounded-md px-3 py-2" 
+                                   value="2024-05-29T14:00" onchange="validateTimeRange()">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">结束时间</label>
+                            <input type="datetime-local" id="end-time" class="w-full border border-gray-300 rounded-md px-3 py-2" 
+                                   value="2024-05-29T16:00" onchange="validateTimeRange()">
+                        </div>
+                        
+                        <div id="time-range-info" class="text-xs text-gray-600 p-2 bg-blue-50 rounded">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <span>时长: 2小时 (最长支持2小时，可跨天)</span>
+                        </div>
+                        
+                        <button onclick="queryPlayback()" class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            <i class="fas fa-search mr-2"></i>查询录像
+                        </button>
+                        
+                        
+                    </div>
+                </div>
+
+                <!-- 视频播放和时间轴 -->
+                <div class="lg:col-span-3">
+                    <!-- 视频播放区域 -->
+                    <div class="bg-black rounded-lg aspect-video flex items-center justify-center relative mb-4">
+                        <div id="playback-placeholder" class="text-center text-white">
+                            <i class="fas fa-history text-4xl mb-4"></i>
+                            <p class="text-lg">历史录像回放</p>
+                            <p class="text-sm text-gray-300 mt-2">请选择摄像头和时间段后查询录像</p>
+                        </div>
+                        
+                        <div id="playback-video" class="w-full h-full hidden">
+                            <!-- 模拟视频内容 -->
+                            <div class="w-full h-full bg-gray-800 flex items-center justify-center text-white">
+                                <div class="text-center">
+                                    <i class="fas fa-play-circle text-6xl mb-4"></i>
+                                    <p>播放中: 摄像头-01</p>
+                                    <p class="text-sm text-gray-300">2024-05-29 14:32:15</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 视频控制栏 -->
+                        <div class="absolute bottom-4 left-4 right-4 bg-black bg-opacity-50 rounded px-4 py-2 flex items-center justify-between">
+                            <div class="flex items-center space-x-2">
+                                <button onclick="togglePlayback()" class="text-white hover:text-blue-400">
+                                    <i id="play-pause-icon" class="fas fa-play"></i>
+                                </button>
+                                <button onclick="skipBackward()" class="text-white hover:text-blue-400">
+                                    <i class="fas fa-backward"></i>
+                                </button>
+                                <button onclick="skipForward()" class="text-white hover:text-blue-400">
+                                    <i class="fas fa-forward"></i>
+                                </button>
+                                <button class="text-white hover:text-blue-400">
+                                    <i class="fas fa-volume-up"></i>
+                                </button>
+                                <span id="current-time" class="text-white text-sm">14:32:15</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <button onclick="showDownloadDialog()" class="text-white hover:text-green-400" title="下载录像">
+                                    <i class="fas fa-download"></i>
+                                </button>
+                                <button class="text-white hover:text-blue-400">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 时间轴容器 -->
+                    <div id="timeline-container" class="bg-white border rounded-lg p-4 hidden">
+                        <div class="flex items-center justify-between mb-3">
+                            <h5 class="text-sm font-medium text-gray-900">录像时间轴</h5>
+                            <div class="text-xs text-gray-500">
+                                <span id="timeline-range">2024-05-29 14:00 - 16:00</span>
+                                <span class="ml-2">拖拽选择下载片段</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 主时间轴 -->
+                        <div class="relative mb-4">
+                            <!-- 时间标尺 -->
+                            <div class="flex justify-between text-xs text-gray-500 mb-2">
+                                <span id="timeline-start">14:00</span>
+                                <span id="timeline-quarter">14:30</span>
+                                <span id="timeline-half">15:00</span>
+                                <span id="timeline-three-quarter">15:30</span>
+                                <span id="timeline-end">16:00</span>
+                            </div>
+                            
+                            <!-- 录像条和进度条 -->
+                            <div class="relative">
+                                <!-- 录像可用时间段背景 -->
+                                <div class="h-8 bg-gray-200 rounded relative">
+                                    <!-- 有录像的时间段 -->
+                                    <div class="absolute h-full bg-blue-500 rounded opacity-80" style="left: 5%; width: 20%;" title="14:03-14:27"></div>
+                                    <div class="absolute h-full bg-blue-500 rounded opacity-80" style="left: 30%; width: 35%;" title="14:36-15:12"></div>
+                                    <div class="absolute h-full bg-blue-500 rounded opacity-80" style="left: 70%; width: 25%;" title="15:24-15:54"></div>
+                                    
+                                    <!-- 当前播放位置指示器 -->
+                                    <div id="playback-indicator" class="absolute top-0 w-1 h-8 bg-red-500" style="left: 27%;">
+                                        <div class="absolute -top-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-b-4 border-transparent border-b-red-500"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 选择区域覆盖层 -->
+                                <div id="selection-overlay" class="absolute top-0 h-8 bg-green-400 opacity-50 rounded hidden" style="left: 25%; width: 20%;"></div>
+                                
+                                <!-- 拖拽手柄 -->
+                                <div id="selection-start" class="absolute top-0 w-2 h-8 bg-green-600 cursor-col-resize hidden" style="left: 25%;">
+                                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-4 bg-white rounded"></div>
+                                </div>
+                                <div id="selection-end" class="absolute top-0 w-2 h-8 bg-green-600 cursor-col-resize hidden" style="left: 45%;">
+                                    <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-1 h-4 bg-white rounded"></div>
+                                </div>
+                            </div>
+                            
+                            <p class="text-xs text-gray-500 mt-2">
+                                <span class="inline-block w-3 h-3 bg-blue-500 rounded mr-1"></span>有录像时间段
+                                <span class="inline-block w-3 h-3 bg-green-400 rounded mr-1 ml-3"></span>已选择下载片段
+                                <span class="inline-block w-1 h-3 bg-red-500 mr-1 ml-3"></span>当前播放位置
+                            </p>
+                        </div>
+                        
+                        <!-- 精确时间输入 -->
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">下载开始时间</label>
+                                <input type="time" id="download-start-time" class="w-full text-sm border border-gray-300 rounded px-2 py-1" 
+                                       value="14:30" onchange="updateSelectionFromInput()">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">下载结束时间</label>
+                                <input type="time" id="download-end-time" class="w-full text-sm border border-gray-300 rounded px-2 py-1" 
+                                       value="14:42" onchange="updateSelectionFromInput()">
+                            </div>
+                        </div>
+                        
+                        <!-- 下载信息和操作 -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded">
+                            <div class="text-sm text-gray-700">
+                                <p><strong>选中时长:</strong> <span id="selected-duration">12分钟</span></p>
+                                <p class="text-xs text-gray-500">预计文件大小: <span id="estimated-size">~240MB</span></p>
+                            </div>
+                            <button onclick="confirmCloudDownload()" class="bg-green-500 text-white px-4 py-2 rounded text-sm hover:bg-green-600">
+                                <i class="fas fa-cloud-download-alt mr-2"></i>加入云端下载队列
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 智能预警选项卡内容 -->
+        <div id="content-alerts" class="tab-content p-6 hidden">
+            <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">
+                    <i class="fas fa-shield-alt text-blue-600 mr-2"></i>智能预警管理
+                </h3>
+                <p class="text-sm text-gray-600">AI实时分析监控画面，自动检测火情、漏液、设备损坏等异常情况</p>
+            </div>
+            
+            <div class="space-y-4">
+                <!-- 火情预警 -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4" data-alert-id="AL001">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <div class="flex items-center space-x-2 mb-2">
+                                <i class="fas fa-fire text-red-600"></i>
+                                <h4 class="text-sm font-medium text-gray-900">火情预警</h4>
+                                <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full border border-red-200">
+                                    高危
+                                </span>
+                                <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-full">
+                                    待处理
+                                </span>
+                            </div>
+                            
+                            <div class="space-y-1 mb-3">
+                                <p class="text-sm text-gray-800 font-medium">检测到疑似火情，请立即检查</p>
+                                <p class="text-xs text-gray-600">
+                                    <i class="fas fa-video mr-1"></i>摄像头-02 (充电区域)
+                                    | <i class="fas fa-clock ml-2 mr-1"></i>2024-05-29 11:42:15
+                                </p>
+                                <p class="text-xs text-gray-500">
+                                    AI置信度: 85% | 建议立即现场确认
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="ml-4 flex flex-col space-y-2">
+                            <button onclick="handleAlertInStation('AL001')" 
+                                    class="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700">
+                                <i class="fas fa-check mr-1"></i>处理
+                            </button>
+                            <button onclick="viewAlertDetail('AL001')" 
+                                    class="text-sm px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700">
+                                <i class="fas fa-eye mr-1"></i>详情
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 设备正常状态 -->
+                <div class="text-center py-8 text-gray-500">
+                    <i class="fas fa-shield-alt text-4xl mb-4 text-green-500"></i>
+                    <p class="text-lg font-medium text-gray-700">智能监控运行中</p>
+                    <p class="text-sm mt-2">系统正在实时监控画面，有异常会及时提醒</p>
+                    
+                    <div class="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4 max-w-md mx-auto">
+                        <div class="text-center">
+                            <i class="fas fa-fire text-orange-500 text-xl mb-1"></i>
+                            <p class="text-xs text-gray-600">火情检测</p>
+                        </div>
+                        <div class="text-center">
+                            <i class="fas fa-tint text-blue-500 text-xl mb-1"></i>
+                            <p class="text-xs text-gray-600">漏液检测</p>
+                        </div>
+                        <div class="text-center">
+                            <i class="fas fa-wrench text-gray-500 text-xl mb-1"></i>
+                            <p class="text-xs text-gray-600">设备损坏</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 下载任务选项卡内容 -->
+        <div id="content-downloads" class="tab-content p-6 hidden">
+            <div class="space-y-4">
+                <div class="bg-white border rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h5 class="text-sm font-medium text-gray-900">摄像头-01_20240529_1400-1430.mp4</h5>
+                            <p class="text-xs text-gray-600">下载时间: 2024-05-29 14:35 | 文件大小: 2.1GB</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded">已完成</span>
+                            <button class="text-blue-600 hover:text-blue-800">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white border rounded-lg p-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h5 class="text-sm font-medium text-gray-900">摄像头-02_20240529_1000-1030.mp4</h5>
+                            <p class="text-xs text-gray-600">下载时间: 2024-05-29 13:20 | 文件大小: 1.8GB</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded">下载中 (78%)</span>
+                            <button class="text-red-600 hover:text-red-800">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-blue-600 h-2 rounded-full" style="width: 78%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="text-center py-4">
+                    <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        <i class="fas fa-plus mr-2"></i>新建下载任务
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 存储状态详情 -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">存储与资源状态</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-3">存储空间使用情况</h4>
+                <div class="space-y-3">
+                    <div class="flex justify-between text-sm">
+                        <span>录像文件</span>
+                        <span class="font-medium">650GB</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: 65%"></div>
+                    </div>
+                    
+                    <div class="flex justify-between text-sm">
+                        <span>截图文件</span>
+                        <span class="font-medium">100GB</span>
+                    </div>
+                    <div class="w-full bg-gray-200 rounded-full h-2">
+                        <div class="bg-green-600 h-2 rounded-full" style="width: 10%"></div>
+                    </div>
+                    
+                    <div class="flex justify-between text-sm font-medium pt-2 border-t">
+                        <span>总计使用</span>
+                        <span>750GB / 1TB (75%)</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-sm font-medium text-gray-700 mb-3">预计可用时长</h4>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span>当前录像保留:</span>
+                        <span class="font-medium text-green-600">30天</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>预计存储满时间:</span>
+                        <span class="font-medium text-yellow-600">7天后</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>流量余额:</span>
+                        <span class="font-medium text-blue-600">2.5TB</span>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-600 mt-0.5 mr-2"></i>
+                        <div class="text-sm">
+                            <p class="font-medium text-yellow-800">存储空间提醒</p>
+                            <p class="text-yellow-700">存储空间即将满，建议及时清理老旧录像或扩容</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 选项卡切换功能
+function switchTab(tabName) {
+    console.log('切换到选项卡:', tabName);
+    
+    // 隐藏所有选项卡内容
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabContents.forEach(content => {
+        content.classList.add('hidden');
+    });
+    
+    // 移除所有选项卡的激活样式
+    const tabButtons = document.querySelectorAll('[id^="tab-"]');
+    tabButtons.forEach(button => {
+        button.classList.remove('border-blue-500', 'text-blue-600');
+        button.classList.add('border-transparent', 'text-gray-500');
+    });
+    
+    // 显示选中的选项卡内容
+    const targetContent = document.getElementById(`content-${tabName}`);
+    if (targetContent) {
+        targetContent.classList.remove('hidden');
+        console.log('显示选项卡内容:', `content-${tabName}`);
+    } else {
+        console.error('找不到选项卡内容:', `content-${tabName}`);
+    }
+    
+    // 激活选中的选项卡按钮
+    const targetTab = document.getElementById(`tab-${tabName}`);
+    if (targetTab) {
+        targetTab.classList.remove('border-transparent', 'text-gray-500');
+        targetTab.classList.add('border-blue-500', 'text-blue-600');
+        console.log('激活选项卡按钮:', `tab-${tabName}`);
+    } else {
+        console.error('找不到选项卡按钮:', `tab-${tabName}`);
+    }
+}
+
+// 选择摄像头功能
+function selectCamera(cameraId) {
+    console.log('选择摄像头:', cameraId);
+    // 这里可以添加实际的摄像头切换逻辑
+}
+
+// 高亮显示特定告警
+function highlightAlert(alertId) {
+    console.log('高亮显示告警:', alertId);
+    
+    // 显示告警处理提示
+    setTimeout(() => {
+        const alertsContainer = document.getElementById('content-alerts');
+        if (alertsContainer) {
+            // 在告警选项卡顶部显示提示信息
+            const alertNotice = document.createElement('div');
+            alertNotice.className = 'bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded mb-4';
+            alertNotice.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-yellow-600 mr-3"></i>
+                    <div>
+                        <h5 class="text-sm font-medium text-yellow-800">从告警概览跳转</h5>
+                        <p class="text-xs text-yellow-600">正在查看告警 ${alertId} 的详细信息</p>
+                    </div>
+                    <button onclick="this.parentElement.parentElement.remove()" class="ml-auto text-yellow-600 hover:text-yellow-800">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            // 插入到告警内容的开头
+            const firstChild = alertsContainer.querySelector('.space-y-4');
+            if (firstChild) {
+                firstChild.insertBefore(alertNotice, firstChild.firstChild);
+            }
+            
+            // 3秒后自动移除提示
+            setTimeout(() => {
+                if (alertNotice.parentElement) {
+                    alertNotice.remove();
+                }
+            }, 3000);
+        }
+    }, 200);
+}
+
+// 查看摄像头功能
+function viewCamera(cameraId) {
+    console.log('查看摄像头:', cameraId);
+    switchTab('monitor');
+    selectCamera(cameraId);
+}
+
+// 监听来自父窗口的消息
+window.addEventListener('message', function(event) {
+    if (event.data.type === 'pageParams') {
+        console.log('接收到页面参数:', event.data.params);
+        const params = event.data.params;
+        
+        // 根据参数切换选项卡
+        if (params.activeTab) {
+            console.log('准备切换到选项卡:', params.activeTab);
+            setTimeout(() => {
+                switchTab(params.activeTab);
+                
+                // 如果是切换到告警选项卡且有alertId，高亮显示对应告警
+                if (params.activeTab === 'alerts' && params.alertId) {
+                    console.log('高亮显示告警ID:', params.alertId);
+                    highlightAlert(params.alertId);
+                }
+            }, 100);
+        }
+        
+        // 设置场站ID
+        if (params.stationId) {
+            console.log('设置场站ID:', params.stationId);
+            // 更新页面标题中的场站ID
+            const stationIdElements = document.querySelectorAll('[data-station-id]');
+            stationIdElements.forEach(el => {
+                el.textContent = params.stationId;
+            });
+        }
+    }
+});
+
+// 重新定义全局函数，使其在iframe中正常工作
+function goHome() {
+    window.parent.postMessage({
+        type: 'navigation',
+        action: 'goHome'
+    }, '*');
+}
+
+function showStationDetail(stationId) {
+    window.parent.postMessage({
+        type: 'navigation',
+        action: 'showStationDetail',
+        params: { stationId }
+    }, '*');
+}
+
+function showRealTimeMonitor(stationId) {
+    window.parent.postMessage({
+        type: 'navigation',
+        action: 'showRealTimeMonitor',
+        params: { stationId }
+    }, '*');
+}
+
+function showHistoricalPlayback(stationId) {
+    window.parent.postMessage({
+        type: 'navigation',
+        action: 'showHistoricalPlayback',
+        params: { stationId }
+    }, '*');
+}
+
+function showDownloadTasksOverview() {
+    window.parent.postMessage({
+        type: 'navigation',
+        action: 'showDownloadTasksOverview'
+    }, '*');
+}
+
+function downloadFile(filename) {
+    // 模拟下载功能
+    console.log('下载文件:', filename);
+    window.parent.postMessage({
+        type: 'action',
+        action: 'downloadFile',
+        params: { filename }
+    }, '*');
+}
+
+function retryDownload(taskId) {
+    console.log('重试下载:', taskId);
+    window.parent.postMessage({
+        type: 'action',
+        action: 'retryDownload',
+        params: { taskId }
+    }, '*');
+}
+
+// 在场站页面内处理告警
+function handleAlertInStation(alertId) {
+    console.log('处理告警:', alertId);
+    
+    // 更新告警状态为已处理
+    const alertElement = document.querySelector(`[data-alert-id="${alertId}"]`);
+    if (alertElement) {
+        const statusSpan = alertElement.querySelector('.bg-gray-100');
+        if (statusSpan) {
+            statusSpan.className = 'px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full';
+            statusSpan.textContent = '已处理';
+        }
+    }
+    
+    // 向父窗口发送处理消息
+    window.parent.postMessage({
+        type: 'action',
+        action: 'handleAlert',
+        params: { alertId }
+    }, '*');
+}
+
+// 查看告警详情
+function viewAlertDetail(alertId) {
+    console.log('查看告警详情:', alertId);
+    window.parent.postMessage({
+        type: 'action',
+        action: 'viewAlertDetail',
+        params: { alertId }
+    }, '*');
+}
+
+// 历史回放相关功能
+let currentPlaybackSpeed = 1;
+let isPlaying = false;
+let selectionStartPercent = 25;
+let selectionEndPercent = 45;
+let isDragging = false;
+let dragTarget = null;
+
+// 验证时间范围（最长2小时）
+function validateTimeRange() {
+    const startTime = document.getElementById('start-time').value;
+    const endTime = document.getElementById('end-time').value;
+    
+    if (startTime && endTime) {
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        const duration = (end - start) / (1000 * 60 * 60); // 小时
+        
+        const infoDiv = document.getElementById('time-range-info');
+        const infoSpan = infoDiv.querySelector('span');
+        
+        if (duration > 2) {
+            infoDiv.className = 'text-xs text-red-600 p-2 bg-red-50 border border-red-200 rounded';
+            infoSpan.textContent = `时长: ${duration.toFixed(1)}小时 (超出限制，最长支持2小时)`;
+            document.querySelector('button[onclick="queryPlayback()"]').disabled = true;
+            document.querySelector('button[onclick="queryPlayback()"]').className = 'w-full bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed';
+        } else if (duration <= 0) {
+            infoDiv.className = 'text-xs text-red-600 p-2 bg-red-50 border border-red-200 rounded';
+            infoSpan.textContent = '结束时间必须晚于开始时间';
+            document.querySelector('button[onclick="queryPlayback()"]').disabled = true;
+            document.querySelector('button[onclick="queryPlayback()"]').className = 'w-full bg-gray-400 text-white px-4 py-2 rounded cursor-not-allowed';
+        } else {
+            infoDiv.className = 'text-xs text-gray-600 p-2 bg-blue-50 rounded';
+            infoSpan.textContent = `时长: ${duration === 1 ? '1小时' : Math.floor(duration * 60) + '分钟'} (可跨天查询)`;
+            document.querySelector('button[onclick="queryPlayback()"]').disabled = false;
+            document.querySelector('button[onclick="queryPlayback()"]').className = 'w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600';
+        }
+    }
+}
+
+// 查询回放
+function queryPlayback() {
+    const startTime = document.getElementById('start-time').value;
+    const endTime = document.getElementById('end-time').value;
+    
+    if (!startTime || !endTime) {
+        alert('请选择开始和结束时间');
+        return;
+    }
+    
+    // 隐藏占位符，显示视频
+    document.getElementById('playback-placeholder').classList.add('hidden');
+    document.getElementById('playback-video').classList.remove('hidden');
+    document.getElementById('timeline-container').classList.remove('hidden');
+    
+    // 更新时间轴范围显示
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    document.getElementById('timeline-range').textContent = 
+        `${start.toLocaleDateString()} ${start.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})} - ${end.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}`;
+    
+    // 更新时间轴标尺
+    updateTimelineLabels(start, end);
+    
+    showToast('录像查询成功，开始播放', 'success');
+}
+
+// 更新时间轴标尺
+function updateTimelineLabels(start, end) {
+    const duration = end - start;
+    const quarter = new Date(start.getTime() + duration * 0.25);
+    const half = new Date(start.getTime() + duration * 0.5);
+    const threeQuarter = new Date(start.getTime() + duration * 0.75);
+    
+    document.getElementById('timeline-start').textContent = start.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+    document.getElementById('timeline-quarter').textContent = quarter.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+    document.getElementById('timeline-half').textContent = half.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+    document.getElementById('timeline-three-quarter').textContent = threeQuarter.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+    document.getElementById('timeline-end').textContent = end.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+}
+
+// 播放控制
+function togglePlayback() {
+    isPlaying = !isPlaying;
+    const icon = document.getElementById('play-pause-icon');
+    if (isPlaying) {
+        icon.className = 'fas fa-pause';
+        showToast(`以 ${currentPlaybackSpeed}x 倍速播放`, 'info');
+    } else {
+        icon.className = 'fas fa-play';
+        showToast('暂停播放', 'info');
+    }
+}
+
+function skipBackward() {
+    showToast('快退 15 秒', 'info');
+}
+
+function skipForward() {
+    showToast('快进 15 秒', 'info');
+}
+
+// 设置播放倍速
+function setPlaybackSpeed(speed) {
+    currentPlaybackSpeed = speed;
+    
+    // 更新按钮样式
+    document.querySelectorAll('button[onclick^="setPlaybackSpeed"]').forEach(btn => {
+        btn.className = 'flex-1 text-xs px-2 py-1 bg-white border rounded hover:bg-gray-50';
+    });
+    
+    event.target.className = 'flex-1 text-xs px-2 py-1 bg-blue-500 text-white border rounded';
+    
+    if (isPlaying) {
+        showToast(`切换到 ${speed}x 倍速播放`, 'info');
+    }
+}
+
+// 显示下载对话框
+function showDownloadDialog() {
+    // 显示云端下载流程提示
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="p-6 border-b">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-cloud-download-alt text-blue-600 mr-2"></i>录像下载说明
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                            <span class="text-blue-600 font-semibold text-sm">1</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">云端下载</h4>
+                            <p class="text-sm text-gray-600">首先需要将录像从云端服务器下载到下载队列</p>
+                        </div>
+                    </div>
+                    <div class="flex items-start">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3 mt-0.5">
+                            <span class="text-blue-600 font-semibold text-sm">2</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">本地下载</h4>
+                            <p class="text-sm text-gray-600">云端下载完成后，您可以将文件下载到本地</p>
+                        </div>
+                    </div>
+                    <div class="bg-yellow-50 border border-yellow-200 rounded p-3">
+                        <div class="flex items-start">
+                            <i class="fas fa-info-circle text-yellow-600 mt-0.5 mr-2"></i>
+                            <div class="text-sm">
+                                <p class="font-medium text-yellow-800">注意事项</p>
+                                <p class="text-yellow-700">• 目前仅支持单任务云端下载，多个任务将自动排队</p>
+                                <p class="text-yellow-700">• 请在时间轴上精确选择需要下载的片段</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-6 border-t flex space-x-3">
+                <button onclick="closeDownloadDialog()" class="flex-1 bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                    取消
+                </button>
+                <button onclick="proceedToTimelineSelection()" class="flex-1 bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                    <i class="fas fa-arrow-right mr-2"></i>选择下载片段
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.onclick = (e) => {
+        if (e.target === modal) closeDownloadDialog();
+    };
+}
+
+function closeDownloadDialog() {
+    const modal = document.querySelector('.fixed.inset-0.bg-black.bg-opacity-50');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+function proceedToTimelineSelection() {
+    closeDownloadDialog();
+    showSelectionMode();
+    showToast('请在时间轴上选择要下载的片段', 'info');
+}
+
+// 显示选择模式
+function showSelectionMode() {
+    // 显示选择相关元素
+    document.getElementById('selection-overlay').classList.remove('hidden');
+    document.getElementById('selection-start').classList.remove('hidden');
+    document.getElementById('selection-end').classList.remove('hidden');
+    
+    // 添加拖拽事件监听
+    addTimelineInteraction();
+    
+    // 更新选择时间
+    updateSelectionTime();
+}
+
+// 添加时间轴交互功能
+function addTimelineInteraction() {
+    const timeline = document.querySelector('#timeline-container .h-8.bg-gray-200');
+    const selectionStart = document.getElementById('selection-start');
+    const selectionEnd = document.getElementById('selection-end');
+    
+    // 拖拽开始手柄
+    selectionStart.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragTarget = 'start';
+        e.preventDefault();
+    });
+    
+    // 拖拽结束手柄
+    selectionEnd.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        dragTarget = 'end';
+        e.preventDefault();
+    });
+    
+    // 鼠标移动
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const rect = timeline.getBoundingClientRect();
+        const percent = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+        
+        if (dragTarget === 'start') {
+            if (percent < selectionEndPercent) {
+                selectionStartPercent = percent;
+                updateSelectionPosition();
+                updateSelectionTime();
+            }
+        } else if (dragTarget === 'end') {
+            if (percent > selectionStartPercent) {
+                selectionEndPercent = percent;
+                updateSelectionPosition();
+                updateSelectionTime();
+            }
+        }
+    });
+    
+    // 鼠标释放
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        dragTarget = null;
+    });
+}
+
+// 更新选择位置
+function updateSelectionPosition() {
+    const overlay = document.getElementById('selection-overlay');
+    const startHandle = document.getElementById('selection-start');
+    const endHandle = document.getElementById('selection-end');
+    
+    overlay.style.left = selectionStartPercent + '%';
+    overlay.style.width = (selectionEndPercent - selectionStartPercent) + '%';
+    
+    startHandle.style.left = selectionStartPercent + '%';
+    endHandle.style.left = selectionEndPercent + '%';
+}
+
+// 更新选择时间
+function updateSelectionTime() {
+    const startTime = document.getElementById('start-time').value;
+    const endTime = document.getElementById('end-time').value;
+    
+    if (startTime && endTime) {
+        const start = new Date(startTime);
+        const end = new Date(endTime);
+        const totalDuration = end - start;
+        
+        const selectionStart = new Date(start.getTime() + totalDuration * (selectionStartPercent / 100));
+        const selectionEnd = new Date(start.getTime() + totalDuration * (selectionEndPercent / 100));
+        
+        // 更新输入框
+        document.getElementById('download-start-time').value = selectionStart.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+        document.getElementById('download-end-time').value = selectionEnd.toLocaleTimeString('en-GB', {hour: '2-digit', minute: '2-digit'});
+        
+        // 更新时长显示
+        const duration = (selectionEnd - selectionStart) / (1000 * 60); // 分钟
+        document.getElementById('selected-duration').textContent = Math.round(duration) + '分钟';
+        document.getElementById('estimated-size').textContent = '~' + Math.round(duration * 20) + 'MB';
+    }
+}
+
+// 从输入框更新选择
+function updateSelectionFromInput() {
+    const startTimeValue = document.getElementById('start-time').value;
+    const endTimeValue = document.getElementById('end-time').value;
+    const downloadStartValue = document.getElementById('download-start-time').value;
+    const downloadEndValue = document.getElementById('download-end-time').value;
+    
+    if (startTimeValue && endTimeValue && downloadStartValue && downloadEndValue) {
+        const start = new Date(startTimeValue);
+        const end = new Date(endTimeValue);
+        const totalDuration = end - start;
+        
+        // 创建下载时间的完整日期对象
+        const downloadStart = new Date(start);
+        const [startHour, startMinute] = downloadStartValue.split(':');
+        downloadStart.setHours(parseInt(startHour), parseInt(startMinute), 0, 0);
+        
+        const downloadEnd = new Date(start);
+        const [endHour, endMinute] = downloadEndValue.split(':');
+        downloadEnd.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+        
+        // 如果跨天处理
+        if (downloadEnd < downloadStart) {
+            downloadEnd.setDate(downloadEnd.getDate() + 1);
+        }
+        
+        // 计算百分比
+        selectionStartPercent = Math.max(0, ((downloadStart - start) / totalDuration) * 100);
+        selectionEndPercent = Math.min(100, ((downloadEnd - start) / totalDuration) * 100);
+        
+        updateSelectionPosition();
+        updateSelectionTime();
+    }
+}
+
+// 确认云端下载
+function confirmCloudDownload() {
+    const startTime = document.getElementById('download-start-time').value;
+    const endTime = document.getElementById('download-end-time').value;
+    const duration = document.getElementById('selected-duration').textContent;
+    
+    showToast(`录像片段 ${startTime}-${endTime} (${duration}) 已加入云端下载队列`, 'success');
+    
+    // 隐藏选择模式
+    document.getElementById('selection-overlay').classList.add('hidden');
+    document.getElementById('selection-start').classList.add('hidden');
+    document.getElementById('selection-end').classList.add('hidden');
+    
+    // 跳转到下载任务选项卡
+    setTimeout(() => {
+        switchTab('downloads');
+        showToast('已切换到下载任务选项卡查看进度', 'info');
+    }, 1500);
+}
+
+function showToast(message, type = 'info') {
+    // 简单的消息提示实现
+    console.log(`${type.toUpperCase()}: ${message}`);
+    
+    // 创建toast元素
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 px-4 py-2 rounded shadow-lg text-white z-50 ${
+        type === 'success' ? 'bg-green-500' : 
+        type === 'error' ? 'bg-red-500' : 
+        type === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
+    }`;
+    toast.textContent = message;
+    
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+</script> 
+</body>
+</html> 
