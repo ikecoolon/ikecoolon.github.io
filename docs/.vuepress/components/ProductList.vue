@@ -57,8 +57,8 @@ export default {
     return {
       moment,
       productTypeNames: {
-        'charging-products': '充电产品',
-        'virtual-power': '虚拟电厂',
+        'charging-products': '电商产品',
+        'virtual-power': '其他产品',
         'personal-products': '个人产品',
       }
     }

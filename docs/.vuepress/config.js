@@ -3,13 +3,13 @@ const { config } = require("vuepress-theme-hope");
 module.exports = config({
   base: '/docs/',
   lang: 'zh-CN',
-  title: '新恒电力文档',
+  title: 'ikecoolon文档',
   description: '产品文档',
   
   locales: {
     '/': {
       lang: 'zh-CN',
-      title: '新恒电力文档',
+      title: 'ikecoolon文档',
       description: '产品文档'
     }
   },
@@ -57,8 +57,8 @@ module.exports = config({
           { 
             text: '按类型浏览',
             items: [
-              { text: '充电产品', link: '/products/charging-products/'},
-              { text: '虚拟电厂', link: '/products/virtual-power/' }
+              { text: '电商产品', link: '/products/charging-products/'},
+              { text: '其他产品', link: '/products/virtual-power/' }
             ]
           }
         ]
@@ -127,7 +127,7 @@ module.exports = config({
     editLinks: false,
     blog: false,
     breadcrumb: true,
-    author: "XH Product Team",
+    author: "ikecoolon Product Team",
     darkmode: "switch",
     fullscreen: true,
     mdEnhance: {

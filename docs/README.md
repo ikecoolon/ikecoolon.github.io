@@ -8,5 +8,5 @@ features:
     details: 规范流程和产出物，减少沟通成本
   - title: 协作
     details: 共同约定与维护
-footer: Copyright © 2025 XH Team
+footer: Copyright © 2025 ikecoolon Team
 ---

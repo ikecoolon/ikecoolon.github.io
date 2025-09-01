@@ -1,10 +1,10 @@
 ---
-title: 虚拟电厂产品文档
+title: 其他产品文档
 sidebar: auto
 ---
 
-# 虚拟电厂产品文档
+# 其他产品文档
 
-这里列出了所有虚拟电厂类产品的PRD文档。
+这里列出了所有其他类产品的PRD文档。
 
 <ProductList type="smart-grid" /> 

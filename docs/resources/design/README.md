@@ -8,7 +8,7 @@ title: 设计资源
 
 ## UI 组件库
 
-### [新恒电力设计系统](/resources/design/design-system.md)
+### [ikecoolon设计系统](/resources/design/design-system.md)
 公司统一的设计系统，包含各类UI组件规范及使用指南。
 
 ### [Figma 组件库](/resources/design/figma-components.md)

@@ -2,7 +2,7 @@
   "name": "XHPRD",
   "version": "1.0.0",
   "author": "ikecoolon@hotmail.com",
-  "description": "XH 产品文档",
+  "description": "ikecoolon 产品文档",
   "scripts": {
     "docs:dev": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vuepress dev docs --host 0.0.0.0",
     "docs:build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 vuepress build docs",

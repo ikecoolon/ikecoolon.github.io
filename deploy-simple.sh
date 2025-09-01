@@ -8,7 +8,7 @@ set -e
 # npm run docs:build
 
 # 进入生成的文件夹
-cd docs/.vuepress/dist
+cd docs/.vuepress/dist/pat/prototype/admin
 
 # 初始化git仓库（如果还没有的话）
 if [ ! -d ".git" ]; then

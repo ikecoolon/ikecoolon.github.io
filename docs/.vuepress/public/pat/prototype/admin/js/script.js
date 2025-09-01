@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const pageTitle = document.getElementById('page-title');
 
     const pageTitlesMap = {
-        'dashboard': '仪表盘',
         'pet-information': '宠物信息',
         'customer-management': '客户管理',
         'pet-report-management': '萌宠报告',
@@ -213,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Handle initial page load and hash changes
-    const initialPageId = window.location.hash ? window.location.hash.substring(1) : 'dashboard';
+    const initialPageId = window.location.hash ? window.location.hash.substring(1) : 'dictionary-management';
     loadPage(initialPageId, false); // Load page without updating hash again
 
     window.addEventListener('hashchange', () => {
@@ -221,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pageIdFromHash) {
             loadPage(pageIdFromHash, false); // Load page from hash without updating hash again
         } else {
-            loadPage('dashboard', false); // Default to dashboard if hash is empty
+            loadPage('dictionary-management', false); // Default to dashboard if hash is empty
         }
     });
 });
