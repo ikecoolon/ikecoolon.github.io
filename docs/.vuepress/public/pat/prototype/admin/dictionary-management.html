@@ -11,7 +11,7 @@
         </div>
         
         <div class="mb-4">
-            <input type="text" id="search-custom-key" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="搜索编码 Key、标签名称、说明或正常范围">
+            <input type="text" id="search-custom-key" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="搜索编码 Key、标签名称或说明内容">
         </div>
         
         <div class="overflow-x-auto">
@@ -22,13 +22,13 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标签名称</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">说明内容</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">父级 Key</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">正常范围</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">层级</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                     </tr>
                 </thead>
                 <tbody id="custom-key-table-body" class="bg-white divide-y divide-gray-200">
                     <tr>
-                        <td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无自定义 Key</td>
+                        <td colspan="5" class="px-6 py-4 text-center text-gray-500">暂无自定义 Key</td>
                     </tr>
                 </tbody>
             </table>
@@ -75,26 +75,6 @@
                 <textarea id="form-custom-value" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" rows="3" placeholder="请输入说明内容（可选）"></textarea>
             </div>
             
-            <div>
-                <label class="block text-gray-700 text-sm font-bold mb-2">
-                    正常范围 (%)
-                </label>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-gray-600 text-xs font-medium mb-1" for="form-range-min">
-                            最小值
-                        </label>
-                        <input type="number" id="form-range-min" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="0" min="0" max="100" step="0.1">
-                    </div>
-                    <div>
-                        <label class="block text-gray-600 text-xs font-medium mb-1" for="form-range-max">
-                            最大值
-                        </label>
-                        <input type="number" id="form-range-max" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="100" min="0" max="100" step="0.1">
-                    </div>
-                </div>
-                <p class="text-xs text-gray-500 mt-1">设置正常范围的百分比区间，留空表示无范围限制</p>
-            </div>
             
             <div class="flex space-x-4">
                 <button type="submit" id="save-key" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">

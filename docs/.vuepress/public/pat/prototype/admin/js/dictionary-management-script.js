@@ -12,8 +12,7 @@ function initDictionaryManagement() {
   const formCustomLabel = document.getElementById("form-custom-label");
   const formParentKey = document.getElementById("form-parent-key");
   const formCustomValue = document.getElementById("form-custom-value");
-  const formRangeMin = document.getElementById("form-range-min");
-  const formRangeMax = document.getElementById("form-range-max");
+
   const cancelFormButton = document.getElementById("cancel-form");
 
   // 数据存储
@@ -28,8 +27,6 @@ function initDictionaryManagement() {
       label: "宠物类别",
       value: "宠物类别根节点",
       parentKey: null,
-      rangeMin: null,
-      rangeMax: null,
     },
     {
       id: 2,
@@ -37,8 +34,6 @@ function initDictionaryManagement() {
       label: "猫科",
       value: "猫科动物",
       parentKey: "pet",
-      rangeMin: 65.0,
-      rangeMax: 85.0,
     },
     {
       id: 3,
@@ -46,8 +41,6 @@ function initDictionaryManagement() {
       label: "犬科",
       value: "犬科动物",
       parentKey: "pet",
-      rangeMin: 70.0,
-      rangeMax: 90.0,
     },
     {
       id: 4,
@@ -55,8 +48,6 @@ function initDictionaryManagement() {
       label: "英短",
       value: "英国短毛猫",
       parentKey: "cat",
-      rangeMin: 68.0,
-      rangeMax: 82.0,
     },
     {
       id: 5,
@@ -64,8 +55,6 @@ function initDictionaryManagement() {
       label: "橘猫",
       value: "橘猫",
       parentKey: "cat",
-      rangeMin: 60.0,
-      rangeMax: 80.0,
     },
     {
       id: "10",
@@ -73,8 +62,6 @@ function initDictionaryManagement() {
       label: "门",
       value: "门类是什么",
       parentKey: null,
-      rangeMin: null,
-      rangeMax: null,
     },
     {
       id: "101",
@@ -82,8 +69,6 @@ function initDictionaryManagement() {
       label: "放线菌门",
       value: "放线菌门是什么什么",
       parentKey: "men",
-      rangeMin: 5.0,
-      rangeMax: 15.0,
     },
     {
       id: "102",
@@ -91,8 +76,6 @@ function initDictionaryManagement() {
       label: "拟杆菌门",
       value: "拟杆菌门是什么什么",
       parentKey: "men",
-      rangeMin: 25.0,
-      rangeMax: 45.0,
     },
     {
       id: "103",
@@ -100,8 +83,6 @@ function initDictionaryManagement() {
       label:'厚壁菌门',
       value:'厚壁菌均是微生态中的强力草食者',
       parentKey:'men',
-      rangeMin:40.0,
-      rangeMax:60.0,
 
     },
     {
@@ -110,8 +91,6 @@ function initDictionaryManagement() {
       label: "属",
       value: "属类是什么什么",
       parentKey: null,
-      rangeMin: null,
-      rangeMax: null,
     },
     {
       id: "201",
@@ -119,8 +98,6 @@ function initDictionaryManagement() {
       label: "Peptacetobacter属类",
       value: "善于发酵碳水，产生短链脂肪酸(SCFA);过多时可能挤压其他保护性菌种",
       parentKey: "shu",
-      rangeMin: 2.0,
-      rangeMax: 8.0,
     },
     {
       id: "202",
@@ -128,8 +105,6 @@ function initDictionaryManagement() {
       label: "Lachnoclostridium属类",
       value: "Lachnoclostridium属类是什么什么",
       parentKey: "shu",
-      rangeMin: 1.5,
-      rangeMax: 6.0,
     },
     {
       id: 7,
@@ -137,8 +112,6 @@ function initDictionaryManagement() {
       label: "均匀度",
       value: "均匀度是什么什么",
       parentKey: null,
-      rangeMin: 0.6,
-      rangeMax: 0.9,
     },
     {
       id: 8,
@@ -146,8 +119,6 @@ function initDictionaryManagement() {
       label: "丰富度",
       value: "丰富度是什么什么",
       parentKey: null,
-      rangeMin: 50.0,
-      rangeMax: 200.0,
     },
     {
       id: 6,
@@ -155,8 +126,6 @@ function initDictionaryManagement() {
       label: "alpha多样性",
       value: "alpha多样性是什么什么",
       parentKey: null,
-      rangeMin: 3.0,
-      rangeMax: 6.0,
     },
   ];
 
@@ -181,9 +150,7 @@ function initDictionaryManagement() {
       (key) =>
         key.key.toLowerCase().includes(filter.toLowerCase()) ||
         key.label.toLowerCase().includes(filter.toLowerCase()) ||
-        key.value.toLowerCase().includes(filter.toLowerCase()) ||
-        (key.rangeMin !== null && key.rangeMin.toString().includes(filter)) ||
-        (key.rangeMax !== null && key.rangeMax.toString().includes(filter))
+        key.value.toLowerCase().includes(filter.toLowerCase())
     );
 
     // 构建层级结构并排序
@@ -231,7 +198,7 @@ function initDictionaryManagement() {
     if (filteredKeys.length === 0) {
       tableBody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无自定义 Key</td>
+                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">暂无自定义 Key</td>
                 </tr>
             `;
       return;
@@ -269,12 +236,12 @@ function initDictionaryManagement() {
                 <td class="px-6 py-4 whitespace-nowrap">
                     <span class="text-sm text-gray-500">${parentKeyDisplay}</span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="text-sm text-gray-500">${
-                      item.rangeMin !== null && item.rangeMax !== null
-                        ? `${item.rangeMin}% - ${item.rangeMax}%`
-                        : "-"
-                    }</span>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                    item.parentKey ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
+                  }">
+                    ${item.parentKey ? '子项' : '根项'}
+                  </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button class="text-blue-600 hover:text-blue-900 mr-3 edit-key" data-id="${
@@ -342,6 +309,24 @@ function initDictionaryManagement() {
     mainView.classList.remove("hidden");
     formView.classList.add("hidden");
     renderTable();
+    
+    // 通知其他模块更新品种配置
+    notifyBreedConfigUpdate();
+  }
+
+  // 通知其他模块品种配置已更新
+  function notifyBreedConfigUpdate() {
+    // 更新字典数据服务
+    if (typeof window.dictionaryDataService !== 'undefined') {
+      // 将当前的 customKeys 数据同步到字典数据服务
+      window.dictionaryDataService.dictionaryData = customKeys;
+      
+      // 触发自定义事件，通知其他模块
+      const event = new CustomEvent('breedConfigUpdated', {
+        detail: { customKeys: customKeys }
+      });
+      document.dispatchEvent(event);
+    }
   }
 
   function showFormView(isEdit = false, editId = null, isClientEdit = false) {
@@ -377,8 +362,7 @@ function initDictionaryManagement() {
         formCustomLabel.value = item.label;
         formCustomValue.value = item.value;
         formParentKey.value = item.parentKey || "";
-        formRangeMin.value = item.rangeMin || "";
-        formRangeMax.value = item.rangeMax || "";
+
         currentEditIndex = customKeys.findIndex((k) => k.id === editId);
         updateParentKeyOptions(editId);
       }
@@ -405,29 +389,13 @@ function initDictionaryManagement() {
     const label = formCustomLabel.value.trim();
     const value = formCustomValue.value.trim();
     const parentKey = formParentKey.value || null;
-    const rangeMin = formRangeMin.value ? parseFloat(formRangeMin.value) : null;
-    const rangeMax = formRangeMax.value ? parseFloat(formRangeMax.value) : null;
 
     if (!key || !label) {
       alert("编码 Key 和标签名称不能为空！");
       return;
     }
 
-    // 验证范围值
-    if (rangeMin !== null && rangeMax !== null && rangeMin > rangeMax) {
-      alert("最小值不能大于最大值！");
-      return;
-    }
-
-    if (rangeMin !== null && (rangeMin < 0 || rangeMin > 100)) {
-      alert("最小值必须在0-100之间！");
-      return;
-    }
-
-    if (rangeMax !== null && (rangeMax < 0 || rangeMax > 100)) {
-      alert("最大值必须在0-100之间！");
-      return;
-    }
+    // 正常范围验证已移除，现在由专门的正常范围配置模块处理
 
     // 检查 key 是否重复
     const existingKey = customKeys.find(
@@ -448,8 +416,6 @@ function initDictionaryManagement() {
         label,
         value,
         parentKey,
-        rangeMin,
-        rangeMax,
       };
     } else {
       // 新增
@@ -459,8 +425,6 @@ function initDictionaryManagement() {
         label,
         value,
         parentKey,
-        rangeMin,
-        rangeMax,
       });
     }
 

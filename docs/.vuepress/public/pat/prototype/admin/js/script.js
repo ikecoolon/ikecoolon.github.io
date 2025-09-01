@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'pet-report-management': '萌宠报告',
         'analysis-rules': '分析建议规则',
         'dictionary-management': '字典管理',
+        'normal-range-config': '正常范围配置',
         'health-level-management': '健康值分级'
     };
 
@@ -192,6 +193,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error('Failed to load health level management script');
                 };
                 document.head.appendChild(healthScript);
+            } else if (pageId === 'normal-range-config') {
+                // Dynamically load normal-range-config-script.js
+                const rangeConfigScript = document.createElement('script');
+                rangeConfigScript.src = './js/normal-range-config-script.js';
+                rangeConfigScript.onload = () => {
+                    console.log('Normal range config script loaded successfully');
+                    if (typeof initNormalRangeConfig === 'function') {
+                        initNormalRangeConfig();
+                    }
+                };
+                rangeConfigScript.onerror = () => {
+                    console.error('Failed to load normal range config script');
+                };
+                document.head.appendChild(rangeConfigScript);
             }
 
             if (updateHash) {

@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<div class="space-y-6">
+    <!-- 主视图 -->
+    <div id="main-view">
+        <!-- 头部操作栏 -->
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900">正常范围配置</h2>
+                <p class="text-gray-600 mt-1">配置不同宠物品类的检测指标正常范围</p>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button id="add-config-btn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <i class="fas fa-plus mr-2"></i>新增配置
+                </button>
+                <button id="batch-import-btn" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                    <i class="fas fa-upload mr-2"></i>批量导入
+                </button>
+            </div>
+        </div>
+
+        <!-- 筛选条件 -->
+        <div class="bg-white p-4 rounded-lg shadow-sm border mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">宠物大品种</label>
+                    <select id="filter-major-breed" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">全部大品种</option>
+                        <option value="猫">猫</option>
+                        <option value="狗">狗</option>
+                        <option value="兔子">兔子</option>
+                        <option value="仓鼠">仓鼠</option>
+                        <option value="鸟类">鸟类</option>
+                        <option value="爬行动物">爬行动物</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">宠物小品种</label>
+                    <select id="filter-minor-breed" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">全部小品种</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">指标类型</label>
+                    <select id="filter-indicator-type" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">全部指标</option>
+                        <option value="门">门</option>
+                        <option value="属">属</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">指标名称</label>
+                    <input type="text" id="filter-indicator-name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="搜索指标名称">
+                </div>
+            </div>
+            <div class="mt-4 flex space-x-3">
+                <button id="search-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                    <i class="fas fa-search mr-2"></i>搜索
+                </button>
+                <button id="reset-filter-btn" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">
+                    <i class="fas fa-undo mr-2"></i>重置
+                </button>
+            </div>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">宠物品类</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">检测指标</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">正常范围</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">单位</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- 数据行将通过JavaScript动态生成 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 分页 -->
+        <div id="pagination" class="mt-6">
+            <!-- 分页控件将通过JavaScript动态生成 -->
+        </div>
+    </div>
+
+    <!-- 配置表单视图 -->
+    <div id="form-view" class="hidden">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-900" id="form-title">新增正常范围配置</h2>
+                <p class="text-gray-600 mt-1">设置特定宠物品类的检测指标正常范围</p>
+            </div>
+            <button id="back-to-list-btn" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                <i class="fas fa-arrow-left mr-2"></i>返回列表
+            </button>
+        </div>
+
+        <form id="config-form" class="bg-white p-6 rounded-lg shadow-sm border space-y-6">
+            <!-- 宠物品类选择 -->
+            <div class="bg-blue-50 p-4 rounded-lg">
+                <h3 class="text-lg font-medium mb-4 text-blue-900">宠物品类信息</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-major-breed">
+                            大品种 <span class="text-red-500">*</span>
+                        </label>
+                        <select id="form-major-breed" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                            <option value="">请选择大品种</option>
+                            <option value="猫">猫</option>
+                            <option value="狗">狗</option>
+                            <option value="兔子">兔子</option>
+                            <option value="仓鼠">仓鼠</option>
+                            <option value="鸟类">鸟类</option>
+                            <option value="爬行动物">爬行动物</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-minor-breed">
+                            小品种/具体品种 <span class="text-red-500">*</span>
+                        </label>
+                        <select id="form-minor-breed" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                            <option value="">请先选择大品种</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 检测指标选择 -->
+            <div class="bg-green-50 p-4 rounded-lg">
+                <h3 class="text-lg font-medium mb-4 text-green-900">检测指标信息</h3>
+                
+                <!-- 指标选择方式切换 -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">选择方式</label>
+                    <div class="flex space-x-4">
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="indicator-selection-mode" value="tree" class="form-radio" checked>
+                            <span class="ml-2">树形选择（推荐）</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="radio" name="indicator-selection-mode" value="dropdown" class="form-radio">
+                            <span class="ml-2">下拉选择</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 树形选择器 -->
+                <div id="tree-selector" class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        选择检测指标 <span class="text-red-500">*</span>
+                    </label>
+                    <div class="border rounded-lg p-3 bg-white max-h-60 overflow-y-auto indicator-tree-container">
+                        <div id="indicator-tree" class="space-y-1">
+                            <!-- 树形结构将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                    <style>
+                        .indicator-tree-container {
+                            scroll-behavior: smooth;
+                        }
+                        .indicator-tree-container .cursor-pointer:hover {
+                            background-color: #f3f4f6;
+                            transform: translateX(2px);
+                            transition: all 0.2s ease;
+                        }
+                        .indicator-tree-container .bg-blue-200 {
+                            background-color: #dbeafe !important;
+                            border-left: 3px solid #3b82f6;
+                        }
+                        .tree-node-phylum {
+                            border-left: 2px solid #e5e7eb;
+                            position: relative;
+                        }
+                        .tree-node-genus {
+                            margin-left: 1rem;
+                            position: relative;
+                        }
+                        .tree-node-genus::before {
+                            content: '';
+                            position: absolute;
+                            left: -1rem;
+                            top: 1.5rem;
+                            width: 1rem;
+                            height: 1px;
+                            background-color: #d1d5db;
+                        }
+                        .form-radio {
+                            color: #3b82f6;
+                        }
+                    </style>
+                    <div id="selected-indicator" class="mt-2 p-2 bg-blue-50 rounded text-sm hidden">
+                        <span class="text-blue-800">已选择：</span>
+                        <span id="selected-indicator-text" class="font-medium"></span>
+                        <button type="button" id="clear-selection" class="ml-2 text-red-600 hover:text-red-800">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 传统下拉选择器（隐藏） -->
+                <div id="dropdown-selector" class="hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="form-indicator-type">
+                                指标类型 <span class="text-red-500">*</span>
+                            </label>
+                            <select id="form-indicator-type" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                                <option value="">请选择指标类型</option>
+                                <option value="门">门</option>
+                                <option value="属">属</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2" for="form-indicator-name">
+                                指标名称 <span class="text-red-500">*</span>
+                            </label>
+                            <select id="form-indicator-name" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                                <option value="">请先选择指标类型</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 隐藏的表单字段（存储选择结果） -->
+                <input type="hidden" id="selected-indicator-type" name="indicatorType">
+                <input type="hidden" id="selected-indicator-name" name="indicatorName">
+            </div>
+
+            <!-- 正常范围配置 -->
+            <div class="bg-yellow-50 p-4 rounded-lg">
+                <h3 class="text-lg font-medium mb-4 text-yellow-900">正常范围配置</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-min-value">
+                            最小值 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="form-min-value" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="0.0" min="0" max="100" step="0.01" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-max-value">
+                            最大值 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="number" id="form-max-value" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="100.0" min="0" max="100" step="0.01" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-unit">
+                            单位 <span class="text-red-500">*</span>
+                        </label>
+                        <select id="form-unit" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                            <option value="%">百分比 (%)</option>
+                            <option value="CFU/g">CFU/g</option>
+                            <option value="mg/ml">mg/ml</option>
+                            <option value="其他">其他</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="form-notes">
+                        备注说明
+                    </label>
+                    <textarea id="form-notes" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" rows="3" placeholder="输入配置说明、参考依据等信息"></textarea>
+                </div>
+            </div>
+
+            <!-- 参考范围建议 -->
+            <div id="reference-suggestions" class="bg-gray-50 p-4 rounded-lg hidden">
+                <h3 class="text-lg font-medium mb-4 text-gray-900">参考范围建议</h3>
+                <div id="reference-content" class="space-y-2">
+                    <!-- 动态显示参考范围 -->
+                </div>
+            </div>
+
+            <div class="flex space-x-4">
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <i class="fas fa-save mr-2"></i>保存配置
+                </button>
+                <button type="button" id="cancel-form-btn" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    <i class="fas fa-times mr-2"></i>取消
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 批量导入模态框 -->
+    <div id="import-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">批量导入正常范围配置</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">选择Excel文件</label>
+                        <input type="file" id="import-file" accept=".xlsx,.xls" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        <p class="mb-2">文件格式要求：</p>
+                        <ul class="list-disc list-inside space-y-1 text-xs">
+                            <li>大品种、小品种、指标类型、指标名称、最小值、最大值、单位</li>
+                            <li>Excel文件，第一行为表头</li>
+                            <li>数据从第二行开始</li>
+                        </ul>
+                    </div>
+                    <div class="flex space-x-3">
+                        <button id="download-template-btn" class="text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-download mr-1"></i>下载模板
+                        </button>
+                    </div>
+                </div>
+                <div class="flex space-x-3 mt-6">
+                    <button id="confirm-import-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        确认导入
+                    </button>
+                    <button id="cancel-import-btn" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">
+                        取消
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Dependencies -->
+<script src="./js/dictionary-data-service.js"></script>
