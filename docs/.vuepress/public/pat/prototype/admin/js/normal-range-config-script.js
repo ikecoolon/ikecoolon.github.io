@@ -19,8 +19,7 @@ function initNormalRangeConfig() {
   // 表单元素
   const formMajorBreed = document.getElementById("form-major-breed");
   const formMinorBreed = document.getElementById("form-minor-breed");
-  const formIndicatorType = document.getElementById("form-indicator-type");
-  const formIndicatorName = document.getElementById("form-indicator-name");
+
   const formMinValue = document.getElementById("form-min-value");
   const formMaxValue = document.getElementById("form-max-value");
   const formUnit = document.getElementById("form-unit");
@@ -36,7 +35,7 @@ function initNormalRangeConfig() {
   const selectedIndicatorType = document.getElementById("selected-indicator-type");
   const selectedIndicatorName = document.getElementById("selected-indicator-name");
   const treeSelector = document.getElementById("tree-selector");
-  const dropdownSelector = document.getElementById("dropdown-selector");
+
 
   // 筛选元素
   const filterMajorBreed = document.getElementById("filter-major-breed");
@@ -260,18 +259,7 @@ function initNormalRangeConfig() {
     }
   }
 
-  // 更新指标名称选项
-  function updateIndicatorNameOptions(selectElement, indicatorType) {
-    selectElement.innerHTML = '<option value="">请选择指标名称</option>';
-    if (indicatorType && indicatorConfig[indicatorType]) {
-      indicatorConfig[indicatorType].forEach(indicator => {
-        const option = document.createElement('option');
-        option.value = indicator;
-        option.textContent = indicator;
-        selectElement.appendChild(option);
-      });
-    }
-  }
+
 
   // 渲染树形选择器
   function renderIndicatorTree() {
@@ -384,25 +372,14 @@ function initNormalRangeConfig() {
     referenceSuggestions.classList.add('hidden');
   }
 
-  // 切换选择模式
-  function toggleSelectionMode(mode) {
-    if (mode === 'tree') {
-      treeSelector.classList.remove('hidden');
-      dropdownSelector.classList.add('hidden');
-      renderIndicatorTree();
-    } else {
-      treeSelector.classList.add('hidden');
-      dropdownSelector.classList.remove('hidden');
-      clearIndicatorSelection();
-    }
-  }
+
 
   // 更新参考范围建议
   function updateReferenceRanges() {
     const majorBreed = formMajorBreed.value;
-    const indicatorType = selectedIndicatorType.value || formIndicatorType.value;
-    const indicatorName = selectedIndicatorName.value || formIndicatorName.value;
-    
+    const indicatorType = selectedIndicatorType.value;
+    const indicatorName = selectedIndicatorName.value;
+
     showReferenceRanges(majorBreed, indicatorType, indicatorName);
   }
 
@@ -526,10 +503,9 @@ function initNormalRangeConfig() {
     referenceSuggestions.classList.add('hidden');
 
     formTitle.textContent = isEdit ? '编辑正常范围配置' : '新增正常范围配置';
-    
-    // 默认使用树形选择器
-    document.querySelector('input[name="indicator-selection-mode"][value="tree"]').checked = true;
-    toggleSelectionMode('tree');
+
+    // 渲染树形选择器
+    renderIndicatorTree();
     
     if (isEdit && editId) {
       const config = rangeConfigs.find(c => c.id === editId);
@@ -542,11 +518,6 @@ function initNormalRangeConfig() {
         // 设置指标选择（树形选择器）
         selectIndicator(config.indicatorName, config.indicatorType);
         
-        // 同时设置传统选择器（备用）
-        formIndicatorType.value = config.indicatorType;
-        updateIndicatorNameOptions(formIndicatorName, config.indicatorType);
-        formIndicatorName.value = config.indicatorName;
-        
         formMinValue.value = config.minValue;
         formMaxValue.value = config.maxValue;
         formUnit.value = config.unit;
@@ -557,7 +528,7 @@ function initNormalRangeConfig() {
       configForm.reset();
       clearIndicatorSelection();
       updateMinorBreedOptions(formMinorBreed, '');
-      updateIndicatorNameOptions(formIndicatorName, '');
+
     }
   }
 
@@ -588,9 +559,9 @@ function initNormalRangeConfig() {
     const majorBreed = formMajorBreed.value;
     const minorBreed = formMinorBreed.value;
     
-    // 获取指标信息（优先从树形选择器）
-    const indicatorType = selectedIndicatorType.value || formIndicatorType.value;
-    const indicatorName = selectedIndicatorName.value || formIndicatorName.value;
+    // 获取指标信息（只从树形选择器获取）
+    const indicatorType = selectedIndicatorType.value;
+    const indicatorName = selectedIndicatorName.value;
     
     const minValue = parseFloat(formMinValue.value);
     const maxValue = parseFloat(formMaxValue.value);
@@ -656,23 +627,9 @@ function initNormalRangeConfig() {
     // 初始化品种选项
     initBreedOptions();
 
-    // 传统下拉选择器事件
-    formIndicatorType.addEventListener('change', (e) => {
-      updateIndicatorNameOptions(formIndicatorName, e.target.value);
-      formIndicatorName.value = '';
-      updateReferenceRanges();
-    });
 
-    formIndicatorName.addEventListener('change', (e) => {
-      updateReferenceRanges();
-    });
 
-    // 选择模式切换事件
-    document.querySelectorAll('input[name="indicator-selection-mode"]').forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        toggleSelectionMode(e.target.value);
-      });
-    });
+
 
     // 清除选择事件
     clearSelectionBtn.addEventListener('click', clearIndicatorSelection);
@@ -697,8 +654,8 @@ function initNormalRangeConfig() {
       const configData = {
         majorBreed: formMajorBreed.value,
         minorBreed: formMinorBreed.value,
-        indicatorType: selectedIndicatorType.value || formIndicatorType.value,
-        indicatorName: selectedIndicatorName.value || formIndicatorName.value,
+        indicatorType: selectedIndicatorType.value,
+        indicatorName: selectedIndicatorName.value,
         minValue: parseFloat(formMinValue.value),
         maxValue: parseFloat(formMaxValue.value),
         unit: formUnit.value,

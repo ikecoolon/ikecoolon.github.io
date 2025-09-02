@@ -17,15 +17,17 @@ function initCustomerManagement() {
 
   // 表单字段
   const formCustomerName = document.getElementById("form-customer-name");
-  const formIdNumber = document.getElementById("form-id-number");
   const formPhone = document.getElementById("form-phone");
   const formWechat = document.getElementById("form-wechat");
+  const formWechatName = document.getElementById("form-wechat-name");
   const formEmail = document.getElementById("form-email");
-  const formEmergencyContact = document.getElementById("form-emergency-contact");
-  const formAddress = document.getElementById("form-address");
   const formPreferredContact = document.getElementById("form-preferred-contact");
   const formServiceLevel = document.getElementById("form-service-level");
   const formNotes = document.getElementById("form-notes");
+
+  // 手机号联想相关
+  const phoneSuggestions = document.getElementById("phone-suggestions");
+  const autoFillIndicator = document.getElementById("auto-fill-indicator");
 
   // 详情视图相关
   const customerInfoCard = document.getElementById("customer-info-card");
@@ -43,17 +45,67 @@ function initCustomerManagement() {
   let currentEditIndex = -1;
   let currentCustomerId = null;
 
+  // 模拟平台注册用户数据（小程序用户）
+  let platformUsers = [
+    {
+      phone: "13812345678",
+      wechat: "zhang_wechat",
+      wechatName: "张小花",
+      registeredAt: "2024-01-15 10:30:00"
+    },
+    {
+      phone: "13987654321",
+      wechat: "li_wechat", 
+      wechatName: "李大黄",
+      registeredAt: "2024-02-20 14:20:00"
+    },
+    {
+      phone: "13666888999",
+      wechat: "wang_wechat",
+      wechatName: "王咪咪",
+      registeredAt: "2024-03-10 16:45:00"
+    },
+    {
+      phone: "13555777888",
+      wechat: "chen_wechat",
+      wechatName: "陈阿黄",
+      registeredAt: "2024-04-05 11:20:00"
+    },
+    {
+      phone: "15912345678",
+      wechat: "liu_pet_lover",
+      wechatName: "刘爱宠",
+      registeredAt: "2024-05-12 09:15:00"
+    },
+    {
+      phone: "18888888888",
+      wechat: "zhao_meow",
+      wechatName: "赵喵星人",
+      registeredAt: "2024-06-08 13:30:00"
+    },
+    {
+      phone: "17799998888",
+      wechat: "sun_doggy",
+      wechatName: "孙汪星人", 
+      registeredAt: "2024-07-15 15:45:00"
+    },
+    {
+      phone: "13311112222",
+      wechat: "wu_rabbit",
+      wechatName: "吴兔兔",
+      registeredAt: "2024-08-20 10:10:00"
+    }
+  ];
+
   // 初始化测试数据
   customers = [
     {
       id: 1,
       name: "张女士",
-      idNumber: "110101199001011234",
       phone: "13812345678",
       wechat: "zhang_wechat",
+      wechatName: "张小花",
       email: "zhang@email.com",
-      emergencyContact: "张先生 - 13800001111",
-      address: "北京市朝阳区某某小区1号楼101室",
       preferredContact: "wechat",
       serviceLevel: "premium",
       notes: "VIP客户，对服务质量要求较高，养猫经验丰富",
@@ -64,12 +116,10 @@ function initCustomerManagement() {
     {
       id: 2,
       name: "李先生",
-      idNumber: "320101198501015678",
       phone: "13987654321",
       wechat: "li_wechat",
+      wechatName: "李大黄",
       email: "li@email.com",
-      emergencyContact: "李太太 - 13900002222",
-      address: "上海市浦东新区某某路88号",
       preferredContact: "phone",
       serviceLevel: "standard",
       notes: "首次养宠，需要更多指导和建议",
@@ -80,12 +130,10 @@ function initCustomerManagement() {
     {
       id: 3,
       name: "王女士",
-      idNumber: "440101199203019876",
       phone: "13666888999",
       wechat: "wang_wechat",
+      wechatName: "王咪咪",
       email: "wang@email.com",
-      emergencyContact: "王妈妈 - 13700003333",
-      address: "广州市天河区某某大厦2301室",
       preferredContact: "wechat",
       serviceLevel: "vip",
       notes: "对宠物非常关爱，经常咨询健康问题",
@@ -96,12 +144,10 @@ function initCustomerManagement() {
     {
       id: 4,
       name: "陈先生",
-      idNumber: "510101199512015432",
       phone: "13555777888",
-      wechat: "",
+      wechat: "chen_wechat",
+      wechatName: "陈阿黄",
       email: "chen@email.com",
-      emergencyContact: "",
-      address: "成都市锦江区某某街道123号",
       preferredContact: "phone",
       serviceLevel: "standard",
       notes: "工作繁忙，偏好电话联系",
@@ -220,13 +266,90 @@ function initCustomerManagement() {
     });
   }
 
+  // 手机号联想功能
+  function searchPlatformUsers(phoneInput) {
+    const phone = phoneInput.trim();
+    if (phone.length < 3) {
+      hideSuggestions();
+      return;
+    }
+
+    // 搜索匹配的平台用户
+    const matchedUsers = platformUsers.filter(user => 
+      user.phone.includes(phone)
+    );
+
+    if (matchedUsers.length > 0) {
+      showSuggestions(matchedUsers);
+    } else {
+      hideSuggestions();
+    }
+  }
+
+  function showSuggestions(users) {
+    phoneSuggestions.innerHTML = '';
+    
+    users.forEach(user => {
+      const suggestionItem = document.createElement('div');
+      suggestionItem.className = 'px-4 py-3 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0';
+      suggestionItem.innerHTML = `
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="font-medium text-gray-900">${user.phone}</div>
+            <div class="text-sm text-gray-600">
+              <i class="fab fa-weixin text-green-500 mr-1"></i>
+              ${user.wechatName} (${user.wechat})
+            </div>
+            <div class="text-xs text-gray-500">注册时间：${new Date(user.registeredAt).toLocaleDateString()}</div>
+          </div>
+          <div class="text-blue-600 text-sm">
+            <i class="fas fa-mouse-pointer mr-1"></i>点击填充
+          </div>
+        </div>
+      `;
+      
+      suggestionItem.addEventListener('click', () => {
+        selectPlatformUser(user);
+      });
+      
+      phoneSuggestions.appendChild(suggestionItem);
+    });
+    
+    phoneSuggestions.classList.remove('hidden');
+  }
+
+  function hideSuggestions() {
+    phoneSuggestions.classList.add('hidden');
+    phoneSuggestions.innerHTML = '';
+  }
+
+  function selectPlatformUser(user) {
+    // 填充手机号
+    formPhone.value = user.phone;
+    
+    // 自动填充微信信息
+    formWechat.value = user.wechat;
+    formWechatName.value = user.wechatName;
+    
+    // 显示自动填充提示
+    autoFillIndicator.classList.remove('hidden');
+    setTimeout(() => {
+      autoFillIndicator.classList.add('hidden');
+    }, 3000);
+    
+    // 隐藏建议列表
+    hideSuggestions();
+    
+    // 触发表单验证
+    formPhone.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
   function renderTable(filter = "", petCountFilter = "", registrationFilter = "") {
     // 过滤数据
     let filteredCustomers = customers.filter((customer) => {
       const matchesSearch = !filter || 
         customer.name.toLowerCase().includes(filter.toLowerCase()) ||
         customer.phone.includes(filter) ||
-        customer.idNumber.includes(filter) ||
         customer.wechat.toLowerCase().includes(filter.toLowerCase());
       
       return matchesSearch;
@@ -266,7 +389,7 @@ function initCustomerManagement() {
               ${serviceLevel.text}
             </span>
           </div>
-          <div class="text-sm text-gray-500">${customer.idNumber ? customer.idNumber.substring(0, 6) + '****' + customer.idNumber.substring(14) : '未填写'}</div>
+          <div class="text-sm text-gray-500">${customer.email || '未填写邮箱'}</div>
         </td>
         <td class="px-6 py-4 whitespace-nowrap">
           <div class="text-sm font-medium text-gray-900">${customer.phone}</div>
@@ -320,12 +443,10 @@ function initCustomerManagement() {
         formTitle.textContent = "编辑客户信息";
         
         formCustomerName.value = customer.name;
-        formIdNumber.value = customer.idNumber || "";
         formPhone.value = customer.phone;
         formWechat.value = customer.wechat || "";
+        formWechatName.value = customer.wechatName || "";
         formEmail.value = customer.email || "";
-        formEmergencyContact.value = customer.emergencyContact || "";
-        formAddress.value = customer.address || "";
         formPreferredContact.value = customer.preferredContact || "";
         formServiceLevel.value = customer.serviceLevel || "standard";
         formNotes.value = customer.notes || "";
@@ -378,7 +499,7 @@ function initCustomerManagement() {
               </p>
               ${customer.wechat ? `<p class="text-sm text-gray-600"><i class="fab fa-weixin w-4 text-center mr-2"></i>${customer.wechat}</p>` : ''}
               ${customer.email ? `<p class="text-sm text-gray-600"><i class="fas fa-envelope w-4 text-center mr-2"></i>${customer.email}</p>` : ''}
-              ${customer.address ? `<p class="text-sm text-gray-600"><i class="fas fa-map-marker-alt w-4 text-center mr-2"></i>${customer.address}</p>` : ''}
+
             </div>
           </div>
         </div>
@@ -475,6 +596,36 @@ function initCustomerManagement() {
     renderTable(searchInput.value.trim(), filterPetCount.value, e.target.value);
   });
 
+  // 手机号联想事件监听
+  let searchTimeout;
+  formPhone.addEventListener("input", (e) => {
+    const phoneValue = e.target.value.trim();
+    
+    // 清除之前的搜索延时
+    clearTimeout(searchTimeout);
+    
+    // 设置新的搜索延时，避免频繁搜索
+    searchTimeout = setTimeout(() => {
+      searchPlatformUsers(phoneValue);
+    }, 300);
+  });
+
+  // 点击其他地方隐藏建议
+  document.addEventListener("click", (e) => {
+    if (!formPhone.contains(e.target) && !phoneSuggestions.contains(e.target)) {
+      hideSuggestions();
+    }
+  });
+
+  // 手机号输入框失焦时延迟隐藏建议（给用户时间点击建议）
+  formPhone.addEventListener("blur", () => {
+    setTimeout(() => {
+      if (!phoneSuggestions.matches(':hover')) {
+        hideSuggestions();
+      }
+    }, 150);
+  });
+
   // 表单提交
   customerForm.addEventListener("submit", (e) => {
     e.preventDefault();
@@ -499,12 +650,10 @@ function initCustomerManagement() {
 
     const customerData = {
       name: customerName,
-      idNumber: formIdNumber.value.trim() || null,
       phone: phone,
       wechat: formWechat.value.trim() || null,
+      wechatName: formWechatName.value.trim() || null,
       email: formEmail.value.trim() || null,
-      emergencyContact: formEmergencyContact.value.trim() || null,
-      address: formAddress.value.trim() || null,
       preferredContact: formPreferredContact.value || null,
       serviceLevel: formServiceLevel.value || "standard",
       notes: formNotes.value.trim() || ""

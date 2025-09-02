@@ -2,7 +2,6 @@ function initPetInformation() {
   // DOM 元素
   const mainView = document.getElementById("main-view");
   const formView = document.getElementById("form-view");
-  const historyView = document.getElementById("history-view");
   const formTitle = document.getElementById("form-title");
   const searchInput = document.getElementById("search-pet");
   const filterBreed = document.getElementById("filter-breed");
@@ -11,7 +10,6 @@ function initPetInformation() {
   const tableBody = document.getElementById("pet-table-body");
   const addNewPetButton = document.getElementById("add-new-pet");
   const backToListButton = document.getElementById("back-to-list");
-  const backToListFromHistoryButton = document.getElementById("back-to-list-from-history");
   const petForm = document.getElementById("pet-form");
   const cancelFormButton = document.getElementById("cancel-form");
 
@@ -27,26 +25,32 @@ function initPetInformation() {
   const formGender = document.getElementById("form-gender");
   const formSterilized = document.getElementById("form-sterilized");
   const formOwner = document.getElementById("form-owner");
+  const selectedOwnerDisplay = document.getElementById("selected-owner-display");
+  const selectOwnerBtn = document.getElementById("select-owner-btn");
+  const clearOwnerBtn = document.getElementById("clear-owner-btn");
   const formOwnershipStart = document.getElementById("form-ownership-start");
   const formNotes = document.getElementById("form-notes");
   const ageDisplay = document.getElementById("age-display");
 
-  // 主人变更相关
-  const changeOwnerModal = document.getElementById("change-owner-modal");
-  const changeOwnerBtn = document.getElementById("change-owner-btn");
-  const changeOwnerForm = document.getElementById("change-owner-form");
-  const cancelChangeOwnerBtn = document.getElementById("cancel-change-owner");
-  const modalNewOwner = document.getElementById("modal-new-owner");
-  const modalChangeReason = document.getElementById("modal-change-reason");
-  const modalChangeDate = document.getElementById("modal-change-date");
-  const modalNotes = document.getElementById("modal-notes");
+  // 主人选择相关
+  const ownerSelectionModal = document.getElementById("owner-selection-modal");
+  const closeOwnerModalBtn = document.getElementById("close-owner-modal");
+  const ownerSearch = document.getElementById("owner-search");
+  const searchOwnersBtn = document.getElementById("search-owners");
+  const ownersList = document.getElementById("owners-list");
+  const cancelOwnerSelectionBtn = document.getElementById("cancel-owner-selection");
+  const addNewOwnerBtn = document.getElementById("add-new-owner-btn");
+  
+  // 新建主人相关
+  const newOwnerModal = document.getElementById("new-owner-modal");
+  const closeNewOwnerModalBtn = document.getElementById("close-new-owner-modal");
+  const newOwnerForm = document.getElementById("new-owner-form");
+  const cancelNewOwnerBtn = document.getElementById("cancel-new-owner");
 
   // 数据存储
   let pets = [];
   let customers = []; // 将从客户管理模块获取
-  let ownershipHistory = []; // 主人变更历史
   let currentEditIndex = -1;
-  let currentPetId = null; // 用于主人变更
 
   // 从字典数据服务获取品种配置
   function getBreedConfig() {
@@ -79,8 +83,46 @@ function initPetInformation() {
   // 监听品种配置更新事件
   document.addEventListener('breedConfigUpdated', () => {
     breedConfig = getBreedConfig();
+    initBreedOptions();
     console.log('宠物信息模块已更新品种配置');
   });
+
+  // 初始化品种选项
+  function initBreedOptions() {
+    const majorBreeds = Object.keys(breedConfig);
+    
+    // 更新表单的大品种选项
+    formMajorBreed.innerHTML = '<option value="">请选择大品种</option>';
+    majorBreeds.forEach(breed => {
+      const option = document.createElement('option');
+      option.value = breed;
+      option.textContent = breed;
+      formMajorBreed.appendChild(option);
+    });
+
+    // 更新筛选器的品种选项
+    filterBreed.innerHTML = '<option value="">全部品种</option>';
+    majorBreeds.forEach(breed => {
+      const option = document.createElement('option');
+      option.value = breed;
+      option.textContent = breed;
+      filterBreed.appendChild(option);
+    });
+  }
+
+  // 更新小品种选项
+  function updateMinorBreedOptions(majorBreed) {
+    formMinorBreed.innerHTML = '<option value="">请选择小品种</option>';
+    
+    if (majorBreed && breedConfig[majorBreed]) {
+      breedConfig[majorBreed].forEach(breed => {
+        const option = document.createElement('option');
+        option.value = breed;
+        option.textContent = breed;
+        formMinorBreed.appendChild(option);
+      });
+    }
+  }
 
   // 初始化测试数据
   customers = [
@@ -96,7 +138,7 @@ function initPetInformation() {
       name: "小花",
       nickname: "花花",
       image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=200&h=200&fit=crop",
-      majorBreed: "猫",
+      majorBreed: "猫科",
       minorBreed: "英国短毛猫",
       birthDate: "2021-03-15",
       gender: "female",
@@ -112,7 +154,7 @@ function initPetInformation() {
       name: "阿黄",
       nickname: "大黄",
       image: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=200&h=200&fit=crop",
-      majorBreed: "狗",
+      majorBreed: "犬科",
       minorBreed: "金毛寻回犬",
       birthDate: "2020-01-10",
       gender: "male",
@@ -128,7 +170,7 @@ function initPetInformation() {
       name: "咪咪",
       nickname: "",
       image: "https://images.unsplash.com/photo-1518791841217-8f162f1e1131?w=200&h=200&fit=crop",
-      majorBreed: "猫",
+      majorBreed: "猫科",
       minorBreed: "布偶猫",
       birthDate: "2023-06-01",
       gender: "female",
@@ -242,21 +284,112 @@ function initPetInformation() {
     }
   }
 
-  function updateOwnerOptions() {
-    formOwner.innerHTML = '<option value="">请选择主人</option>';
-    modalNewOwner.innerHTML = '<option value="">请选择新主人</option>';
-    
-    customers.forEach(customer => {
-      const option1 = document.createElement("option");
-      option1.value = customer.id;
-      option1.textContent = `${customer.name} (${customer.phone})`;
-      formOwner.appendChild(option1);
+  // 主人选择相关功能
+  function showOwnerSelectionModal() {
+    ownerSelectionModal.classList.remove('hidden');
+    renderOwnersList();
+  }
 
-      const option2 = document.createElement("option");
-      option2.value = customer.id;
-      option2.textContent = `${customer.name} (${customer.phone})`;
-      modalNewOwner.appendChild(option2);
+  function hideOwnerSelectionModal() {
+    ownerSelectionModal.classList.add('hidden');
+    ownerSearch.value = '';
+  }
+
+  function renderOwnersList(searchTerm = '') {
+    const filteredCustomers = customers.filter(customer => {
+      if (!searchTerm) return true;
+      const term = searchTerm.toLowerCase();
+      return customer.name.toLowerCase().includes(term) || 
+             customer.phone.includes(term);
     });
+
+    ownersList.innerHTML = '';
+    
+    if (filteredCustomers.length === 0) {
+      ownersList.innerHTML = `
+        <tr>
+          <td colspan="4" class="px-4 py-4 text-center text-gray-500">
+            ${searchTerm ? '未找到匹配的客户' : '暂无客户数据'}
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    filteredCustomers.forEach(customer => {
+      const row = document.createElement('tr');
+      row.className = 'hover:bg-gray-50';
+      row.innerHTML = `
+        <td class="px-4 py-2">
+          <button type="button" class="select-owner-btn px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600" data-owner-id="${customer.id}">
+            选择
+          </button>
+        </td>
+        <td class="px-4 py-2">${customer.name}</td>
+        <td class="px-4 py-2">${customer.phone}</td>
+        <td class="px-4 py-2">${customer.wechat || '-'}</td>
+      `;
+      ownersList.appendChild(row);
+    });
+
+    // 添加选择按钮事件监听
+    ownersList.querySelectorAll('.select-owner-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const ownerId = parseInt(e.target.dataset.ownerId);
+        selectOwner(ownerId);
+      });
+    });
+  }
+
+  function selectOwner(ownerId) {
+    const owner = customers.find(c => c.id === ownerId);
+    if (owner) {
+      formOwner.value = ownerId;
+      selectedOwnerDisplay.value = `${owner.name} (${owner.phone})`;
+      clearOwnerBtn.classList.remove('hidden');
+      hideOwnerSelectionModal();
+    }
+  }
+
+  function clearSelectedOwner() {
+    formOwner.value = '';
+    selectedOwnerDisplay.value = '';
+    clearOwnerBtn.classList.add('hidden');
+  }
+
+  function showNewOwnerModal() {
+    newOwnerModal.classList.remove('hidden');
+    newOwnerForm.reset();
+  }
+
+  function hideNewOwnerModal() {
+    newOwnerModal.classList.add('hidden');
+  }
+
+  function createNewOwner(ownerData) {
+    const newId = Math.max(...customers.map(c => c.id), 0) + 1;
+    const newOwner = {
+      id: newId,
+      name: ownerData.name,
+      phone: ownerData.phone,
+      wechat: ownerData.wechat || null,
+      email: ownerData.email || null,
+      preferredContact: 'phone',
+      serviceLevel: 'standard',
+      notes: '通过宠物档案创建',
+      createdAt: new Date().toLocaleString(),
+      updatedAt: new Date().toLocaleString(),
+      lastActiveAt: new Date().toLocaleString()
+    };
+    
+    customers.push(newOwner);
+    selectOwner(newId);
+    hideNewOwnerModal();
+    
+    // 触发客户数据更新事件（如果需要同步到客户管理模块）
+    document.dispatchEvent(new CustomEvent('customerDataUpdated', {
+      detail: { customers, newCustomer: newOwner }
+    }));
   }
 
   function filterPetsByAge(pets, ageRange) {
@@ -357,9 +490,6 @@ function initPetInformation() {
           <button class="text-blue-600 hover:text-blue-900 mr-3 edit-pet" data-id="${pet.id}">
             <i class="fas fa-edit mr-1"></i>编辑
           </button>
-          <button class="text-purple-600 hover:text-purple-900 mr-3 view-history" data-id="${pet.id}">
-            <i class="fas fa-history mr-1"></i>历史
-          </button>
           <button class="text-red-600 hover:text-red-900 delete-pet" data-id="${pet.id}">
             <i class="fas fa-trash mr-1"></i>删除
           </button>
@@ -372,16 +502,12 @@ function initPetInformation() {
   function showMainView() {
     mainView.classList.remove("hidden");
     formView.classList.add("hidden");
-    historyView.classList.add("hidden");
     renderTable();
   }
 
   function showFormView(isEdit = false, editId = null) {
     mainView.classList.add("hidden");
     formView.classList.remove("hidden");
-    historyView.classList.add("hidden");
-
-    updateOwnerOptions();
 
     if (isEdit && editId) {
       const pet = pets.find((p) => p.id === editId);
@@ -397,7 +523,17 @@ function initPetInformation() {
         formBirthDate.value = pet.birthDate || "";
         formGender.value = pet.gender || "";
         formSterilized.value = pet.sterilized || "";
-        formOwner.value = pet.currentOwnerId || "";
+        // 设置主人信息
+        if (pet.currentOwnerId) {
+          const owner = customers.find(c => c.id === pet.currentOwnerId);
+          if (owner) {
+            formOwner.value = pet.currentOwnerId;
+            selectedOwnerDisplay.value = `${owner.name} (${owner.phone})`;
+            clearOwnerBtn.classList.remove('hidden');
+          }
+        } else {
+          clearSelectedOwner();
+        }
         formOwnershipStart.value = pet.ownershipStartDate || "";
         formNotes.value = pet.notes || "";
         
@@ -407,91 +543,16 @@ function initPetInformation() {
       formTitle.textContent = "新增宠物信息";
       petForm.reset();
       updateImagePreview(null);
-      updateMinorBreedOptions();
+      updateMinorBreedOptions('');
+      clearSelectedOwner();
       // 设置默认拥有开始时间为今天
       formOwnershipStart.value = new Date().toISOString().split('T')[0];
       currentEditIndex = -1;
     }
   }
 
-  function showHistoryView(petId) {
-    mainView.classList.add("hidden");
-    formView.classList.add("hidden");
-    historyView.classList.remove("hidden");
 
-    currentPetId = petId;
-    const pet = pets.find(p => p.id === petId);
-    if (!pet) return;
 
-    // 显示宠物基本信息
-    const petBasicInfo = document.getElementById("pet-basic-info");
-    const age = calculateAge(pet.birthDate);
-    const ownerName = getOwnerName(pet.currentOwnerId);
-    
-    petBasicInfo.innerHTML = `
-      <div class="flex items-center space-x-4">
-        <div class="flex-shrink-0">
-          ${pet.image ? 
-            `<img src="${pet.image}" alt="${pet.name}" class="w-16 h-16 object-cover rounded-full border">` : 
-            `<div class="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center text-gray-400">
-              <i class="fas fa-paw text-2xl"></i>
-            </div>`
-          }
-        </div>
-        <div>
-          <h4 class="text-lg font-medium">${pet.name} ${pet.nickname ? `(${pet.nickname})` : ''}</h4>
-          <p class="text-gray-600">${pet.majorBreed} • ${pet.minorBreed || '未知品种'} • ${age || '年龄未知'}</p>
-          <p class="text-gray-600">当前主人：${ownerName}</p>
-        </div>
-      </div>
-    `;
-
-    // 渲染主人变更历史
-    renderOwnershipHistory(petId);
-  }
-
-  function renderOwnershipHistory(petId) {
-    const historyTableBody = document.getElementById("history-table-body");
-    const petHistory = ownershipHistory.filter(h => h.petId === petId);
-    
-    historyTableBody.innerHTML = "";
-
-    if (petHistory.length === 0) {
-      historyTableBody.innerHTML = `
-        <tr>
-          <td colspan="5" class="px-6 py-4 text-center text-gray-500">暂无主人变更记录</td>
-        </tr>
-      `;
-      return;
-    }
-
-    petHistory.sort((a, b) => new Date(b.changeTime) - new Date(a.changeTime));
-
-    petHistory.forEach((record) => {
-      const fromOwnerName = record.fromOwnerId ? getOwnerName(record.fromOwnerId) : "无";
-      const toOwnerName = getOwnerName(record.toOwnerId);
-      
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          ${new Date(record.changeTime).toLocaleString()}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          ${fromOwnerName}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          ${toOwnerName}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          ${record.changeReason}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-          ${record.operatorName}
-        </td>
-      `;
-      historyTableBody.appendChild(row);
-    });
-  }
 
   // 事件监听器
   addNewPetButton.addEventListener("click", () => {
@@ -499,7 +560,6 @@ function initPetInformation() {
   });
 
   backToListButton.addEventListener("click", showMainView);
-  backToListFromHistoryButton.addEventListener("click", showMainView);
   cancelFormButton.addEventListener("click", showMainView);
 
   // 搜索和筛选
@@ -520,7 +580,61 @@ function initPetInformation() {
   });
 
   // 品种联动
-  formMajorBreed.addEventListener("change", updateMinorBreedOptions);
+  formMajorBreed.addEventListener("change", (e) => {
+    updateMinorBreedOptions(e.target.value);
+    formMinorBreed.value = '';
+  });
+
+  // 主人选择相关事件
+  selectOwnerBtn.addEventListener("click", showOwnerSelectionModal);
+  clearOwnerBtn.addEventListener("click", clearSelectedOwner);
+  closeOwnerModalBtn.addEventListener("click", hideOwnerSelectionModal);
+  cancelOwnerSelectionBtn.addEventListener("click", hideOwnerSelectionModal);
+  
+  // 主人搜索
+  searchOwnersBtn.addEventListener("click", () => {
+    renderOwnersList(ownerSearch.value.trim());
+  });
+  
+  ownerSearch.addEventListener("keypress", (e) => {
+    if (e.key === 'Enter') {
+      renderOwnersList(e.target.value.trim());
+    }
+  });
+
+  // 新建主人相关事件
+  addNewOwnerBtn.addEventListener("click", () => {
+    hideOwnerSelectionModal();
+    showNewOwnerModal();
+  });
+  
+  closeNewOwnerModalBtn.addEventListener("click", hideNewOwnerModal);
+  cancelNewOwnerBtn.addEventListener("click", hideNewOwnerModal);
+  
+  newOwnerForm.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const ownerData = {
+      name: formData.get("new-owner-name") || document.getElementById("new-owner-name").value,
+      phone: formData.get("new-owner-phone") || document.getElementById("new-owner-phone").value,
+      wechat: formData.get("new-owner-wechat") || document.getElementById("new-owner-wechat").value,
+      email: formData.get("new-owner-email") || document.getElementById("new-owner-email").value
+    };
+    
+    if (!ownerData.name || !ownerData.phone) {
+      alert("请填写姓名和手机号");
+      return;
+    }
+    
+    // 检查手机号是否已存在
+    const existingCustomer = customers.find(c => c.phone === ownerData.phone);
+    if (existingCustomer) {
+      alert("该手机号已存在，请检查是否重复添加！");
+      return;
+    }
+    
+    createNewOwner(ownerData);
+  });
 
   // 年龄计算
   formBirthDate.addEventListener("change", (e) => {
@@ -646,86 +760,18 @@ function initPetInformation() {
 
     if (button.classList.contains("edit-pet")) {
       showFormView(true, id);
-    } else if (button.classList.contains("view-history")) {
-      showHistoryView(id);
     } else if (button.classList.contains("delete-pet")) {
       const pet = pets.find(p => p.id === id);
       if (pet && confirm(`确定要删除宠物 "${pet.name}" 的信息吗？\n删除后将无法恢复。`)) {
         pets = pets.filter((p) => p.id !== id);
-        // 同时删除相关的主人变更历史
-        ownershipHistory = ownershipHistory.filter(h => h.petId !== id);
         renderTable(searchInput.value.trim(), filterBreed.value, filterGender.value, filterAgeRange.value);
       }
     }
   });
 
-  // 主人变更相关事件
-  changeOwnerBtn.addEventListener("click", () => {
-    updateOwnerOptions();
-    modalChangeDate.value = new Date().toISOString().split('T')[0];
-    changeOwnerModal.classList.remove("hidden");
-  });
-
-  cancelChangeOwnerBtn.addEventListener("click", () => {
-    changeOwnerModal.classList.add("hidden");
-    changeOwnerForm.reset();
-  });
-
-  changeOwnerForm.addEventListener("submit", (e) => {
-    e.preventDefault();
-
-    const newOwnerId = parseInt(modalNewOwner.value);
-    const changeReason = modalChangeReason.value;
-    const changeDate = modalChangeDate.value;
-    const notes = modalNotes.value.trim();
-
-    if (!newOwnerId || !changeReason) {
-      alert("新主人和变更原因不能为空！");
-      return;
-    }
-
-    const pet = pets.find(p => p.id === currentPetId);
-    if (!pet) return;
-
-    // 检查是否真的发生了变更
-    if (pet.currentOwnerId === newOwnerId) {
-      alert("新主人与当前主人相同，无需变更！");
-      return;
-    }
-
-    // 记录变更历史
-    ownershipHistory.push({
-      id: ownershipHistory.length + 1,
-      petId: currentPetId,
-      fromOwnerId: pet.currentOwnerId,
-      toOwnerId: newOwnerId,
-      changeReason: changeReason,
-      changeDate: changeDate || new Date().toISOString().split('T')[0],
-      notes: notes,
-      operatorName: "系统管理员",
-      changeTime: new Date().toLocaleString('zh-CN')
-    });
-
-    // 更新宠物的当前主人
-    const petIndex = pets.findIndex(p => p.id === currentPetId);
-    pets[petIndex].currentOwnerId = newOwnerId;
-    pets[petIndex].ownershipStartDate = changeDate || new Date().toISOString().split('T')[0];
-    pets[petIndex].updatedAt = new Date().toLocaleString('zh-CN');
-
-    changeOwnerModal.classList.add("hidden");
-    changeOwnerForm.reset();
-    showHistoryView(currentPetId); // 刷新历史视图
-  });
-
-  // 点击模态框背景关闭
-  changeOwnerModal.addEventListener("click", (e) => {
-    if (e.target === changeOwnerModal) {
-      changeOwnerModal.classList.add("hidden");
-      changeOwnerForm.reset();
-    }
-  });
 
   // 初始化
+  initBreedOptions();
   showMainView();
 }
 

@@ -136,20 +136,7 @@
             <div class="bg-green-50 p-4 rounded-lg">
                 <h3 class="text-lg font-medium mb-4 text-green-900">检测指标信息</h3>
                 
-                <!-- 指标选择方式切换 -->
-                <div class="mb-4">
-                    <label class="block text-gray-700 text-sm font-bold mb-2">选择方式</label>
-                    <div class="flex space-x-4">
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="indicator-selection-mode" value="tree" class="form-radio" checked>
-                            <span class="ml-2">树形选择（推荐）</span>
-                        </label>
-                        <label class="inline-flex items-center">
-                            <input type="radio" name="indicator-selection-mode" value="dropdown" class="form-radio">
-                            <span class="ml-2">下拉选择</span>
-                        </label>
-                    </div>
-                </div>
+
 
                 <!-- 树形选择器 -->
                 <div id="tree-selector" class="mb-4">
@@ -191,9 +178,7 @@
                             height: 1px;
                             background-color: #d1d5db;
                         }
-                        .form-radio {
-                            color: #3b82f6;
-                        }
+
                     </style>
                     <div id="selected-indicator" class="mt-2 p-2 bg-blue-50 rounded text-sm hidden">
                         <span class="text-blue-800">已选择：</span>
@@ -204,29 +189,7 @@
                     </div>
                 </div>
 
-                <!-- 传统下拉选择器（隐藏） -->
-                <div id="dropdown-selector" class="hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-gray-700 text-sm font-bold mb-2" for="form-indicator-type">
-                                指标类型 <span class="text-red-500">*</span>
-                            </label>
-                            <select id="form-indicator-type" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
-                                <option value="">请选择指标类型</option>
-                                <option value="门">门</option>
-                                <option value="属">属</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-gray-700 text-sm font-bold mb-2" for="form-indicator-name">
-                                指标名称 <span class="text-red-500">*</span>
-                            </label>
-                            <select id="form-indicator-name" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
-                                <option value="">请先选择指标类型</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
+
 
                 <!-- 隐藏的表单字段（存储选择结果） -->
                 <input type="hidden" id="selected-indicator-type" name="indicatorType">
