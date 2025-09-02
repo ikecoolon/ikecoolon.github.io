@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PET PC 管理端原型</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+    <style>
+        .sidebar {
+            width: 200px;
+            min-width: 200px;
+            background-color: #334155; /* slate-700 */
+            color: white;
+            padding: 1rem;
+        }
+        .main-content {
+            flex-grow: 1;
+            padding: 1.5rem;
+            background-color: #f3f4f6; /* gray-100 */
+        }
+        .nav-item {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 0.375rem; /* rounded-md */
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .nav-item:hover {
+            background-color: #475569; /* slate-600 */
+        }
+        .nav-item.active {
+            background-color: #1d4ed8; /* blue-700 */
+        }
+    </style>
+</head>
+<body class="flex min-h-screen">
+    <aside class="sidebar flex flex-col h-screen fixed">
+        <div class="text-xl font-bold mb-6 text-center">PET 管理端</div>
+        <nav class="flex-grow">
+            <ul id="main-nav">
+                <!-- <li><a class="nav-item active block" href="#" data-page="dashboard">仪表盘</a></li> -->
+                <li><a class="nav-item block" href="#" data-page="dictionary-management">字典管理</a></li>
+                <li><a class="nav-item block" href="#" data-page="normal-range-config">正常范围配置</a></li>
+                <li><a class="nav-item block" href="#" data-page="health-level-management">健康分级</a></li>
+                <li><a class="nav-item block" href="#" data-page="customer-management">客户管理</a></li>
+                <li><a class="nav-item block" href="#" data-page="pet-information">宠物档案</a></li>
+                <li><a class="nav-item block" href="#" data-page="pet-report-management">萌宠报告</a></li>
+                <li><a class="nav-item block" href="#" data-page="analysis-rules">分析建议规则</a></li>
+            </ul>
+        </nav>
+        <div class="mt-auto text-sm text-gray-400 text-center">
+            &copy; 2025 ikecoolon Technology
+        </div>
+    </aside>
+
+    <main class="main-content ml-[200px] flex-grow">
+        <header class="flex justify-between items-center pb-4 border-b border-gray-200 mb-6">
+            <h1 id="page-title" class="text-3xl font-semibold"></h1>
+            <div class="flex items-center space-x-4">
+                <span class="text-gray-600">欢迎, 管理员!</span>
+                <button class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">退出</button>
+            </div>
+        </header>
+
+        <div id="page-content-container">
+            <!-- Pages will be loaded here dynamically -->
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.0/dist/echarts.min.js"></script>
+    <script src="./js/dictionary-data-service.js"></script>
+    <script src="./js/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<div id="pet-information" class="page p-4">
+    
+    <!-- 主列表视图 -->
+    <div id="main-view" class="bg-white p-6 rounded-lg shadow-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-semibold">宠物档案管理</h3>
+            <button id="add-new-pet" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+                <i class="fas fa-plus mr-2"></i>新增宠物
+            </button>
+        </div>
+        
+        <div class="flex flex-col md:flex-row gap-4 mb-4">
+            <div class="flex-1">
+                <input type="text" id="search-pet" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="搜索宠物姓名、品种、主人姓名">
+            </div>
+            <div class="flex space-x-2">
+                <select id="filter-breed" class="shadow border rounded py-2 px-3 text-gray-700 focus:outline-none focus:shadow-outline">
+                    <option value="">全部品种</option>
+                </select>
+                <select id="filter-gender" class="shadow border rounded py-2 px-3 text-gray-700 focus:outline-none focus:shadow-outline">
+                    <option value="">全部性别</option>
+                    <option value="male">公</option>
+                    <option value="female">母</option>
+                    <option value="unknown">未知</option>
+                </select>
+                <select id="filter-age-range" class="shadow border rounded py-2 px-3 text-gray-700 focus:outline-none focus:shadow-outline">
+                    <option value="">全部年龄</option>
+                    <option value="0-1">0-1岁</option>
+                    <option value="1-3">1-3岁</option>
+                    <option value="3-7">3-7岁</option>
+                    <option value="7+">7岁以上</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="min-w-full bg-white border border-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">照片</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">宠物信息</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">品种信息</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">年龄/性别</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">当前主人</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">注册时间</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="pet-table-body" class="bg-white divide-y divide-gray-200">
+                    <tr>
+                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">暂无宠物信息</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- 新增/编辑视图 -->
+    <div id="form-view" class="bg-white p-6 rounded-lg shadow-md hidden">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="form-title" class="text-xl font-semibold">新增宠物信息</h3>
+            <button id="back-to-list" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">
+                <i class="fas fa-arrow-left mr-2"></i>返回列表
+            </button>
+        </div>
+        
+        <form id="pet-form" class="space-y-6">
+            <!-- 基本信息 -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="text-lg font-medium mb-4 text-gray-800">基本信息</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-pet-name">
+                            宠物姓名 <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" id="form-pet-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="请输入宠物姓名" required>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-pet-nickname">
+                            昵称/别名
+                        </label>
+                        <input type="text" id="form-pet-nickname" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="宠物的小名或别名">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="form-pet-image">
+                        宠物照片
+                    </label>
+                    <div class="flex items-center space-x-4">
+                        <input type="file" id="form-pet-image" accept="image/*" class="shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <div id="image-preview" class="hidden">
+                            <img id="preview-img" src="" alt="宠物照片预览" class="w-16 h-16 object-cover rounded-lg border">
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">支持 JPG、PNG、GIF 格式，建议尺寸不超过 2MB</p>
+                </div>
+            </div>
+
+            <!-- 品种信息 -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="text-lg font-medium mb-4 text-gray-800">品种信息</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-major-breed">
+                            大品种 <span class="text-red-500">*</span>
+                        </label>
+                        <select id="form-major-breed" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                            <option value="">请选择大品种</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-minor-breed">
+                            小品种/具体品种
+                        </label>
+                        <select id="form-minor-breed" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <option value="">请先选择大品种</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 生理信息 -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="text-lg font-medium mb-4 text-gray-800">生理信息</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-birth-date">
+                            出生日期
+                        </label>
+                        <input type="date" id="form-birth-date" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <p id="age-display" class="text-xs text-gray-500 mt-1">年龄将自动计算</p>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-gender">
+                            性别
+                        </label>
+                        <select id="form-gender" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <option value="">请选择</option>
+                            <option value="male">公</option>
+                            <option value="female">母</option>
+                            <option value="unknown">未知</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-sterilized">
+                            是否绝育
+                        </label>
+                        <select id="form-sterilized" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <option value="">请选择</option>
+                            <option value="yes">已绝育</option>
+                            <option value="no">未绝育</option>
+                            <option value="unknown">不确定</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主人信息 -->
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div class="mb-4">
+                    <h4 class="text-lg font-medium text-gray-800">主人信息</h4>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="selected-owner-display">
+                            当前主人
+                        </label>
+                        <div class="flex items-center space-x-2">
+                            <input type="text" id="selected-owner-display" class="shadow appearance-none border rounded flex-1 py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-50" placeholder="点击选择主人" readonly>
+                            <button type="button" id="select-owner-btn" class="px-3 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button type="button" id="clear-owner-btn" class="px-3 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 hidden">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <input type="hidden" id="form-owner" value="">
+                    </div>
+                    <div>
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-ownership-start">
+                            拥有开始时间
+                        </label>
+                        <input type="date" id="form-ownership-start" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 其他信息 -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h4 class="text-lg font-medium mb-4 text-gray-800">其他信息</h4>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="form-notes">
+                        备注情况
+                    </label>
+                    <textarea id="form-notes" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" rows="4" placeholder="请输入宠物的特殊情况、健康状况、行为特点等备注信息"></textarea>
+                </div>
+            </div>
+            
+            <div class="flex space-x-4">
+                <button type="submit" id="save-pet" class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                    <i class="fas fa-save mr-2"></i>保存信息
+                </button>
+                <button type="button" id="cancel-form" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">
+                    取消
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 主人选择模态框 -->
+    <div id="owner-selection-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="text-lg font-medium">选择宠物主人</h4>
+                <button type="button" id="close-owner-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- 搜索框 -->
+            <div class="mb-4">
+                <div class="flex space-x-2">
+                    <input type="text" id="owner-search" class="flex-1 border rounded px-3 py-2" placeholder="搜索客户姓名或手机号">
+                    <button type="button" id="search-owners" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 新建主人按钮 -->
+            <div class="mb-4">
+                <button type="button" id="add-new-owner-btn" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                    <i class="fas fa-plus mr-2"></i>新建主人
+                </button>
+            </div>
+            
+            <!-- 客户列表 -->
+            <div class="border rounded max-h-60 overflow-y-auto">
+                <table class="min-w-full">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">选择</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">姓名</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">手机号</th>
+                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">微信</th>
+                        </tr>
+                    </thead>
+                    <tbody id="owners-list" class="divide-y divide-gray-200">
+                        <!-- 客户列表将在这里显示 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <button type="button" id="cancel-owner-selection" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                    取消
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新建主人模态框 -->
+    <div id="new-owner-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h4 class="text-lg font-medium">新建主人信息</h4>
+                <button type="button" id="close-new-owner-modal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="new-owner-form" class="space-y-4">
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="new-owner-name">
+                        姓名 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" id="new-owner-name" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="new-owner-phone">
+                        手机号 <span class="text-red-500">*</span>
+                    </label>
+                    <input type="tel" id="new-owner-phone" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required>
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="new-owner-wechat">
+                        微信号
+                    </label>
+                    <input type="text" id="new-owner-wechat" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="new-owner-email">
+                        邮箱
+                    </label>
+                    <input type="email" id="new-owner-email" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                
+                <div class="flex space-x-4 pt-4">
+                    <button type="submit" class="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
+                        <i class="fas fa-save mr-2"></i>保存
+                    </button>
+                    <button type="button" id="cancel-new-owner" class="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600">
+                        取消
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript Dependencies -->
+<script src="./js/dictionary-data-service.js"></script>
