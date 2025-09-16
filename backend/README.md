@@ -44,8 +44,7 @@ POST /api/send-password-email
 **请求体：**
 ```json
 {
-  "email": "user@example.com",
-  "password": "TempPass123!"
+  "email": "user@example.com"
 }
 ```
 
@@ -62,10 +61,11 @@ POST /api/send-password-email
 ```json
 {
   "success": false,
-  "message": "邮箱格式不正确",
-  "error": "INVALID_EMAIL"
+  "message": "该邮箱不在白名单中，无法发送密码邮件"
 }
 ```
+
+**注意：** 发送密码邮件时，系统会自动验证邮箱是否在白名单中。只有白名单中的邮箱才能成功发送邮件。
 
 ## 🔐 认证 API
 
@@ -228,15 +228,20 @@ npm test
 🎉 测试完成!
 ```
 
+
 ## 🔧 开发说明
 
 ### 项目结构
 ```
 server/
-├── package.json      # 项目配置
-├── server.js         # 主服务文件
-├── test-email.js     # 测试脚本
-└── README.md         # 说明文档
+├── data/
+│   ├── auth.json              # 密码配置和认证数据
+│   └── email-whitelist.json   # 邮箱白名单配置
+├── package.json               # 项目配置
+├── server.js                  # 主服务文件
+├── test-email.js              # 邮件服务测试脚本
+├── test-auth.js               # 认证服务测试脚本
+└── README.md                  # 说明文档
 ```
 
 ### 依赖说明
@@ -245,6 +250,10 @@ server/
 - **cors**: 跨域支持
 - **jsonwebtoken**: JWT token生成和验证
 - **bcryptjs**: 密码加密（预留扩展用）
+
+### 数据文件说明
+- **data/auth.json**: 密码配置和认证相关数据
+- **data/email-whitelist.json**: 邮箱白名单配置数据
 
 ### 端口配置
 默认端口：`3002`
@@ -277,14 +286,13 @@ PORT=8080 npm start
 
 ```javascript
 // 发送密码邮件
-const response = await fetch('http://localhost:3002/api/send-password-email', {
+const response = await fetch('http://localhost:9010/api/send-password-email', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    email: 'user@example.com',
-    password: 'TempPass123!'
+    email: 'user@example.com'
   })
 });
 

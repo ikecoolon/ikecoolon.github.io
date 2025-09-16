@@ -164,9 +164,6 @@
               <h3 class="text-16px font-500 text-gray-700 mb-12px flex items-center">
                 <i class="i-carbon:calendar mr-8px text-blue-600" />
                 {{ selectedDate.format('MM月DD日') }} ({{ getFullWeekdayText(selectedDate.day()) }})
-                <span v-if="selectedCamp" class="text-12px text-blue-500 ml-8px">
-                  - {{ selectedCamp.name }}
-                </span>
               </h3>
               
               <!-- 上午活动 (6:00-12:00) -->
@@ -273,6 +270,52 @@
             </div>
           </div>
         </a-card>
+
+        <!-- 职责清单 -->
+        <a-card title="职责清单" class="mt-24px" :loading="loading">
+          <div class="space-y-16px">
+            <!-- 按类别分组显示职责 -->
+            <div v-for="category in dutyCategories" :key="category.key">
+              <div class="text-14px font-500 text-gray-700 mb-8px flex items-center">
+                <span class="mr-4px">{{ category.icon }}</span>
+                {{ category.label }} ({{ getCategoryDuties(category.key).length }}项)
+              </div>
+
+              <div class="space-y-8px ml-20px">
+                <div
+                  v-for="duty in getCategoryDuties(category.key)"
+                  :key="duty.id"
+                  class="duty-item"
+                  @click="handleDutyClick(duty)"
+                >
+                  <div class="duty-card-content">
+                    <div class="duty-title">{{ duty.title }}</div>
+                    <div class="duty-description">{{ duty.description }}</div>
+
+                    <div class="duty-meta">
+                      <div class="duty-meta-item">
+                        <i class="i-carbon:group" />
+                        <span>{{ duty.assignees.map(a => a.userName).join('、') }}</span>
+                      </div>
+                      <div v-if="duty.timeRange" class="duty-meta-item">
+                        <i class="i-carbon:time" />
+                        <span>{{ formatDate(duty.timeRange.start) }} - {{ formatDate(duty.timeRange.end) }}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="getCategoryDuties(category.key).length === 0" class="text-12px text-gray-400 ml-20px py-8px">
+                暂无{{ category.label }}职责
+              </div>
+            </div>
+
+            <div v-if="getCurrentCampDuties().length === 0" class="text-center py-20px text-gray-400">
+              暂无职责分配
+            </div>
+          </div>
+        </a-card>
       </div>
 
       <!-- 详情侧栏 -->
@@ -283,15 +326,16 @@
           <template #title>
             <div class="flex items-center justify-between">
               <span>{{ detailTitle }}</span>
-              <a-radio-group 
-                v-if="selectedActivity" 
-                v-model:value="detailViewMode" 
+              <a-radio-group
+                v-if="selectedActivity || selectedDuty"
+                v-model:value="detailViewMode"
                 size="small"
                 @change="handleDetailViewChange"
               >
                 <a-radio-button value="activity">活动</a-radio-button>
                 <a-radio-button value="course">课程</a-radio-button>
                 <a-radio-button value="member">人员</a-radio-button>
+                <a-radio-button v-if="selectedDuty" value="duty">职责</a-radio-button>
               </a-radio-group>
             </div>
           </template>
@@ -312,8 +356,7 @@
               <div>
                 <div class="text-12px text-gray-500 mb-4px">时间安排</div>
                 <div class="text-14px text-gray-800">
-                  {{ formatDateTime(selectedActivity.startTime) }} <br>
-                  至 {{ formatDateTime(selectedActivity.endTime) }}
+                  {{ formatDateTime(selectedActivity.startTime) }} - {{ formatDateTime(selectedActivity.endTime) }}
                 </div>
               </div>
               
@@ -413,7 +456,7 @@
                     >
                       <div class="text-13px font-500 text-gray-800">{{ activity.title }}</div>
                       <div class="text-11px text-gray-500">
-                        {{ formatDateTime(activity.startTime) }}
+                        {{ formatDateTime(activity.date) }}
                       </div>
                     </div>
                     <div v-if="getMemberOtherActivities(selectedMember.id).length === 0" class="text-12px text-gray-400">
@@ -424,6 +467,59 @@
               </div>
               <div v-else class="text-center py-20px text-gray-400">
                 请选择要查看的服侍人员
+              </div>
+            </div>
+
+            <!-- 职责详情视图 -->
+            <div v-else-if="detailViewMode === 'duty'" class="space-y-12px">
+              <div v-if="selectedDuty">
+                <div>
+                  <div class="text-12px text-gray-500 mb-4px">职责名称</div>
+                  <div class="text-14px text-gray-800">{{ selectedDuty.title }}</div>
+                </div>
+
+                <div>
+                  <div class="text-12px text-gray-500 mb-4px">职责类型</div>
+                  <div class="text-14px text-gray-800">
+                    <a-tag :color="getDutyCategoryColor(selectedDuty.category)">
+                      {{ getDutyCategoryText(selectedDuty.category) }}
+                    </a-tag>
+                  </div>
+                </div>
+
+                <div>
+                  <div class="text-12px text-gray-500 mb-4px">职责说明</div>
+                  <div class="text-14px text-gray-600">{{ selectedDuty.description }}</div>
+                </div>
+
+                <div>
+                  <div class="text-12px text-gray-500 mb-4px">负责人</div>
+                  <div class="space-y-4px">
+                    <a-tag
+                      v-for="assignee in selectedDuty.assignees"
+                      :key="assignee.userId"
+                      class="mb-4px cursor-pointer hover:bg-blue-100"
+                      color="geekblue"
+                    >
+                      {{ assignee.userName }}
+                    </a-tag>
+                  </div>
+                </div>
+
+                <div v-if="selectedDuty.timeRange">
+                  <div class="text-12px text-gray-500 mb-4px">时间范围</div>
+                  <div class="text-14px text-gray-800">
+                    {{ formatDate(selectedDuty.timeRange.start) }} - {{ formatDate(selectedDuty.timeRange.end) }}
+                  </div>
+                </div>
+
+                <div>
+                  <div class="text-12px text-gray-500 mb-4px">创建时间</div>
+                  <div class="text-14px text-gray-800">{{ formatDateTime(selectedDuty.createdAt) }}</div>
+                </div>
+              </div>
+              <div v-else class="text-center py-20px text-gray-400">
+                请选择要查看的职责
               </div>
             </div>
           </div>
@@ -446,7 +542,7 @@ import { useActivityStore } from '@/store/activity'
 import { useMinistryStore } from '@/store/ministry'
 import { useCampStore } from '@/store/camp'
 import { useDashboardStore } from '@/store/dashboard'
-import type { Activity, Camp } from '@/types/activity'
+import type { Activity, Camp, CampDuty, DutyCategory } from '@/types/activity'
 
 /**
  * 仪表盘页面
@@ -462,8 +558,9 @@ const dashboardStore = useDashboardStore()
 // 响应式状态
 const loading = ref(false)
 const selectedActivity = ref<Activity | null>(null)
+const selectedDuty = ref<CampDuty | null>(null)
 const statsCollapsed = ref(true)
-const detailViewMode = ref<'activity' | 'course' | 'member'>('activity')
+const detailViewMode = ref<'activity' | 'course' | 'member' | 'duty'>('activity')
 const selectedMemberId = ref<string>('')
 const selectedCampId = ref<string>('')
 const calendarStartIndex = ref(0)
@@ -517,7 +614,7 @@ const canScrollRight = computed(() => calendarStartIndex.value + 7 < campDays.va
 const todayActivities = computed(() => {
   const today = selectedDate.value.format('YYYY-MM-DD')
   return activityStore.activities.filter(activity =>
-    dayjs(activity.startTime).format('YYYY-MM-DD') === today
+    dayjs(activity.date).format('YYYY-MM-DD') === today
   )
 })
 
@@ -531,8 +628,10 @@ const stats = computed(() => ({
 
 // 详情面板相关计算属性
 const detailTitle = computed(() => {
-  if (!selectedActivity.value) return '活动详情'
-  
+  if (!selectedActivity.value && !selectedDuty.value) return '详情'
+
+  if (selectedDuty.value) return '职责详情'
+
   switch (detailViewMode.value) {
     case 'course':
       return '课程详情'
@@ -563,6 +662,25 @@ const selectedMember = computed(() => {
   
   return ministryStore.members.find(m => m.id === selectedMemberId.value)
 })
+
+// 职责分类配置
+const dutyCategories = computed(() => [
+  { key: 'preparation', label: '准备工作', icon: '📋' },
+  { key: 'logistics', label: '后勤保障', icon: '📦' },
+  { key: 'coordination', label: '现场协调', icon: '🤝' },
+  { key: 'support', label: '技术支持', icon: '🔧' }
+])
+
+// 获取当前选中营会的职责
+const getCurrentCampDuties = () => {
+  if (!selectedCampId.value) return []
+  return campStore.getCampDuties(selectedCampId.value)
+}
+
+// 获取指定类别的职责
+const getCategoryDuties = (category: string) => {
+  return getCurrentCampDuties().filter(duty => duty.category === category)
+}
 
 // 监听选中日期变化
 watch(selectedDate, () => {
@@ -652,8 +770,9 @@ const getMemberName = (memberId: string) => {
  */
 const getDayActivitiesCount = (day: dayjs.Dayjs) => {
   const dayStr = day.format('YYYY-MM-DD')
-  return activityStore.activities.filter(activity => 
-    dayjs(activity.startTime).format('YYYY-MM-DD') === dayStr
+  return activityStore.activities.filter(activity =>
+    dayjs(activity.date).format('YYYY-MM-DD') === dayStr &&
+    (!selectedCampId.value || activity.campId === selectedCampId.value)
   ).length
 }
 
@@ -664,9 +783,11 @@ const getMorningActivities = (day: dayjs.Dayjs) => {
   const dayStr = day.format('YYYY-MM-DD')
   return activityStore.activities
     .filter(activity => {
-      const activityDay = dayjs(activity.startTime).format('YYYY-MM-DD')
+      const activityDay = dayjs(activity.date).format('YYYY-MM-DD')
       const activityHour = dayjs(activity.startTime).hour()
-      return activityDay === dayStr && activityHour >= 6 && activityHour < 12
+      return activityDay === dayStr &&
+             activityHour >= 6 && activityHour < 12 &&
+             (!selectedCampId.value || activity.campId === selectedCampId.value)
     })
     .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
 }
@@ -678,9 +799,11 @@ const getAfternoonActivities = (day: dayjs.Dayjs) => {
   const dayStr = day.format('YYYY-MM-DD')
   return activityStore.activities
     .filter(activity => {
-      const activityDay = dayjs(activity.startTime).format('YYYY-MM-DD')
+      const activityDay = dayjs(activity.date).format('YYYY-MM-DD')
       const activityHour = dayjs(activity.startTime).hour()
-      return activityDay === dayStr && activityHour >= 12 && activityHour < 18
+      return activityDay === dayStr &&
+             activityHour >= 12 && activityHour < 18 &&
+             (!selectedCampId.value || activity.campId === selectedCampId.value)
     })
     .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
 }
@@ -692,9 +815,11 @@ const getEveningActivities = (day: dayjs.Dayjs) => {
   const dayStr = day.format('YYYY-MM-DD')
   return activityStore.activities
     .filter(activity => {
-      const activityDay = dayjs(activity.startTime).format('YYYY-MM-DD')
+      const activityDay = dayjs(activity.date).format('YYYY-MM-DD')
       const activityHour = dayjs(activity.startTime).hour()
-      return activityDay === dayStr && activityHour >= 18
+      return activityDay === dayStr &&
+             activityHour >= 18 &&
+             (!selectedCampId.value || activity.campId === selectedCampId.value)
     })
     .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
 }
@@ -763,6 +888,42 @@ const handleDetailViewChange = () => {
 }
 
 /**
+ * 处理职责点击
+ */
+const handleDutyClick = (duty: CampDuty) => {
+  selectedDuty.value = duty
+  selectedActivity.value = null
+  selectedMemberId.value = ''
+  detailViewMode.value = 'duty'
+}
+
+/**
+ * 获取职责类别颜色
+ */
+const getDutyCategoryColor = (category: DutyCategory) => {
+  const colors = {
+    preparation: 'orange',
+    logistics: 'blue',
+    coordination: 'green',
+    support: 'purple'
+  }
+  return colors[category] || 'default'
+}
+
+/**
+ * 获取职责类别文本
+ */
+const getDutyCategoryText = (category: DutyCategory) => {
+  const texts = {
+    preparation: '准备工作',
+    logistics: '后勤保障',
+    coordination: '现场协调',
+    support: '技术支持'
+  }
+  return texts[category] || category
+}
+
+/**
  * 选择日期
  */
 const selectDate = (date: dayjs.Dayjs) => {
@@ -815,7 +976,8 @@ const refreshData = async () => {
       activityStore.fetchActivities(),
       ministryStore.fetchMembers(),
       ministryStore.fetchMinistries(),
-      campStore.fetchCamps()
+      campStore.fetchCamps(),
+      campStore.fetchDuties()
     ])
 
     // 数据加载完成后，如果有营会数据且没有选中，则默认选中第一个
@@ -839,5 +1001,91 @@ onMounted(() => {
 <style scoped>
 .calendar-week, .calendar-day {
   min-height: 400px;
+}
+
+/* 职责卡片样式 */
+.duty-card {
+  transition: all 0.2s ease;
+}
+
+.duty-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.duty-card-content {
+  cursor: pointer;
+}
+
+.duty-category-header {
+  margin-bottom: 8px;
+}
+
+.duty-category-title {
+  font-weight: 500;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.duty-category-count {
+  color: #999;
+  font-size: 12px;
+}
+
+.duty-item {
+  padding: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background: #fafafa;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.duty-item:hover {
+  background: #f0f8ff;
+  border-color: #1890ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.duty-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.duty-description {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.duty-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #999;
+}
+
+.duty-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.duty-assignees {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
 }
 </style>

@@ -111,7 +111,7 @@
                     class="p-8px bg-gray-50 rounded-4px"
                   >
                     <div class="font-500">{{ activity.title }}</div>
-                    <div class="text-gray-500">{{ formatDateTime(activity.startTime) }}</div>
+                    <div class="text-gray-500">{{ formatDateTime(activity.date) }}</div>
                   </div>
                 </div>
                 <div v-if="getMemberActivities(selectedMember.id).length === 0" class="text-12px text-gray-400">

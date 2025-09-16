@@ -394,16 +394,16 @@ const authAPI = {
   },
 
   /**
-   * 发送密码邮件（需要密码验证）
+   * 发送密码邮件（密码由后端获取）
    */
-  async sendPasswordEmail(email: string, password: string) {
+  async sendPasswordEmail(email: string) {
     try {
       const response = await fetch(`${BACKEND_URL}/api/send-password-email`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email })
       })
 
       const data = await response.json()

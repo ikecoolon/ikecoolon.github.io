@@ -16,7 +16,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     if (currentView.value === 'week') {
       const startOfWeek = selectedDate.value.startOf('week')
       const endOfWeek = selectedDate.value.endOf('week')
-      return `${startOfWeek.format('MM月DD日')} - ${endOfWeek.format('MM月DD日')}`
+      return `${startOfWeek.format('YYYY年MM月DD日')} - ${endOfWeek.format('YYYY年MM月DD日')}`
     } else {
       return selectedDate.value.format('YYYY年MM月DD日')
     }

@@ -3,7 +3,7 @@
  * 密码生成和管理现在由后端负责，前端只负责获取和显示
  */
 
-import { authAPI } from '@/api'
+import { authAPI, request } from '@/api'
 
 /**
  * 密码配置接口
@@ -229,37 +229,21 @@ export const validatePassword = async (inputPassword: string): Promise<boolean> 
 }
 
 /**
- * 加载邮箱白名单配置
+ * 加载邮箱白名单配置（已移除，邮箱白名单验证在后端邮件发送时进行）
+ * @deprecated 此函数不再使用，邮箱白名单验证已在后端实现
  */
 export const loadEmailWhitelist = async (): Promise<EmailWhitelistConfig | null> => {
-  try {
-    const config = await request.get<EmailWhitelistConfig>('email-whitelist.json')
-    return config
-  } catch (error) {
-    console.warn('加载邮箱白名单失败:', error)
-    return null
-  }
+  console.warn('loadEmailWhitelist函数已弃用，邮箱白名单验证在后端邮件发送时进行')
+  return null
 }
 
 /**
- * 验证邮箱是否在白名单中
+ * 验证邮箱是否在白名单中（已移除，前端不再进行预验证）
+ * @deprecated 此函数不再使用，邮箱白名单验证已在后端邮件发送时进行
  */
 export const validateEmailInWhitelist = async (email: string): Promise<boolean> => {
-  try {
-    const whitelist = await loadEmailWhitelist()
-    if (!whitelist) {
-      console.warn('邮箱白名单配置不存在')
-      return false
-    }
-
-    const normalizedEmail = email.toLowerCase().trim()
-    return whitelist.whitelistedEmails.some(
-      whitelistEmail => whitelistEmail.toLowerCase().trim() === normalizedEmail
-    )
-  } catch (error) {
-    console.error('验证邮箱白名单失败:', error)
-    return false
-  }
+  console.warn('validateEmailInWhitelist函数已弃用，邮箱白名单验证在后端邮件发送时进行')
+  return true // 前端不再进行预验证，总是返回true
 }
 
 /**
@@ -267,26 +251,11 @@ export const validateEmailInWhitelist = async (email: string): Promise<boolean> 
  */
 export const sendPasswordToEmail = async (email: string): Promise<{success: boolean, message: string}> => {
   try {
-    // 验证邮箱是否在白名单中
-    const isValidEmail = await validateEmailInWhitelist(email)
-    if (!isValidEmail) {
-      return {
-        success: false,
-        message: '该邮箱不在白名单中，无法发送密码'
-      }
-    }
-
-    // 获取当前密码
-    const currentPassword = await getCurrentPassword()
-    if (!currentPassword) {
-      return {
-        success: false,
-        message: '无法获取当前密码，请稍后重试'
-      }
-    }
+    // 邮箱白名单验证和密码获取都在后端进行
+    // 前端只需发送邮箱地址
 
     // 调用后端邮件API发送密码
-    const emailResult = await authAPI.sendPasswordEmail(email, currentPassword)
+    const emailResult = await authAPI.sendPasswordEmail(email)
 
     if (emailResult.success) {
       return {

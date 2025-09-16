@@ -46,9 +46,14 @@
           </template>
 
           <template v-if="column.key === 'phases'">
-            <div class="text-14px font-500 text-blue-600">
+            <a-button
+              type="link"
+              size="small"
+              @click="handleViewPhases(record)"
+              class="p-0 h-auto text-blue-600 hover:text-blue-800"
+            >
               {{ record.phases?.length || 0 }} 个环节
-            </div>
+            </a-button>
           </template>
 
           <template v-if="column.key === 'action'">
@@ -106,8 +111,40 @@
         <a-form-item label="活动地点" name="location">
           <a-input v-model:value="formData.location" placeholder="请输入活动地点" />
         </a-form-item>
-        
-        
+
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="开始时间" name="startTime">
+              <a-time-picker
+                v-model:value="formData.startTime"
+                format="HH:mm"
+                placeholder="选择开始时间"
+                style="width: 100%"
+              />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="结束时间" name="endTime">
+              <a-time-picker
+                v-model:value="formData.endTime"
+                format="HH:mm"
+                placeholder="选择结束时间"
+                style="width: 100%"
+              />
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-form-item label="归属营会" name="campId">
+          <a-select
+            v-model:value="formData.campId"
+            placeholder="请选择归属营会"
+            :options="campOptions"
+            show-search
+            :filter-option="filterCampOption"
+          />
+        </a-form-item>
+
         <!-- 活动环节 -->
         <a-form-item label="活动环节">
           <div class="space-y-8px">
@@ -120,10 +157,7 @@
                 <div class="flex-1">
                   <div class="font-500 text-14px mb-4px">{{ phase.title }}</div>
                   <div class="text-12px text-gray-600 mb-8px">{{ phase.description }}</div>
-                  <div class="text-12px text-gray-500">
-                    时间：{{ formatDateTime(phase.startTime) }} - {{ formatTime(phase.endTime) }}
-                  </div>
-                  <div v-if="phase.assignedMembers.length > 0" class="text-12px text-gray-500 mt-4px">
+                  <div v-if="phase.assignedMembers.length > 0" class="text-12px text-gray-500">
                     负责人：{{ phase.assignedMembers.map(id => getMemberName(id)).join(', ') }}
                   </div>
                   <div v-if="phase.notes" class="text-12px text-orange-600 mt-4px">
@@ -182,28 +216,6 @@
           />
         </a-form-item>
 
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="开始时间" name="startTime">
-              <a-time-picker
-                v-model:value="phaseFormData.startTime"
-                format="HH:mm"
-                placeholder="开始时间"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="结束时间" name="endTime">
-              <a-time-picker
-                v-model:value="phaseFormData.endTime"
-                format="HH:mm"
-                placeholder="结束时间"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
 
         <a-form-item label="负责人">
           <a-select
@@ -261,10 +273,7 @@
                 <div class="flex-1">
                   <div class="font-500 text-14px mb-4px">{{ phase.title }}</div>
                   <div class="text-12px text-gray-600 mb-8px">{{ phase.description }}</div>
-                  <div class="text-12px text-gray-500">
-                    时间：{{ formatDateTime(phase.startTime) }} - {{ formatTime(phase.endTime) }}
-                  </div>
-                  <div v-if="phase.assignedMembers.length > 0" class="text-12px text-blue-600 mt-4px">
+                  <div v-if="phase.assignedMembers.length > 0" class="text-12px text-blue-600">
                     负责人：{{ phase.assignedMembers.map(id => getMemberName(id)).join(', ') }}
                   </div>
                   <div v-if="phase.notes" class="text-12px text-orange-600 mt-4px">
@@ -280,6 +289,74 @@
         </div>
       </div>
     </a-modal>
+
+    <!-- 环节详情模态框 -->
+    <a-modal
+      v-model:open="showPhasesModal"
+      :title="`${selectedActivityForPhases?.title} - 环节详情`"
+      width="700px"
+      :footer="null"
+    >
+      <div v-if="selectedActivityForPhases" class="space-y-16px">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-16px font-600 mb-4px">{{ selectedActivityForPhases.title }}</h3>
+            <p class="text-12px text-gray-500">{{ formatDate(selectedActivityForPhases.date) }} · {{ selectedActivityForPhases.location }}</p>
+          </div>
+          <a-tag color="blue">
+            {{ selectedActivityForPhases.phases?.length || 0 }} 个环节
+          </a-tag>
+        </div>
+
+        <div class="space-y-12px">
+          <div
+            v-for="(phase, index) in selectedActivityForPhases.phases"
+            :key="phase.id"
+            class="border border-gray-200 rounded-8px p-16px"
+          >
+            <div class="flex items-start justify-between mb-8px">
+              <div class="flex items-center space-x-8px">
+                <div class="w-24px h-24px bg-blue-500 text-white rounded-full flex items-center justify-center text-12px font-500">
+                  {{ index + 1 }}
+                </div>
+                <h4 class="text-16px font-600 text-gray-800">{{ phase.title }}</h4>
+              </div>
+              <a-tag size="small" color="blue">环节 {{ index + 1 }}</a-tag>
+            </div>
+
+            <p class="text-14px text-gray-600 mb-12px">{{ phase.description }}</p>
+
+            <div class="grid grid-cols-2 gap-12px">
+              <div v-if="phase.assignedMembers.length > 0" class="space-y-4px">
+                <div class="text-12px font-500 text-gray-700">负责人</div>
+                <div class="flex flex-wrap gap-4px">
+                  <a-tag
+                    v-for="memberId in phase.assignedMembers"
+                    :key="memberId"
+                    color="blue"
+                    size="small"
+                  >
+                    {{ getMemberName(memberId) }}
+                  </a-tag>
+                </div>
+              </div>
+
+              <div v-if="phase.notes" class="space-y-4px">
+                <div class="text-12px font-500 text-gray-700">注意事项</div>
+                <div class="text-12px text-orange-600 bg-orange-50 p-8px rounded-4px">
+                  {{ phase.notes }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="selectedActivityForPhases.phases.length === 0" class="text-center py-40px text-gray-400">
+            <i class="i-carbon:task text-32px mb-8px block" />
+            <div>暂无活动环节</div>
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -291,6 +368,7 @@ import type { TableColumnProps } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useActivityStore } from '@/store/activity'
 import { useMinistryStore } from '@/store/ministry'
+import { useCampStore } from '@/store/camp'
 import type { Activity, ActivityPhase } from '@/types/activity'
 
 /**
@@ -300,14 +378,17 @@ import type { Activity, ActivityPhase } from '@/types/activity'
 // 状态管理
 const activityStore = useActivityStore()
 const ministryStore = useMinistryStore()
+const campStore = useCampStore()
 
 // 响应式状态
 const loading = ref(false)
 const searchText = ref('')
 const showAddModal = ref(false)
 const showDetailModal = ref(false)
+const showPhasesModal = ref(false)
 const editingActivity = ref<Activity | null>(null)
 const selectedActivity = ref<Activity | null>(null)
+const selectedActivityForPhases = ref<Activity | null>(null)
 const formRef = ref<FormInstance>()
 
 // 环节管理状态
@@ -339,6 +420,17 @@ const filteredActivities = computed(() => {
 const memberOptions = computed(() =>
   members.value.map(m => ({ label: m.name, value: m.id }))
 )
+
+const campOptions = computed(() =>
+  campStore.camps.value.map(camp => ({
+    label: camp.name,
+    value: camp.id
+  }))
+)
+
+const filterCampOption = (input: string, option: any) => {
+  return option.label.toLowerCase().includes(input.toLowerCase())
+}
 
 // 表格列配置
 const columns: TableColumnProps[] = [
@@ -376,7 +468,10 @@ const formData = reactive({
   title: '',
   description: '',
   date: null as Dayjs | null,
+  startTime: null as Dayjs | null,
+  endTime: null as Dayjs | null,
   location: '',
+  campId: '',
   phases: [] as ActivityPhase[]
 })
 
@@ -385,8 +480,6 @@ const phaseFormData = reactive({
   id: '',
   title: '',
   description: '',
-  startTime: null as Dayjs | null,
-  endTime: null as Dayjs | null,
   assignedMembers: [] as string[],
   notes: '',
   order: 0
@@ -397,28 +490,21 @@ const formRules: Record<string, Rule[]> = {
   title: [{ required: true, message: '请输入活动标题', trigger: 'blur' }],
   description: [{ required: true, message: '请输入活动描述', trigger: 'blur' }],
   date: [{ required: true, message: '请选择活动日期', trigger: 'change' }],
-  location: [{ required: true, message: '请输入活动地点', trigger: 'blur' }]
+  startTime: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
+  endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }],
+  location: [{ required: true, message: '请输入活动地点', trigger: 'blur' }],
+  campId: [{ required: true, message: '请选择归属营会', trigger: 'change' }]
 }
 
 // 环节表单验证规则
 const phaseFormRules: Record<string, Rule[]> = {
   title: [{ required: true, message: '请输入环节标题', trigger: 'blur' }],
-  description: [{ required: true, message: '请输入环节描述', trigger: 'blur' }],
-  startTime: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
-  endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }]
+  description: [{ required: true, message: '请输入环节描述', trigger: 'blur' }]
 }
 
 /**
  * 格式化时间
  */
-const formatTime = (date: Date) => {
-  return dayjs(date).format('HH:mm')
-}
-
-const formatDateTime = (date: Date) => {
-  return dayjs(date).format('MM-DD HH:mm')
-}
-
 const formatDate = (date: Date) => {
   return dayjs(date).format('YYYY-MM-DD')
 }
@@ -448,6 +534,14 @@ const handleViewDetail = (activity: Activity) => {
 }
 
 /**
+ * 查看活动环节详情
+ */
+const handleViewPhases = (activity: Activity) => {
+  selectedActivityForPhases.value = activity
+  showPhasesModal.value = true
+}
+
+/**
  * 编辑活动
  */
 const handleEdit = (activity: Activity) => {
@@ -458,7 +552,10 @@ const handleEdit = (activity: Activity) => {
     title: activity.title,
     description: activity.description,
     date: dayjs(activity.date),
+    startTime: dayjs(activity.startTime),
+    endTime: dayjs(activity.endTime),
     location: activity.location,
+    campId: activity.campId,
     phases: [...activity.phases]
   })
 
@@ -500,7 +597,10 @@ const handleSaveActivity = async () => {
       title: formData.title,
       description: formData.description,
       date: formData.date!.toDate(),
+      startTime: combineDateTime(formData.date!, formData.startTime!),
+      endTime: combineDateTime(formData.date!, formData.endTime!),
       location: formData.location,
+      campId: formData.campId,
       phases: formData.phases
     }
 
@@ -532,7 +632,10 @@ const handleCancelModal = () => {
     title: '',
     description: '',
     date: null,
+    startTime: null,
+    endTime: null,
     location: '',
+    campId: '',
     phases: []
   })
 
@@ -548,8 +651,6 @@ const addPhase = () => {
     id: '',
     title: '',
     description: '',
-    startTime: null,
-    endTime: null,
     assignedMembers: [],
     notes: '',
     order: formData.phases.length
@@ -566,8 +667,6 @@ const editPhase = (phase: ActivityPhase) => {
     id: phase.id,
     title: phase.title,
     description: phase.description,
-    startTime: dayjs(phase.startTime),
-    endTime: dayjs(phase.endTime),
     assignedMembers: [...phase.assignedMembers],
     notes: phase.notes || '',
     order: phase.order
@@ -597,8 +696,6 @@ const handleSavePhase = async () => {
       id: phaseFormData.id || `phase_${Date.now()}`,
       title: phaseFormData.title,
       description: phaseFormData.description,
-      startTime: combineDateTime(formData.date!, phaseFormData.startTime!),
-      endTime: combineDateTime(formData.date!, phaseFormData.endTime!),
       assignedMembers: phaseFormData.assignedMembers,
       notes: phaseFormData.notes,
       order: phaseFormData.order
@@ -630,6 +727,7 @@ const handleCancelPhaseModal = () => {
   phaseFormRef.value?.resetFields()
 }
 
+
 /**
  * 合并日期和时间
  */
@@ -649,7 +747,8 @@ onMounted(() => {
   Promise.all([
     activityStore.fetchActivities(),
     ministryStore.fetchMinistries(),
-    ministryStore.fetchMembers()
+    ministryStore.fetchMembers(),
+    campStore.fetchCamps()
   ])
 })
 </script>

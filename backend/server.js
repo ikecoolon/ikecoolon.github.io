@@ -24,6 +24,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'camp-system-jwt-secret-key-2024';
 // 密码配置文件路径
 const PASSWORD_CONFIG_PATH = path.join(__dirname, 'data', 'auth.json');
 
+// 邮箱白名单配置文件路径
+const EMAIL_WHITELIST_PATH = path.join(__dirname, 'data', 'email-whitelist.json');
+
 // 确保数据目录存在
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
   fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
@@ -45,12 +48,12 @@ app.get('/health', (req, res) => {
 // 邮件发送接口
 app.post('/api/send-password-email', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
 
-    if (!email || !password) {
+    if (!email) {
       return res.status(400).json({
         success: false,
-        message: '缺少必需参数: email 或 password'
+        message: '缺少必需参数: email'
       });
     }
 
@@ -63,8 +66,25 @@ app.post('/api/send-password-email', async (req, res) => {
       });
     }
 
+    // 验证邮箱是否在白名单中
+    if (!isEmailWhitelisted(email)) {
+      return res.status(403).json({
+        success: false,
+        message: '该邮箱不在白名单中，无法发送密码邮件'
+      });
+    }
+
+    // 后端内部获取当前密码
+    const currentPassword = getCurrentPasswordInternal();
+    if (!currentPassword) {
+      return res.status(500).json({
+        success: false,
+        message: '无法获取密码配置，请稍后重试'
+      });
+    }
+
     // 发送邮件
-    const result = await sendPasswordEmail(email, password);
+    const result = await sendPasswordEmail(email, currentPassword);
 
     if (result.success) {
       res.json({
@@ -202,6 +222,137 @@ function updatePassword(config) {
     lastUpdated: now.toISOString(),
     nextUpdateTime: nextUpdateTime.toISOString()
   };
+}
+
+// ==================== 密码管理功能 ====================
+
+/**
+ * 内部获取当前密码（仅后端使用）
+ * @returns {string|null} 当前密码
+ */
+function getCurrentPasswordInternal() {
+  try {
+    let config = loadPasswordConfig();
+
+    // 如果配置不存在或密码需要更新，则初始化/更新配置
+    if (!config || shouldUpdatePassword(config)) {
+      config = config ? updatePassword(config) : initializePasswordConfig();
+      savePasswordConfig(config);
+
+      console.log('🔄 密码已更新:', config.currentPassword);
+    }
+
+    return config.currentPassword;
+  } catch (error) {
+    console.error('获取当前密码失败:', error);
+    return null;
+  }
+}
+
+// ==================== 邮箱白名单管理功能 ====================
+
+/**
+ * 加载邮箱白名单配置
+ * @returns {object|null} 邮箱白名单配置
+ */
+function loadEmailWhitelist() {
+  try {
+    if (!fs.existsSync(EMAIL_WHITELIST_PATH)) {
+      return null;
+    }
+    const data = fs.readFileSync(EMAIL_WHITELIST_PATH, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('加载邮箱白名单失败:', error.message);
+    return null;
+  }
+}
+
+/**
+ * 保存邮箱白名单配置
+ * @param {object} config - 邮箱白名单配置
+ */
+function saveEmailWhitelist(config) {
+  try {
+    const dir = path.dirname(EMAIL_WHITELIST_PATH);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(EMAIL_WHITELIST_PATH, JSON.stringify(config, null, 2), 'utf8');
+  } catch (error) {
+    console.error('保存邮箱白名单失败:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * 初始化邮箱白名单
+ * @returns {object} 默认的白名单配置
+ */
+function initializeEmailWhitelist() {
+  return {
+    whitelistedEmails: ['52282858@qq.com'],
+    lastUpdated: new Date().toISOString(),
+    description: '邮箱白名单配置 - 只有白名单中的邮箱才能接收临时访问密码'
+  };
+}
+
+/**
+ * 验证邮箱是否在白名单中
+ * @param {string} email - 要验证的邮箱地址
+ * @returns {boolean} 是否在白名单中
+ */
+function isEmailWhitelisted(email) {
+  const config = loadEmailWhitelist();
+  if (!config || !config.whitelistedEmails) {
+    return false;
+  }
+  return config.whitelistedEmails.includes(email.toLowerCase().trim());
+}
+
+/**
+ * 添加邮箱到白名单
+ * @param {string} email - 要添加的邮箱地址
+ * @returns {object} 更新后的配置
+ */
+function addEmailToWhitelist(email) {
+  let config = loadEmailWhitelist();
+  if (!config) {
+    config = initializeEmailWhitelist();
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  if (!config.whitelistedEmails.includes(normalizedEmail)) {
+    config.whitelistedEmails.push(normalizedEmail);
+    config.lastUpdated = new Date().toISOString();
+    saveEmailWhitelist(config);
+  }
+
+  return config;
+}
+
+/**
+ * 从白名单中移除邮箱
+ * @param {string} email - 要移除的邮箱地址
+ * @returns {object} 更新后的配置
+ */
+function removeEmailFromWhitelist(email) {
+  let config = loadEmailWhitelist();
+  if (!config) {
+    config = initializeEmailWhitelist();
+  }
+
+  const normalizedEmail = email.toLowerCase().trim();
+  const index = config.whitelistedEmails.indexOf(normalizedEmail);
+
+  if (index !== -1) {
+    config.whitelistedEmails.splice(index, 1);
+    config.lastUpdated = new Date().toISOString();
+    saveEmailWhitelist(config);
+  }
+
+  return config;
 }
 
 // ==================== API 端点 ====================
@@ -418,6 +569,7 @@ app.post('/api/auth/refresh-password', (req, res) => {
   }
 });
 
+
 // 创建邮件传输器
 function createTransporter() {
   return nodemailer.createTransporter({
@@ -517,7 +669,8 @@ ${timestamp}
 app.listen(PORT, () => {
   console.log('🚀 营会管理系统后端服务已启动!');
   console.log(`📡 服务地址: http://localhost:${PORT}`);
-  console.log('📧 邮件接口: POST /api/send-password-email');
+  console.log('📧 邮件接口:');
+  console.log('   POST /api/send-password-email     - 发送密码邮件（白名单验证）');
   console.log('🔐 认证接口:');
   console.log('   GET  /api/auth/password-config    - 获取密码配置');
   console.log('   POST /api/auth/verify-password    - 验证密码');

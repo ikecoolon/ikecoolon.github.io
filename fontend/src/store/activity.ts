@@ -17,7 +17,7 @@ export const useActivityStore = defineStore('activity', () => {
   const todayActivities = computed(() => {
     const today = dayjs().format('YYYY-MM-DD')
     return activities.value.filter(activity =>
-      dayjs(activity.startTime).format('YYYY-MM-DD') === today
+      dayjs(activity.date).format('YYYY-MM-DD') === today
     )
   })
 
@@ -26,7 +26,7 @@ export const useActivityStore = defineStore('activity', () => {
     const endOfWeek = dayjs().endOf('week')
 
     return activities.value.filter(activity => {
-      const activityDate = dayjs(activity.startTime)
+      const activityDate = dayjs(activity.date)
       return activityDate.isAfter(startOfWeek) && activityDate.isBefore(endOfWeek)
     })
   })

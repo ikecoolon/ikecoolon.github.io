@@ -66,12 +66,6 @@
               </template>
               刷新密码
             </a-button>
-            <a-button @click="downloadAuthConfig">
-              <template #icon>
-                <i class="i-carbon:download" />
-              </template>
-              下载配置
-            </a-button>
           </div>
         </div>
       </a-card>
@@ -130,32 +124,6 @@ const refreshPassword = async () => {
   }
 }
 
-/**
- * 下载认证配置
- */
-const downloadAuthConfig = async () => {
-  try {
-    const response = await fetch('/json/auth.json')
-    if (response.ok) {
-      const data = await response.json()
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = 'auth-config.json'
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      message.success('认证配置下载成功')
-    } else {
-      message.error('认证配置文件不存在')
-    }
-  } catch (error) {
-    console.error('下载认证配置失败:', error)
-    message.error('下载认证配置失败')
-  }
-}
 
 /**
  * 加载认证状态

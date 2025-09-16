@@ -45,8 +45,8 @@
         <template #title>
           <div class="flex items-center justify-between">
             <span class="truncate">{{ camp.name }}</span>
-            <a-tag :color="getStatusColor(camp.status)">
-              {{ getStatusText(camp.status) }}
+            <a-tag :color="getStatusColor(camp)">
+              {{ getStatusText(camp) }}
             </a-tag>
           </div>
         </template>
@@ -122,8 +122,8 @@
           </div>
           <div>
             <div class="text-12px text-gray-500 mb-4px">状态</div>
-            <a-tag :color="getStatusColor(selectedCamp.status)">
-              {{ getStatusText(selectedCamp.status) }}
+            <a-tag :color="getStatusColor(selectedCamp)">
+              {{ getStatusText(selectedCamp) }}
             </a-tag>
           </div>
           <div>
@@ -182,6 +182,78 @@
             </div>
           </div>
         </div>
+
+        <!-- 职责分配 -->
+        <div>
+          <div class="flex items-center justify-between mb-8px">
+            <div class="text-16px font-500">职责分配</div>
+            <a-button type="primary" size="small" @click="showDutyModal = true">
+              <template #icon>
+                <i class="i-carbon:add" />
+              </template>
+              添加职责
+            </a-button>
+          </div>
+
+          <div class="space-y-12px">
+            <!-- 按类别分组显示职责 -->
+            <div v-for="category in dutyCategories" :key="category.key">
+              <div class="duty-category-header">
+                <div class="duty-category-title">
+                  <span>{{ category.icon }}</span>
+                  {{ category.label }}
+                  <span class="duty-category-count">({{ getCategoryDuties(category.key).length }}项)</span>
+                </div>
+              </div>
+
+              <div class="space-y-8px ml-20px">
+                <div
+                  v-for="duty in getCategoryDuties(category.key)"
+                  :key="duty.id"
+                  class="duty-item"
+                >
+                  <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                      <div class="duty-title">{{ duty.title }}</div>
+                      <div class="duty-description">{{ duty.description }}</div>
+
+                      <div class="duty-meta">
+                        <div class="duty-meta-item">
+                          <i class="i-carbon:group" />
+                          <span>{{ duty.assignees.map(a => a.userName).join('、') }}</span>
+                        </div>
+                        <div v-if="duty.timeRange" class="duty-meta-item">
+                          <i class="i-carbon:time" />
+                          <span>{{ formatDate(duty.timeRange.start) }} - {{ formatDate(duty.timeRange.end) }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <a-dropdown>
+                      <a-button type="text" size="small">
+                        <i class="i-carbon:overflow-menu-horizontal" />
+                      </a-button>
+                      <template #overlay>
+                        <a-menu @click="handleDutyMenuClick($event, duty)">
+                          <a-menu-item key="edit">编辑</a-menu-item>
+                          <a-menu-item key="delete" class="text-red-600">删除</a-menu-item>
+                        </a-menu>
+                      </template>
+                    </a-dropdown>
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="getCategoryDuties(category.key).length === 0" class="text-12px text-gray-400 ml-20px py-8px">
+                暂无{{ category.label }}职责
+              </div>
+            </div>
+
+            <div v-if="getCampDuties(selectedCamp.id).length === 0" class="text-center py-20px text-gray-400">
+              暂无职责分配
+            </div>
+          </div>
+        </div>
       </div>
     </a-modal>
 
@@ -214,12 +286,12 @@
                   <div>
                     <div class="text-14px font-500">{{ activity.title }}</div>
                     <div class="text-12px text-gray-500">
-                      {{ dayjs(activity.startTime).format('MM-DD HH:mm') }} -
+                      {{ dayjs(activity.date).format('MM-DD HH:mm') }} -
                       {{ dayjs(activity.endTime).format('HH:mm') }}
                     </div>
                   </div>
-                  <a-tag :color="getStatusColor(activity.status)" size="small">
-                    {{ getStatusText(activity.status) }}
+                  <a-tag :color="getActivityStatusColor(activity.status)" size="small">
+                    {{ getActivityStatusText(activity.status) }}
                   </a-tag>
                 </div>
               </a-checkbox>
@@ -231,6 +303,77 @@
           暂无可用的活动
         </div>
       </div>
+    </a-modal>
+
+    <!-- 添加职责到营会模态框 -->
+    <a-modal
+      v-model:open="showDutyModal"
+      :title="isEditingDuty ? '编辑职责' : '添加职责'"
+      :width="700"
+      @ok="handleSubmitDuty"
+      @cancel="handleCancelDuty"
+    >
+      <a-form
+        :model="dutyFormData"
+        :rules="dutyFormRules"
+        ref="dutyFormRef"
+        layout="vertical"
+      >
+        <a-row :gutter="16">
+          <a-col :span="12">
+            <a-form-item label="职责名称" name="title">
+              <a-input
+                v-model:value="dutyFormData.title"
+                placeholder="请输入职责名称"
+                :maxlength="50"
+              />
+            </a-form-item>
+          </a-col>
+          <a-col :span="12">
+            <a-form-item label="职责类型" name="category">
+              <a-select v-model:value="dutyFormData.category" placeholder="请选择职责类型">
+                <a-select-option value="preparation">准备工作</a-select-option>
+                <a-select-option value="logistics">后勤保障</a-select-option>
+                <a-select-option value="coordination">现场协调</a-select-option>
+                <a-select-option value="support">技术支持</a-select-option>
+              </a-select>
+            </a-form-item>
+          </a-col>
+        </a-row>
+
+        <a-form-item label="职责说明" name="description">
+          <a-textarea
+            v-model:value="dutyFormData.description"
+            placeholder="详细描述该职责的具体工作内容和注意事项"
+            :rows="4"
+            :maxlength="500"
+            show-count
+          />
+        </a-form-item>
+
+        <a-form-item label="负责人" name="assignees">
+          <a-select
+            v-model:value="selectedAssigneeIds"
+            mode="multiple"
+            placeholder="选择负责人（可多选）"
+            :options="memberOptions"
+            show-search
+            :filter-option="filterMemberOption"
+          />
+        </a-form-item>
+
+        <a-form-item label="时间范围 (可选)">
+          <a-range-picker
+            v-model:value="dutyFormData.timeRangeValue"
+            placeholder="选择时间范围"
+            format="YYYY-MM-DD"
+            class="w-full"
+          />
+          <div class="text-12px text-gray-500 mt-4px">
+            如果不设置时间范围，该职责将持续整个营会期间
+          </div>
+        </a-form-item>
+      </a-form>
     </a-modal>
 
     <!-- 添加/编辑营会模态框 -->
@@ -274,14 +417,6 @@
           />
         </a-form-item>
 
-        <a-form-item label="状态" name="status">
-          <a-select v-model:value="formData.status" placeholder="请选择状态">
-            <a-select-option value="planning">规划中</a-select-option>
-            <a-select-option value="active">进行中</a-select-option>
-            <a-select-option value="completed">已完成</a-select-option>
-            <a-select-option value="cancelled">已取消</a-select-option>
-          </a-select>
-        </a-form-item>
 
         <a-form-item label="描述" name="description">
           <a-textarea
@@ -303,7 +438,8 @@ import { message, Modal } from 'ant-design-vue'
 import dayjs, { Dayjs } from 'dayjs'
 import { useCampStore } from '@/store/camp'
 import { useActivityStore } from '@/store/activity'
-import type { Camp } from '@/types'
+import { useMinistryStore } from '@/store/ministry'
+import type { Camp, DutyCategory } from '@/types'
 
 /**
  * 营会管理页面
@@ -312,24 +448,28 @@ import type { Camp } from '@/types'
 // 状态管理
 const campStore = useCampStore()
 const activityStore = useActivityStore()
+const ministryStore = useMinistryStore()
 
 // 响应式状态
 const showAddModal = ref(false)
 const showDetailModal = ref(false)
 const showActivityModal = ref(false)
+const showDutyModal = ref(false)
 const isEditing = ref(false)
+const isEditingDuty = ref(false)
 const statusFilter = ref<'all' | 'planning' | 'active' | 'completed'>('all')
 const editingCampId = ref<string>('')
+const editingDutyId = ref<string>('')
 const selectedCamp = ref<Camp | null>(null)
 const selectedActivityIds = ref<string[]>([])
+const selectedAssigneeIds = ref<string[]>([])
 
 // 表单数据
 const formData = reactive({
   name: '',
   description: '',
   dateRange: [] as Dayjs[],
-  location: '',
-  status: 'planning' as Camp['status']
+  location: ''
 })
 
 // 表单验证规则
@@ -343,15 +483,48 @@ const formRules = {
   ]
 }
 
+// 职责表单数据
+const dutyFormData = reactive({
+  title: '',
+  description: '',
+  category: 'preparation' as DutyCategory,
+  timeRangeValue: [] as Dayjs[]
+})
+
+// 职责表单验证规则
+const dutyFormRules = {
+  title: [
+    { required: true, message: '请输入职责名称', trigger: 'blur' },
+    { min: 2, max: 50, message: '职责名称长度应在2-50个字符之间', trigger: 'blur' }
+  ],
+  description: [
+    { required: true, message: '请输入职责说明', trigger: 'blur' },
+    { min: 10, message: '职责说明至少需要10个字符', trigger: 'blur' }
+  ],
+  category: [{ required: true, message: '请选择职责类型', trigger: 'change' }]
+}
+
 // 表单引用
 const formRef = ref()
+const dutyFormRef = ref()
 
 // 计算属性
 const filteredCamps = computed(() => {
   if (statusFilter.value === 'all') {
     return campStore.camps
   }
-  return campStore.camps.filter(camp => camp.status === statusFilter.value)
+
+  // 根据状态过滤
+  switch (statusFilter.value) {
+    case 'planning':
+      return campStore.planningCamps
+    case 'active':
+      return campStore.activeCamps
+    case 'completed':
+      return campStore.completedCamps
+    default:
+      return campStore.camps
+  }
 })
 
 // 可用的活动列表（排除已关联到当前营会的活动）
@@ -363,29 +536,84 @@ const availableActivities = computed(() => {
   )
 })
 
+// 成员选项
+const memberOptions = computed(() =>
+  ministryStore.members.value.map(member => ({
+    label: member.name,
+    value: member.id
+  }))
+)
+
+// 职责分类配置
+const dutyCategories = computed(() => [
+  { key: 'preparation', label: '准备工作', icon: '📋' },
+  { key: 'logistics', label: '后勤保障', icon: '📦' },
+  { key: 'coordination', label: '现场协调', icon: '🤝' },
+  { key: 'support', label: '技术支持', icon: '🔧' }
+])
+
+// 获取营会的职责列表
+const getCampDuties = (campId: string) => {
+  return campStore.getCampDuties(campId)
+}
+
+// 获取指定类别的职责
+const getCategoryDuties = (category: string) => {
+  if (!selectedCamp.value) return []
+  return getCampDuties(selectedCamp.value.id).filter(duty => duty.category === category)
+}
+
 // 方法
 const formatDate = (date: Date) => {
   return dayjs(date).format('YYYY-MM-DD')
 }
 
-const getStatusColor = (status: Camp['status']) => {
+const getStatusColor = (camp: Camp) => {
+  const now = dayjs()
+  const startDate = dayjs(camp.startDate)
+  const endDate = camp.endDate ? dayjs(camp.endDate) : startDate.add(7, 'day')
+
+  if (now.isBefore(startDate)) {
+    return 'blue' // 规划中
+  } else if ((now.isAfter(startDate) || now.isSame(startDate)) && (now.isBefore(endDate) || now.isSame(endDate))) {
+    return 'green' // 进行中
+  } else {
+    return 'gray' // 已完成
+  }
+}
+
+const getStatusText = (camp: Camp) => {
+  const now = dayjs()
+  const startDate = dayjs(camp.startDate)
+  const endDate = camp.endDate ? dayjs(camp.endDate) : startDate.add(7, 'day')
+
+  if (now.isBefore(startDate)) {
+    return '规划中'
+  } else if ((now.isAfter(startDate) || now.isSame(startDate)) && (now.isBefore(endDate) || now.isSame(endDate))) {
+    return '进行中'
+  } else {
+    return '已完成'
+  }
+}
+
+const getActivityStatusColor = (status: string) => {
   const colors = {
-    planning: 'blue',
-    active: 'green',
+    planned: 'blue',
+    ongoing: 'green',
     completed: 'gray',
     cancelled: 'red'
   }
-  return colors[status] || 'default'
+  return colors[status as keyof typeof colors] || 'default'
 }
 
-const getStatusText = (status: Camp['status']) => {
+const getActivityStatusText = (status: string) => {
   const texts = {
-    planning: '规划中',
-    active: '进行中',
+    planned: '计划中',
+    ongoing: '进行中',
     completed: '已完成',
     cancelled: '已取消'
   }
-  return texts[status] || status
+  return texts[status as keyof typeof texts] || status
 }
 
 const disabledDate = (current: Dayjs) => {
@@ -408,8 +636,7 @@ const resetForm = () => {
     name: '',
     description: '',
     dateRange: [],
-    location: '',
-    status: 'planning' as Camp['status']
+    location: ''
   })
 }
 
@@ -422,8 +649,7 @@ const editCamp = (camp: Camp) => {
     dateRange: camp.endDate
       ? [dayjs(camp.startDate), dayjs(camp.endDate)]
       : [dayjs(camp.startDate)],
-    location: camp.location || '',
-    status: camp.status
+    location: camp.location || ''
   })
   showAddModal.value = true
 }
@@ -456,7 +682,6 @@ const handleSubmit = async () => {
       startDate: formData.dateRange[0].toDate(),
       endDate: formData.dateRange.length > 1 ? formData.dateRange[1].toDate() : undefined,
       location: formData.location,
-      status: formData.status,
       activities: [] // 新建营会时活动为空
     }
 
@@ -544,6 +769,128 @@ const removeActivityFromCamp = async (activityId: string) => {
 }
 
 /**
+ * 处理职责菜单点击
+ */
+const handleDutyMenuClick = ({ key }: { key: string }, duty: any) => {
+  if (key === 'edit') {
+    editDuty(duty)
+  } else if (key === 'delete') {
+    deleteDuty(duty)
+  }
+}
+
+/**
+ * 编辑职责
+ */
+const editDuty = (duty: any) => {
+  isEditingDuty.value = true
+  editingDutyId.value = duty.id
+
+  // 填充表单数据
+  Object.assign(dutyFormData, {
+    title: duty.title,
+    description: duty.description,
+    category: duty.category,
+    timeRangeValue: duty.timeRange ? [dayjs(duty.timeRange.start), dayjs(duty.timeRange.end)] : []
+  })
+
+  // 设置负责人
+  selectedAssigneeIds.value = duty.assignees.map((a: any) => a.userId)
+
+  showDutyModal.value = true
+}
+
+/**
+ * 删除职责
+ */
+const deleteDuty = (duty: any) => {
+  Modal.confirm({
+    title: '确认删除',
+    content: `确定要删除职责"${duty.title}"吗？此操作不可撤销。`,
+    okText: '确认删除',
+    okType: 'danger',
+    onOk: async () => {
+      try {
+        await campStore.deleteDuty(duty.id)
+        message.success('职责删除成功')
+      } catch (error) {
+        console.error('删除职责失败:', error)
+        message.error('删除职责失败')
+      }
+    }
+  })
+}
+
+/**
+ * 提交职责
+ */
+const handleSubmitDuty = async () => {
+  try {
+    await dutyFormRef.value.validate()
+
+    // 构建负责人数据
+    const assignees = selectedAssigneeIds.value.map(userId => {
+      const member = ministryStore.members.value.find(m => m.id === userId)
+      return {
+        userId,
+        userName: member?.name || '未知用户'
+      }
+    })
+
+    // 构建时间范围
+    const timeRange = dutyFormData.timeRangeValue.length > 0 ? {
+      start: dutyFormData.timeRangeValue[0].toDate(),
+      end: dutyFormData.timeRangeValue[1].toDate()
+    } : undefined
+
+    const dutyData = {
+      campId: selectedCamp.value!.id,
+      title: dutyFormData.title,
+      description: dutyFormData.description,
+      category: dutyFormData.category,
+      assignees,
+      timeRange
+    }
+
+    if (isEditingDuty.value) {
+      await campStore.updateDuty(editingDutyId.value, dutyData)
+      message.success('职责更新成功')
+    } else {
+      await campStore.addDuty(dutyData)
+      message.success('职责添加成功')
+    }
+
+    showDutyModal.value = false
+    resetDutyForm()
+  } catch (error) {
+    console.error('表单验证失败:', error)
+  }
+}
+
+/**
+ * 取消职责模态框
+ */
+const handleCancelDuty = () => {
+  showDutyModal.value = false
+  resetDutyForm()
+  isEditingDuty.value = false
+  editingDutyId.value = ''
+}
+
+/**
+ * 重置职责表单
+ */
+const resetDutyForm = () => {
+  Object.assign(dutyFormData, {
+    title: '',
+    description: '',
+    category: 'preparation' as DutyCategory,
+    timeRangeValue: []
+  })
+  selectedAssigneeIds.value = []
+}
+
+/**
  * 获取活动标题
  */
 const getActivityTitle = (activityId: string) => {
@@ -557,7 +904,7 @@ const getActivityTitle = (activityId: string) => {
 const getActivityTime = (activityId: string) => {
   const activity = activityStore.activities.find(a => a.id === activityId)
   if (activity) {
-    const startTime = dayjs(activity.startTime).format('MM-DD HH:mm')
+    const startTime = dayjs(activity.date).format('MM-DD HH:mm')
     const endTime = dayjs(activity.endTime).format('HH:mm')
     return `${startTime}-${endTime}`
   }
@@ -566,7 +913,13 @@ const getActivityTime = (activityId: string) => {
 
 // 初始化
 onMounted(async () => {
-  await campStore.fetchCamps()
+  await Promise.all([
+    campStore.fetchCamps(),
+    campStore.fetchDuties(),
+    ministryStore.fetchMembers(),
+    ministryStore.fetchMinistries()
+  ])
+
   // 确保活动数据也已加载
   if (activityStore.activities.length === 0) {
     await activityStore.fetchActivities()
@@ -576,4 +929,69 @@ onMounted(async () => {
 
 <style scoped>
 /* 自定义样式 */
+.duty-category-header {
+  margin-bottom: 8px;
+}
+
+.duty-category-title {
+  font-weight: 500;
+  color: #666;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.duty-category-count {
+  color: #999;
+  font-size: 12px;
+}
+
+.duty-item {
+  padding: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background: #fafafa;
+  margin-bottom: 8px;
+  transition: all 0.2s ease;
+}
+
+.duty-item:hover {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+}
+
+.duty-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.duty-description {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.duty-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 12px;
+  color: #999;
+}
+
+.duty-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.duty-assignees {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
 </style>

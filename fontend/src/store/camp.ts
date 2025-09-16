@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { request } from '@/api'
-import type { Camp } from '@/types/activity'
+import type { Camp, CampDuty, DutyCategory } from '@/types/activity'
 import dayjs from 'dayjs'
 
 /**
@@ -10,23 +10,33 @@ import dayjs from 'dayjs'
 export const useCampStore = defineStore('camp', () => {
   // 状态
   const camps = ref<Camp[]>([])
+  const duties = ref<CampDuty[]>([])
   const loading = ref(false)
 
   // 计算属性
-  const activeCamps = computed(() => {
-    return camps.value.filter(camp => camp.status === 'active')
-  })
-
-  const upcomingCamps = computed(() => {
+  const planningCamps = computed(() => {
     const now = dayjs()
     return camps.value.filter(camp => {
       const startDate = dayjs(camp.startDate)
-      return camp.status === 'planning' && startDate.isAfter(now)
+      return startDate.isAfter(now)
+    })
+  })
+
+  const activeCamps = computed(() => {
+    const now = dayjs()
+    return camps.value.filter(camp => {
+      const startDate = dayjs(camp.startDate)
+      const endDate = camp.endDate ? dayjs(camp.endDate) : startDate.add(7, 'day')
+      return (now.isAfter(startDate) || now.isSame(startDate)) && (now.isBefore(endDate) || now.isSame(endDate))
     })
   })
 
   const completedCamps = computed(() => {
-    return camps.value.filter(camp => camp.status === 'completed')
+    const now = dayjs()
+    return camps.value.filter(camp => {
+      const endDate = camp.endDate ? dayjs(camp.endDate) : dayjs(camp.startDate).add(7, 'day')
+      return now.isAfter(endDate)
+    })
   })
 
   /**
@@ -128,18 +138,133 @@ export const useCampStore = defineStore('camp', () => {
     return camps.value.find(camp => {
       const startDate = dayjs(camp.startDate)
       const endDate = camp.endDate ? dayjs(camp.endDate) : startDate.add(7, 'day')
-      return camp.status === 'active' && (now.isAfter(startDate) || now.isSame(startDate)) && (now.isBefore(endDate) || now.isSame(endDate))
+      return (now.isAfter(startDate) || now.isSame(startDate)) && (now.isBefore(endDate) || now.isSame(endDate))
     })
+  }
+
+  /**
+   * 获取职责列表
+   */
+  const fetchDuties = async () => {
+    try {
+      const data = await request.get<CampDuty[]>('camp-duties.json')
+      duties.value = data || []
+    } catch (error) {
+      console.error('获取职责失败:', error)
+      duties.value = []
+    }
+  }
+
+  /**
+   * 保存职责数据
+   */
+  const saveDuties = async () => {
+    try {
+      await request.post('camp-duties.json', duties.value)
+    } catch (error) {
+      console.error('保存职责失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 添加职责
+   */
+  const addDuty = async (duty: Omit<CampDuty, 'id' | 'createdAt'>) => {
+    try {
+      const newDuty: CampDuty = {
+        ...duty,
+        id: `duty_${Date.now()}`,
+        createdAt: new Date()
+      }
+
+      duties.value.push(newDuty)
+      await saveDuties()
+
+      // 更新对应营会的职责列表
+      const camp = camps.value.find(c => c.id === duty.campId)
+      if (camp) {
+        camp.duties = [...camp.duties, newDuty.id]
+        await saveCamps()
+      }
+
+      return newDuty
+    } catch (error) {
+      console.error('添加职责失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 更新职责
+   */
+  const updateDuty = async (id: string, updates: Partial<CampDuty>) => {
+    try {
+      const index = duties.value.findIndex(d => d.id === id)
+      if (index !== -1) {
+        duties.value[index] = {
+          ...duties.value[index],
+          ...updates,
+          updatedAt: new Date()
+        }
+        await saveDuties()
+      }
+    } catch (error) {
+      console.error('更新职责失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 删除职责
+   */
+  const deleteDuty = async (id: string) => {
+    try {
+      const index = duties.value.findIndex(d => d.id === id)
+      if (index !== -1) {
+        const duty = duties.value[index]
+
+        // 从营会的职责列表中移除
+        const camp = camps.value.find(c => c.id === duty.campId)
+        if (camp) {
+          camp.duties = camp.duties.filter(dutyId => dutyId !== id)
+          await saveCamps()
+        }
+
+        duties.value.splice(index, 1)
+        await saveDuties()
+      }
+    } catch (error) {
+      console.error('删除职责失败:', error)
+      throw error
+    }
+  }
+
+  /**
+   * 获取营会的职责列表
+   */
+  const getCampDuties = (campId: string) => {
+    return duties.value.filter(duty => duty.campId === campId)
+  }
+
+  /**
+   * 获取用户的职责列表
+   */
+  const getUserDuties = (userId: string) => {
+    return duties.value.filter(duty =>
+      duty.assignees.some(assignee => assignee.userId === userId)
+    )
   }
 
   return {
     // 状态
     camps,
+    duties,
     loading,
 
     // 计算属性
+    planningCamps,
     activeCamps,
-    upcomingCamps,
     completedCamps,
 
     // 操作
@@ -149,6 +274,15 @@ export const useCampStore = defineStore('camp', () => {
     updateCamp,
     deleteCamp,
     getCampById,
-    getCurrentCamp
+    getCurrentCamp,
+
+    // 职责操作
+    fetchDuties,
+    saveDuties,
+    addDuty,
+    updateDuty,
+    deleteDuty,
+    getCampDuties,
+    getUserDuties
   }
 })
