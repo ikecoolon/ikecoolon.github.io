@@ -1,0 +1,8 @@
+{
+  "whitelistedEmails": [
+    "52282858@qq.com",
+    "ikecoolon@hotmail.com"
+  ],
+  "lastUpdated": "2025-09-16T07:00:00.000Z",
+  "description": "邮箱白名单配置 - 只有白名单中的邮箱才能接收临时访问密码"
+}

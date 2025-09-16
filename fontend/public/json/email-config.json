@@ -1,0 +1,26 @@
+{
+  "enabled": true,
+  "service": "qq",
+  "smtp": {
+    "host": "smtp.qq.com",
+    "port": 587,
+    "secure": false,
+    "auth": {
+      "user": "52282858@qq.com",
+      "pass": "bznfbacehwuwcaad" 
+    }
+  },
+  "from": {
+    "name": "营会中心",
+    "address": "noreply@camp.com"
+  },
+  "templates": {
+    "passwordEmail": {
+      "subject": "营会管理系统临时访问密码",
+      "htmlTemplate": "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><h2 style='color: #1890ff;'>营会管理系统</h2><p>亲爱的用户：</p><p>您的临时访问密码是：<strong style='font-size: 18px; color: #ff4d4f;'>{password}</strong></p><p>密码有效期至：{expirationTime}</p><p style='color: #666; font-size: 14px;'>请妥善保管此密码，每次访问都需要输入最新密码。</p><hr><p style='color: #999; font-size: 12px;'>如有问题，请联系管理员。<br>营会管理系统<br>{timestamp}</p></div>",
+      "textTemplate": "亲爱的用户，\n\n您的临时访问密码是：{password}\n\n密码有效期至：{expirationTime}\n\n请妥善保管此密码，每次访问都需要输入最新密码。\n\n如有问题，请联系管理员。\n\n营会管理系统\n{timestamp}"
+    }
+  },
+  "lastUpdated": "2025-09-16T07:00:00.000Z",
+  "description": "邮件服务配置 - 需要配置真实的SMTP信息才能发送邮件"
+}

@@ -1,0 +1,299 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新正常范围配置">
+      <change afterPath="$PROJECT_DIR$/.cursorrules" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.eslintrc.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.prettierrc" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.stylelintrc.js" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/json/camps.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/json/courses.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/json/ministries.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/json/participants.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/index.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/json/camps.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/json/courses.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/json/ministries.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/public/json/participants.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/App.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/api/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/layouts/BasicLayout.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/router/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/store/activity.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/store/auth.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/store/dashboard.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/store/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/store/ministry.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/store/user.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/utils/auth-guard.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/view/activity/index.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/view/dashboard/index.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/view/error/404.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/view/login/index.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/view/ministry/index.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/view/settings/index.vue" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/start.sh" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tsconfig.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tsconfig.node.json" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/types/activity.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/types/common.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/types/index.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/types/ministry.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/types/user.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/unocss.config.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="master" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;ikecoolon&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/ikecoolon/ikecoolon.github.io.git&quot;,
+    &quot;accountId&quot;: &quot;f64f5ac4-b10f-43e6-8fdf-3059bccfd33e&quot;
+  }
+}</component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
+  <component name="ProjectId" id="2V6Ohfyo3OInbVhstyUSMbcj1HA" />
+  <component name="ProjectLevelVcsManager">
+    <OptionsSetting value="false" id="Update" />
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "feature/activity",
+    "last_opened_file_path": "/Users/zhaoyanlong/Documents/ikecoolon.github.io",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "yarn",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="ReadonlyStatusHandler">
+    <option name="SHOW_DIALOG" value="false" />
+  </component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+  </component>
+  <component name="RunManager" selected="npm.deploy">
+    <configuration name="deploy-other.sh" type="ShConfigurationType" temporary="true">
+      <option name="SCRIPT_TEXT" value="" />
+      <option name="INDEPENDENT_SCRIPT_PATH" value="true" />
+      <option name="SCRIPT_PATH" value="$PROJECT_DIR$/deploy-simple.sh" />
+      <option name="SCRIPT_OPTIONS" value="" />
+      <option name="INDEPENDENT_SCRIPT_WORKING_DIRECTORY" value="true" />
+      <option name="SCRIPT_WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="INDEPENDENT_INTERPRETER_PATH" value="true" />
+      <option name="INTERPRETER_PATH" value="/usr/bin/env" />
+      <option name="INTERPRETER_OPTIONS" value="sh" />
+      <option name="EXECUTE_IN_TERMINAL" value="true" />
+      <option name="EXECUTE_SCRIPT_FILE" value="true" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="deploy-dist" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="deploy-dist" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <configuration name="deploy" type="js.build_tools.npm" temporary="true" nameIsGenerated="true">
+      <package-json value="$PROJECT_DIR$/package.json" />
+      <command value="run" />
+      <scripts>
+        <script value="deploy" />
+      </scripts>
+      <node-interpreter value="project" />
+      <envs />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Shell Script.deploy-other.sh" />
+        <item itemvalue="npm.deploy-dist" />
+        <item itemvalue="npm.deploy" />
+        <item itemvalue="npm.deploy" />
+        <item itemvalue="Shell Script.deploy-other.sh" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-1632447f56bf-JavaScript-WS-243.26574.96" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="" />
+      <created>1694153183858</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1694153183858</updated>
+      <workItem from="1694153185491" duration="3558000" />
+      <workItem from="1694741138834" duration="598000" />
+      <workItem from="1756734825398" duration="3615000" />
+      <workItem from="1756780324362" duration="550000" />
+      <workItem from="1756971919963" duration="8000" />
+      <workItem from="1757921443144" duration="1200000" />
+    </task>
+    <task id="LOCAL-00001" summary="更新脚本">
+      <created>1694153698121</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1694153698121</updated>
+    </task>
+    <task id="LOCAL-00002" summary="去掉全部原来内容">
+      <created>1694154223053</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1694154223053</updated>
+    </task>
+    <task id="LOCAL-00003" summary="加入demo工程">
+      <created>1694154307521</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1694154307521</updated>
+    </task>
+    <task id="LOCAL-00004" summary="加入demo工程dist文件夹">
+      <created>1694154582353</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1694154582353</updated>
+    </task>
+    <task id="LOCAL-00005" summary="更新demo结构">
+      <created>1694154744511</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1694154744511</updated>
+    </task>
+    <task id="LOCAL-00006" summary="更新demo到根目录">
+      <created>1694154899247</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1694154899247</updated>
+    </task>
+    <task id="LOCAL-00007" summary="更新脚本命名，使其语义化更明确">
+      <option name="closed" value="true" />
+      <created>1756734937986</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1756734937986</updated>
+    </task>
+    <task id="LOCAL-00008" summary="重新提交必要文件">
+      <option name="closed" value="true" />
+      <created>1756737548319</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1756737548319</updated>
+    </task>
+    <task id="LOCAL-00009" summary="重新提交必要文件">
+      <option name="closed" value="true" />
+      <created>1756739133389</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1756739133389</updated>
+    </task>
+    <task id="LOCAL-00010" summary="重新提交必要文件">
+      <option name="closed" value="true" />
+      <created>1756739351535</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1756739351535</updated>
+    </task>
+    <task id="LOCAL-00011" summary="更新正常范围配置">
+      <option name="closed" value="true" />
+      <created>1756741369298</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1756741369298</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <option name="CHECK_CODE_SMELLS_BEFORE_PROJECT_COMMIT" value="false" />
+    <option name="CHECK_NEW_TODO" value="false" />
+    <MESSAGE value="更新脚本" />
+    <MESSAGE value="去掉全部原来内容" />
+    <MESSAGE value="加入demo工程" />
+    <MESSAGE value="加入demo工程dist文件夹" />
+    <MESSAGE value="更新demo结构" />
+    <MESSAGE value="更新demo到根目录" />
+    <MESSAGE value="更新脚本命名，使其语义化更明确" />
+    <MESSAGE value="重新提交必要文件" />
+    <MESSAGE value="更新正常范围配置" />
+    <option name="LAST_COMMIT_MESSAGE" value="更新正常范围配置" />
+  </component>
+</project>
