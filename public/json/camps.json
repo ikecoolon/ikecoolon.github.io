@@ -1,0 +1,41 @@
+[
+  {
+    "id": "1",
+    "title": "开幕式",
+    "description": "营会开幕仪式",
+    "startTime": "2024-01-16T09:00:00.000Z",
+    "endTime": "2024-01-16T10:00:00.000Z",
+    "location": "主会场",
+    "assignedMembers": ["1", "2"],
+    "ministryIds": ["1", "2"],
+    "notes": "需要提前30分钟到场准备",
+    "status": "planned",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "2",
+    "title": "专题讲座：信仰与生活",
+    "description": "探讨信仰在日常生活中的应用",
+    "startTime": "2024-01-16T14:00:00.000Z",
+    "endTime": "2024-01-16T16:00:00.000Z",
+    "location": "教室A",
+    "assignedMembers": ["2"],
+    "ministryIds": ["2"],
+    "notes": "准备PPT和音响设备",
+    "status": "planned",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "3",
+    "title": "小组分享时间",
+    "description": "分小组进行心得分享",
+    "startTime": "2024-01-17T10:00:00.000Z",
+    "endTime": "2024-01-17T11:30:00.000Z",
+    "location": "各分组教室",
+    "assignedMembers": ["1", "2"],
+    "ministryIds": ["2", "3"],
+    "notes": "每个小组需要一名带领者",
+    "status": "planned",
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+]

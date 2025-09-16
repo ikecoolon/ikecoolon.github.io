@@ -1,0 +1,58 @@
+#项目介绍
+营会管理系统，为给发起者及参与者查看日程及分工提供支持
+
+# 基本要求
+- 在我调用你的时候，请使用中文回答。
+- 请尽量使用Context7
+
+#技术栈
+- Vue 3.0
+- unocss 样式预处理器
+- ant-design-vue UI库
+- pinia 状态管理
+- dayjs 时间处理
+- lodash-es 工具库
+
+
+#编码规范
+- eslint + stylelint + prettier 代码规范
+- typescript 类型规范
+    - 避免使用 any 类型,如确实需要使用any类型,请在代码中添加注释说明
+    - 使用驼峰命名
+- 合理拆分组件
+    - 如果一个组件的样式和逻辑过于复杂,可以拆分为多个组件
+    - 如果该组件在不同页面中出现,则提取为公共组件,放在components目录下,且数据采用props传递,反之数据使用store管理
+- 状态管理规范
+    - 使用 pinia 作为状态管理
+    - 状态管理文件统一放在 store 目录下
+    - 状态管理文件命名规范:如user.ts
+    - 数据请求在store中进行,页面中只负责展示,注意对错误异常的处理
+- 样式处理
+    - 尽可能的使用unocss编写样式,除非特殊情况,否则不要使用css,单位使用px
+    - 实现动画效果时,尽可能的采用unocss的动画
+- 注释
+    - 使用JSDoc注释
+
+# 项目结构
+- server 目录下存放后端服务
+- build 目录下存放构建配置
+- json 目录存放持久化数据,如课程信息,营会信息,服侍信息等
+- src 目录下存放源码
+    - api 目录下存放接口
+    - assets 目录下存放静态资源
+    - components 目录下存放通用组件
+    - design 目录下存放定制样式配置
+    - directives 目录下存放指令
+    - enum 目录下存放枚举类型
+    - hooks 目录下存放自定义hooks
+    - layouts 目录下存放布局组件
+    - store 目录下存放pinia状态管理
+    - styles 目录下存放全局样式
+    - router 目录下存放路由配置
+    - settings 目录下存放配置
+    - utils 目录下存放工具函数
+    - view 目录下存放页面
+        - 页面命名规范:如user.vue
+        - 该业务提取的组件放在当前目录下,如user/components
+- test 目录下存放测试代码
+- types 目录下存放类型定义
