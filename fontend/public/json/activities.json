@@ -1,0 +1,89 @@
+[
+  {
+    "id": "activity_1",
+    "title": "开幕式",
+    "description": "营会开幕仪式",
+    "date": "2024-01-16T00:00:00.000Z",
+    "startTime": "2024-01-16T09:00:00.000Z",
+    "endTime": "2024-01-16T10:00:00.000Z",
+    "location": "主会场",
+    "campId": "camp_001",
+    "phases": [
+      {
+        "id": "phase_1_1",
+        "title": "入场准备",
+        "description": "参与者入场和就座",
+        "assignedMembers": ["1", "2"],
+        "notes": "需要提前30分钟到场准备",
+        "order": 0
+      },
+      {
+        "id": "phase_1_2",
+        "title": "开幕仪式",
+        "description": "正式开幕仪式和致辞",
+        "assignedMembers": ["1"],
+        "notes": "准备好致辞稿和背景音乐",
+        "order": 1
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "activity_2",
+    "title": "专题讲座：信仰与生活",
+    "description": "探讨信仰在日常生活中的应用",
+    "date": "2024-01-16T00:00:00.000Z",
+    "startTime": "2024-01-16T14:00:00.000Z",
+    "endTime": "2024-01-16T16:00:00.000Z",
+    "location": "教室A",
+    "campId": "camp_001",
+    "phases": [
+      {
+        "id": "phase_2_1",
+        "title": "讲座内容",
+        "description": "主讲人进行专题讲座",
+        "assignedMembers": ["2"],
+        "notes": "准备PPT和音响设备",
+        "order": 0
+      },
+      {
+        "id": "phase_2_2",
+        "title": "问答互动",
+        "description": "参与者提问和交流",
+        "assignedMembers": ["2"],
+        "notes": "预留足够的时间进行互动",
+        "order": 1
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "activity_3",
+    "title": "小组分享时间",
+    "description": "分小组进行心得分享",
+    "date": "2024-01-17T00:00:00.000Z",
+    "startTime": "2024-01-17T10:00:00.000Z",
+    "endTime": "2024-01-17T11:30:00.000Z",
+    "location": "各分组教室",
+    "campId": "camp_001",
+    "phases": [
+      {
+        "id": "phase_3_1",
+        "title": "分组准备",
+        "description": "参与者按小组就座",
+        "assignedMembers": ["1", "2"],
+        "notes": "每个小组需要一名带领者",
+        "order": 0
+      },
+      {
+        "id": "phase_3_2",
+        "title": "分享交流",
+        "description": "小组成员分享心得",
+        "assignedMembers": ["1", "2"],
+        "notes": "引导大家积极参与分享",
+        "order": 1
+      }
+    ],
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+]

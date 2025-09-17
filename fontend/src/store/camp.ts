@@ -60,7 +60,10 @@ export const useCampStore = defineStore('camp', () => {
    */
   const saveCamps = async () => {
     try {
-      await request.post('camp.json', camps.value)
+      // 在前端开发环境中，不触发文件下载，只更新内存数据
+      // 生产环境中可以配置后端API来保存数据
+      console.log('营会数据已更新:', camps.value)
+      // await request.post('camp.json', camps.value)
     } catch (error) {
       console.error('保存营会失败:', error)
       throw error
@@ -160,7 +163,10 @@ export const useCampStore = defineStore('camp', () => {
    */
   const saveDuties = async () => {
     try {
-      await request.post('camp-duties.json', duties.value)
+      // 在前端开发环境中，不触发文件下载，只更新内存数据
+      // 生产环境中可以配置后端API来保存数据
+      console.log('职责数据已更新:', duties.value)
+      // await request.post('camp-duties.json', duties.value)
     } catch (error) {
       console.error('保存职责失败:', error)
       throw error

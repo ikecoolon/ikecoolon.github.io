@@ -11,16 +11,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
   const selectedDate = ref(dayjs())
   const loading = ref(false)
 
-  // 计算属性
-  const viewTitle = computed(() => {
-    if (currentView.value === 'week') {
-      const startOfWeek = selectedDate.value.startOf('week')
-      const endOfWeek = selectedDate.value.endOf('week')
-      return `${startOfWeek.format('YYYY年MM月DD日')} - ${endOfWeek.format('YYYY年MM月DD日')}`
-    } else {
-      return selectedDate.value.format('YYYY年MM月DD日')
-    }
-  })
 
   const weekDays = computed(() => {
     const days = []
@@ -29,6 +19,7 @@ export const useDashboardStore = defineStore('dashboard', () => {
     for (let i = 0; i < 7; i++) {
       days.push(startOfWeek.add(i, 'day'))
     }
+    console.log(111,days);
     
     return days
   })
@@ -83,7 +74,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     loading,
     
     // 计算属性
-    viewTitle,
     weekDays,
     
     // 操作

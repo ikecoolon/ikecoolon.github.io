@@ -42,7 +42,12 @@
           </template>
 
           <template v-if="column.key === 'date'">
-            <div>{{ formatDate(record.date) }}</div>
+            <div class="space-y-4px">
+              <div class="text-12px text-gray-500">{{ formatDate(record.date) }}</div>
+              <div class="text-11px text-blue-600">
+                {{ formatTime(record.startTime) }} - {{ formatTime(record.endTime) }}
+              </div>
+            </div>
           </template>
 
           <template v-if="column.key === 'phases'">
@@ -398,7 +403,6 @@ const phaseFormRef = ref<FormInstance>()
 
 // 计算属性
 const activities = computed(() => activityStore.activities)
-const ministries = computed(() => ministryStore.ministries)
 const members = computed(() => ministryStore.members)
 
 const filteredActivities = computed(() => {
@@ -414,6 +418,9 @@ const filteredActivities = computed(() => {
     )
   }
 
+  // 按日期降序排列（最新的活动在前面）
+  result.sort((a, b) => dayjs(b.startTime).valueOf() - dayjs(a.startTime).valueOf())
+
   return result
 })
 
@@ -422,7 +429,7 @@ const memberOptions = computed(() =>
 )
 
 const campOptions = computed(() =>
-  campStore.camps.value.map(camp => ({
+  campStore.camps.map(camp => ({
     label: camp.name,
     value: camp.id
   }))
@@ -440,9 +447,9 @@ const columns: TableColumnProps[] = [
     width: 300
   },
   {
-    title: '日期',
+    title: '日期时间',
     key: 'date',
-    width: 140
+    width: 180
   },
   {
     title: '地点',
@@ -503,10 +510,17 @@ const phaseFormRules: Record<string, Rule[]> = {
 }
 
 /**
- * 格式化时间
+ * 格式化日期
  */
 const formatDate = (date: Date) => {
   return dayjs(date).format('YYYY-MM-DD')
+}
+
+/**
+ * 格式化时间
+ */
+const formatTime = (date: Date) => {
+  return dayjs(date).format('HH:mm')
 }
 
 /**
@@ -552,8 +566,8 @@ const handleEdit = (activity: Activity) => {
     title: activity.title,
     description: activity.description,
     date: dayjs(activity.date),
-    startTime: dayjs(activity.startTime),
-    endTime: dayjs(activity.endTime),
+    startTime: activity.startTime ? dayjs(activity.startTime) : null,
+    endTime: activity.endTime ? dayjs(activity.endTime) : null,
     location: activity.location,
     campId: activity.campId,
     phases: [...activity.phases]
@@ -746,7 +760,6 @@ const combineDateTime = (date: Dayjs, time: Dayjs) => {
 onMounted(() => {
   Promise.all([
     activityStore.fetchActivities(),
-    ministryStore.fetchMinistries(),
     ministryStore.fetchMembers(),
     campStore.fetchCamps()
   ])

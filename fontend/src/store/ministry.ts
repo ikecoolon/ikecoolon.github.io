@@ -1,31 +1,16 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { request } from '@/api'
-import type { Ministry, MinistryMember } from '@/types/ministry'
+import type {  MinistryMember } from '@/types/ministry'
 
 /**
  * 服侍者管理状态
  */
 export const useMinistryStore = defineStore('ministry', () => {
   // 状态
-  const ministries = ref<Ministry[]>([])
   const members = ref<MinistryMember[]>([])
   const loading = ref(false)
 
-  /**
-   * 获取所有服侍类型
-   */
-  const fetchMinistries = async () => {
-    loading.value = true
-    try {
-      const data = await request.get<Ministry[]>('ministries.json')
-      ministries.value = data || []
-    } catch (error) {
-      console.error('获取服侍类型失败:', error)
-    } finally {
-      loading.value = false
-    }
-  }
 
   /**
    * 获取所有服侍者
@@ -42,24 +27,16 @@ export const useMinistryStore = defineStore('ministry', () => {
     }
   }
 
-  /**
-   * 保存服侍类型
-   */
-  const saveMinistries = async () => {
-    try {
-      await request.post('ministries.json', ministries.value)
-    } catch (error) {
-      console.error('保存服侍类型失败:', error)
-      throw error
-    }
-  }
 
   /**
    * 保存服侍者
    */
   const saveMembers = async () => {
     try {
-      await request.post('participants.json', members.value)
+      // 在前端开发环境中，不触发文件下载，只更新内存数据
+      // 生产环境中可以配置后端API来保存数据
+      console.log('服侍者数据已更新:', members.value)
+      // await request.post('participants.json', members.value)
     } catch (error) {
       console.error('保存服侍者失败:', error)
       throw error
@@ -118,74 +95,18 @@ export const useMinistryStore = defineStore('ministry', () => {
     }
   }
 
-  /**
-   * 添加服侍类型
-   */
-  const addMinistry = async (ministry: Omit<Ministry, 'id' | 'createdAt'>) => {
-    try {
-      const newMinistry: Ministry = {
-        ...ministry,
-        id: `ministry_${Date.now()}`,
-        createdAt: new Date()
-      }
 
-      ministries.value.push(newMinistry)
-      await saveMinistries()
-      return newMinistry
-    } catch (error) {
-      console.error('添加服侍类型失败:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 更新服侍类型
-   */
-  const updateMinistry = async (id: string, updates: Partial<Ministry>) => {
-    try {
-      const index = ministries.value.findIndex(m => m.id === id)
-      if (index !== -1) {
-        ministries.value[index] = { ...ministries.value[index], ...updates }
-        await saveMinistries()
-      }
-    } catch (error) {
-      console.error('更新服侍类型失败:', error)
-      throw error
-    }
-  }
-
-  /**
-   * 删除服侍类型
-   */
-  const deleteMinistry = async (id: string) => {
-    try {
-      const index = ministries.value.findIndex(m => m.id === id)
-      if (index !== -1) {
-        ministries.value.splice(index, 1)
-        await saveMinistries()
-      }
-    } catch (error) {
-      console.error('删除服侍类型失败:', error)
-      throw error
-    }
-  }
 
   return {
     // 状态
-    ministries,
     members,
     loading,
 
     // 操作
-    fetchMinistries,
     fetchMembers,
-    saveMinistries,
     saveMembers,
     addMember,
     updateMember,
     deleteMember,
-    addMinistry,
-    updateMinistry,
-    deleteMinistry
   }
 })

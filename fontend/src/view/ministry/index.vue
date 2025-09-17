@@ -35,21 +35,11 @@
                 <div class="flex-1">
                   <div class="flex items-center space-x-8px mb-8px">
                     <div class="text-16px font-500 text-gray-800">{{ member.name }}</div>
-                    <div class="flex space-x-4px">
-                      <a-tag
-                        v-for="ministryId in member.ministryIds"
-                        :key="ministryId"
-                        size="small"
-                        color="blue"
-                      >
-                        {{ getMinistryName(ministryId) }}
-                      </a-tag>
-                    </div>
                   </div>
                   
                   <div class="text-14px text-gray-600 mb-4px">
                     <i class="i-carbon:phone mr-8px" />{{ member.phone }}
-                    <i class="i-carbon:email ml-16px mr-8px" />{{ member.email }}
+                    <i v-if="member.email" class="i-carbon:email ml-16px mr-8px" />{{ member.email || '' }}
                   </div>
                   
                 </div>
@@ -77,7 +67,7 @@
         </a-card>
       </div>
 
-      <!-- 详情和服侍类型 -->
+      <!-- 详情 -->
       <div class="space-y-24px">
         <!-- 服侍者详情 -->
         <a-card title="服侍者详情" size="small">
@@ -126,22 +116,7 @@
           </div>
         </a-card>
 
-        <!-- 服侍类型 -->
-        <a-card title="服侍类型" size="small">
-          <div class="space-y-8px">
-            <div
-              v-for="ministry in ministries"
-              :key="ministry.id"
-              class="p-12px bg-gray-50 rounded-8px"
-            >
-              <div class="font-500 text-14px text-gray-800 mb-4px">{{ ministry.name }}</div>
-              <div class="text-12px text-gray-600 mb-8px">{{ ministry.description }}</div>
-              <div class="text-12px text-gray-500">
-                人数：{{ getMemberCount(ministry.id) }} 人
-              </div>
-            </div>
-          </div>
-        </a-card>
+        
       </div>
     </div>
 
@@ -176,14 +151,6 @@
           <a-input v-model:value="formData.email" placeholder="请输入邮箱地址" />
         </a-form-item>
         
-        <a-form-item label="服侍类型" name="ministryIds">
-          <a-select
-            v-model:value="formData.ministryIds"
-            mode="multiple"
-            placeholder="请选择服侍类型"
-            :options="ministryOptions"
-          />
-        </a-form-item>
         
         <a-form-item label="备注">
           <a-textarea
@@ -224,23 +191,19 @@ const formRef = ref<FormInstance>()
 
 // 计算属性
 const members = computed(() => ministryStore.members)
-const ministries = computed(() => ministryStore.ministries)
 const activities = computed(() => activityStore.activities)
 
 const filteredMembers = computed(() => {
   if (!searchText.value) return members.value
-  
+
   return members.value.filter(member =>
     member.name.includes(searchText.value) ||
     member.phone.includes(searchText.value) ||
-    member.email.includes(searchText.value)
+    (member.email && member.email.includes(searchText.value))
   )
 })
 
 
-const ministryOptions = computed(() => 
-  ministries.value.map(m => ({ label: m.name, value: m.id }))
-)
 
 
 // 表单数据
@@ -248,7 +211,6 @@ const formData = reactive({
   name: '',
   phone: '',
   email: '',
-  ministryIds: [] as string[],
   notes: ''
 })
 
@@ -260,33 +222,20 @@ const formRules: Record<string, Rule[]> = {
     { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
   ],
   email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ],
-  ministryIds: [{ required: true, message: '请选择至少一个服侍类型', trigger: 'change' }]
 }
 
-/**
- * 获取服侍类型名称
- */
-const getMinistryName = (ministryId: string) => {
-  const ministry = ministries.value.find(m => m.id === ministryId)
-  return ministry?.name || `服侍${ministryId}`
-}
 
-/**
- * 获取服侍类型成员数量
- */
-const getMemberCount = (ministryId: string) => {
-  return members.value.filter(m => m.ministryIds.includes(ministryId)).length
-}
 
 /**
  * 获取成员参与的活动
  */
 const getMemberActivities = (memberId: string) => {
-  return activities.value.filter(activity => 
-    activity.assignedMembers.includes(memberId)
+  return activities.value.filter(activity =>
+    activity.phases?.some(phase =>
+      phase.assignedMembers?.includes(memberId)
+    )
   )
 }
 
@@ -309,7 +258,6 @@ const handleMemberMenuClick = ({ key }: { key: string }, member: MinistryMember)
       name: member.name,
       phone: member.phone,
       email: member.email,
-      ministryIds: [...member.ministryIds],
       notes: member.notes || ''
     })
     
@@ -345,7 +293,6 @@ const handleSaveMember = async () => {
       name: formData.name,
       phone: formData.phone,
       email: formData.email,
-      ministryIds: formData.ministryIds,
       notes: formData.notes
     }
     
@@ -383,7 +330,6 @@ const handleCancelModal = () => {
     name: '',
     phone: '',
     email: '',
-    ministryIds: [],
     notes: ''
   })
   
@@ -396,7 +342,6 @@ const handleCancelModal = () => {
 onMounted(() => {
   Promise.all([
     ministryStore.fetchMembers(),
-    ministryStore.fetchMinistries(),
     activityStore.fetchActivities()
   ])
 })

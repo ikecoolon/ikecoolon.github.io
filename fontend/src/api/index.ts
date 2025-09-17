@@ -10,6 +10,61 @@ import { message } from 'ant-design-vue'
 const BACKEND_URL = 'http://localhost:9010'
 
 /**
+ * 转换UTC时间字符串为本地时间
+ */
+const convertUtcToLocal = (dateString: string): Date => {
+  if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(dateString)) {
+    // 使用原生Date处理UTC时间转换
+    const utcDate = new Date(dateString)
+    return new Date(utcDate.getTime() - utcDate.getTimezoneOffset() * 60000)
+  }
+  return dateString as any
+}
+
+/**
+ * 递归转换数据中的时间字段
+ */
+const convertTimeFields = (data: any): any => {
+  if (data === null || data === undefined) {
+    return data
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(convertTimeFields)
+  }
+
+  if (typeof data === 'object') {
+    const result: any = {}
+    for (const key in data) {
+      if (data.hasOwnProperty(key)) {
+        const value = data[key]
+
+        // 常见的日期/时间字段名
+        const timeFieldNames = ['date', 'startDate', 'endDate', 'startTime', 'endTime', 'createdAt', 'updatedAt', 'timeRange']
+
+        if (timeFieldNames.some(field => key.toLowerCase().includes(field))) {
+          // 如果是时间字段，进行转换
+          if (typeof value === 'string') {
+            result[key] = convertUtcToLocal(value)
+          } else if (typeof value === 'object' && value !== null) {
+            // 处理嵌套的时间对象，比如timeRange: {start: ..., end: ...}
+            result[key] = convertTimeFields(value)
+          } else {
+            result[key] = value
+          }
+        } else {
+          // 非时间字段递归处理
+          result[key] = convertTimeFields(value)
+        }
+      }
+    }
+    return result
+  }
+
+  return data
+}
+
+/**
  * 从 public/json/ 目录读取默认数据
  */
 const loadDefaultData = async <T>(filename: string): Promise<T | null> => {
@@ -34,7 +89,9 @@ const request = {
         // 直接从文件加载数据，不使用localStorage缓存
         const fileData = await loadDefaultData<T>(filename)
         if (fileData !== null) {
-          resolve(fileData)
+          // 转换时间字段从UTC到本地时间
+          const convertedData = convertTimeFields(fileData)
+          resolve(convertedData)
         } else {
           resolve({} as T)
         }

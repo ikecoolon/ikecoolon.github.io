@@ -1,0 +1,61 @@
+[
+  {
+    "id": "duty_001",
+    "campId": "camp_001",
+    "title": "物资采买",
+    "description": "负责采购所有活动物资，包括音响设备、桌椅、饮用水等。提前2周开始采购工作，与供应商确认质量标准。",
+    "category": "preparation",
+    "assignees": [
+      {
+        "userId": "member_001",
+        "userName": "张三"
+      },
+      {
+        "userId": "member_002",
+        "userName": "李四"
+      }
+    ],
+    "timeRange": {
+      "start": "2025-04-15T00:00:00.000Z",
+      "end": "2025-04-20T00:00:00.000Z"
+    },
+    "createdAt": "2025-04-01T00:00:00.000Z",
+    "updatedAt": "2025-04-01T00:00:00.000Z"
+  },
+  {
+    "id": "duty_002",
+    "campId": "camp_001",
+    "title": "音响技术支持",
+    "description": "负责音响设备调试，现场技术支持，确保音频效果。包括主会场、副会场音响系统，备用设备准备。",
+    "category": "support",
+    "assignees": [
+      {
+        "userId": "member_003",
+        "userName": "小红"
+      },
+      {
+        "userId": "member_004",
+        "userName": "小刚"
+      }
+    ],
+    "createdAt": "2025-04-01T00:00:00.000Z"
+  },
+  {
+    "id": "duty_003",
+    "campId": "camp_001",
+    "title": "餐饮统筹",
+    "description": "负责餐食安排，确认参加人数，准备特殊饮食需求。活动当天负责现场餐饮协调。",
+    "category": "logistics",
+    "assignees": [
+      {
+        "userId": "member_005",
+        "userName": "王五"
+      },
+      {
+        "userId": "member_006",
+        "userName": "小丽"
+      }
+    ],
+    "createdAt": "2025-04-01T00:00:00.000Z"
+  }
+]

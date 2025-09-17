@@ -3,7 +3,6 @@
     <!-- 页面标题 -->
     <div class="mb-24px">
       <h1 class="text-24px font-600 text-gray-800 mb-8px">营会管理</h1>
-      <p class="text-14px text-gray-500">管理营会信息，包括添加、编辑和删除营会</p>
     </div>
 
     <!-- 操作栏 -->
@@ -39,8 +38,7 @@
       <a-card
         v-for="camp in filteredCamps"
         :key="camp.id"
-        class="hover:shadow-md transition-shadow cursor-pointer"
-        @click="handleCampClick(camp)"
+        class="hover:shadow-md transition-shadow"
       >
         <template #title>
           <div class="flex items-center justify-between">
@@ -51,7 +49,7 @@
           </div>
         </template>
 
-        <div class="space-y-8px">
+        <div class="space-y-8px cursor-pointer" @click="handleCampClick(camp)">
           <div class="text-14px text-gray-600">
             <i class="i-carbon:calendar mr-4px" />
             起始日期：{{ formatDate(camp.startDate) }}
@@ -67,10 +65,6 @@
             地点：{{ camp.location }}
           </div>
 
-          <div class="text-14px text-gray-600">
-            <i class="i-carbon:group mr-4px" />
-            活动数量：{{ camp.activities.length }}
-          </div>
 
           <div v-if="camp.description" class="text-12px text-gray-500 mt-8px">
             {{ camp.description }}
@@ -81,16 +75,18 @@
           <a-button
             type="text"
             size="small"
-            @click.stop="editCamp(camp)"
-            class="text-blue-600"
+            @click.stop.prevent="editCamp(camp)"
+            class="text-blue-600 hover:text-blue-800 transition-colors"
+            title="编辑营会"
           >
             <i class="i-carbon:edit" />
           </a-button>
           <a-button
             type="text"
             size="small"
-            @click.stop="deleteCamp(camp)"
-            class="text-red-600"
+            @click.stop.prevent="deleteCamp(camp)"
+            class="text-red-600 hover:text-red-800 transition-colors"
+            title="删除营会"
           >
             <i class="i-carbon:trash-can" />
           </a-button>
@@ -290,8 +286,8 @@
                       {{ dayjs(activity.endTime).format('HH:mm') }}
                     </div>
                   </div>
-                  <a-tag :color="getActivityStatusColor(activity.status)" size="small">
-                    {{ getActivityStatusText(activity.status) }}
+                  <a-tag :color="getActivityStatusColor(getActivityStatus(activity))" size="small">
+                    {{ getActivityStatusText(getActivityStatus(activity)) }}
                   </a-tag>
                 </div>
               </a-checkbox>
@@ -358,7 +354,7 @@
             placeholder="选择负责人（可多选）"
             :options="memberOptions"
             show-search
-            :filter-option="filterMemberOption"
+            :filter-option="(input: string, option: any) => option.children.toLowerCase().includes(input.toLowerCase())"
           />
         </a-form-item>
 
@@ -439,7 +435,7 @@ import dayjs, { Dayjs } from 'dayjs'
 import { useCampStore } from '@/store/camp'
 import { useActivityStore } from '@/store/activity'
 import { useMinistryStore } from '@/store/ministry'
-import type { Camp, DutyCategory } from '@/types'
+import type { Camp, DutyCategory } from '@/types/activity'
 
 /**
  * 营会管理页面
@@ -538,7 +534,7 @@ const availableActivities = computed(() => {
 
 // 成员选项
 const memberOptions = computed(() =>
-  ministryStore.members.value.map(member => ({
+  ministryStore.members.map(member => ({
     label: member.name,
     value: member.id
   }))
@@ -549,7 +545,8 @@ const dutyCategories = computed(() => [
   { key: 'preparation', label: '准备工作', icon: '📋' },
   { key: 'logistics', label: '后勤保障', icon: '📦' },
   { key: 'coordination', label: '现场协调', icon: '🤝' },
-  { key: 'support', label: '技术支持', icon: '🔧' }
+  { key: 'support', label: '技术支持', icon: '🔧' },
+  { key: 'childcare', label: '幼儿看护', icon: '👶' }
 ])
 
 // 获取营会的职责列表
@@ -565,7 +562,7 @@ const getCategoryDuties = (category: string) => {
 
 // 方法
 const formatDate = (date: Date) => {
-  return dayjs(date).format('YYYY-MM-DD')
+  return dayjs(date).format('YYYY-MM-DD HH:mm:ss')
 }
 
 const getStatusColor = (camp: Camp) => {
@@ -594,6 +591,21 @@ const getStatusText = (camp: Camp) => {
   } else {
     return '已完成'
   }
+}
+
+const getActivityStatus = (activity: any) => {
+  const now = dayjs()
+  const activityDate = dayjs(activity.date)
+  const activityEndTime = dayjs(activity.endTime)
+
+  if (now.isBefore(activityDate)) {
+    return 'planned' // 计划中
+  } else if (now.isAfter(activityDate) && now.isBefore(activityEndTime)) {
+    return 'ongoing' // 进行中
+  } else if (now.isAfter(activityEndTime)) {
+    return 'completed' // 已完成
+  }
+  return 'planned' // 默认计划中
 }
 
 const getActivityStatusColor = (status: string) => {
@@ -641,17 +653,43 @@ const resetForm = () => {
 }
 
 const editCamp = (camp: Camp) => {
-  isEditing.value = true
-  editingCampId.value = camp.id
-  Object.assign(formData, {
-    name: camp.name,
-    description: camp.description || '',
-    dateRange: camp.endDate
-      ? [dayjs(camp.startDate), dayjs(camp.endDate)]
-      : [dayjs(camp.startDate)],
-    location: camp.location || ''
-  })
-  showAddModal.value = true
+  try {
+    console.log('编辑按钮被点击，营会:', camp.name)
+
+    // 设置编辑状态
+    isEditing.value = true
+    editingCampId.value = camp.id
+
+    // 准备日期范围
+    let dateRange: Dayjs[] = []
+    try {
+      if (camp.endDate) {
+        dateRange = [dayjs(camp.startDate), dayjs(camp.endDate)]
+      } else {
+        dateRange = [dayjs(camp.startDate)]
+      }
+    } catch (dateError) {
+      console.error('日期转换错误:', dateError)
+      // 如果日期转换失败，使用当前日期
+      dateRange = [dayjs()]
+    }
+
+    // 填充表单数据
+    Object.assign(formData, {
+      name: camp.name || '',
+      description: camp.description || '',
+      dateRange: dateRange,
+      location: camp.location || ''
+    })
+
+    // 打开模态框
+    showAddModal.value = true
+
+    console.log('编辑营会成功打开模态框:', camp.name, '表单数据:', formData)
+  } catch (error) {
+    console.error('编辑营会失败:', error)
+    message.error('编辑营会失败，请重试')
+  }
 }
 
 const deleteCamp = (camp: Camp) => {
@@ -676,13 +714,33 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate()
 
+    // 处理日期时间，确保开始时间为 00:00:00，结束时间为 23:59:59
+    const startDate = formData.dateRange[0]
+      .startOf('day') // 设置为当天的 00:00:00
+      .toDate()
+
+    const endDate = formData.dateRange.length > 1
+      ? formData.dateRange[1]
+          .endOf('day') // 设置为当天的 23:59:59
+          .toDate()
+      : formData.dateRange[0]
+          .endOf('day') // 如果只有一个日期，也设置为当天的 23:59:59
+          .toDate()
+
+    console.log('保存营会日期范围:', {
+      startDate: dayjs(startDate).format('YYYY-MM-DD HH:mm:ss'),
+      endDate: dayjs(endDate).format('YYYY-MM-DD HH:mm:ss'),
+      dateRangeLength: formData.dateRange.length
+    })
+
     const campData = {
       name: formData.name,
       description: formData.description,
-      startDate: formData.dateRange[0].toDate(),
-      endDate: formData.dateRange.length > 1 ? formData.dateRange[1].toDate() : undefined,
+      startDate: startDate,
+      endDate: endDate,
       location: formData.location,
-      activities: [] // 新建营会时活动为空
+      activities: [], // 新建营会时活动为空
+      duties: [] // 新建营会时职责为空
     }
 
     if (isEditing.value) {
@@ -753,7 +811,7 @@ const removeActivityFromCamp = async (activityId: string) => {
     okType: 'danger',
     onOk: async () => {
       try {
-        const updatedActivities = selectedCamp.value!.activities.filter(id => id !== activityId)
+        const updatedActivities = selectedCamp.value!.activities.filter((id: string) => id !== activityId)
 
         await campStore.updateCamp(selectedCamp.value!.id, {
           activities: updatedActivities
@@ -830,7 +888,7 @@ const handleSubmitDuty = async () => {
 
     // 构建负责人数据
     const assignees = selectedAssigneeIds.value.map(userId => {
-      const member = ministryStore.members.value.find(m => m.id === userId)
+      const member = ministryStore.members.find(m => m.id === userId)
       return {
         userId,
         userName: member?.name || '未知用户'
@@ -917,7 +975,6 @@ onMounted(async () => {
     campStore.fetchCamps(),
     campStore.fetchDuties(),
     ministryStore.fetchMembers(),
-    ministryStore.fetchMinistries()
   ])
 
   // 确保活动数据也已加载

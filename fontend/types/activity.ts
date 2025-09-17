@@ -22,6 +22,7 @@ export interface Activity {
   campId: string // 归属营会ID
   phases: ActivityPhase[] // 活动环节
   createdAt: Date
+  notes?: string
   updatedAt?: Date
 }
 

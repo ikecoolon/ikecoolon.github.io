@@ -1,7 +1,8 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import Antd from 'ant-design-vue'
-import zhCN from 'ant-design-vue/locale/zh_CN'
+import { ConfigProvider } from 'ant-design-vue'
+import zhCN from 'ant-design-vue/es/locale/zh_CN'
 import 'ant-design-vue/dist/reset.css'
 import '@unocss/reset/tailwind.css'
 import 'uno.css'
@@ -32,8 +33,11 @@ app.use(router)
 // 配置 dayjs 中文
 dayjs.locale('zh-cn')
 
-// 注册 Ant Design Vue（中文配置）
-app.use(Antd, {
+// 注册 Ant Design Vue
+app.use(Antd)
+
+// 配置中文语言环境
+app.use(ConfigProvider, {
   locale: zhCN
 })
 
@@ -57,7 +61,6 @@ const initializeApp = async () => {
     await Promise.all([
       activityStore.fetchActivities(),
       activityStore.fetchCourses(),
-      ministryStore.fetchMinistries(),
       ministryStore.fetchMembers(),
       campStore.fetchCamps()
     ])
