@@ -51,10 +51,11 @@
             <!-- 营会视图 -->
             <div class="calendar-camp">
               <!-- 水平滚动日期容器 -->
-              <div class="overflow-x-auto mb-16px">
+              <div class="overflow-x-auto mb-16px scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-400"
+                style="scrollbar-width: thin; scrollbar-color: rgb(209 213 219) rgb(243 244 246);">
                 <div class="flex gap-2 min-w-max px-2">
                   <div v-for="day in campDays" :key="day.format('YYYY-MM-DD')"
-                    class="text-center p-8px bg-gray-50 rounded-4px cursor-pointer hover:bg-blue-50 transition-colors flex-shrink-0"
+                    class="text-center p-8px bg-gray-50 rd-4px cursor-pointer hover:bg-blue-50 transition-colors flex-shrink-0 w-60px h-60px"
                     :class="{ 'bg-blue-100 border-2 border-blue-500': day.isSame(selectedDate, 'day') }"
                     @click="selectDate(day)">
                     <div class="text-12px text-gray-500">{{ getWeekdayText(day.day()) }}</div>
@@ -383,7 +384,7 @@
                     @click="handleDutyClick(duty)">
                     <div class="text-14px font-500 text-gray-800 mb-4px">{{ duty.title }}</div>
                     <div class="text-12px text-gray-600 leading-1.4 mb-8px overflow-hidden text-ellipsis line-clamp-2"
-                      style="-webkit-line-clamp: 2; -webkit-box-orient: vertical; display: -webkit-box;">{{ duty.description }}</div>
+                      style="-webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; display: -webkit-box;">{{ duty.description }}</div>
 
                     <div class="flex items-center gap-12px text-12px text-gray-500">
                       <div class="flex items-center gap-4px">
@@ -844,126 +845,3 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-.calendar-week,
-.calendar-day {
-  min-height: 400px;
-}
-
-/* 水平滚动容器样式 */
-.overflow-x-auto {
-  scrollbar-width: thin;
-  scrollbar-color: #d1d5db #f3f4f6;
-}
-
-.overflow-x-auto::-webkit-scrollbar {
-  height: 6px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-track {
-  background: #f3f4f6;
-  border-radius: 3px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
-}
-
-.overflow-x-auto::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-
-/* 日期块样式优化 */
-.flex-shrink-0 {
-  width: 60px;
-  height: 60px;
-}
-
-/* 职责卡片样式 */
-.duty-card {
-  transition: all 0.2s ease;
-}
-
-.duty-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.duty-card-content {
-  cursor: pointer;
-}
-
-.duty-category-header {
-  margin-bottom: 8px;
-}
-
-.duty-category-title {
-  font-weight: 500;
-  color: #666;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.duty-category-count {
-  color: #999;
-  font-size: 12px;
-}
-
-.duty-item {
-  padding: 12px;
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
-  background: #fafafa;
-  margin-bottom: 8px;
-  transition: all 0.2s ease;
-}
-
-.duty-item:hover {
-  background: #f0f8ff;
-  border-color: #1890ff;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.duty-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-.duty-description {
-  font-size: 12px;
-  color: #666;
-  line-height: 1.4;
-  margin-bottom: 8px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.duty-meta {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: #999;
-}
-
-.duty-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.duty-assignees {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-top: 4px;
-}
-</style>

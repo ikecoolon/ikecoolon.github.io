@@ -67,10 +67,8 @@ export const useActivityStore = defineStore('activity', () => {
    */
   const saveActivities = async () => {
     try {
-      // 在前端开发环境中，不触发文件下载，只更新内存数据
-      // 生产环境中可以配置后端API来保存数据
-      console.log('活动数据已更新:', activities.value)
-      // await request.post('activities.json', activities.value)
+      await request.post('activities.json', activities.value)
+      console.log('活动数据已保存:', activities.value)
     } catch (error) {
       console.error('保存活动失败:', error)
       throw error
@@ -82,10 +80,8 @@ export const useActivityStore = defineStore('activity', () => {
    */
   const saveCourses = async () => {
     try {
-      // 在前端开发环境中，不触发文件下载，只更新内存数据
-      // 生产环境中可以配置后端API来保存数据
-      console.log('课程数据已更新:', courses.value)
-      // await request.post('courses.json', courses.value)
+      await request.post('courses.json', courses.value)
+      console.log('课程数据已保存:', courses.value)
     } catch (error) {
       console.error('保存课程失败:', error)
       throw error

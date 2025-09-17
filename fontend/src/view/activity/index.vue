@@ -1,22 +1,33 @@
 <template>
   <div class="p-24px">
-    <!-- 页面标题 -->
+    <!-- 页面标题和导航 -->
     <div class="flex items-center justify-between mb-24px">
-      <div>
-        <h1 class="text-24px font-600 text-gray-800 mb-8px">活动管理</h1>
-        <p class="text-14px text-gray-500">管理营会活动安排和课程信息</p>
+      <!-- 面包屑导航 -->
+      <div class="flex items-center space-x-16px">
+        <div v-if="viewMode === 'detail'" class="flex items-center space-x-8px">
+          <a-button type="text" @click="backToList" class="p-0 h-auto">
+            <template #icon>
+              <i class="i-carbon:arrow-left" />
+            </template>
+          </a-button>
+          <span class="text-16px font-500">{{ selectedActivity?.title }}</span>
+        </div>
+        <div v-else>
+          <h1 class="text-24px font-600 text-gray-800 mb-8px">活动管理</h1>
+          <p class="text-14px text-gray-500">管理营会活动安排和课程信息</p>
+        </div>
       </div>
-      
-      <a-button type="primary" @click="showAddModal = true">
+
+      <a-button type="primary" @click="viewMode === 'list' ? showAddDetail() : handleSaveActivity()">
         <template #icon>
           <i class="i-carbon:add" />
         </template>
-        添加活动
+        {{ viewMode === 'list' ? '添加活动' : '保存活动' }}
       </a-button>
     </div>
 
-    <!-- 活动列表 -->
-    <a-card title="活动列表" :loading="loading">
+    <!-- 活动列表视图 -->
+    <a-card v-if="viewMode === 'list'" title="活动列表" :loading="loading">
       <template #extra>
         <div class="flex items-center space-x-8px">
           <a-input-search
@@ -41,12 +52,9 @@
             </div>
           </template>
 
-          <template v-if="column.key === 'date'">
+          <template v-if="column.key === 'dateRange'">
             <div class="space-y-4px">
-              <div class="text-12px text-gray-500">{{ formatDate(record.date) }}</div>
-              <div class="text-11px text-blue-600">
-                {{ formatTime(record.startTime) }} - {{ formatTime(record.endTime) }}
-              </div>
+              <div class="text-12px text-gray-800">{{ formatDateTimeRange(record.startTime, record.endTime) }}</div>
             </div>
           </template>
 
@@ -66,7 +74,7 @@
               <a-button type="link" size="small" @click="handleViewDetail(record)">
                 查看
               </a-button>
-              <a-button type="link" size="small" @click="handleEdit(record)">
+              <a-button type="link" size="small" @click="showEditDetail(record)">
                 编辑
               </a-button>
               <a-button type="link" size="small" danger @click="handleDelete(record)">
@@ -78,122 +86,115 @@
       </a-table>
     </a-card>
 
-    <!-- 添加/编辑活动模态框 -->
-    <a-modal
-      v-model:open="showAddModal"
-      :title="editingActivity ? '编辑活动' : '添加活动'"
-      width="700px"
-      @ok="handleSaveActivity"
-      @cancel="handleCancelModal"
-    >
-      <a-form
-        ref="formRef"
-        :model="formData"
-        :rules="formRules"
-        layout="vertical"
-      >
-        <a-form-item label="活动标题" name="title">
-          <a-input v-model:value="formData.title" placeholder="请输入活动标题" />
-        </a-form-item>
-        
-        <a-form-item label="活动描述" name="description">
-          <a-textarea
-            v-model:value="formData.description"
-            placeholder="请输入活动描述"
-            :rows="3"
-          />
-        </a-form-item>
-        
-        <a-form-item label="活动日期" name="date">
-          <a-date-picker
-            v-model:value="formData.date"
-            format="YYYY-MM-DD"
-            placeholder="选择活动日期"
-            style="width: 100%"
-          />
-        </a-form-item>
-        
-        <a-form-item label="活动地点" name="location">
-          <a-input v-model:value="formData.location" placeholder="请输入活动地点" />
-        </a-form-item>
+    <!-- 活动详情视图 -->
+    <div v-if="viewMode === 'detail'" class="space-y-24px">
+      <!-- 活动基本信息 -->
+      <a-card title="活动信息" :loading="loading">
+        <a-form
+          ref="formRef"
+          :model="formData"
+          :rules="formRules"
+          layout="vertical"
+        >
+          <a-form-item label="活动标题" name="title">
+            <a-input v-model:value="formData.title" placeholder="请输入活动标题" />
+          </a-form-item>
 
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="开始时间" name="startTime">
-              <a-time-picker
-                v-model:value="formData.startTime"
-                format="HH:mm"
-                placeholder="选择开始时间"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="结束时间" name="endTime">
-              <a-time-picker
-                v-model:value="formData.endTime"
-                format="HH:mm"
-                placeholder="选择结束时间"
-                style="width: 100%"
-              />
-            </a-form-item>
-          </a-col>
-        </a-row>
+          <a-form-item label="活动描述" name="description">
+            <a-textarea
+              v-model:value="formData.description"
+              placeholder="请输入活动描述"
+              :rows="3"
+            />
+          </a-form-item>
 
-        <a-form-item label="归属营会" name="campId">
-          <a-select
-            v-model:value="formData.campId"
-            placeholder="请选择归属营会"
-            :options="campOptions"
-            show-search
-            :filter-option="filterCampOption"
-          />
-        </a-form-item>
+          <a-form-item label="活动时间范围" name="dateRange">
+            <a-range-picker
+              v-model:value="formData.dateRange"
+              :show-time="{ format: 'HH:mm' }"
+              format="YYYY-MM-DD HH:mm"
+              placeholder="选择活动开始和结束时间"
+              style="width: 100%"
+            />
+          </a-form-item>
 
-        <!-- 活动环节 -->
-        <a-form-item label="活动环节">
-          <div class="space-y-8px">
-            <div
-              v-for="(phase, index) in formData.phases"
-              :key="phase.id"
-              class="p-12px border border-gray-200 rounded-8px"
-            >
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <div class="font-500 text-14px mb-4px">{{ phase.title }}</div>
-                  <div class="text-12px text-gray-600 mb-8px">{{ phase.description }}</div>
-                  <div v-if="phase.assignedMembers.length > 0" class="text-12px text-gray-500">
-                    负责人：{{ phase.assignedMembers.map(id => getMemberName(id)).join(', ') }}
-                  </div>
-                  <div v-if="phase.notes" class="text-12px text-orange-600 mt-4px">
-                    注意事项：{{ phase.notes }}
-                  </div>
-                </div>
-                <div class="flex items-center space-x-4px ml-8px">
-                  <a-button type="text" size="small" @click="editPhase(phase)">
-                    <template #icon>
-                      <i class="i-carbon:edit" />
-                    </template>
-                  </a-button>
-                  <a-button type="text" size="small" danger @click="removePhase(index)">
-                    <template #icon>
-                      <i class="i-carbon:trash-can" />
-                    </template>
-                  </a-button>
-                </div>
-              </div>
-            </div>
+          <a-form-item label="活动地点" name="location">
+            <a-input v-model:value="formData.location" placeholder="请输入活动地点" />
+          </a-form-item>
 
-            <a-button type="dashed" block @click="addPhase" class="h-32px">
+          <a-form-item label="归属营会" name="campId">
+            <a-select
+              v-model:value="formData.campId"
+              placeholder="请选择归属营会"
+              :options="campOptions"
+              show-search
+              :filter-option="filterCampOption"
+            />
+          </a-form-item>
+        </a-form>
+      </a-card>
+
+      <!-- 活动环节管理 -->
+      <a-card>
+        <template #title>
+          <div class="flex items-center justify-between">
+            <span>活动环节</span>
+            <a-button type="primary" size="small" @click="addPhase">
               <template #icon>
                 <i class="i-carbon:add" />
               </template>
               添加环节
             </a-button>
           </div>
-        </a-form-item>
-      </a-form>
-    </a-modal>
+        </template>
+
+        <div class="space-y-8px">
+          <div
+            v-for="(phase, index) in formData.phases"
+            :key="phase.id"
+            class="p-12px border border-gray-200 rounded-8px"
+          >
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <div class="font-500 text-14px mb-4px">{{ phase.title }}</div>
+                <div class="text-12px text-gray-600 mb-8px">{{ phase.description }}</div>
+                <div v-if="phase.assignedMembers.length > 0" class="text-12px text-gray-500">
+                  负责人：{{ phase.assignedMembers.map(id => getMemberName(id)).join(', ') }}
+                </div>
+                <div v-if="phase.notes" class="text-12px text-orange-600 mt-4px">
+                  注意事项：{{ phase.notes }}
+                </div>
+              </div>
+              <div class="flex items-center space-x-4px ml-8px">
+                <a-button type="text" size="small" @click="editPhase(phase)">
+                  <template #icon>
+                    <i class="i-carbon:edit" />
+                  </template>
+                </a-button>
+                <a-button type="text" size="small" danger @click="removePhase(index)">
+                  <template #icon>
+                    <i class="i-carbon:trash-can" />
+                  </template>
+                </a-button>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="formData.phases.length === 0" class="text-center py-20px text-gray-400">
+            暂无活动环节
+          </div>
+        </div>
+      </a-card>
+
+      <!-- 操作按钮 -->
+      <div class="flex justify-end space-x-8px">
+        <a-button @click="backToList">取消</a-button>
+        <a-button type="primary" @click="handleSaveActivity" :loading="loading">
+          {{ editingActivity ? '更新活动' : '创建活动' }}
+        </a-button>
+      </div>
+    </div>
+
 
     <!-- 环节管理模态框 -->
     <a-modal
@@ -257,8 +258,8 @@
         </div>
         
         <a-descriptions :column="1" bordered size="small">
-          <a-descriptions-item label="活动日期">
-            {{ formatDate(selectedActivity.date) }}
+          <a-descriptions-item label="活动时间">
+            {{ formatDateTimeRange(selectedActivity.startTime, selectedActivity.endTime) }}
           </a-descriptions-item>
           <a-descriptions-item label="活动地点">
             {{ selectedActivity.location }}
@@ -306,7 +307,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-16px font-600 mb-4px">{{ selectedActivityForPhases.title }}</h3>
-            <p class="text-12px text-gray-500">{{ formatDate(selectedActivityForPhases.date) }} · {{ selectedActivityForPhases.location }}</p>
+            <p class="text-12px text-gray-500">{{ formatDateTimeRange(selectedActivityForPhases.startTime, selectedActivityForPhases.endTime) }} · {{ selectedActivityForPhases.location }}</p>
           </div>
           <a-tag color="blue">
             {{ selectedActivityForPhases.phases?.length || 0 }} 个环节
@@ -388,13 +389,15 @@ const campStore = useCampStore()
 // 响应式状态
 const loading = ref(false)
 const searchText = ref('')
-const showAddModal = ref(false)
 const showDetailModal = ref(false)
 const showPhasesModal = ref(false)
 const editingActivity = ref<Activity | null>(null)
 const selectedActivity = ref<Activity | null>(null)
 const selectedActivityForPhases = ref<Activity | null>(null)
 const formRef = ref<FormInstance>()
+
+// 视图模式：'list' | 'detail'
+const viewMode = ref<'list' | 'detail'>('list')
 
 // 环节管理状态
 const showPhaseModal = ref(false)
@@ -447,9 +450,9 @@ const columns: TableColumnProps[] = [
     width: 300
   },
   {
-    title: '日期时间',
-    key: 'date',
-    width: 180
+    title: '活动时间',
+    key: 'dateRange',
+    width: 220
   },
   {
     title: '地点',
@@ -474,9 +477,7 @@ const columns: TableColumnProps[] = [
 const formData = reactive({
   title: '',
   description: '',
-  date: null as Dayjs | null,
-  startTime: null as Dayjs | null,
-  endTime: null as Dayjs | null,
+  dateRange: [] as Dayjs[],
   location: '',
   campId: '',
   phases: [] as ActivityPhase[]
@@ -496,9 +497,10 @@ const phaseFormData = reactive({
 const formRules: Record<string, Rule[]> = {
   title: [{ required: true, message: '请输入活动标题', trigger: 'blur' }],
   description: [{ required: true, message: '请输入活动描述', trigger: 'blur' }],
-  date: [{ required: true, message: '请选择活动日期', trigger: 'change' }],
-  startTime: [{ required: true, message: '请选择开始时间', trigger: 'change' }],
-  endTime: [{ required: true, message: '请选择结束时间', trigger: 'change' }],
+  dateRange: [
+    { required: true, message: '请选择活动时间范围', trigger: 'change' },
+    { type: 'array', min: 2, message: '请选择完整的开始和结束时间', trigger: 'change' }
+  ],
   location: [{ required: true, message: '请输入活动地点', trigger: 'blur' }],
   campId: [{ required: true, message: '请选择归属营会', trigger: 'change' }]
 }
@@ -506,21 +508,15 @@ const formRules: Record<string, Rule[]> = {
 // 环节表单验证规则
 const phaseFormRules: Record<string, Rule[]> = {
   title: [{ required: true, message: '请输入环节标题', trigger: 'blur' }],
-  description: [{ required: true, message: '请输入环节描述', trigger: 'blur' }]
 }
 
 /**
- * 格式化日期
+ * 格式化时间范围
  */
-const formatDate = (date: Date) => {
-  return dayjs(date).format('YYYY-MM-DD')
-}
-
-/**
- * 格式化时间
- */
-const formatTime = (date: Date) => {
-  return dayjs(date).format('HH:mm')
+const formatDateTimeRange = (startTime: string | Date, endTime: string | Date) => {
+  const start = dayjs(startTime).format('MM-DD HH:mm')
+  const end = dayjs(endTime).format('MM-DD HH:mm')
+  return `${start} ~ ${end}`
 }
 
 /**
@@ -548,6 +544,44 @@ const handleViewDetail = (activity: Activity) => {
 }
 
 /**
+ * 返回列表视图
+ */
+const backToList = () => {
+  viewMode.value = 'list'
+  selectedActivity.value = null
+  resetForm()
+}
+
+/**
+ * 进入详情视图（新增）
+ */
+const showAddDetail = () => {
+  viewMode.value = 'detail'
+  editingActivity.value = null
+  selectedActivity.value = null
+  resetForm()
+}
+
+/**
+ * 进入详情视图（编辑）
+ */
+const showEditDetail = (activity: Activity) => {
+  viewMode.value = 'detail'
+  editingActivity.value = activity
+  selectedActivity.value = activity
+
+  // 填充表单数据
+  Object.assign(formData, {
+    title: activity.title,
+    description: activity.description,
+    dateRange: [dayjs(activity.startTime), dayjs(activity.endTime)],
+    location: activity.location,
+    campId: activity.campId,
+    phases: [...activity.phases]
+  })
+}
+
+/**
  * 查看活动环节详情
  */
 const handleViewPhases = (activity: Activity) => {
@@ -556,25 +590,22 @@ const handleViewPhases = (activity: Activity) => {
 }
 
 /**
- * 编辑活动
+ * 重置表单
  */
-const handleEdit = (activity: Activity) => {
-  editingActivity.value = activity
-
-  // 填充表单数据
+const resetForm = () => {
   Object.assign(formData, {
-    title: activity.title,
-    description: activity.description,
-    date: dayjs(activity.date),
-    startTime: activity.startTime ? dayjs(activity.startTime) : null,
-    endTime: activity.endTime ? dayjs(activity.endTime) : null,
-    location: activity.location,
-    campId: activity.campId,
-    phases: [...activity.phases]
+    title: '',
+    description: '',
+    dateRange: [],
+    location: '',
+    campId: '',
+    phases: []
   })
-
-  showAddModal.value = true
+  editingActivity.value = null
+  selectedActivity.value = null
+  formRef.value?.resetFields()
 }
+
 
 /**
  * 删除活动
@@ -610,9 +641,9 @@ const handleSaveActivity = async () => {
     const activityData = {
       title: formData.title,
       description: formData.description,
-      date: formData.date!.toDate(),
-      startTime: combineDateTime(formData.date!, formData.startTime!),
-      endTime: combineDateTime(formData.date!, formData.endTime!),
+      date: formData.dateRange[0].format(),
+      startTime: formData.dateRange[0].format(),
+      endTime: formData.dateRange[1].format(),
       location: formData.location,
       campId: formData.campId,
       phases: formData.phases
@@ -628,33 +659,13 @@ const handleSaveActivity = async () => {
       message.success('添加成功')
     }
 
-    handleCancelModal()
+    // 保存成功后返回列表视图
+    backToList()
   } catch (error) {
     console.error('保存失败:', error)
   }
 }
 
-/**
- * 取消模态框
- */
-const handleCancelModal = () => {
-  showAddModal.value = false
-  editingActivity.value = null
-
-  // 重置表单
-  Object.assign(formData, {
-    title: '',
-    description: '',
-    date: null,
-    startTime: null,
-    endTime: null,
-    location: '',
-    campId: '',
-    phases: []
-  })
-
-  formRef.value?.resetFields()
-}
 
 /**
  * 添加环节
@@ -742,17 +753,6 @@ const handleCancelPhaseModal = () => {
 }
 
 
-/**
- * 合并日期和时间
- */
-const combineDateTime = (date: Dayjs, time: Dayjs) => {
-  return date
-    .hour(time.hour())
-    .minute(time.minute())
-    .second(0)
-    .millisecond(0)
-    .toDate()
-}
 
 /**
  * 初始化数据
