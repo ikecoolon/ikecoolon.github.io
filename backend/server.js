@@ -27,9 +27,19 @@ const PASSWORD_CONFIG_PATH = path.join(__dirname, 'data', 'auth.json');
 // 邮箱白名单配置文件路径
 const EMAIL_WHITELIST_PATH = path.join(__dirname, 'data', 'email-whitelist.json');
 
+// 前端数据文件路径
+const FRONTEND_DATA_PATH = path.join(__dirname, '..', 'fontend', 'public', 'json');
+console.log('📁 前端数据文件路径:', FRONTEND_DATA_PATH);
+
 // 确保数据目录存在
 if (!fs.existsSync(path.join(__dirname, 'data'))) {
   fs.mkdirSync(path.join(__dirname, 'data'), { recursive: true });
+}
+
+// 确保前端数据目录存在
+if (!fs.existsSync(FRONTEND_DATA_PATH)) {
+  console.log('📁 创建前端数据目录:', FRONTEND_DATA_PATH);
+  fs.mkdirSync(FRONTEND_DATA_PATH, { recursive: true });
 }
 
 // 中间件
@@ -222,6 +232,51 @@ function updatePassword(config) {
     lastUpdated: now.toISOString(),
     nextUpdateTime: nextUpdateTime.toISOString()
   };
+}
+
+// ==================== 数据管理功能 ====================
+
+/**
+ * 通用数据文件读取
+ * @param {string} filename - 文件名
+ * @returns {Array|object|null} 解析后的数据
+ */
+function readDataFile(filename) {
+  try {
+    const filePath = path.join(FRONTEND_DATA_PATH, filename);
+    if (!fs.existsSync(filePath)) {
+      console.warn(`⚠️ 数据文件不存在: ${filename}`);
+      return null;
+    }
+    const data = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error(`❌ 读取数据文件失败 ${filename}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * 通用数据文件写入
+ * @param {string} filename - 文件名
+ * @param {Array|object} data - 要写入的数据
+ */
+function writeDataFile(filename, data) {
+  try {
+    const filePath = path.join(FRONTEND_DATA_PATH, filename);
+    const dir = path.dirname(filePath);
+
+    // 确保目录存在
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+    console.log(`✅ 数据文件已更新: ${filename}`);
+  } catch (error) {
+    console.error(`❌ 写入数据文件失败 ${filename}:`, error.message);
+    throw error;
+  }
 }
 
 // ==================== 密码管理功能 ====================
@@ -569,6 +624,67 @@ app.post('/api/auth/refresh-password', (req, res) => {
   }
 });
 
+// ==================== 数据管理API ====================
+
+/**
+ * 获取数据
+ */
+app.get('/api/data/:filename', (req, res) => {
+  try {
+    const { filename } = req.params;
+    const data = readDataFile(filename);
+
+    if (data === null) {
+      return res.status(404).json({
+        success: false,
+        message: `数据文件不存在: ${filename}`
+      });
+    }
+
+    res.json({
+      success: true,
+      data: data
+    });
+  } catch (error) {
+    console.error('获取数据失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '获取数据失败',
+      error: error.message
+    });
+  }
+});
+
+/**
+ * 保存数据
+ */
+app.post('/api/data/:filename', (req, res) => {
+  try {
+    const { filename } = req.params;
+    const data = req.body;
+
+    if (!data) {
+      return res.status(400).json({
+        success: false,
+        message: '缺少数据内容'
+      });
+    }
+
+    writeDataFile(filename, data);
+
+    res.json({
+      success: true,
+      message: `数据文件已更新: ${filename}`
+    });
+  } catch (error) {
+    console.error('保存数据失败:', error);
+    res.status(500).json({
+      success: false,
+      message: '保存数据失败',
+      error: error.message
+    });
+  }
+});
 
 // 创建邮件传输器
 function createTransporter() {
@@ -677,6 +793,9 @@ app.listen(PORT, () => {
   console.log('   POST /api/auth/verify-token       - 验证Token');
   console.log('   GET  /api/auth/current-password   - 获取当前密码（调试用）');
   console.log('   POST /api/auth/refresh-password   - 刷新密码');
+  console.log('📊 数据管理接口:');
+  console.log('   GET  /api/data/:filename          - 获取数据文件');
+  console.log('   POST /api/data/:filename          - 保存数据文件');
   console.log('💚 健康检查: GET /health');
   console.log('⚡ 等待请求...\n');
 });

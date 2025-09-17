@@ -37,6 +37,25 @@ export default defineConfig({
   server: {
     host: '0.0.0.0',
     port: 9000,
-    open: true
+    open: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:9010',
+        changeOrigin: true,
+        timeout: 10000, // 10秒超时
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('❌ 代理请求失败:', err.message);
+            console.log('📡 请求详情:', req.method, req.url);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('🔄 代理请求:', req.method, req.url, '->', options.target + req.url);
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('✅ 代理响应:', proxyRes.statusCode, req.url);
+          });
+        }
+      }
+    }
   }
 })

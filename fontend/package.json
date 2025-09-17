@@ -21,8 +21,14 @@
     "test-email": "node scripts/test-email.cjs",
     "mail-proxy": "node scripts/mail-proxy.cjs",
     "test-mail-proxy": "node scripts/test-mail-proxy.cjs",
-    "mail-service": "cd server && npm start",
-    "test-mail-service": "cd server && npm test"
+    "mail-service": "cd ../backend && node server.js",
+    "backend": "cd ../backend && node server.js",
+    "backend:debug": "cd ../backend && DEBUG=* node server.js",
+    "dev-with-backend": "concurrently \"npm run backend\" \"npm run dev\"",
+    "dev:full": "npm run dev-with-backend",
+    "dev:debug": "concurrently \"npm run backend:debug\" \"npm run dev\"",
+    "check-env": "echo '前端目录:' && pwd && echo '后端目录:' && ls ../backend && echo '数据目录:' && ls public/json/",
+    "test-api": "node -e \"fetch('http://localhost:9010/api/data/camp.json').then(r=>r.json()).then(d=>console.log('✅ API 测试成功:', d.success)).catch(e=>console.log('❌ API 测试失败:', e.message))\""
   },
   "devDependencies": {
     "@iconify-json/carbon": "^1.2.13",
@@ -30,6 +36,7 @@
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^20.11.17",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "concurrently": "^8.2.2",
     "@typescript-eslint/parser": "^6.21.0",
     "@unocss/eslint-plugin": "^0.58.5",
     "@vitejs/plugin-vue": "^5.0.4",

@@ -100,7 +100,7 @@ export const useActivityStore = defineStore('activity', () => {
       const newActivity: Activity = {
         ...activity,
         id: `activity_${Date.now()}`,
-        createdAt: new Date()
+        createdAt: dayjs().format() // 保存为 ISO 字符串格式
       }
 
       activities.value.push(newActivity)
@@ -119,7 +119,11 @@ export const useActivityStore = defineStore('activity', () => {
     try {
       const index = activities.value.findIndex(a => a.id === id)
       if (index !== -1) {
-        activities.value[index] = { ...activities.value[index], ...updates }
+        activities.value[index] = {
+          ...activities.value[index],
+          ...updates,
+          updatedAt: dayjs().format() // 保存为 ISO 字符串格式
+        }
         await saveActivities()
       }
     } catch (error) {

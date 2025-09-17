@@ -5,20 +5,23 @@
  */
 
 import { message } from 'ant-design-vue'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
+
+dayjs.extend(utc)
 
 // 后端API基础URL
 const BACKEND_URL = 'http://localhost:9010'
 
 /**
- * 转换UTC时间字符串为本地时间
+ * 转换UTC时间字符串为本地时间字符串格式
  */
-const convertUtcToLocal = (dateString: string): Date => {
+const convertUtcToLocal = (dateString: string): string => {
   if (typeof dateString === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/.test(dateString)) {
-    // 使用原生Date处理UTC时间转换
-    const utcDate = new Date(dateString)
-    return new Date(utcDate.getTime() - utcDate.getTimezoneOffset() * 60000)
+    // 使用 dayjs 保持字符串格式并转换为本地时间
+    return dayjs.utc(dateString).local().format()
   }
-  return dateString as any
+  return dateString
 }
 
 /**
@@ -86,7 +89,23 @@ const request = {
   get<T = any>(filename: string): Promise<T> {
     return new Promise(async (resolve, reject) => {
       try {
-        // 直接从文件加载数据，不使用localStorage缓存
+        // 优先尝试从后端API获取数据
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/data/${filename}`)
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success) {
+              // 转换时间字段从UTC到本地时间
+              const convertedData = convertTimeFields(result.data)
+              resolve(convertedData)
+              return
+            }
+          }
+        } catch (apiError) {
+          console.warn('后端API不可用，回退到本地文件:', apiError.message)
+        }
+
+        // 回退到直接从文件加载数据
         const fileData = await loadDefaultData<T>(filename)
         if (fileData !== null) {
           // 转换时间字段从UTC到本地时间
@@ -104,9 +123,35 @@ const request = {
   },
 
   post<T = any>(filename: string, data: any): Promise<T> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
-        // 前端无法直接写入文件，使用文件下载方式提示用户更新
+        // 优先尝试使用后端API保存数据
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/data/${filename}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+          })
+
+          if (response.ok) {
+            const result = await response.json()
+            if (result.success) {
+              message.success(`${filename} 保存成功`)
+              resolve({
+                success: true,
+                message: result.message,
+                data: data
+              } as T)
+              return
+            }
+          }
+        } catch (apiError) {
+          console.warn('后端API不可用，回退到文件下载方式:', apiError.message)
+        }
+
+        // 回退到文件下载方式（原有的逻辑）
         if (filename === 'auth.json') {
           // 为auth.json提供特殊的处理
           console.log('🔐 密码配置已更新，请使用以下命令更新文件：')

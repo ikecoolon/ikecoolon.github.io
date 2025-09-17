@@ -369,27 +369,30 @@
             <div class="space-y-16px">
               <!-- 按类别分组显示职责 -->
               <div v-for="category in dutyCategories" :key="category.key">
-                <div class="text-14px font-500 text-gray-700 mb-8px flex items-center">
-                  <span class="mr-4px">{{ category.icon }}</span>
-                  {{ category.label }} ({{ getCategoryDuties(category.key).length }}项)
+                <div class="mb-8px">
+                  <div class="flex items-center gap-6px font-500 text-gray-600">
+                    <span>{{ category.icon }}</span>
+                    {{ category.label }}
+                    <span class="text-gray-500 text-12px">({{ getCategoryDuties(category.key).length }}项)</span>
+                  </div>
                 </div>
 
                 <div class="space-y-8px ml-20px">
-                  <div v-for="duty in getCategoryDuties(category.key)" :key="duty.id" class="duty-item"
+                  <div v-for="duty in getCategoryDuties(category.key)" :key="duty.id"
+                    class="p-12px border-1 border-gray-200 border-solid rd-8px bg-gray-50 mb-8px transition-all duration-200 cursor-pointer hover:bg-blue-50 hover:border-blue-500 hover:translate-y--1 hover:shadow-2xl"
                     @click="handleDutyClick(duty)">
-                    <div class="duty-card-content">
-                      <div class="duty-title">{{ duty.title }}</div>
-                      <div class="duty-description">{{ duty.description }}</div>
+                    <div class="text-14px font-500 text-gray-800 mb-4px">{{ duty.title }}</div>
+                    <div class="text-12px text-gray-600 leading-1.4 mb-8px overflow-hidden text-ellipsis line-clamp-2"
+                      style="-webkit-line-clamp: 2; -webkit-box-orient: vertical; display: -webkit-box;">{{ duty.description }}</div>
 
-                      <div class="duty-meta">
-                        <div class="duty-meta-item">
-                          <i class="i-carbon:group" />
-                          <span>{{duty.assignees.map(a => a.userName).join('、')}}</span>
-                        </div>
-                        <div v-if="duty.timeRange" class="duty-meta-item">
-                          <i class="i-carbon:time" />
-                          <span>{{ formatDate(duty.timeRange.start) }} - {{ formatDate(duty.timeRange.end) }}</span>
-                        </div>
+                    <div class="flex items-center gap-12px text-12px text-gray-500">
+                      <div class="flex items-center gap-4px">
+                        <i class="i-carbon:group" />
+                        <span>{{duty.assignees.map(a => a.userName).join('、')}}</span>
+                      </div>
+                      <div v-if="duty.timeRange" class="flex items-center gap-4px">
+                        <i class="i-carbon:time" />
+                        <span>{{ formatDate(duty.timeRange.start) }} - {{ formatDate(duty.timeRange.end) }}</span>
                       </div>
                     </div>
                   </div>
@@ -491,7 +494,6 @@ const campDays = computed(() => {
   const startDate = dayjs(selectedCamp.value.startDate)
   const endDate = selectedCamp.value.endDate ? dayjs(selectedCamp.value.endDate) : startDate.add(7, 'day')
 
-  console.log(111,selectedCamp.value.startDate,startDate.format('YYYY-MM-DD HH:mm:ss'));
 
   const days = []
   let current = startDate
@@ -581,44 +583,19 @@ watch(selectedDate, () => {
 /**
  * 格式化时间
  */
-const formatTime = (date: Date) => {
+const formatTime = (date: string | Date) => {
   return dayjs(date).format('HH:mm')
 }
 
-const formatDateTime = (date: Date) => {
+const formatDateTime = (date: string | Date) => {
   return dayjs(date).format('MM-DD HH:mm')
 }
 
-const formatDate = (date: Date) => {
+const formatDate = (date: string | Date) => {
   return dayjs(date).format('YYYY年MM月DD日')
 }
 
 
-/**
- * 获取营会状态颜色
- */
-const getCampStatusColor = (status: string) => {
-  const colors = {
-    planning: 'orange',
-    active: 'green',
-    completed: 'blue',
-    cancelled: 'red'
-  }
-  return colors[status as keyof typeof colors] || 'default'
-}
-
-/**
- * 获取营会状态文本
- */
-const getCampStatusText = (status: string) => {
-  const texts = {
-    planning: '计划中',
-    active: '进行中',
-    completed: '已完成',
-    cancelled: '已取消'
-  }
-  return texts[status as keyof typeof texts] || status
-}
 
 /**
  * 获取成员姓名
@@ -964,6 +941,7 @@ onMounted(() => {
   margin-bottom: 8px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { request } from '@/api'
 import type {  MinistryMember } from '@/types/ministry'
+import dayjs from 'dayjs'
 
 /**
  * 服侍者管理状态
@@ -51,7 +52,7 @@ export const useMinistryStore = defineStore('ministry', () => {
       const newMember: MinistryMember = {
         ...member,
         id: `member_${Date.now()}`,
-        createdAt: new Date()
+        createdAt: dayjs().format() // 保存为 ISO 字符串格式
       }
 
       members.value.push(newMember)
@@ -70,7 +71,11 @@ export const useMinistryStore = defineStore('ministry', () => {
     try {
       const index = members.value.findIndex(m => m.id === id)
       if (index !== -1) {
-        members.value[index] = { ...members.value[index], ...updates }
+        members.value[index] = {
+          ...members.value[index],
+          ...updates,
+          updatedAt: dayjs().format() // 保存为 ISO 字符串格式
+        }
         await saveMembers()
       }
     } catch (error) {

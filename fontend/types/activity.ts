@@ -15,15 +15,15 @@ export interface Activity {
   id: string
   title: string
   description: string
-  date: Date // 活动日期
-  startTime: Date // 活动开始时间
-  endTime: Date // 活动结束时间
+  date: string // 活动日期 (ISO 字符串格式)
+  startTime: string // 活动开始时间 (ISO 字符串格式)
+  endTime: string // 活动结束时间 (ISO 字符串格式)
   location: string
   campId: string // 归属营会ID
   phases: ActivityPhase[] // 活动环节
-  createdAt: Date
+  createdAt: string // 创建时间 (ISO 字符串格式)
   notes?: string
-  updatedAt?: Date
+  updatedAt?: string // 更新时间 (ISO 字符串格式)
 }
 
 export interface Course {
@@ -33,8 +33,8 @@ export interface Course {
   description: string
   duration: number // 分钟
   activities: string[]
-  createdAt: Date
-  updatedAt?: Date
+  createdAt: string // 创建时间 (ISO 字符串格式)
+  updatedAt?: string // 更新时间 (ISO 字符串格式)
 }
 
 /**
@@ -60,11 +60,11 @@ export interface CampDuty {
   category: DutyCategory  // 职责类型
   assignees: CampDutyAssignee[] // 多负责人
   timeRange?: {           // 可选时间范围
-    start: Date
-    end: Date
+    start: string         // 开始时间 (ISO 字符串格式)
+    end: string           // 结束时间 (ISO 字符串格式)
   }
-  createdAt: Date
-  updatedAt?: Date
+  createdAt: string       // 创建时间 (ISO 字符串格式)
+  updatedAt?: string      // 更新时间 (ISO 字符串格式)
 }
 
 /**
@@ -74,11 +74,11 @@ export interface Camp {
   id: string
   name: string
   description?: string
-  startDate: Date
-  endDate?: Date
+  startDate: string    // 开始日期 (ISO 字符串格式)
+  endDate?: string     // 结束日期 (ISO 字符串格式)
   location?: string
   activities: string[] // 关联的活动ID
   duties: string[]     // 关联的职责ID
-  createdAt: Date
-  updatedAt?: Date
+  createdAt: string    // 创建时间 (ISO 字符串格式)
+  updatedAt?: string   // 更新时间 (ISO 字符串格式)
 }

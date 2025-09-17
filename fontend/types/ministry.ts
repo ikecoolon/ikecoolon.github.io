@@ -5,6 +5,6 @@ export interface MinistryMember {
   phone: string
   email?: string
   notes?: string
-  createdAt: Date
-  updatedAt?: Date
+  createdAt: string   // 创建时间 (ISO 字符串格式)
+  updatedAt?: string  // 更新时间 (ISO 字符串格式)
 }

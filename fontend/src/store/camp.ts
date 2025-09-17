@@ -13,30 +13,42 @@ export const useCampStore = defineStore('camp', () => {
   const duties = ref<CampDuty[]>([])
   const loading = ref(false)
 
+  // 按时间降序排序的辅助函数
+  const sortCampsByDateDesc = (camps: Camp[]) => {
+    return camps.slice().sort((a, b) => {
+      const dateA = dayjs(a.startDate)
+      const dateB = dayjs(b.startDate)
+      return dateB.isBefore(dateA) ? -1 : dateB.isAfter(dateA) ? 1 : 0
+    })
+  }
+
   // 计算属性
   const planningCamps = computed(() => {
     const now = dayjs()
-    return camps.value.filter(camp => {
+    const filtered = camps.value.filter(camp => {
       const startDate = dayjs(camp.startDate)
       return startDate.isAfter(now)
     })
+    return sortCampsByDateDesc(filtered)
   })
 
   const activeCamps = computed(() => {
     const now = dayjs()
-    return camps.value.filter(camp => {
+    const filtered = camps.value.filter(camp => {
       const startDate = dayjs(camp.startDate)
       const endDate = camp.endDate ? dayjs(camp.endDate) : startDate.add(7, 'day')
       return (now.isAfter(startDate) || now.isSame(startDate)) && (now.isBefore(endDate) || now.isSame(endDate))
     })
+    return sortCampsByDateDesc(filtered)
   })
 
   const completedCamps = computed(() => {
     const now = dayjs()
-    return camps.value.filter(camp => {
+    const filtered = camps.value.filter(camp => {
       const endDate = camp.endDate ? dayjs(camp.endDate) : dayjs(camp.startDate).add(7, 'day')
       return now.isAfter(endDate)
     })
+    return sortCampsByDateDesc(filtered)
   })
 
   /**
@@ -46,7 +58,8 @@ export const useCampStore = defineStore('camp', () => {
     loading.value = true
     try {
       const data = await request.get<Camp[]>('camp.json')
-      camps.value = data || []
+      const sortedData = data ? sortCampsByDateDesc(data) : []
+      camps.value = sortedData
     } catch (error) {
       console.error('获取营会失败:', error)
       camps.value = []
@@ -63,7 +76,7 @@ export const useCampStore = defineStore('camp', () => {
       // 在前端开发环境中，不触发文件下载，只更新内存数据
       // 生产环境中可以配置后端API来保存数据
       console.log('营会数据已更新:', camps.value)
-      // await request.post('camp.json', camps.value)
+      await request.post('camp.json', camps.value)
     } catch (error) {
       console.error('保存营会失败:', error)
       throw error
@@ -78,10 +91,12 @@ export const useCampStore = defineStore('camp', () => {
       const newCamp: Camp = {
         ...camp,
         id: `camp_${Date.now()}`,
-        createdAt: new Date()
+        createdAt: dayjs().format() // 保存为 ISO 字符串格式
       }
 
       camps.value.push(newCamp)
+      // 重新排序
+      camps.value = sortCampsByDateDesc(camps.value)
       await saveCamps()
       return newCamp
     } catch (error) {
@@ -100,7 +115,7 @@ export const useCampStore = defineStore('camp', () => {
         camps.value[index] = {
           ...camps.value[index],
           ...updates,
-          updatedAt: new Date()
+          updatedAt: dayjs().format() // 保存为 ISO 字符串格式
         }
         await saveCamps()
       }
@@ -181,7 +196,7 @@ export const useCampStore = defineStore('camp', () => {
       const newDuty: CampDuty = {
         ...duty,
         id: `duty_${Date.now()}`,
-        createdAt: new Date()
+        createdAt: dayjs().format() // 保存为 ISO 字符串格式
       }
 
       duties.value.push(newDuty)
@@ -211,7 +226,7 @@ export const useCampStore = defineStore('camp', () => {
         duties.value[index] = {
           ...duties.value[index],
           ...updates,
-          updatedAt: new Date()
+          updatedAt: dayjs().format() // 保存为 ISO 字符串格式
         }
         await saveDuties()
       }
