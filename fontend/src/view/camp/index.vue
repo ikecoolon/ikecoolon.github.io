@@ -174,7 +174,7 @@
         <template #title>
           <div class="flex items-center justify-between">
             <span>职责分配</span>
-            <a-button type="primary" size="small" @click="showDutyModal = true">
+            <a-button type="primary" size="small" @click="addDuty()">
               <template #icon>
                 <i class="i-carbon:add" />
               </template>
@@ -240,9 +240,78 @@
           </div>
         </div>
       </a-card>
+
+      <!-- 职责表单 -->
+      <a-card v-if="showDutyForm" title="添加职责">
+        <a-form
+          ref="dutyFormRef"
+          :model="dutyFormData"
+          :rules="dutyFormRules"
+          layout="vertical"
+        >
+          <a-row :gutter="16">
+            <a-col :span="12">
+              <a-form-item label="职责名称" name="title">
+                <a-input v-model:value="dutyFormData.title" placeholder="请输入职责名称" :maxlength="50" />
+              </a-form-item>
+            </a-col>
+            <a-col :span="12">
+              <a-form-item label="职责类型" name="category">
+                <a-select v-model:value="dutyFormData.category" placeholder="请选择职责类型">
+                  <a-select-option value="preparation">准备工作</a-select-option>
+                  <a-select-option value="logistics">后勤保障</a-select-option>
+                  <a-select-option value="coordination">现场协调</a-select-option>
+                  <a-select-option value="support">技术支持</a-select-option>
+                  <a-select-option value="childcare">幼儿看护</a-select-option>
+                </a-select>
+              </a-form-item>
+            </a-col>
+          </a-row>
+
+          <a-form-item label="职责说明" name="description">
+            <a-textarea
+              v-model:value="dutyFormData.description"
+              placeholder="详细描述该职责的具体工作内容和注意事项"
+              :rows="4"
+              :maxlength="500"
+              show-count
+            />
+          </a-form-item>
+
+          <a-form-item label="负责人" name="assignees">
+            <a-select
+              v-model:value="selectedAssigneeIds"
+              mode="multiple"
+              placeholder="选择负责人（可多选）"
+              :options="memberOptions"
+              show-search
+              :filter-option="(input: string, option: any) => option.children.toLowerCase().includes(input.toLowerCase())"
+            />
+          </a-form-item>
+
+          <a-form-item label="时间范围 (可选)">
+            <a-range-picker
+              v-model:value="dutyFormData.timeRangeValue"
+              placeholder="选择时间范围"
+              format="YYYY-MM-DD"
+              class="w-full"
+            />
+            <div class="text-12px text-gray-500 mt-4px">
+              如果不设置时间范围，该职责将持续整个营会期间
+            </div>
+          </a-form-item>
+        </a-form>
+
+        <div class="flex justify-end space-x-8px mt-16px">
+          <a-button @click="cancelDutyForm">取消</a-button>
+          <a-button type="primary" @click="handleSubmitDuty">
+            {{ isEditingDuty ? '更新职责' : '添加职责' }}
+          </a-button>
+        </div>
+      </a-card>
     </div>
 
-    <!-- 添加活动到营会模态框 -->
+    <!-- 活动选择模态框 -->
     <a-modal v-model:open="showActivityModal" title="添加活动到营会" :width="600" @ok="handleAddActivityToCamp"
       @cancel="handleCancelAddActivity">
       <div class="space-y-16px">
@@ -277,47 +346,6 @@
     </a-modal>
 
     <!-- 添加职责到营会模态框 -->
-    <a-modal v-model:open="showDutyModal" :title="isEditingDuty ? '编辑职责' : '添加职责'" :width="700" @ok="handleSubmitDuty"
-      @cancel="handleCancelDuty">
-      <a-form :model="dutyFormData" :rules="dutyFormRules" ref="dutyFormRef" layout="vertical">
-        <a-row :gutter="16">
-          <a-col :span="12">
-            <a-form-item label="职责名称" name="title">
-              <a-input v-model:value="dutyFormData.title" placeholder="请输入职责名称" :maxlength="50" />
-            </a-form-item>
-          </a-col>
-          <a-col :span="12">
-            <a-form-item label="职责类型" name="category">
-              <a-select v-model:value="dutyFormData.category" placeholder="请选择职责类型">
-                <a-select-option value="preparation">准备工作</a-select-option>
-                <a-select-option value="logistics">后勤保障</a-select-option>
-                <a-select-option value="coordination">现场协调</a-select-option>
-                <a-select-option value="support">技术支持</a-select-option>
-              </a-select>
-            </a-form-item>
-          </a-col>
-        </a-row>
-
-        <a-form-item label="职责说明" name="description">
-          <a-textarea v-model:value="dutyFormData.description" placeholder="详细描述该职责的具体工作内容和注意事项" :rows="4"
-            :maxlength="500" show-count />
-        </a-form-item>
-
-        <a-form-item label="负责人" name="assignees">
-          <a-select v-model:value="selectedAssigneeIds" mode="multiple" placeholder="选择负责人（可多选）"
-            :options="memberOptions" show-search
-            :filter-option="(input: string, option: any) => option.children.toLowerCase().includes(input.toLowerCase())" />
-        </a-form-item>
-
-        <a-form-item label="时间范围 (可选)">
-          <a-range-picker v-model:value="dutyFormData.timeRangeValue" placeholder="选择时间范围" format="YYYY-MM-DD"
-            class="w-full" />
-          <div class="text-12px text-gray-500 mt-4px">
-            如果不设置时间范围，该职责将持续整个营会期间
-          </div>
-        </a-form-item>
-      </a-form>
-    </a-modal>
 
     <!-- 添加/编辑营会模态框 -->
     <a-modal v-model:open="showAddModal" :title="isEditing ? '编辑营会' : '添加营会'" :width="600" @ok="handleSubmit"
@@ -367,7 +395,7 @@ const ministryStore = useMinistryStore()
 // 响应式状态
 const showAddModal = ref(false)
 const showActivityModal = ref(false)
-const showDutyModal = ref(false)
+const showDutyForm = ref(false)
 const isEditing = ref(false)
 const isEditingDuty = ref(false)
 const statusFilter = ref<'all' | 'planning' | 'active' | 'completed'>('all')
@@ -567,6 +595,8 @@ const backToList = () => {
   // 返回列表视图
   viewMode.value = 'list'
   selectedCamp.value = null
+  showDutyForm.value = false
+  resetDutyForm()
 }
 
 const resetForm = () => {
@@ -752,26 +782,7 @@ const handleDutyMenuClick = ({ key }: { key: string }, duty: any) => {
   }
 }
 
-/**
- * 编辑职责
- */
-const editDuty = (duty: any) => {
-  isEditingDuty.value = true
-  editingDutyId.value = duty.id
 
-  // 填充表单数据
-  Object.assign(dutyFormData, {
-    title: duty.title,
-    description: duty.description,
-    category: duty.category,
-    timeRangeValue: duty.timeRange ? [dayjs(duty.timeRange.start), dayjs(duty.timeRange.end)] : []
-  })
-
-  // 设置负责人
-  selectedAssigneeIds.value = duty.assignees.map((a: any) => a.userId)
-
-  showDutyModal.value = true
-}
 
 /**
  * 删除职责
@@ -833,22 +844,14 @@ const handleSubmitDuty = async () => {
       message.success('职责添加成功')
     }
 
-    showDutyModal.value = false
+    // 关闭内联表单
+    showDutyForm.value = false
     resetDutyForm()
   } catch (error) {
     console.error('表单验证失败:', error)
   }
 }
 
-/**
- * 取消职责模态框
- */
-const handleCancelDuty = () => {
-  showDutyModal.value = false
-  resetDutyForm()
-  isEditingDuty.value = false
-  editingDutyId.value = ''
-}
 
 /**
  * 重置职责表单
@@ -861,6 +864,55 @@ const resetDutyForm = () => {
     timeRangeValue: []
   })
   selectedAssigneeIds.value = []
+  isEditingDuty.value = false
+  editingDutyId.value = ''
+}
+
+/**
+ * 添加职责
+ */
+const addDuty = () => {
+  isEditingDuty.value = false
+  editingDutyId.value = ''
+  selectedAssigneeIds.value = []
+
+  Object.assign(dutyFormData, {
+    title: '',
+    description: '',
+    category: 'preparation' as DutyCategory,
+    timeRangeValue: []
+  })
+
+  showDutyForm.value = true
+}
+
+/**
+ * 编辑职责
+ */
+const editDuty = (duty: any) => {
+  isEditingDuty.value = true
+  editingDutyId.value = duty.id
+
+  // 填充表单数据
+  Object.assign(dutyFormData, {
+    title: duty.title,
+    description: duty.description,
+    category: duty.category,
+    timeRangeValue: duty.timeRange ? [dayjs(duty.timeRange.start), dayjs(duty.timeRange.end)] : []
+  })
+
+  // 设置负责人
+  selectedAssigneeIds.value = duty.assignees.map((a: any) => a.userId)
+
+  showDutyForm.value = true
+}
+
+/**
+ * 取消职责表单
+ */
+const cancelDutyForm = () => {
+  showDutyForm.value = false
+  resetDutyForm()
 }
 
 /**

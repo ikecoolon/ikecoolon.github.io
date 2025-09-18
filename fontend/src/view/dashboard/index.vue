@@ -18,6 +18,9 @@
                   {{ formatDate(camp.startDate) }} ~
                   {{ camp.endDate ? formatDate(camp.endDate) : '未设置' }}
                 </div>
+                <div class="text-xs text-blue-600 mt-1px">
+                  {{ getCampActivityCount(camp.id) }} 个活动
+                </div>
               </div>
             </div>
           </a-select-option>
@@ -62,10 +65,6 @@
                     <div class="text-16px font-500"
                       :class="{ 'text-blue-600': day.isSame(selectedDate, 'day'), 'text-gray-700': !day.isSame(selectedDate, 'day') }">
                       {{ day.format('DD') }}
-                    </div>
-                    <!-- 显示当天活动数量 -->
-                    <div v-if="getDayActivitiesCount(day) > 0" class="text-10px text-blue-600 mt-1">
-                      {{ getDayActivitiesCount(day) }}项活动
                     </div>
                   </div>
                 </div>
@@ -221,7 +220,7 @@
                 </div>
 
                 <div>
-                  <div class="text-12px text-gray-500 mb-4px">参与人员</div>
+                  <div class="text-12px text-gray-500 mb-4px">服侍者</div>
                   <div class="space-y-4px">
                     <a-tag v-for="memberId in getActivityMembers(selectedActivity)" :key="memberId"
                       class="mb-4px cursor-pointer hover:bg-blue-100" @click="switchToMemberView(memberId)">
@@ -585,15 +584,30 @@ watch(selectedDate, () => {
  * 格式化时间
  */
 const formatTime = (date: string | Date) => {
-  return dayjs(date).format('HH:mm')
+  try {
+    return dayjs(date).format('HH:mm')
+  } catch (error) {
+    console.warn('格式化时间出错:', date, error)
+    return '时间未知'
+  }
 }
 
 const formatDateTime = (date: string | Date) => {
-  return dayjs(date).format('MM-DD HH:mm')
+  try {
+    return dayjs(date).format('MM-DD HH:mm')
+  } catch (error) {
+    console.warn('格式化日期时间出错:', date, error)
+    return '时间未知'
+  }
 }
 
 const formatDate = (date: string | Date) => {
-  return dayjs(date).format('YYYY年MM月DD日')
+  try {
+    return dayjs(date).format('YYYY年MM月DD日')
+  } catch (error) {
+    console.warn('格式化日期出错:', date, error)
+    return '日期未知'
+  }
 }
 
 
@@ -606,16 +620,7 @@ const getMemberName = (memberId: string) => {
   return member?.name || `成员${memberId}`
 }
 
-/**
- * 获取某天的活动数量
- */
-const getDayActivitiesCount = (day: dayjs.Dayjs) => {
-  const dayStr = day.format('YYYY-MM-DD')
-  return activityStore.activities.filter(activity =>
-    dayjs(activity.date).format('YYYY-MM-DD') === dayStr &&
-    (!selectedCampId.value || activity.campId === selectedCampId.value)
-  ).length
-}
+
 
 /**
  * 获取上午活动（6:00-12:00）
@@ -624,11 +629,23 @@ const getMorningActivities = (day: dayjs.Dayjs) => {
   const dayStr = day.format('YYYY-MM-DD')
   return activityStore.activities
     .filter(activity => {
-      const activityDay = dayjs(activity.date).format('YYYY-MM-DD')
-      const activityHour = dayjs(activity.startTime).hour()
-      return activityDay === dayStr &&
-        activityHour >= 6 && activityHour < 12 &&
-        (!selectedCampId.value || activity.campId === selectedCampId.value)
+      try {
+        // 确保时间字段存在
+        if (!activity.startTime) return false
+
+        const activityDay = dayjs(activity.startTime).format('YYYY-MM-DD')
+        const activityHour = dayjs(activity.startTime).hour()
+
+        // 检查日期匹配且时间在上午范围内
+        const dateMatches = activityDay === dayStr
+        const timeMatches = activityHour >= 6 && activityHour < 12
+        const campMatches = !selectedCampId.value || activity.campId === selectedCampId.value
+
+        return dateMatches && timeMatches && campMatches
+      } catch (error) {
+        console.warn('处理上午活动时出错:', activity.title, error)
+        return false
+      }
     })
     .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
 }
@@ -640,11 +657,23 @@ const getAfternoonActivities = (day: dayjs.Dayjs) => {
   const dayStr = day.format('YYYY-MM-DD')
   return activityStore.activities
     .filter(activity => {
-      const activityDay = dayjs(activity.date).format('YYYY-MM-DD')
-      const activityHour = dayjs(activity.startTime).hour()
-      return activityDay === dayStr &&
-        activityHour >= 12 && activityHour < 18 &&
-        (!selectedCampId.value || activity.campId === selectedCampId.value)
+      try {
+        // 确保时间字段存在
+        if (!activity.startTime) return false
+
+        const activityDay = dayjs(activity.startTime).format('YYYY-MM-DD')
+        const activityHour = dayjs(activity.startTime).hour()
+
+        // 检查日期匹配且时间在下午范围内
+        const dateMatches = activityDay === dayStr
+        const timeMatches = activityHour >= 12 && activityHour < 18
+        const campMatches = !selectedCampId.value || activity.campId === selectedCampId.value
+
+        return dateMatches && timeMatches && campMatches
+      } catch (error) {
+        console.warn('处理下午活动时出错:', activity.title, error)
+        return false
+      }
     })
     .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
 }
@@ -656,11 +685,23 @@ const getEveningActivities = (day: dayjs.Dayjs) => {
   const dayStr = day.format('YYYY-MM-DD')
   return activityStore.activities
     .filter(activity => {
-      const activityDay = dayjs(activity.date).format('YYYY-MM-DD')
-      const activityHour = dayjs(activity.startTime).hour()
-      return activityDay === dayStr &&
-        activityHour >= 18 &&
-        (!selectedCampId.value || activity.campId === selectedCampId.value)
+      try {
+        // 确保时间字段存在
+        if (!activity.startTime) return false
+
+        const activityDay = dayjs(activity.startTime).format('YYYY-MM-DD')
+        const activityHour = dayjs(activity.startTime).hour()
+
+        // 检查日期匹配且时间在晚上范围内
+        const dateMatches = activityDay === dayStr
+        const timeMatches = activityHour >= 18
+        const campMatches = !selectedCampId.value || activity.campId === selectedCampId.value
+
+        return dateMatches && timeMatches && campMatches
+      } catch (error) {
+        console.warn('处理晚上活动时出错:', activity.title, error)
+        return false
+      }
     })
     .sort((a, b) => dayjs(a.startTime).valueOf() - dayjs(b.startTime).valueOf())
 }
@@ -798,9 +839,18 @@ const handleCampChange = () => {
   // 如果选择了营会，设置选中日期为营会的起始日期
   if (selectedCamp.value) {
     dashboardStore.selectDate(dayjs(selectedCamp.value.startDate))
+    // 刷新数据以确保新选择的营会活动正确显示
+    refreshData()
   }
 }
 
+
+/**
+ * 获取营会的活动数量
+ */
+const getCampActivityCount = (campId: string) => {
+  return activityStore.activities.filter(activity => activity.campId === campId).length
+}
 
 /**
  * 过滤营会选项
