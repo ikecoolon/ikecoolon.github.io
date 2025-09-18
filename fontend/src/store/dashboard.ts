@@ -19,7 +19,6 @@ export const useDashboardStore = defineStore('dashboard', () => {
     for (let i = 0; i < 7; i++) {
       days.push(startOfWeek.add(i, 'day'))
     }
-    console.log(111,days);
     
     return days
   })

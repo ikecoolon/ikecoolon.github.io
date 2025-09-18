@@ -50,7 +50,7 @@
 
         <!-- 日历区域 -->
         <div class="lg:col-span-2">
-          <a-card :title="calendarTitle" :loading="loading">
+          <a-card :title="calendarTitle" :loading="loading" size="small">
             <!-- 营会视图 -->
             <div class="calendar-camp">
               <!-- 水平滚动日期容器 -->
@@ -88,7 +88,10 @@
                   </div>
                   <div class="space-y-6px ml-20px">
                     <div v-for="activity in getMorningActivities(selectedDate)" :key="activity.id"
-                      class="p-10px border border-gray-200 rounded-6px cursor-pointer hover:bg-blue-50 transition-colors"
+                      class="p-10px border rounded-6px cursor-pointer hover:bg-blue-50 transition-colors"
+                      :class="selectedActivity?.id === activity.id
+                        ? 'border-blue-500 bg-blue-50 shadow-sm'
+                        : 'border-gray-200'"
                       @click="handleActivityClick(activity)">
                       <div class="flex items-center justify-between">
                         <div class="flex-1">
@@ -116,7 +119,10 @@
                   </div>
                   <div class="space-y-6px ml-20px">
                     <div v-for="activity in getAfternoonActivities(selectedDate)" :key="activity.id"
-                      class="p-10px border border-gray-200 rounded-6px cursor-pointer hover:bg-blue-50 transition-colors"
+                      class="p-10px border rounded-6px cursor-pointer hover:bg-blue-50 transition-colors"
+                      :class="selectedActivity?.id === activity.id
+                        ? 'border-blue-500 bg-blue-50 shadow-sm'
+                        : 'border-gray-200'"
                       @click="handleActivityClick(activity)">
                       <div class="flex items-center justify-between">
                         <div class="flex-1">
@@ -145,7 +151,10 @@
                   </div>
                   <div class="space-y-6px ml-20px">
                     <div v-for="activity in getEveningActivities(selectedDate)" :key="activity.id"
-                      class="p-10px border border-gray-200 rounded-6px cursor-pointer hover:bg-blue-50 transition-colors"
+                      class="p-10px border rounded-6px cursor-pointer hover:bg-blue-50 transition-colors"
+                      :class="selectedActivity?.id === activity.id
+                        ? 'border-blue-500 bg-blue-50 shadow-sm'
+                        : 'border-gray-200'"
                       @click="handleActivityClick(activity)">
                       <div class="flex items-center justify-between">
                         <div class="flex-1">
@@ -175,186 +184,99 @@
         <div class="space-y-24px">
 
           <!-- 活动详情 -->
-          <a-card size="small">
-            <template #title>
-              <div class="flex items-center justify-between">
-                <span>{{ detailTitle }}</span>
-                <a-radio-group v-if="selectedActivity || selectedDuty" v-model:value="detailViewMode" size="small"
-                  @change="handleDetailViewChange">
-                  <a-radio-button value="activity">活动</a-radio-button>
-                  <a-radio-button value="course">课程</a-radio-button>
-                  <a-radio-button value="member">人员</a-radio-button>
-                  <a-radio-button v-if="selectedDuty" value="duty">职责</a-radio-button>
-                </a-radio-group>
+          <a-card title="活动详情" size="small">
+
+            <div v-if="selectedActivity" class="space-y-12px">
+              <div>
+                <div class="text-12px text-gray-500 mb-4px">活动标题</div>
+                <div class="text-14px text-gray-800">{{ selectedActivity.title }}</div>
               </div>
-            </template>
 
-            <div v-if="selectedActivity">
-              <!-- 活动详情视图 -->
-              <div v-if="detailViewMode === 'activity'" class="space-y-12px">
-                <div>
-                  <div class="text-12px text-gray-500 mb-4px">活动标题</div>
-                  <div class="text-14px text-gray-800">{{ selectedActivity.title }}</div>
+              <div>
+                <div class="text-12px text-gray-500 mb-4px">活动描述</div>
+                <div class="text-14px text-gray-600">{{ selectedActivity.description }}</div>
+              </div>
+
+              <div>
+                <div class="text-12px text-gray-500 mb-4px">时间安排</div>
+                <div class="text-14px text-gray-800">
+                  {{ formatDateTime(selectedActivity.startTime) }} - {{ formatDateTime(selectedActivity.endTime) }}
                 </div>
+              </div>
 
-                <div>
-                  <div class="text-12px text-gray-500 mb-4px">活动描述</div>
-                  <div class="text-14px text-gray-600">{{ selectedActivity.description }}</div>
-                </div>
+              <div>
+                <div class="text-12px text-gray-500 mb-4px">活动地点</div>
+                <div class="text-14px text-gray-800">{{ selectedActivity.location }}</div>
+              </div>
 
-                <div>
-                  <div class="text-12px text-gray-500 mb-4px">时间安排</div>
-                  <div class="text-14px text-gray-800">
-                    {{ formatDateTime(selectedActivity.startTime) }} - {{ formatDateTime(selectedActivity.endTime) }}
-                  </div>
-                </div>
+              <div v-if="selectedActivity?.notes">
+                <div class="text-12px text-gray-500 mb-4px">备注说明</div>
+                <div class="text-14px text-gray-600">{{ selectedActivity?.notes }}</div>
+              </div>
 
-                <div>
-                  <div class="text-12px text-gray-500 mb-4px">活动地点</div>
-                  <div class="text-14px text-gray-800">{{ selectedActivity.location }}</div>
-                </div>
-
-                <div v-if="selectedActivity?.notes">
-                  <div class="text-12px text-gray-500 mb-4px">备注说明</div>
-                  <div class="text-14px text-gray-600">{{ selectedActivity?.notes }}</div>
-                </div>
-
-                <div>
-                  <div class="text-12px text-gray-500 mb-4px">服侍者</div>
-                  <div class="space-y-4px">
-                    <a-tag v-for="memberId in getActivityMembers(selectedActivity)" :key="memberId"
-                      class="mb-4px cursor-pointer hover:bg-blue-100" @click="switchToMemberView(memberId)">
-                      {{ getMemberName(memberId) }}
-                    </a-tag>
+              <div>
+                <div class="text-12px text-gray-500 mb-6px">服侍者</div>
+                <div class="flex flex-wrap gap-4px">
+                  <div v-for="memberId in getActivityMembers(selectedActivity)" :key="memberId"
+                    class="inline-flex items-center px-6px py-2px bg-blue-50 border border-blue-200 rounded-4px text-12px">
+                    <span class="font-500 text-blue-800 mr-4px">{{ getMemberName(memberId) }}</span>
+                    <span v-if="ministryStore.members.find(m => m.id === memberId)?.phone"
+                      class="text-blue-600">
+                      📞{{ ministryStore.members.find(m => m.id === memberId)?.phone }}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <!-- 课程详情视图 -->
-              <div v-else-if="detailViewMode === 'course'" class="space-y-12px">
-                <div v-if="selectedCourse">
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">课程名称</div>
-                    <div class="text-14px text-gray-800">{{ selectedCourse.title }}</div>
-                  </div>
-
-                  <div v-if="selectedCourse.instructor">
-                    <div class="text-12px text-gray-500 mb-4px">讲师</div>
-                    <div class="text-14px text-gray-800">{{ selectedCourse.instructor }}</div>
-                  </div>
-
-                  <div v-if="selectedCourse.description">
-                    <div class="text-12px text-gray-500 mb-4px">课程描述</div>
-                    <div class="text-14px text-gray-600">{{ selectedCourse.description }}</div>
-                  </div>
-
-                  <div v-if="selectedCourse.duration">
-                    <div class="text-12px text-gray-500 mb-4px">课程时长</div>
-                    <div class="text-14px text-gray-800">{{ selectedCourse.duration }}分钟</div>
-                  </div>
-
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">相关活动</div>
-                    <div class="space-y-4px">
-                      <a-tag v-for="activityId in selectedCourse.activities" :key="activityId" class="mb-4px"
-                        color="blue">
-                        {{ getActivityTitle(activityId) }}
-                      </a-tag>
+              <!-- 活动环节 -->
+              <div>
+                <div class="text-12px text-gray-500 mb-8px">活动环节 ({{ selectedActivity.phases?.length || 0 }}个)</div>
+                <div class="space-y-12px max-h-300px overflow-y-auto">
+                  <div v-for="(phase, index) in selectedActivity.phases" :key="phase.id"
+                    class="p-12px border border-gray-200 rounded-8px bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <!-- 环节标题 -->
+                    <div class="flex items-start mb-8px">
+                      <div class="flex items-center space-x-8px flex-1 min-w-0">
+                        <div class="w-24px h-24px bg-blue-500 text-white rounded-full flex items-center justify-center text-12px font-600 flex-shrink-0">
+                          {{ index + 1 }}
+                        </div>
+                        <div class="text-15px font-600 text-gray-800 leading-relaxed break-words">{{ phase.title }}</div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <div v-else class="text-center py-20px text-gray-400">
-                  该活动暂无关联课程信息
-                </div>
-              </div>
 
-              <!-- 人员详情视图 -->
-              <div v-else-if="detailViewMode === 'member'" class="space-y-12px">
-                <div v-if="selectedMember">
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">姓名</div>
-                    <div class="text-14px text-gray-800">{{ selectedMember.name }}</div>
-                  </div>
+                    <!-- 环节描述 -->
+                    <div v-if="phase.description" class="text-13px text-gray-600 mb-10px leading-relaxed break-words">
+                      {{ phase.description }}
+                    </div>
 
-                  <div v-if="selectedMember.phone">
-                    <div class="text-12px text-gray-500 mb-4px">联系电话</div>
-                    <div class="text-14px text-gray-800">{{ selectedMember.phone }}</div>
-                  </div>
-
-                  <div v-if="selectedMember.notes">
-                    <div class="text-12px text-gray-500 mb-4px">注意事项</div>
-                    <div class="text-14px text-gray-600">{{ selectedMember.notes }}</div>
-                  </div>
-
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">其他服侍安排</div>
-                    <div class="space-y-6px max-h-200px overflow-y-auto">
-                      <div v-for="activity in getMemberOtherActivities(selectedMember.id)" :key="activity.id"
-                        class="p-8px border border-gray-200 rounded-4px cursor-pointer hover:bg-blue-50"
-                        @click="selectedActivity = activity">
-                        <div class="text-13px font-500 text-gray-800">{{ activity.title }}</div>
-                        <div class="text-11px text-gray-500">
-                          {{ formatDateTime(activity.date) }}
+                    <!-- 负责人信息 -->
+                    <div v-if="phase.assignedMembers && phase.assignedMembers.length > 0" class="mb-10px">
+                      <div class="text-12px font-500 text-gray-700 mb-6px">负责人：</div>
+                      <div class="space-y-4px">
+                        <div v-for="memberId in phase.assignedMembers" :key="memberId"
+                          class="flex items-center justify-between p-8px bg-blue-50 rounded-4px border border-blue-100">
+                          <div class="text-13px font-500 text-blue-800 break-words min-w-0 flex-1">{{ getMemberName(memberId) }}</div>
+                          <div v-if="ministryStore.members.find(m => m.id === memberId)?.phone"
+                            class="text-12px text-blue-600 ml-8px flex-shrink-0">
+                            📞 {{ ministryStore.members.find(m => m.id === memberId)?.phone }}
+                          </div>
                         </div>
                       </div>
-                      <div v-if="getMemberOtherActivities(selectedMember.id).length === 0"
-                        class="text-12px text-gray-400">
-                        暂无其他服侍安排
+                    </div>
+
+                    <!-- 注意事项 -->
+                    <div v-if="phase.notes" class="text-12px text-orange-700 bg-orange-50 border border-orange-200 p-8px rounded-4px leading-relaxed break-words">
+                      <div class="flex items-start">
+                        <i class="i-carbon:information mr-6px mt-1px text-orange-600 flex-shrink-0" />
+                        <div class="flex-1">{{ phase.notes }}</div>
                       </div>
                     </div>
                   </div>
-                </div>
-                <div v-else class="text-center py-20px text-gray-400">
-                  请选择要查看的服侍人员
-                </div>
-              </div>
 
-              <!-- 职责详情视图 -->
-              <div v-else-if="detailViewMode === 'duty'" class="space-y-12px">
-                <div v-if="selectedDuty">
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">职责名称</div>
-                    <div class="text-14px text-gray-800">{{ selectedDuty.title }}</div>
+                  <div v-if="!selectedActivity.phases || selectedActivity.phases.length === 0"
+                    class="text-center py-16px text-gray-400 text-12px">
+                    暂无活动环节
                   </div>
-
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">职责类型</div>
-                    <div class="text-14px text-gray-800">
-                      <a-tag :color="getDutyCategoryColor(selectedDuty.category)">
-                        {{ getDutyCategoryText(selectedDuty.category) }}
-                      </a-tag>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">职责说明</div>
-                    <div class="text-14px text-gray-600">{{ selectedDuty.description }}</div>
-                  </div>
-
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">负责人</div>
-                    <div class="space-y-4px">
-                      <a-tag v-for="assignee in selectedDuty.assignees" :key="assignee.userId"
-                        class="mb-4px cursor-pointer hover:bg-blue-100" color="geekblue">
-                        {{ assignee.userName }}
-                      </a-tag>
-                    </div>
-                  </div>
-
-                  <div v-if="selectedDuty.timeRange">
-                    <div class="text-12px text-gray-500 mb-4px">时间范围</div>
-                    <div class="text-14px text-gray-800">
-                      {{ formatDate(selectedDuty.timeRange.start) }} - {{ formatDate(selectedDuty.timeRange.end) }}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div class="text-12px text-gray-500 mb-4px">创建时间</div>
-                    <div class="text-14px text-gray-800">{{ formatDateTime(selectedDuty.createdAt) }}</div>
-                  </div>
-                </div>
-                <div v-else class="text-center py-20px text-gray-400">
-                  请选择要查看的职责
                 </div>
               </div>
             </div>
@@ -364,50 +286,6 @@
             </div>
           </a-card>
 
-          <!-- 职责清单 -->
-          <a-card title="职责清单" :loading="loading">
-            <div class="space-y-16px">
-              <!-- 按类别分组显示职责 -->
-              <div v-for="category in dutyCategories" :key="category.key">
-                <div class="mb-8px">
-                  <div class="flex items-center gap-6px font-500 text-gray-600">
-                    <span>{{ category.icon }}</span>
-                    {{ category.label }}
-                    <span class="text-gray-500 text-12px">({{ getCategoryDuties(category.key).length }}项)</span>
-                  </div>
-                </div>
-
-                <div class="space-y-8px ml-20px">
-                  <div v-for="duty in getCategoryDuties(category.key)" :key="duty.id"
-                    class="p-12px border-1 border-gray-200 border-solid rd-8px bg-gray-50 mb-8px transition-all duration-200 cursor-pointer hover:bg-blue-50 hover:border-blue-500 hover:translate-y--1 hover:shadow-2xl"
-                    @click="handleDutyClick(duty)">
-                    <div class="text-14px font-500 text-gray-800 mb-4px">{{ duty.title }}</div>
-                    <div class="text-12px text-gray-600 leading-1.4 mb-8px overflow-hidden text-ellipsis line-clamp-2"
-                      style="-webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; display: -webkit-box;">{{ duty.description }}</div>
-
-                    <div class="flex items-center gap-12px text-12px text-gray-500">
-                      <div class="flex items-center gap-4px">
-                        <i class="i-carbon:group" />
-                        <span>{{duty.assignees.map(a => a.userName).join('、')}}</span>
-                      </div>
-                      <div v-if="duty.timeRange" class="flex items-center gap-4px">
-                        <i class="i-carbon:time" />
-                        <span>{{ formatDate(duty.timeRange.start) }} - {{ formatDate(duty.timeRange.end) }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div v-if="getCategoryDuties(category.key).length === 0" class="text-12px text-gray-400 ml-20px py-8px">
-                  暂无{{ category.label }}职责
-                </div>
-              </div>
-
-              <div v-if="getCurrentCampDuties().length === 0" class="text-center py-20px text-gray-400">
-                暂无职责分配
-              </div>
-            </div>
-          </a-card>
 
         </div>
       </div>
@@ -428,7 +306,7 @@ import { useActivityStore } from '@/store/activity'
 import { useMinistryStore } from '@/store/ministry'
 import { useCampStore } from '@/store/camp'
 import { useDashboardStore } from '@/store/dashboard'
-import type { Activity, Camp, CampDuty, DutyCategory } from '@/types/activity'
+import type { Activity, Camp } from '@/types/activity'
 
 /**
  * 仪表盘页面
@@ -444,9 +322,6 @@ const dashboardStore = useDashboardStore()
 // 响应式状态
 const loading = ref(false)
 const selectedActivity = ref<Activity | null>(null)
-const selectedDuty = ref<CampDuty | null>(null)
-const detailViewMode = ref<'activity' | 'course' | 'member' | 'duty'>('activity')
-const selectedMemberId = ref<string>('')
 const selectedCampId = ref<string>('')
 
 // 计算属性
@@ -513,64 +388,8 @@ const todayActivities = computed(() => {
 })
 
 
-// 详情面板相关计算属性
-const detailTitle = computed(() => {
-  if (!selectedActivity.value && !selectedDuty.value) return '详情'
 
-  if (selectedDuty.value) return '职责详情'
 
-  switch (detailViewMode.value) {
-    case 'course':
-      return '课程详情'
-    case 'member':
-      return '人员详情'
-    default:
-      return '活动详情'
-  }
-})
-
-const selectedCourse = computed(() => {
-  if (!selectedActivity.value) return null
-
-  // 查找与当前活动相关的课程
-  return activityStore.courses.find(course =>
-    course.activities && course.activities.includes(selectedActivity.value!.id)
-  )
-})
-
-const selectedMember = computed(() => {
-  if (!selectedMemberId.value) {
-    // 如果没有选择特定成员，默认显示第一个参与成员
-    if (selectedActivity.value) {
-      const activityMembers = getActivityMembers(selectedActivity.value)
-      if (activityMembers.length > 0) {
-        return ministryStore.members.find(m => m.id === activityMembers[0])
-      }
-    }
-    return null
-  }
-
-  return ministryStore.members.find(m => m.id === selectedMemberId.value)
-})
-
-// 职责分类配置
-const dutyCategories = computed(() => [
-  { key: 'preparation', label: '准备工作', icon: '📋' },
-  { key: 'logistics', label: '后勤保障', icon: '📦' },
-  { key: 'coordination', label: '现场协调', icon: '🤝' },
-  { key: 'support', label: '技术支持', icon: '🔧' }
-])
-
-// 获取当前选中营会的职责
-const getCurrentCampDuties = () => {
-  if (!selectedCampId.value) return []
-  return campStore.getCampDuties(selectedCampId.value)
-}
-
-// 获取指定类别的职责
-const getCategoryDuties = (category: string) => {
-  return getCurrentCampDuties().filter(duty => duty.category === category)
-}
 
 // 监听选中日期变化
 watch(selectedDate, () => {
@@ -619,6 +438,7 @@ const getMemberName = (memberId: string) => {
   const member = ministryStore.members.find(m => m.id === memberId)
   return member?.name || `成员${memberId}`
 }
+
 
 
 
@@ -727,17 +547,8 @@ const getFullWeekdayText = (dayIndex: number) => {
  */
 const handleActivityClick = (activity: Activity) => {
   selectedActivity.value = activity
-  detailViewMode.value = 'activity'
-  selectedMemberId.value = ''
 }
 
-/**
- * 获取活动标题
- */
-const getActivityTitle = (activityId: string) => {
-  const activity = activityStore.activities.find(a => a.id === activityId)
-  return activity ? activity.title : '未知活动'
-}
 
 /**
  * 获取活动的参与成员列表
@@ -755,74 +566,7 @@ const getActivityMembers = (activity: Activity) => {
 }
 
 
-/**
- * 获取成员的其他服侍安排
- */
-const getMemberOtherActivities = (memberId: string) => {
-  return activityStore.activities.filter(activity =>
-    getActivityMembers(activity).includes(memberId) &&
-    activity.id !== selectedActivity.value?.id
-  )
-}
 
-/**
- * 切换到成员视图
- */
-const switchToMemberView = (memberId: string) => {
-  detailViewMode.value = 'member'
-  selectedMemberId.value = memberId
-}
-
-/**
- * 处理详情视图切换
- */
-const handleDetailViewChange = () => {
-  if (detailViewMode.value === 'member' && !selectedMemberId.value) {
-    // 如果切换到成员视图但没有选择成员，自动选择第一个
-    if (selectedActivity.value) {
-      const activityMembers = getActivityMembers(selectedActivity.value)
-      if (activityMembers.length > 0) {
-        selectedMemberId.value = activityMembers[0]
-      }
-    }
-  }
-}
-
-/**
- * 处理职责点击
- */
-const handleDutyClick = (duty: CampDuty) => {
-  selectedDuty.value = duty
-  selectedActivity.value = null
-  selectedMemberId.value = ''
-  detailViewMode.value = 'duty'
-}
-
-/**
- * 获取职责类别颜色
- */
-const getDutyCategoryColor = (category: DutyCategory) => {
-  const colors = {
-    preparation: 'orange',
-    logistics: 'blue',
-    coordination: 'green',
-    support: 'purple'
-  }
-  return colors[category] || 'default'
-}
-
-/**
- * 获取职责类别文本
- */
-const getDutyCategoryText = (category: DutyCategory) => {
-  const texts = {
-    preparation: '准备工作',
-    logistics: '后勤保障',
-    coordination: '现场协调',
-    support: '技术支持'
-  }
-  return texts[category] || category
-}
 
 /**
  * 选择日期

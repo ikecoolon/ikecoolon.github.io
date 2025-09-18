@@ -1,5 +1,686 @@
 [
   {
+    "title": "退房及善后",
+    "description": "退房及善后",
+    "date": "2025-10-04T12:00:00+08:00",
+    "startTime": "2025-10-04T12:00:00+08:00",
+    "endTime": "2025-10-04T17:00:00+08:00",
+    "location": "酒店",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758189434659",
+        "title": "协助退房",
+        "description": "",
+        "assignedMembers": [
+          "1"
+        ],
+        "notes": "",
+        "order": 0
+      },
+      {
+        "id": "phase_1758189455404",
+        "title": "结清款项",
+        "description": "",
+        "assignedMembers": [
+          "5"
+        ],
+        "notes": "",
+        "order": 1
+      },
+      {
+        "id": "phase_1758189487133",
+        "title": "剩余物资清点及安置",
+        "description": "",
+        "assignedMembers": [
+          "8",
+          "member_1758189587521"
+        ],
+        "notes": "",
+        "order": 2
+      }
+    ],
+    "id": "activity_1758189489992",
+    "createdAt": "2025-09-18T17:58:09+08:00",
+    "updatedAt": "2025-09-18T18:00:13+08:00"
+  },
+  {
+    "title": "午餐(day4)",
+    "description": "外出用餐",
+    "date": "2025-10-04T11:50:32+08:00",
+    "startTime": "2025-10-04T11:50:32+08:00",
+    "endTime": "2025-10-04T13:30:00+08:00",
+    "location": "待定",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758189561621",
+        "title": "午餐",
+        "description": "",
+        "assignedMembers": [
+          "2"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758189564614",
+    "createdAt": "2025-09-18T17:59:24+08:00"
+  },
+  {
+    "title": "主日(饼杯)",
+    "description": "敬拜、圣餐、祷告、信息",
+    "date": "2025-10-04T09:30:00+08:00",
+    "startTime": "2025-10-04T09:30:00+08:00",
+    "endTime": "2025-10-04T11:30:00+08:00",
+    "location": "会议室",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758188876540_cm3md8bpb",
+        "title": "敬拜",
+        "description": "时长约30分钟",
+        "assignedMembers": [
+          "member_1758186252572"
+        ],
+        "notes": "",
+        "order": 0
+      },
+      {
+        "id": "phase_1758188876541_6v0luir4e",
+        "title": "圣餐",
+        "description": "",
+        "assignedMembers": [
+          "member_1758186305159"
+        ],
+        "notes": "注意提前预备饼杯",
+        "order": 1
+      },
+      {
+        "id": "phase_1758189040014",
+        "title": "祷告",
+        "description": "",
+        "assignedMembers": [
+          "10"
+        ],
+        "notes": "",
+        "order": 2
+      },
+      {
+        "id": "phase_1758188876540_u7o7pacaq",
+        "title": "信息",
+        "description": "约40分钟",
+        "assignedMembers": [
+          "member_1758186305159"
+        ],
+        "notes": "",
+        "order": 3
+      }
+    ],
+    "id": "activity_1758188876541",
+    "createdAt": "2025-09-18T17:47:56+08:00",
+    "updatedAt": "2025-09-18T18:02:08+08:00"
+  },
+  {
+    "title": "早餐(day4) ",
+    "description": "早餐",
+    "date": "2025-10-04T07:15:00+08:00",
+    "startTime": "2025-10-04T07:15:00+08:00",
+    "endTime": "2025-10-04T09:00:00+08:00",
+    "location": "酒店内",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758187631489_q8zx9orn0",
+        "title": "早餐",
+        "description": "",
+        "assignedMembers": [
+          "2",
+          "8"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758187631489",
+    "createdAt": "2025-09-18T17:27:11+08:00",
+    "updatedAt": "2025-09-18T17:28:32+08:00"
+  },
+  {
+    "title": "晨祷(day4) ",
+    "description": "晨祷",
+    "date": "2025-10-04T06:30:00+08:00",
+    "startTime": "2025-10-04T06:30:00+08:00",
+    "endTime": "2025-10-04T07:15:00+08:00",
+    "location": "待定",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758187559530_ftqjtei36",
+        "title": "晨祷",
+        "description": "",
+        "assignedMembers": [
+          "member_1758186227509"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758187559530",
+    "createdAt": "2025-09-18T17:25:59+08:00",
+    "updatedAt": "2025-09-18T17:26:43+08:00"
+  },
+  {
+    "title": "自由活动",
+    "description": "酒店内有温泉(自费)，可相约前往，或玩桌游等等都可",
+    "date": "2025-10-03T19:00:00+08:00",
+    "startTime": "2025-10-03T19:00:00+08:00",
+    "endTime": "2025-10-03T21:30:00+08:00",
+    "location": "酒店内",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758188837416",
+        "title": "自由活动",
+        "description": "",
+        "assignedMembers": [
+          "member_1758186227509"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758188742991",
+    "createdAt": "2025-09-18T17:45:42+08:00",
+    "updatedAt": "2025-09-18T17:47:20+08:00"
+  },
+  {
+    "title": "晚餐(day3) ",
+    "description": "晚餐",
+    "date": "2025-10-03T17:30:00+08:00",
+    "startTime": "2025-10-03T17:30:00+08:00",
+    "endTime": "2025-10-03T19:00:00+08:00",
+    "location": "户外",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758188466719_7mnf7vmjr",
+        "title": "就餐",
+        "description": "",
+        "assignedMembers": [
+          "2",
+          "8"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758188466719",
+    "createdAt": "2025-09-18T17:41:06+08:00",
+    "updatedAt": "2025-09-18T17:41:38+08:00"
+  },
+  {
+    "title": "野餐露营",
+    "description": "户外活动，如果天气不支持，就在室内",
+    "date": "2025-10-03T14:30:00+08:00",
+    "startTime": "2025-10-03T14:30:00+08:00",
+    "endTime": "2025-10-03T17:00:00+08:00",
+    "location": "户外/室内",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758188693136",
+        "title": "前往与预备",
+        "description": "",
+        "assignedMembers": [
+          "member_1758186279976"
+        ],
+        "notes": "可能需要大家携带露营装备并到场进行安装",
+        "order": 0
+      },
+      {
+        "id": "phase_1758188731926",
+        "title": "工作坊：信心蓝圈",
+        "description": "",
+        "assignedMembers": [
+          "member_1758186279976"
+        ],
+        "notes": "",
+        "order": 1
+      }
+    ],
+    "id": "activity_1758188734937",
+    "createdAt": "2025-09-18T17:45:34+08:00"
+  },
+  {
+    "title": "专题：信心的实践",
+    "description": "敬拜、信心、小组、活动",
+    "date": "2025-10-03T09:00:00+08:00",
+    "startTime": "2025-10-03T09:00:00+08:00",
+    "endTime": "2025-10-03T11:30:00+08:00",
+    "location": "会议室",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758188202203_eu3xrbnpw",
+        "title": "敬拜",
+        "description": "时长约25分钟",
+        "assignedMembers": [
+          "member_1758186252572"
+        ],
+        "notes": "",
+        "order": 0
+      },
+      {
+        "id": "phase_1758188202203_ofgxs98xm",
+        "title": "信息",
+        "description": "约35分钟",
+        "assignedMembers": [
+          "member_1758186227509"
+        ],
+        "notes": "",
+        "order": 1
+      },
+      {
+        "id": "phase_1758188202203_e2p0diabj",
+        "title": "敬拜",
+        "description": "约10分钟",
+        "assignedMembers": [
+          "member_1758186252572"
+        ],
+        "notes": "",
+        "order": 2
+      },
+      {
+        "id": "phase_1758188202203_04plfyo31",
+        "title": "休息",
+        "description": "约10分钟",
+        "assignedMembers": [],
+        "notes": "",
+        "order": 3
+      },
+      {
+        "id": "phase_1758188202203_wz9o6blzs",
+        "title": "工作坊：游戏",
+        "description": "约40分钟",
+        "assignedMembers": [
+          "member_1758186227509",
+          "member_1758186252572"
+        ],
+        "notes": "",
+        "order": 4
+      },
+      {
+        "id": "phase_1758188202203_3lssq0mxe",
+        "title": "小组",
+        "description": "约30分钟，小组提问：「建造家庭，最挑战你信心的地方是什么?建造教会，最挑战你信心的地方是什么?」",
+        "assignedMembers": [
+          "member_1758186227509",
+          "member_1758186252572"
+        ],
+        "notes": "",
+        "order": 5
+      }
+    ],
+    "id": "activity_1758188202203",
+    "createdAt": "2025-09-18T17:36:42+08:00",
+    "updatedAt": "2025-09-18T17:40:57+08:00"
+  },
+  {
+    "title": "晨祷(day3)",
+    "description": "晨祷",
+    "date": "2025-10-03T06:30:00+08:00",
+    "startTime": "2025-10-03T06:30:00+08:00",
+    "endTime": "2025-10-03T07:15:00+08:00",
+    "location": "待定",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758187392524",
+        "title": "晨祷",
+        "description": "",
+        "assignedMembers": [
+          "6"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758187395336",
+    "createdAt": "2025-09-18T17:23:15+08:00"
+  },
+  {
+    "title": "电影夜",
+    "description": "观看影片",
+    "date": "2025-10-02T19:00:00+08:00",
+    "startTime": "2025-10-02T19:00:00+08:00",
+    "endTime": "2025-10-02T21:30:00+08:00",
+    "location": "会议室",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758187337125",
+        "title": "观影",
+        "description": "",
+        "assignedMembers": [
+          "11"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758187339049",
+    "createdAt": "2025-09-18T17:22:19+08:00"
+  },
+  {
+    "title": "晚餐(day2)",
+    "description": "晚餐",
+    "date": "2025-10-02T17:30:00+08:00",
+    "startTime": "2025-10-02T17:30:00+08:00",
+    "endTime": "2025-10-02T19:00:00+08:00",
+    "location": "酒店内",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758187112814",
+        "title": "就餐",
+        "description": "",
+        "assignedMembers": [
+          "2",
+          "8"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758187116126",
+    "createdAt": "2025-09-18T17:18:36+08:00"
+  },
+  {
+    "title": "专题：试炼中的信心",
+    "description": "敬拜、信心、小组、活动",
+    "date": "2025-10-02T14:30:00+08:00",
+    "startTime": "2025-10-02T14:30:00+08:00",
+    "endTime": "2025-10-02T17:00:00+08:00",
+    "location": "会议室",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758187905329_ezzhtfhk4",
+        "title": "敬拜",
+        "description": "时长约25分钟",
+        "assignedMembers": [
+          "9"
+        ],
+        "notes": "",
+        "order": 0
+      },
+      {
+        "id": "phase_1758187905329_z7o7scfru",
+        "title": "信息",
+        "description": "约35分钟",
+        "assignedMembers": [
+          "member_1758186297910"
+        ],
+        "notes": "",
+        "order": 1
+      },
+      {
+        "id": "phase_1758187905329_uln3yicji",
+        "title": "敬拜",
+        "description": "约10分钟",
+        "assignedMembers": [
+          "9"
+        ],
+        "notes": "",
+        "order": 2
+      },
+      {
+        "id": "phase_1758187905329_rrpevmpek",
+        "title": "休息",
+        "description": "约10分钟",
+        "assignedMembers": [],
+        "notes": "",
+        "order": 3
+      },
+      {
+        "id": "phase_1758187905329_otv7xbvjr",
+        "title": "工作坊",
+        "description": "约40分钟",
+        "assignedMembers": [
+          "member_1758186279976"
+        ],
+        "notes": "",
+        "order": 4
+      },
+      {
+        "id": "phase_1758187905329_p8nb5foea",
+        "title": "小组",
+        "description": "约30分钟，小组提问：「我如何面对困難?在什麼试煉中最需要信心?曾有过的试炼中得胜的经历?」",
+        "assignedMembers": [
+          "member_1758186279976"
+        ],
+        "notes": "",
+        "order": 5
+      }
+    ],
+    "id": "activity_1758187905329",
+    "createdAt": "2025-09-18T17:31:45+08:00",
+    "updatedAt": "2025-09-18T17:35:58+08:00"
+  },
+  {
+    "title": "午饭(day2)",
+    "description": "午饭及午休",
+    "date": "2025-10-02T11:50:00+08:00",
+    "startTime": "2025-10-02T11:50:00+08:00",
+    "endTime": "2025-10-02T14:20:00+08:00",
+    "location": "酒店餐厅",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758186781988",
+        "title": "午餐",
+        "description": "",
+        "assignedMembers": [
+          "2",
+          "8"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758186795049",
+    "createdAt": "2025-09-18T17:13:15+08:00"
+  },
+  {
+    "title": "专题：信心的根基",
+    "description": "敬拜、信心、小组、活动",
+    "date": "2025-10-02T09:00:17+08:00",
+    "startTime": "2025-10-02T09:00:17+08:00",
+    "endTime": "2025-10-02T11:30:00+08:00",
+    "location": "会议室",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758185474526",
+        "title": "敬拜",
+        "description": "时长约25分钟",
+        "assignedMembers": [
+          "7"
+        ],
+        "notes": "",
+        "order": 0
+      },
+      {
+        "id": "phase_1758186318858",
+        "title": "信息",
+        "description": "约35分钟",
+        "assignedMembers": [
+          "member_1758186297910"
+        ],
+        "notes": "",
+        "order": 1
+      },
+      {
+        "id": "phase_1758186342634",
+        "title": "敬拜",
+        "description": "约10分钟",
+        "assignedMembers": [
+          "7"
+        ],
+        "notes": "",
+        "order": 2
+      },
+      {
+        "id": "phase_1758186440472",
+        "title": "休息",
+        "description": "约10分钟",
+        "assignedMembers": [],
+        "notes": "",
+        "order": 3
+      },
+      {
+        "id": "phase_1758186459360",
+        "title": "游戏",
+        "description": "约40分钟",
+        "assignedMembers": [],
+        "notes": "负责人待定",
+        "order": 4
+      },
+      {
+        "id": "phase_1758186498752",
+        "title": "小组",
+        "description": "约30分钟",
+        "assignedMembers": [],
+        "notes": "负责人待定，与游戏环节为同一人",
+        "order": 5
+      }
+    ],
+    "id": "activity_1758185488958",
+    "createdAt": "2025-09-18T16:51:28+08:00",
+    "updatedAt": "2025-09-18T17:36:18+08:00"
+  },
+  {
+    "title": "早餐(day2)",
+    "description": "早餐",
+    "date": "2025-10-02T07:15:00+08:00",
+    "startTime": "2025-10-02T07:15:00+08:00",
+    "endTime": "2025-10-02T09:00:00+08:00",
+    "location": "酒店内",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758185086054",
+        "title": "早餐",
+        "description": "",
+        "assignedMembers": [
+          "2",
+          "8"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758185087933",
+    "createdAt": "2025-09-18T16:44:47+08:00",
+    "updatedAt": "2025-09-18T17:13:22+08:00"
+  },
+  {
+    "title": "晨祷(day2)",
+    "description": "晨祷",
+    "date": "2025-10-02T06:30:00+08:00",
+    "startTime": "2025-10-02T06:30:00+08:00",
+    "endTime": "2025-10-02T07:15:53+08:00",
+    "location": " 户外/会议室",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758184917731",
+        "title": "晨祷",
+        "description": "晨祷",
+        "assignedMembers": [
+          "1"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758184919966",
+    "createdAt": "2025-09-18T16:41:59+08:00",
+    "updatedAt": "2025-09-18T17:23:26+08:00"
+  },
+  {
+    "title": "敬拜祷告会",
+    "description": "敬拜祷告会，各位可自带跪垫",
+    "date": "2025-10-01T19:15:00+08:00",
+    "startTime": "2025-10-01T19:15:00+08:00",
+    "endTime": "2025-10-01T21:15:00+08:00",
+    "location": "会议室",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758184574851",
+        "title": "敬拜祷告会",
+        "description": "",
+        "assignedMembers": [
+          "10"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758184578609",
+    "createdAt": "2025-09-18T16:36:18+08:00"
+  },
+  {
+    "title": "晚餐(day1)",
+    "description": "晚饭",
+    "date": "2025-10-01T17:30:46+08:00",
+    "startTime": "2025-10-01T17:30:46+08:00",
+    "endTime": "2025-10-01T19:00:00+08:00",
+    "location": "酒店内",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758184462520",
+        "title": "晚餐",
+        "description": "",
+        "assignedMembers": [
+          "2",
+          "8"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758184478876",
+    "createdAt": "2025-09-18T16:34:38+08:00",
+    "updatedAt": "2025-09-18T16:45:02+08:00"
+  },
+  {
+    "title": "户外游戏",
+    "description": "破冰",
+    "date": "2025-10-01T15:30:25+08:00",
+    "startTime": "2025-10-01T15:30:25+08:00",
+    "endTime": "2025-10-01T17:30:00+08:00",
+    "location": "待明确",
+    "campId": "camp_1758097218959",
+    "phases": [
+      {
+        "id": "phase_1758184352325",
+        "title": "彼此介绍及游戏",
+        "description": "",
+        "assignedMembers": [
+          "9"
+        ],
+        "notes": "",
+        "order": 0
+      }
+    ],
+    "id": "activity_1758184354872",
+    "createdAt": "2025-09-18T16:32:34+08:00"
+  },
+  {
     "title": "酒店入住",
     "description": "尽量在该时间内办理入住，有人协助",
     "date": "2025-10-01T13:30:00+08:00",
@@ -18,112 +699,21 @@
         ],
         "notes": "",
         "order": 0
+      },
+      {
+        "id": "phase_1758189820807",
+        "title": "物资进场",
+        "description": "",
+        "assignedMembers": [
+          "member_1758189587521",
+          "8"
+        ],
+        "notes": "",
+        "order": 1
       }
     ],
     "id": "activity_1758101086974",
     "createdAt": "2025-09-17T17:24:46+08:00",
-    "updatedAt": "2025-09-17T17:25:22+08:00"
-  },
-  {
-    "id": "activity_3",
-    "title": "小组分享时间",
-    "description": "分小组进行心得分享",
-    "date": "2024-01-17T08:00:00+08:00",
-    "startTime": "2024-01-17T10:00:00.000Z",
-    "endTime": "2024-01-17T11:30:00.000Z",
-    "location": "各分组教室",
-    "campId": "camp_001",
-    "phases": [
-      {
-        "id": "phase_3_1",
-        "title": "分组准备",
-        "description": "参与者按小组就座",
-        "assignedMembers": [
-          "1",
-          "2"
-        ],
-        "notes": "每个小组需要一名带领者",
-        "order": 0
-      },
-      {
-        "id": "phase_3_2",
-        "title": "分享交流",
-        "description": "小组成员分享心得",
-        "assignedMembers": [
-          "1",
-          "2"
-        ],
-        "notes": "引导大家积极参与分享",
-        "order": 1
-      }
-    ],
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "activity_2",
-    "title": "专题讲座：信仰与生活",
-    "description": "探讨信仰在日常生活中的应用",
-    "date": "2024-01-16T08:00:00+08:00",
-    "startTime": "2024-01-16T14:00:00.000Z",
-    "endTime": "2024-01-16T16:00:00.000Z",
-    "location": "教室A",
-    "campId": "camp_001",
-    "phases": [
-      {
-        "id": "phase_2_1",
-        "title": "讲座内容",
-        "description": "主讲人进行专题讲座",
-        "assignedMembers": [
-          "2"
-        ],
-        "notes": "准备PPT和音响设备",
-        "order": 0
-      },
-      {
-        "id": "phase_2_2",
-        "title": "问答互动",
-        "description": "参与者提问和交流",
-        "assignedMembers": [
-          "2"
-        ],
-        "notes": "预留足够的时间进行互动",
-        "order": 1
-      }
-    ],
-    "createdAt": "2024-01-01T00:00:00.000Z"
-  },
-  {
-    "id": "activity_1",
-    "title": "开幕式",
-    "description": "营会开幕仪式",
-    "date": "2024-01-16T08:00:00+08:00",
-    "startTime": "2024-01-16T09:00:00.000Z",
-    "endTime": "2024-01-16T10:00:00.000Z",
-    "location": "主会场",
-    "campId": "camp_001",
-    "phases": [
-      {
-        "id": "phase_1_1",
-        "title": "入场准备",
-        "description": "参与者入场和就座",
-        "assignedMembers": [
-          "1",
-          "2"
-        ],
-        "notes": "需要提前30分钟到场准备",
-        "order": 0
-      },
-      {
-        "id": "phase_1_2",
-        "title": "开幕仪式",
-        "description": "正式开幕仪式和致辞",
-        "assignedMembers": [
-          "1"
-        ],
-        "notes": "准备好致辞稿和背景音乐",
-        "order": 1
-      }
-    ],
-    "createdAt": "2024-01-01T00:00:00.000Z"
+    "updatedAt": "2025-09-18T18:03:43+08:00"
   }
 ]

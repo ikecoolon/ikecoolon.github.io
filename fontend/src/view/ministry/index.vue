@@ -194,13 +194,26 @@ const members = computed(() => ministryStore.members)
 const activities = computed(() => activityStore.activities)
 
 const filteredMembers = computed(() => {
-  if (!searchText.value) return members.value
+  let result = members.value
 
-  return members.value.filter(member =>
-    member.name.includes(searchText.value) ||
-    member.phone.includes(searchText.value) ||
-    (member.email && member.email.includes(searchText.value))
-  )
+  // 首先按搜索条件过滤
+  if (searchText.value) {
+    result = result.filter(member =>
+      member.name.includes(searchText.value) ||
+      member.phone.includes(searchText.value) ||
+      (member.email && member.email.includes(searchText.value))
+    )
+  }
+
+  // 按更新日期和创建日期降序排序
+  return result.sort((a, b) => {
+    // 获取比较用的日期
+    const dateA = a.updatedAt ? dayjs(a.updatedAt) : dayjs(a.createdAt)
+    const dateB = b.updatedAt ? dayjs(b.updatedAt) : dayjs(b.createdAt)
+
+    // 降序排列（最新的在前面）
+    return dateB.valueOf() - dateA.valueOf()
+  })
 })
 
 
@@ -217,10 +230,6 @@ const formData = reactive({
 // 表单验证规则
 const formRules: Record<string, Rule[]> = {
   name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  phone: [
-    { required: true, message: '请输入电话号码', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
-  ],
   email: [
     { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
   ],
@@ -242,7 +251,7 @@ const getMemberActivities = (memberId: string) => {
 /**
  * 格式化日期时间
  */
-const formatDateTime = (date: Date) => {
+const formatDateTime = (date: string | Date) => {
   return dayjs(date).format('MM-DD HH:mm')
 }
 

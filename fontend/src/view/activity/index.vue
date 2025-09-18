@@ -77,6 +77,9 @@
               <a-button type="link" size="small" @click="showEditDetail(record)">
                 编辑
               </a-button>
+              <a-button type="link" size="small" @click="handleCopyActivity(record)">
+                复制
+              </a-button>
               <a-button type="link" size="small" danger @click="handleDelete(record)">
                 删除
               </a-button>
@@ -166,6 +169,31 @@
                 </div>
               </div>
               <div class="flex items-center space-x-4px ml-8px">
+                <!-- 排序按钮 -->
+                <a-button
+                  type="text"
+                  size="small"
+                  :disabled="index === 0"
+                  @click="movePhaseUp(index)"
+                  title="上移"
+                >
+                  <template #icon>
+                    <i class="i-carbon:arrow-up" />
+                  </template>
+                </a-button>
+                <a-button
+                  type="text"
+                  size="small"
+                  :disabled="index === formData.phases.length - 1"
+                  @click="movePhaseDown(index)"
+                  title="下移"
+                >
+                  <template #icon>
+                    <i class="i-carbon:arrow-down" />
+                  </template>
+                </a-button>
+
+                <!-- 编辑和删除按钮 -->
                 <a-button type="text" size="small" @click="editPhase(phase)">
                   <template #icon>
                     <i class="i-carbon:edit" />
@@ -447,7 +475,7 @@ const columns: TableColumnProps[] = [
   {
     title: '活动信息',
     key: 'title',
-    width: 300
+    width: 220
   },
   {
     title: '活动时间',
@@ -514,8 +542,8 @@ const phaseFormRules: Record<string, Rule[]> = {
  * 格式化时间范围
  */
 const formatDateTimeRange = (startTime: string | Date, endTime: string | Date) => {
-  const start = dayjs(startTime).format('MM-DD HH:mm')
-  const end = dayjs(endTime).format('MM-DD HH:mm')
+  const start = dayjs(startTime).format('YYYY-MM-DD HH:mm')
+  const end = dayjs(endTime).format('YYYY-MM-DD HH:mm')
   return `${start} ~ ${end}`
 }
 
@@ -626,6 +654,37 @@ const handleDelete = (activity: Activity) => {
 }
 
 /**
+ * 复制活动
+ */
+const handleCopyActivity = async (activity: Activity) => {
+  try {
+    // 创建新活动的副本
+    const copiedActivity = {
+      title: `${activity.title} (副本)`,
+      description: activity.description,
+      date: activity.startTime, // 使用开始时间作为日期
+      startTime: activity.startTime,
+      endTime: activity.endTime,
+      location: activity.location,
+      campId: activity.campId,
+      phases: activity.phases.map(phase => ({
+        ...phase,
+        id: `phase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`, // 生成新ID
+        order: phase.order
+      }))
+    }
+
+    // 添加新活动
+    await activityStore.addActivity(copiedActivity)
+
+    message.success(`活动"${activity.title}"已复制成功`)
+  } catch (error) {
+    console.error('复制活动失败:', error)
+    message.error('复制活动失败')
+  }
+}
+
+/**
  * 保存活动
  */
 const handleSaveActivity = async () => {
@@ -708,6 +767,40 @@ const removePhase = (index: number) => {
   formData.phases.forEach((phase, idx) => {
     phase.order = idx
   })
+}
+
+/**
+ * 上移环节
+ */
+const movePhaseUp = (index: number) => {
+  if (index > 0) {
+    // 交换位置
+    const temp = formData.phases[index]
+    formData.phases[index] = formData.phases[index - 1]
+    formData.phases[index - 1] = temp
+
+    // 更新排序
+    formData.phases.forEach((phase, idx) => {
+      phase.order = idx
+    })
+  }
+}
+
+/**
+ * 下移环节
+ */
+const movePhaseDown = (index: number) => {
+  if (index < formData.phases.length - 1) {
+    // 交换位置
+    const temp = formData.phases[index]
+    formData.phases[index] = formData.phases[index + 1]
+    formData.phases[index + 1] = temp
+
+    // 更新排序
+    formData.phases.forEach((phase, idx) => {
+      phase.order = idx
+    })
+  }
 }
 
 /**

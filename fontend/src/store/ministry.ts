@@ -34,10 +34,9 @@ export const useMinistryStore = defineStore('ministry', () => {
    */
   const saveMembers = async () => {
     try {
-      // 在前端开发环境中，不触发文件下载，只更新内存数据
-      // 生产环境中可以配置后端API来保存数据
-      console.log('服侍者数据已更新:', members.value)
-      // await request.post('participants.json', members.value)
+      // 保存数据到本地文件或后端
+      await request.post('participants.json', members.value)
+      console.log('服侍者数据已保存:', members.value)
     } catch (error) {
       console.error('保存服侍者失败:', error)
       throw error
