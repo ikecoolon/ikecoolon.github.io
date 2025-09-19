@@ -117,7 +117,7 @@ async function testEmailSending() {
       },
       from: {
         name: '营会中心',
-        address: 'noreply@camp.com'
+        address: '52282858@qq.com'
       }
     }
   }

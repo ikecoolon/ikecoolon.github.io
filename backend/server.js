@@ -1,5 +1,5 @@
 /**
- * 营会管理系统邮件服务
+ * 营会中心邮件服务
  * 专用于发送临时访问密码邮件
  */
 
@@ -688,13 +688,13 @@ app.post('/api/data/:filename', (req, res) => {
 
 // 创建邮件传输器
 function createTransporter() {
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: 'smtp.qq.com',
     port: 587,
     secure: false,
     auth: {
       user: '52282858@qq.com',
-      pass: 'zcbmxvn@8895'
+      pass: 'wrubrplilbulbgif'
     }
   });
 }
@@ -711,26 +711,26 @@ async function sendPasswordEmail(to, password) {
     const timestamp = new Date().toLocaleString('zh-CN');
 
     const mailOptions = {
-      from: '"营会中心" <noreply@camp.com>',
+      from: '"营会中心" <52282858@qq.com>',
       to: to,
-      subject: '营会管理系统临时访问密码',
+      subject: '营会中心临时访问密码',
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #1890ff;">营会管理系统</h2>
+          <h2 style="color: #1890ff;">营会中心</h2>
           <p>亲爱的用户：</p>
           <p>您的临时访问密码是：<strong style="font-size: 18px; color: #ff4d4f;">${password}</strong></p>
           <p>密码有效期至：${expirationTime}</p>
           <p style="color: #666; font-size: 14px;">请妥善保管此密码，每次访问都需要输入最新密码。</p>
           <hr>
           <p style="color: #999; font-size: 12px;">
-            如有问题，请联系管理员。<br>
-            营会管理系统<br>
+            如有问题，请联系管理员18581837522。<br>
+            营会中心<br>
             ${timestamp}
           </p>
         </div>
       `,
       text: `
-营会管理系统
+营会中心
 
 亲爱的用户，
 
@@ -742,7 +742,7 @@ async function sendPasswordEmail(to, password) {
 
 如有问题，请联系管理员。
 
-营会管理系统
+营会中心
 ${timestamp}
       `.trim()
     };
@@ -783,7 +783,7 @@ ${timestamp}
 
 // 启动服务器
 app.listen(PORT, () => {
-  console.log('🚀 营会管理系统后端服务已启动!');
+  console.log('🚀 营会中心后端服务已启动!');
   console.log(`📡 服务地址: http://localhost:${PORT}`);
   console.log('📧 邮件接口:');
   console.log('   POST /api/send-password-email     - 发送密码邮件（白名单验证）');
