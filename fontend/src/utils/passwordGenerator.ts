@@ -90,16 +90,28 @@ export const generateMediumPassword = (length: number = 10): string => {
  */
 export const loadPasswordConfig = async (): Promise<PasswordConfig | null> => {
   try {
-    const data = await authAPI.getPasswordConfig()
-    console.log('从后端API获取的密码配置:', data)
+    const response = await authAPI.getPasswordConfig()
+    console.log('从后端API获取的密码配置:', response)
+
+    // 后端返回的数据嵌套在 data 字段中
+    const data = response.data || response
+    if (!data) {
+      console.warn('后端返回的数据为空')
+      return null
+    }
+
+    // 计算 nextUpdateTime（因为后端没有直接返回）
+    const now = new Date()
+    const nextUpdateTime = new Date(now.getTime() + (data.updateInterval || 60) * 60 * 1000)
+
     // 转换后端返回的数据格式为前端期望的格式
     return {
       currentPassword: '', // 后端不返回实际密码
       lastUpdated: data.lastUpdated,
-      updateInterval: data.updateInterval,
-      nextUpdateTime: data.nextUpdateTime,
-      email: data.email,
-      enabled: data.enabled
+      updateInterval: data.updateInterval || 60,
+      nextUpdateTime: nextUpdateTime.toISOString(),
+      email: data.email || 'system@example.com',
+      enabled: data.enabled !== false
     }
   } catch (error) {
     console.warn('加载密码配置失败:', error)
@@ -292,12 +304,35 @@ export const validateEmailFormat = (email: string): boolean => {
 export const getPasswordExpirationTime = async (): Promise<number> => {
   try {
     const config = await loadPasswordConfig()
-    if (!config) return 0
+    if (!config) {
+      console.warn('无法加载密码配置，返回默认值 0')
+      return 0
+    }
+
+    console.log('计算密码过期时间:', {
+      lastUpdated: config.lastUpdated,
+      nextUpdateTime: config.nextUpdateTime,
+      updateInterval: config.updateInterval
+    })
 
     const now = new Date()
     const expirationTime = new Date(config.nextUpdateTime)
+
+    // 检查日期是否有效
+    if (isNaN(expirationTime.getTime())) {
+      console.error('nextUpdateTime 无效:', config.nextUpdateTime)
+      return 0
+    }
+
     const remainingMs = expirationTime.getTime() - now.getTime()
     const remainingMinutes = Math.max(0, Math.ceil(remainingMs / (1000 * 60)))
+
+    console.log('密码过期时间计算结果:', {
+      now: now.toISOString(),
+      expirationTime: expirationTime.toISOString(),
+      remainingMs,
+      remainingMinutes
+    })
 
     return remainingMinutes
   } catch (error) {

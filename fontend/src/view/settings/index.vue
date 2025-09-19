@@ -15,9 +15,6 @@
             <div class="text-16px font-mono bg-gray-50 p-8px rounded-4px break-all">
               {{ authStore.currentPassword || '加载中...' }}
             </div>
-            <div class="text-12px text-gray-500 mt-4px">
-              密码存储位置：public/json/auth.json
-            </div>
           </div>
 
           <div class="grid grid-cols-2 gap-12px">
@@ -111,6 +108,11 @@ const formatDateTime = (dateStr: string | null) => {
  * 刷新密码
  */
 const refreshPassword = async () => {
+  if (!authStore.isAuthenticated || !authStore.user?.email) {
+    message.error('用户未登录或邮箱信息不完整')
+    return
+  }
+
   refreshingPassword.value = true
   try {
     await authStore.getCurrentPassword()
@@ -137,7 +139,11 @@ const loadAuthStatus = async () => {
   }
 }
 
-// 初始化时加载认证状态和密码
+// 初始化时加载认证状态
 loadAuthStatus()
-authStore.getCurrentPassword()
+
+// 只有在用户已认证的情况下才获取密码
+if (authStore.isAuthenticated && authStore.user?.email) {
+  authStore.getCurrentPassword()
+}
 </script>

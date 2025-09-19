@@ -459,13 +459,27 @@ const authAPI = {
   /**
    * 获取当前密码（仅开发环境）
    */
-  async getCurrentPassword() {
+  async getCurrentPassword(email?: string) {
     try {
-      const response = await fetch(`${BACKEND_URL}/api/auth/current-password`)
+      const url = email
+        ? `${BACKEND_URL}/api/auth/current-password?email=${encodeURIComponent(email)}`
+        : `${BACKEND_URL}/api/auth/current-password`
+
+      const response = await fetch(url)
       const data = await response.json()
 
       if (data.success) {
-        return data
+        // 如果有 email 参数，返回单个密码；否则返回第一个邮箱的密码
+        if (email && data.password) {
+          return { password: data.password }
+        } else if (data.emailPasswords) {
+          // 如果没有指定 email，返回第一个邮箱的密码
+          const emails = Object.keys(data.emailPasswords)
+          if (emails.length > 0) {
+            return { password: data.emailPasswords[emails[0]].password }
+          }
+        }
+        return { password: null }
       } else {
         throw new Error(data.message || '获取当前密码失败')
       }

@@ -138,11 +138,20 @@ export const useAuthStore = defineStore('auth', () => {
    */
   const getCurrentPassword = async (): Promise<string | null> => {
     try {
-      const result = await authAPI.getCurrentPassword()
+      // 使用当前登录用户的邮箱来获取密码
+      const userEmail = user.value?.email
+      if (!userEmail) {
+        console.warn('用户邮箱不存在，无法获取密码')
+        currentPassword.value = ''
+        return null
+      }
+
+      const result = await authAPI.getCurrentPassword(userEmail)
       currentPassword.value = result.password || ''
       return result.password
     } catch (error) {
       console.error('获取当前密码失败:', error)
+      currentPassword.value = ''
       return null
     }
   }

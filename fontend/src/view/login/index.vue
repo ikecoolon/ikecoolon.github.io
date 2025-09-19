@@ -102,8 +102,8 @@
             {{ loginMode === 'password' ? '登录说明' : '邮箱说明' }}
           </div>
           <div class="text-12px text-gray-500 leading-relaxed" v-if="loginMode === 'password'">
-            密码每小时自动更新，请输入最新密码。<br>
-            密码过期时间：<span class="text-blue-600 font-medium">{{ expirationTime }}分钟</span>
+            请输入您邮箱对应的最新密码。<br>
+            如果密码错误，请重新获取最新密码。
           </div>
           <div class="text-12px text-gray-500 leading-relaxed" v-else>
             只有白名单中的邮箱才能接收临时密码。<br>
@@ -131,8 +131,7 @@ import type { FormInstance, Rule } from 'ant-design-vue/es/form'
 import { useAuthStore } from '@/store/auth'
 import {
   validateEmailFormat,
-  sendPasswordToEmail,
-  getPasswordExpirationTime
+  sendPasswordToEmail
 } from '@/utils/passwordGenerator'
 
 /**
@@ -152,7 +151,6 @@ const loginMode = ref<'password' | 'email'>('email')
 const formRef = ref<FormInstance>()
 const statusMessage = ref('')
 const statusType = ref<'success' | 'error' |''>('')
-const expirationTime = ref(0)
 
 // 表单数据
 const formData = reactive({
@@ -202,17 +200,6 @@ const currentFormRules = computed(() => {
   return loginMode.value === 'password' ? passwordRules : emailRules
 })
 
-/**
- * 更新密码过期时间
- */
-const updateExpirationTime = async () => {
-  try {
-    const time = await getPasswordExpirationTime()
-    expirationTime.value = time
-  } catch (error) {
-    console.error('获取密码过期时间失败:', error)
-  }
-}
 
 /**
  * 显示状态消息
@@ -289,14 +276,5 @@ const handleEmailSend = async () => {
 }
 
 
-// 初始化
-onMounted(() => {
-  updateExpirationTime()
-
-  // 每分钟更新一次过期时间
-  const interval = setInterval(updateExpirationTime, 60000)
-
-  // 组件卸载时清除定时器
-  return () => clearInterval(interval)
-})
+// 初始化完成
 </script>
