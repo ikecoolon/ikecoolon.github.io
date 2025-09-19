@@ -84,8 +84,8 @@ app.post('/api/send-password-email', async (req, res) => {
       });
     }
 
-    // 后端内部获取当前密码
-    const currentPassword = getCurrentPasswordInternal();
+    // 后端内部获取该邮箱的密码
+    const currentPassword = getCurrentPasswordForEmail(email);
     if (!currentPassword) {
       return res.status(500).json({
         success: false,
@@ -188,49 +188,68 @@ function savePasswordConfig(config) {
 
 /**
  * 初始化或更新密码配置
+ * 现在支持多邮箱，每个邮箱有独立的密码
  */
 function initializePasswordConfig() {
   const now = new Date();
   const nextUpdateTime = new Date(now.getTime() + 60 * 60 * 1000); // 默认1小时后更新
 
   return {
-    currentPassword: generateStrongPassword(),
+    // 改为邮箱-密码映射
+    emailPasswords: {}, // { email: { password, lastUpdated, expiresAt } }
     lastUpdated: now.toISOString(),
     updateInterval: 60, // 60分钟
-    nextUpdateTime: nextUpdateTime.toISOString(),
-    email: '52282858@qq.com',
     enabled: true
   };
 }
 
 /**
- * 检查密码是否需要更新
+ * 检查邮箱密码是否需要更新
  * @param {object} config - 密码配置
+ * @param {string} email - 邮箱地址
  * @returns {boolean} 是否需要更新
  */
-function shouldUpdatePassword(config) {
+function shouldUpdatePassword(config, email) {
   if (!config.enabled) return false;
 
-  const now = new Date();
-  const nextUpdate = new Date(config.nextUpdateTime);
+  // 确保 emailPasswords 对象存在
+  if (!config.emailPasswords) {
+    console.log('⚠️ emailPasswords 不存在，需要初始化');
+    return true; // 如果没有 emailPasswords，需要生成
+  }
 
-  return now >= nextUpdate;
+  const emailData = config.emailPasswords[email];
+  if (!emailData) return true; // 如果邮箱没有密码，需要生成
+
+  const now = new Date();
+  const expiresAt = new Date(emailData.expiresAt);
+
+  return now >= expiresAt;
 }
 
 /**
- * 更新密码
+ * 为邮箱生成或更新密码
  * @param {object} config - 当前配置
+ * @param {string} email - 邮箱地址
  * @returns {object} 更新后的配置
  */
-function updatePassword(config) {
+function generatePasswordForEmail(config, email) {
   const now = new Date();
-  const nextUpdateTime = new Date(now.getTime() + config.updateInterval * 60 * 1000);
+  const expiresAt = new Date(now.getTime() + config.updateInterval * 60 * 1000);
+
+  const emailData = {
+    password: generateStrongPassword(),
+    lastUpdated: now.toISOString(),
+    expiresAt: expiresAt.toISOString()
+  };
 
   return {
     ...config,
-    currentPassword: generateStrongPassword(),
-    lastUpdated: now.toISOString(),
-    nextUpdateTime: nextUpdateTime.toISOString()
+    emailPasswords: {
+      ...(config.emailPasswords || {}),
+      [email]: emailData
+    },
+    lastUpdated: now.toISOString()
   };
 }
 
@@ -282,24 +301,32 @@ function writeDataFile(filename, data) {
 // ==================== 密码管理功能 ====================
 
 /**
- * 内部获取当前密码（仅后端使用）
+ * 内部获取邮箱当前密码（仅后端使用）
+ * @param {string} email - 邮箱地址
  * @returns {string|null} 当前密码
  */
-function getCurrentPasswordInternal() {
+function getCurrentPasswordForEmail(email) {
   try {
     let config = loadPasswordConfig();
 
-    // 如果配置不存在或密码需要更新，则初始化/更新配置
-    if (!config || shouldUpdatePassword(config)) {
-      config = config ? updatePassword(config) : initializePasswordConfig();
+    // 如果配置不存在，初始化配置
+    if (!config) {
+      config = initializePasswordConfig();
       savePasswordConfig(config);
-
-      console.log('🔄 密码已更新:', config.currentPassword);
     }
 
-    return config.currentPassword;
+    // 如果邮箱密码不存在或过期，生成新密码
+    if (shouldUpdatePassword(config, email)) {
+      config = generatePasswordForEmail(config, email);
+      savePasswordConfig(config);
+
+      console.log(`🔄 为邮箱 ${email} 生成新密码:`, config.emailPasswords[email]?.password);
+    }
+
+    // 确保 emailPasswords 对象存在后再访问
+    return config.emailPasswords?.[email]?.password || null;
   } catch (error) {
-    console.error('获取当前密码失败:', error);
+    console.error('获取邮箱密码失败:', error);
     return null;
   }
 }
@@ -419,13 +446,27 @@ app.get('/api/auth/password-config', (req, res) => {
   try {
     let config = loadPasswordConfig();
 
-    // 如果配置不存在或密码需要更新，则初始化/更新配置
-    if (!config || shouldUpdatePassword(config)) {
-      config = config ? updatePassword(config) : initializePasswordConfig();
+    // 如果配置不存在，初始化配置
+    if (!config) {
+      config = initializePasswordConfig();
       savePasswordConfig(config);
-
-      console.log('🔄 密码已更新:', config.currentPassword);
     }
+
+    // 计算最早的密码过期时间
+    let earliestExpiry = null;
+    const now = new Date();
+    const emailPasswordsObj = config.emailPasswords || {};
+
+    for (const email in emailPasswordsObj) {
+      const emailData = emailPasswordsObj[email];
+      const expiresAt = new Date(emailData.expiresAt);
+      if (!earliestExpiry || expiresAt < earliestExpiry) {
+        earliestExpiry = expiresAt;
+      }
+    }
+
+    const timeUntilExpiry = earliestExpiry ?
+      Math.max(0, Math.floor((earliestExpiry - now) / 1000)) : 0;
 
     // 返回密码配置（不包含实际密码，只返回元数据）
     res.json({
@@ -433,11 +474,9 @@ app.get('/api/auth/password-config', (req, res) => {
       data: {
         lastUpdated: config.lastUpdated,
         updateInterval: config.updateInterval,
-        nextUpdateTime: config.nextUpdateTime,
-        email: config.email,
         enabled: config.enabled,
-        // 计算密码过期剩余时间（秒）
-        timeUntilExpiry: Math.max(0, Math.floor((new Date(config.nextUpdateTime) - new Date()) / 1000))
+        emailCount: Object.keys(emailPasswordsObj).length,
+        timeUntilExpiry: timeUntilExpiry
       }
     });
   } catch (error) {
@@ -455,7 +494,7 @@ app.get('/api/auth/password-config', (req, res) => {
  */
 app.post('/api/auth/verify-password', async (req, res) => {
   try {
-    const { password } = req.body;
+    const { password, email } = req.body;
 
     if (!password) {
       return res.status(400).json({
@@ -466,22 +505,46 @@ app.post('/api/auth/verify-password', async (req, res) => {
 
     let config = loadPasswordConfig();
 
-    // 如果配置不存在或密码需要更新，则初始化/更新配置
-    if (!config || shouldUpdatePassword(config)) {
-      config = config ? updatePassword(config) : initializePasswordConfig();
+    // 如果配置不存在，初始化配置
+    if (!config) {
+      config = initializePasswordConfig();
       savePasswordConfig(config);
     }
 
-    // 验证密码
-    const isValid = password === config.currentPassword;
+    // 获取用户提供的邮箱（如果前端没有提供，使用默认邮箱）
+    const loginEmail = email || config.email || '52282858@qq.com';
+
+    // 验证邮箱是否在白名单中
+    if (!isEmailWhitelisted(loginEmail)) {
+      return res.status(403).json({
+        success: false,
+        message: '该邮箱不在白名单中，无法登录'
+      });
+    }
+
+    // 获取该邮箱的密码
+    const emailPassword = getCurrentPasswordForEmail(loginEmail);
+
+    // 验证密码和邮箱的匹配
+    const isValid = password === emailPassword;
 
     if (isValid) {
+      // 使用验证通过的邮箱
+      const userEmail = loginEmail;
+
+      // 基于邮箱判断用户权限
+      const isAdmin = userEmail.toLowerCase() === 'ikecoolon@hotmail.com';
+      const userRole = isAdmin ? 'admin' : 'viewer';
+      const userPermissions = isAdmin ? ['dashboard', 'ministry', 'activity', 'camp', 'settings'] : ['dashboard'];
+
       // 生成JWT token
       const token = jwt.sign(
         {
-          userId: 'admin',
-          username: 'admin',
-          role: 'admin',
+          userId: userEmail,
+          username: isAdmin ? '管理员' : '访客',
+          email: userEmail,
+          role: userRole,
+          permissions: userPermissions,
           iat: Math.floor(Date.now() / 1000)
         },
         JWT_SECRET,
@@ -493,10 +556,11 @@ app.post('/api/auth/verify-password', async (req, res) => {
         message: '密码验证成功',
         token: token,
         user: {
-          id: 'admin',
-          username: 'admin',
-          email: config.email,
-          role: 'admin'
+          id: userEmail,
+          username: isAdmin ? '管理员' : '访客',
+          email: userEmail,
+          role: userRole,
+          permissions: userPermissions
         }
       });
     } else {
@@ -531,6 +595,7 @@ app.post('/api/auth/verify-token', (req, res) => {
 
     // 验证JWT token
     const decoded = jwt.verify(token, JWT_SECRET);
+
 
     res.json({
       success: true,
@@ -568,19 +633,49 @@ app.get('/api/auth/current-password', (req, res) => {
       });
     }
 
+    const { email } = req.query;
+
     let config = loadPasswordConfig();
 
-    if (!config || shouldUpdatePassword(config)) {
-      config = config ? updatePassword(config) : initializePasswordConfig();
+    // 如果配置不存在，初始化配置
+    if (!config) {
+      config = initializePasswordConfig();
       savePasswordConfig(config);
     }
 
-    res.json({
-      success: true,
-      password: config.currentPassword,
-      lastUpdated: config.lastUpdated,
-      timeUntilExpiry: Math.max(0, Math.floor((new Date(config.nextUpdateTime) - new Date()) / 1000))
-    });
+    if (email) {
+      // 获取特定邮箱的密码
+      const password = getCurrentPasswordForEmail(email);
+      const emailData = config.emailPasswords?.[email];
+
+      res.json({
+        success: true,
+        email: email,
+        password: password,
+        lastUpdated: emailData?.lastUpdated,
+        expiresAt: emailData?.expiresAt,
+        timeUntilExpiry: emailData ? Math.max(0, Math.floor((new Date(emailData.expiresAt) - new Date()) / 1000)) : 0
+      });
+    } else {
+      // 获取所有邮箱的密码信息
+      const emailPasswords = {};
+      const emailPasswordsObj = config.emailPasswords || {};
+
+      for (const emailAddr in emailPasswordsObj) {
+        const emailData = emailPasswordsObj[emailAddr];
+        emailPasswords[emailAddr] = {
+          password: emailData.password,
+          lastUpdated: emailData.lastUpdated,
+          expiresAt: emailData.expiresAt
+        };
+      }
+
+      res.json({
+        success: true,
+        emailPasswords: emailPasswords,
+        totalEmails: Object.keys(emailPasswordsObj).length
+      });
+    }
   } catch (error) {
     console.error('获取当前密码失败:', error);
     res.status(500).json({
@@ -596,24 +691,52 @@ app.get('/api/auth/current-password', (req, res) => {
  */
 app.post('/api/auth/refresh-password', (req, res) => {
   try {
+    const { email } = req.body;
+
     let config = loadPasswordConfig();
 
     if (!config) {
       config = initializePasswordConfig();
-    } else {
-      config = updatePassword(config);
     }
 
-    savePasswordConfig(config);
+    if (email) {
+      // 刷新特定邮箱的密码
+      if (!isEmailWhitelisted(email)) {
+        return res.status(403).json({
+          success: false,
+          message: '该邮箱不在白名单中，无法刷新密码'
+        });
+      }
 
-    console.log('🔄 密码已手动刷新:', config.currentPassword);
+      config = generatePasswordForEmail(config, email);
+      savePasswordConfig(config);
 
-    res.json({
-      success: true,
-      message: '密码已刷新',
-      lastUpdated: config.lastUpdated,
-      nextUpdateTime: config.nextUpdateTime
-    });
+      console.log(`🔄 邮箱 ${email} 密码已手动刷新:`, config.emailPasswords?.[email]?.password);
+
+      res.json({
+        success: true,
+        message: `邮箱 ${email} 密码已刷新`,
+        email: email,
+        lastUpdated: config.emailPasswords?.[email]?.lastUpdated,
+        expiresAt: config.emailPasswords?.[email]?.expiresAt
+      });
+    } else {
+      // 刷新所有邮箱的密码（保留原有的邮箱列表）
+      const existingEmails = Object.keys(config.emailPasswords || {});
+      for (const emailAddr of existingEmails) {
+        config = generatePasswordForEmail(config, emailAddr);
+      }
+      savePasswordConfig(config);
+
+      console.log('🔄 所有邮箱密码已手动刷新');
+
+      res.json({
+        success: true,
+        message: '所有邮箱密码已刷新',
+        refreshedEmails: existingEmails.length,
+        lastUpdated: config.lastUpdated
+      });
+    }
   } catch (error) {
     console.error('刷新密码失败:', error);
     res.status(500).json({

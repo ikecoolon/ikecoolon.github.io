@@ -49,7 +49,7 @@
 
 
         <!-- 日历区域 -->
-        <div class="lg:col-span-2">
+        <div class="lg:col-span-1">
           <a-card :title="calendarTitle" :loading="loading" size="small">
             <!-- 营会视图 -->
             <div class="calendar-camp">
@@ -335,10 +335,9 @@ const selectedDate = computed(() => dashboardStore.selectedDate)
 const calendarTitle = computed(() => {
   if (!selectedCamp.value) return '活动日程()'
 
-  const campName = selectedCamp.value.name
   const timeRange = campTimeRange.value
 
-  return `活动日程 - ${campName}(${timeRange})`
+  return `活动日程 - (${timeRange})`
 })
 // 营会相关计算属性
 const selectedCamp = computed(() => {

@@ -28,35 +28,35 @@
       <!-- 菜单 -->
       <a-menu v-model:selectedKeys="selectedKeys" v-model:openKeys="openKeys" mode="inline" :inline-collapsed="collapsed"
         theme="dark" class="bg-transparent border-0 mt-8px" @click="handleMenuClick">
-        <a-menu-item key="dashboard">
+        <a-menu-item key="dashboard" v-if="hasPermission('dashboard')">
           <template #icon>
             <i class="i-carbon:dashboard text-18px" />
           </template>
           <span>总览</span>
         </a-menu-item>
 
-        <a-menu-item key="ministry" v-if="isAuthenticated">
+        <a-menu-item key="ministry" v-if="hasPermission('ministry')">
           <template #icon>
             <i class="i-carbon:group text-18px" />
           </template>
           <span>服侍者</span>
         </a-menu-item>
 
-        <a-menu-item key="activity" v-if="isAuthenticated">
+        <a-menu-item key="activity" v-if="hasPermission('activity')">
           <template #icon>
             <i class="i-carbon:calendar text-18px" />
           </template>
           <span>活动管理</span>
         </a-menu-item>
 
-        <a-menu-item key="camp" v-if="isAuthenticated">
+        <a-menu-item key="camp" v-if="hasPermission('camp')">
           <template #icon>
             <i class="i-carbon:campsite text-18px" />
           </template>
           <span>营会管理</span>
         </a-menu-item>
 
-        <a-menu-item key="settings" v-if="isAuthenticated">
+        <a-menu-item key="settings" v-if="hasPermission('settings')">
           <template #icon>
             <i class="i-carbon:settings text-18px" />
           </template>
@@ -166,6 +166,12 @@ const authInitialized = ref(false)
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const user = computed(() => authStore.user)
 
+// 权限检查函数
+const hasPermission = (permission: string) => {
+  const userPermissions = user.value?.permissions || []
+  return userPermissions.includes(permission)
+}
+
 const currentPageTitle = computed(() => {
   return route.meta?.title as string || ''
 })
@@ -220,7 +226,7 @@ const handleUserMenuClick = ({ key }: { key: string }) => {
       onOk() {
         authStore.logout()
         message.success('已退出登录')
-        router.push('/dashboard')
+        router.push('/login')
       }
     })
   } else if (key === 'profile') {

@@ -35,6 +35,19 @@
         >
           <!-- 密码登录模式 -->
           <template v-if="loginMode === 'password'">
+            <a-form-item label="邮箱地址" name="email">
+              <a-input
+                v-model:value="formData.email"
+                size="large"
+                placeholder="请输入邮箱地址"
+                :disabled="loading"
+              >
+                <template #prefix>
+                  <i class="i-carbon:email text-gray-400" />
+                </template>
+              </a-input>
+            </a-form-item>
+
             <a-form-item label="访问密码" name="password">
               <a-input-password
                 v-model:value="formData.password"
@@ -149,6 +162,19 @@ const formData = reactive({
 
 // 表单验证规则
 const passwordRules: Record<string, Rule[]> = {
+  email: [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    {
+      validator: (_, value) => {
+        if (!value) return Promise.resolve()
+        if (!validateEmailFormat(value)) {
+          return Promise.reject('请输入正确的邮箱格式')
+        }
+        return Promise.resolve()
+      },
+      trigger: 'blur'
+    }
+  ],
   password: [
     { required: true, message: '请输入访问密码', trigger: 'blur' },
     { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
@@ -227,8 +253,8 @@ const handleSubmit = async () => {
  * 处理密码登录
  */
 const handlePasswordLogin = async () => {
-  // 执行登录
-  const success = await authStore.login(formData.password)
+  // 执行登录，传递邮箱信息
+  const success = await authStore.login(formData.password, formData.email)
 
   if (success) {
     message.success('登录成功')
@@ -237,7 +263,7 @@ const handlePasswordLogin = async () => {
     const redirectPath = route.query.redirect as string || '/dashboard'
     router.push(redirectPath)
   } else {
-    showStatusMessage('密码错误，请重试', 'error')
+    showStatusMessage('密码错误或邮箱无效，请重试', 'error')
     formData.password = ''
   }
 }
@@ -246,6 +272,12 @@ const handlePasswordLogin = async () => {
  * 处理邮箱发送
  */
 const handleEmailSend = async () => {
+  // 调试信息
+  console.log('📧 发送密码邮件请求:', {
+    email: formData.email,
+    loginMode: loginMode.value
+  })
+
   const result = await sendPasswordToEmail(formData.email)
 
   if (result.success) {

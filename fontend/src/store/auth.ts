@@ -18,11 +18,12 @@ export const useAuthStore = defineStore('auth', () => {
   /**
    * 登录
    * @param password 密码
+   * @param email 可选的邮箱地址
    */
-  const login = async (password: string): Promise<boolean> => {
+  const login = async (password: string, email?: string): Promise<boolean> => {
     try {
       // 调用后端API验证密码
-      const result = await authAPI.verifyPassword(password)
+      const result = await authAPI.verifyPassword(password, email)
 
       if (result.success) {
         token.value = result.token
@@ -67,9 +68,24 @@ export const useAuthStore = defineStore('auth', () => {
         const result = await authAPI.verifyToken(savedToken)
         if (result.success) {
           token.value = savedToken
-          user.value = JSON.parse(savedUser)
+          // 使用JWT token中的用户信息，而不是localStorage中的旧信息
+          user.value = {
+            id: result.user.userId,
+            username: result.user.username,
+            email: result.user.email,
+            role: result.user.role,
+            permissions: result.user.permissions
+          }
           authVerified.value = true // 标记认证已验证
-          console.log('✅ Token验证成功，从本地存储恢复登录状态')
+
+          // 更新localStorage中的用户信息
+          localStorage.setItem('user_info', JSON.stringify(user.value))
+
+          console.log('✅ Token验证成功，从JWT token恢复登录状态:', {
+            email: user.value.email,
+            role: user.value.role,
+            permissions: user.value.permissions
+          })
         } else {
           // Token无效，清除本地存储
           console.warn('❌ Token已过期，清除本地认证状态')

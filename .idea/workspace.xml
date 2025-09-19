@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新正常范围配置" />
+    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新正常范围配置">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/fontend/public/json/participants.json" beforeDir="false" afterPath="$PROJECT_DIR$/fontend/public/json/participants.json" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -141,7 +144,7 @@
       <workItem from="1758074574119" duration="630000" />
       <workItem from="1758078582993" duration="1248000" />
       <workItem from="1758161195773" duration="2881000" />
-      <workItem from="1758247112406" duration="479000" />
+      <workItem from="1758247112406" duration="1563000" />
     </task>
     <task id="LOCAL-00001" summary="更新脚本">
       <created>1694153698121</created>

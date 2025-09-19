@@ -6,9 +6,10 @@ export interface User {
   id: string
   username: string
   email: string
-  role: 'admin' | 'user'
+  role: 'admin' | 'viewer'
+  permissions: string[]
   avatar?: string
   phone?: string
-  createdAt: Date
+  createdAt?: Date
   updatedAt?: Date
 }

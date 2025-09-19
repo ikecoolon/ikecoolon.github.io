@@ -17,7 +17,8 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/view/dashboard/index.vue'),
         meta: {
           title: '总览',
-          icon: 'dashboard'
+          icon: 'dashboard',
+          permissions: ['dashboard'] // 所有用户都可以访问总览
         }
       },
       {
@@ -26,7 +27,8 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/view/ministry/index.vue'),
         meta: {
           title: '服侍者',
-          icon: 'team'
+          icon: 'team',
+          permissions: ['ministry'] // 需要ministry权限
         }
       },
       {
@@ -35,7 +37,8 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/view/activity/index.vue'),
         meta: {
           title: '活动管理',
-          icon: 'calendar'
+          icon: 'calendar',
+          permissions: ['activity'] // 需要activity权限
         }
       },
       {
@@ -44,7 +47,8 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/view/camp/index.vue'),
         meta: {
           title: '营会管理',
-          icon: 'campsite'
+          icon: 'campsite',
+          permissions: ['camp'] // 需要camp权限
         }
       },
       {
@@ -53,7 +57,8 @@ const routes: Array<RouteRecordRaw> = [
         component: () => import('@/view/settings/index.vue'),
         meta: {
           title: '系统设置',
-          icon: 'setting'
+          icon: 'setting',
+          permissions: ['settings'] // 需要settings权限
         }
       }
     ]
@@ -87,9 +92,9 @@ const router = createRouter({
 })
 
 /**
- * 路由守卫 - 密码验证
+ * 路由守卫 - 密码验证和权限控制
  */
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
 
   // 设置页面标题
@@ -125,6 +130,24 @@ router.beforeEach(async (to, from, next) => {
       query: { redirect: to.fullPath }
     })
     return
+  }
+
+  // 权限检查
+  const requiredPermissions = to.meta?.permissions as string[]
+  if (requiredPermissions && requiredPermissions.length > 0) {
+    const userPermissions = authStore.user?.permissions || []
+
+    // 检查用户是否拥有所需权限
+    const hasPermission = requiredPermissions.some(permission =>
+      userPermissions.includes(permission)
+    )
+
+    if (!hasPermission) {
+      // 无权限访问，跳转到总览页面
+      console.warn(`用户无权限访问 ${to.path}，跳转到总览页面`)
+      next({ name: 'Dashboard' })
+      return
+    }
   }
 
   next()

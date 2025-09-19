@@ -402,14 +402,19 @@ const authAPI = {
   /**
    * 验证密码
    */
-  async verifyPassword(password: string) {
+  async verifyPassword(password: string, email?: string) {
     try {
+      const requestBody: any = { password }
+      if (email) {
+        requestBody.email = email
+      }
+
       const response = await fetch(`${BACKEND_URL}/api/auth/verify-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ password })
+        body: JSON.stringify(requestBody)
       })
 
       const data = await response.json()
