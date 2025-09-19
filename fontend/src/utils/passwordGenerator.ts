@@ -309,11 +309,6 @@ export const getPasswordExpirationTime = async (): Promise<number> => {
       return 0
     }
 
-    console.log('计算密码过期时间:', {
-      lastUpdated: config.lastUpdated,
-      nextUpdateTime: config.nextUpdateTime,
-      updateInterval: config.updateInterval
-    })
 
     const now = new Date()
     const expirationTime = new Date(config.nextUpdateTime)
@@ -327,12 +322,6 @@ export const getPasswordExpirationTime = async (): Promise<number> => {
     const remainingMs = expirationTime.getTime() - now.getTime()
     const remainingMinutes = Math.max(0, Math.ceil(remainingMs / (1000 * 60)))
 
-    console.log('密码过期时间计算结果:', {
-      now: now.toISOString(),
-      expirationTime: expirationTime.toISOString(),
-      remainingMs,
-      remainingMinutes
-    })
 
     return remainingMinutes
   } catch (error) {

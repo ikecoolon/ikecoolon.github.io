@@ -259,12 +259,6 @@ const handlePasswordLogin = async () => {
  * 处理邮箱发送
  */
 const handleEmailSend = async () => {
-  // 调试信息
-  console.log('📧 发送密码邮件请求:', {
-    email: formData.email,
-    loginMode: loginMode.value
-  })
-
   const result = await sendPasswordToEmail(formData.email)
 
   if (result.success) {
