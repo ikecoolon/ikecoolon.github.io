@@ -18,7 +18,9 @@ export default defineConfig({
       extraProperties: {
         display: 'inline-block',
         'vertical-align': 'middle'
-      }
+      },
+      // 确保图标在生产环境下正确显示
+      warn: false
     })
   ],
   safelist: [
@@ -43,7 +45,40 @@ export default defineConfig({
     'ant-input',
     'ant-select',
     'ant-card',
-    'ant-table'
+    'ant-table',
+    // 图标类名 - 确保生产环境下图标不被 tree-shaking 移除
+    'i-carbon-arrow-left',
+    'i-carbon-add',
+    'i-carbon-calendar',
+    'i-carbon-location',
+    'i-carbon-edit',
+    'i-carbon-trash-can',
+    'i-carbon-campsite',
+    'i-carbon-group',
+    'i-carbon-time',
+    'i-carbon-overflow-menu-horizontal',
+    'i-carbon-email',
+    'i-carbon-password',
+    'i-carbon-login',
+    'i-carbon-send',
+    'i-carbon-information',
+    'i-carbon-checkmark-outline',
+    'i-carbon-warning',
+    'i-carbon-refresh',
+    'i-carbon-camp',
+    'i-carbon-dashboard',
+    'i-carbon-settings',
+    'i-carbon-collapse-categories',
+    'i-carbon-menu',
+    'i-carbon-home',
+    'i-carbon-user',
+    'i-carbon-chevron-down',
+    'i-carbon-logout',
+    'i-carbon-sun',
+    'i-carbon-moon',
+    'i-carbon-task',
+    'i-carbon-phone',
+    'i-carbon-warning-hex'
   ],
   shortcuts: [
     // 常用布局类
