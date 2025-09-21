@@ -4,27 +4,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新正常范围配置">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/data/auth.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/data/auth.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/BasicLayout-ec5dc402.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-01fb81ac.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-2b70bb34.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-32a6c413.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-38dcd954.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-7b64e3f4.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-b89cb239.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-f796f93b.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-fcfa83c9.js" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/index.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/json/camp-duties.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/json/camp-duties.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/json/camp.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/json/camp.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/dist/json/participants.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/json/participants.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/public/json/camp-duties.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/json/camp-duties.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/public/json/camp.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/json/camp.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/public/json/participants.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/json/participants.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/view/camp/index.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/view/camp/index.vue" afterDir="false" />
-    </list>
+    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新职责管理功能，添加新职责和参与者信息&#10;&#10;- 更新 camp.json，添加多个新职责 ID，确保数据一致性&#10;- 更新 camp-duties.json，新增多个职责条目，包含详细的时间范围和分配信息&#10;- 更新 participants.json，添加新参与者信息，确保参与者数据完整&#10;- 修改 index.vue，优化职责表单逻辑，调整时间范围处理方式，提升用户体验" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -163,7 +143,7 @@
       <workItem from="1758078582993" duration="1248000" />
       <workItem from="1758161195773" duration="2881000" />
       <workItem from="1758247112406" duration="3235000" />
-      <workItem from="1758465772913" duration="650000" />
+      <workItem from="1758465772913" duration="794000" />
     </task>
     <task id="LOCAL-00001" summary="更新脚本">
       <created>1694153698121</created>
@@ -263,7 +243,23 @@
       <option name="project" value="LOCAL" />
       <updated>1758465831767</updated>
     </task>
-    <option name="localTasksCounter" value="14" />
+    <task id="LOCAL-00014" summary="更新职责管理功能，添加新职责和参与者信息&#10;&#10;- 更新 camp.json，添加多个新职责 ID，确保数据一致性&#10;- 更新 camp-duties.json，新增多个职责条目，包含详细的时间范围和分配信息&#10;- 更新 participants.json，添加新参与者信息，确保参与者数据完整&#10;- 修改 index.vue，优化职责表单逻辑，调整时间范围处理方式，提升用户体验">
+      <option name="closed" value="true" />
+      <created>1758466810827</created>
+      <option name="number" value="00014" />
+      <option name="presentableId" value="LOCAL-00014" />
+      <option name="project" value="LOCAL" />
+      <updated>1758466810827</updated>
+    </task>
+    <task id="LOCAL-00015" summary="更新职责管理功能，添加新职责和参与者信息&#10;&#10;- 更新 camp.json，添加多个新职责 ID，确保数据一致性&#10;- 更新 camp-duties.json，新增多个职责条目，包含详细的时间范围和分配信息&#10;- 更新 participants.json，添加新参与者信息，确保参与者数据完整&#10;- 修改 index.vue，优化职责表单逻辑，调整时间范围处理方式，提升用户体验">
+      <option name="closed" value="true" />
+      <created>1758466835590</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1758466835590</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -322,8 +318,9 @@
     <MESSAGE value="更新脚本命名，使其语义化更明确" />
     <MESSAGE value="重新提交必要文件" />
     <MESSAGE value="更新前后端系统" />
-    <MESSAGE value="更新正常范围配置" />
     <MESSAGE value="修复前端路径错误，更新数据文件，优化活动和参与者信息&#10;&#10;- 修改 server.js 中的前端数据文件路径，确保正确引用&#10;- 删除不再使用的 camp-duties.json 和 camp.json 文件&#10;- 更新 activities.json 和 participants.json 文件，添加新参与者信息和活动细节&#10;- 在 camp.json 中添加新的职责 ID，确保数据一致性&#10;- 优化职责管理界面，提升用户体验" />
-    <option name="LAST_COMMIT_MESSAGE" value="修复前端路径错误，更新数据文件，优化活动和参与者信息&#10;&#10;- 修改 server.js 中的前端数据文件路径，确保正确引用&#10;- 删除不再使用的 camp-duties.json 和 camp.json 文件&#10;- 更新 activities.json 和 participants.json 文件，添加新参与者信息和活动细节&#10;- 在 camp.json 中添加新的职责 ID，确保数据一致性&#10;- 优化职责管理界面，提升用户体验" />
+    <MESSAGE value="更新正常范围配置" />
+    <MESSAGE value="更新职责管理功能，添加新职责和参与者信息&#10;&#10;- 更新 camp.json，添加多个新职责 ID，确保数据一致性&#10;- 更新 camp-duties.json，新增多个职责条目，包含详细的时间范围和分配信息&#10;- 更新 participants.json，添加新参与者信息，确保参与者数据完整&#10;- 修改 index.vue，优化职责表单逻辑，调整时间范围处理方式，提升用户体验" />
+    <option name="LAST_COMMIT_MESSAGE" value="更新职责管理功能，添加新职责和参与者信息&#10;&#10;- 更新 camp.json，添加多个新职责 ID，确保数据一致性&#10;- 更新 camp-duties.json，新增多个职责条目，包含详细的时间范围和分配信息&#10;- 更新 participants.json，添加新参与者信息，确保参与者数据完整&#10;- 修改 index.vue，优化职责表单逻辑，调整时间范围处理方式，提升用户体验" />
   </component>
 </project>
