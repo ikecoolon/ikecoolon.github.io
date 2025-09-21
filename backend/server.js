@@ -28,7 +28,7 @@ const PASSWORD_CONFIG_PATH = path.join(__dirname, 'data', 'auth.json');
 const EMAIL_WHITELIST_PATH = path.join(__dirname, 'data', 'email-whitelist.json');
 
 // 前端数据文件路径
-const FRONTEND_DATA_PATH = path.join(__dirname, '..', 'fontend', 'public', 'json');
+const FRONTEND_DATA_PATH = path.join(__dirname, '..', 'frontend', 'public', 'json');
 console.log('📁 前端数据文件路径:', FRONTEND_DATA_PATH);
 
 // 确保数据目录存在

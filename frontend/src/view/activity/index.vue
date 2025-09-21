@@ -40,9 +40,10 @@
       
       <a-table
         :columns="columns"
-        :data-source="filteredActivities"
-        :pagination="{ pageSize: 10, showSizeChanger: true, showQuickJumper: true }"
+        :data-source="paginatedActivities"
+        :pagination="pagination"
         row-key="id"
+        @change="handleTableChange"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'title'">
@@ -395,11 +396,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import type { FormInstance, Rule } from 'ant-design-vue/es/form'
 import type { TableColumnProps } from 'ant-design-vue'
 import dayjs, { type Dayjs } from 'dayjs'
+import { useRoute, useRouter } from 'vue-router'
 import { useActivityStore } from '@/store/activity'
 import { useMinistryStore } from '@/store/ministry'
 import { useCampStore } from '@/store/camp'
@@ -413,6 +415,10 @@ import type { Activity, ActivityPhase } from '@/types/activity'
 const activityStore = useActivityStore()
 const ministryStore = useMinistryStore()
 const campStore = useCampStore()
+
+// 路由管理
+const route = useRoute()
+const router = useRouter()
 
 // 响应式状态
 const loading = ref(false)
@@ -431,6 +437,16 @@ const viewMode = ref<'list' | 'detail'>('list')
 const showPhaseModal = ref(false)
 const editingPhase = ref<ActivityPhase | null>(null)
 const phaseFormRef = ref<FormInstance>()
+
+// 分页状态
+const pagination = reactive({
+  current: 1,
+  pageSize: 10,
+  total: 0,
+  showSizeChanger: true,
+  showQuickJumper: true,
+  showTotal: (total: number, range: [number, number]) => `第 ${range[0]}-${range[1]} 条，共 ${total} 条`
+})
 
 // 计算属性
 const activities = computed(() => activityStore.activities)
@@ -453,6 +469,12 @@ const filteredActivities = computed(() => {
   result.sort((a, b) => dayjs(b.startTime).valueOf() - dayjs(a.startTime).valueOf())
 
   return result
+})
+
+const paginatedActivities = computed(() => {
+  const start = (pagination.current - 1) * pagination.pageSize
+  const end = start + pagination.pageSize
+  return filteredActivities.value.slice(start, end)
 })
 
 const memberOptions = computed(() =>
@@ -564,6 +586,78 @@ const filterMemberOption = (input: string, option: any) => {
 }
 
 /**
+ * 更新URL参数
+ */
+const updateUrlParams = () => {
+  const query = { ...route.query }
+
+  // 更新分页参数
+  if (pagination.current > 1) {
+    query.page = pagination.current.toString()
+  } else {
+    delete query.page
+  }
+
+  if (pagination.pageSize !== 10) {
+    query.pageSize = pagination.pageSize.toString()
+  } else {
+    delete query.pageSize
+  }
+
+  // 更新搜索参数
+  if (searchText.value) {
+    query.search = searchText.value
+  } else {
+    delete query.search
+  }
+
+  // 只有当参数发生变化时才更新路由
+  const currentQuery = { ...route.query }
+  const hasChanges = JSON.stringify(query) !== JSON.stringify(currentQuery)
+
+  if (hasChanges) {
+    router.replace({ query })
+  }
+}
+
+/**
+ * 从URL参数初始化状态
+ */
+const initFromUrlParams = () => {
+  const query = route.query
+
+  // 初始化分页参数
+  if (query.page) {
+    const page = parseInt(query.page as string, 10)
+    if (!isNaN(page) && page > 0) {
+      pagination.current = page
+    }
+  }
+
+  if (query.pageSize) {
+    const pageSize = parseInt(query.pageSize as string, 10)
+    if (!isNaN(pageSize) && [10, 20, 50, 100].includes(pageSize)) {
+      pagination.pageSize = pageSize
+    }
+  }
+
+  // 初始化搜索参数
+  if (query.search) {
+    searchText.value = query.search as string
+  }
+}
+
+/**
+ * 处理表格变化（分页、排序等）
+ */
+const handleTableChange = (pag: any) => {
+  pagination.current = pag.current
+  pagination.pageSize = pag.pageSize
+  pagination.total = filteredActivities.value.length
+  updateUrlParams()
+}
+
+/**
  * 查看活动详情
  */
 const handleViewDetail = (activity: Activity) => {
@@ -594,6 +688,9 @@ const showAddDetail = () => {
  * 进入详情视图（编辑）
  */
 const showEditDetail = (activity: Activity) => {
+  // 保存当前分页参数到URL，以便编辑完成后返回时保持位置
+  updateUrlParams()
+
   viewMode.value = 'detail'
   editingActivity.value = activity
   selectedActivity.value = activity
@@ -851,10 +948,29 @@ const handleCancelPhaseModal = () => {
  * 初始化数据
  */
 onMounted(() => {
+  // 从URL参数初始化分页和搜索状态
+  initFromUrlParams()
+
   Promise.all([
     activityStore.fetchActivities(),
     ministryStore.fetchMembers(),
     campStore.fetchCamps()
-  ])
+  ]).then(() => {
+    // 数据加载完成后更新分页总数
+    pagination.total = filteredActivities.value.length
+  })
+})
+
+// 监听搜索文本变化，更新URL
+watch(searchText, () => {
+  // 重置到第一页
+  pagination.current = 1
+  pagination.total = filteredActivities.value.length
+  updateUrlParams()
+})
+
+// 监听数据变化，更新分页总数
+watch(filteredActivities, () => {
+  pagination.total = filteredActivities.value.length
 })
 </script>

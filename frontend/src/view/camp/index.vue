@@ -299,7 +299,7 @@
                 <a-select-option value="logistics">后勤保障</a-select-option>
                 <a-select-option value="coordination">现场协调</a-select-option>
                 <a-select-option value="support">技术支持</a-select-option>
-                <a-select-option value="childcare">幼儿看护</a-select-option>
+                <a-select-option value="childcare">孩童看护</a-select-option>
               </a-select>
             </a-form-item>
           </a-col>

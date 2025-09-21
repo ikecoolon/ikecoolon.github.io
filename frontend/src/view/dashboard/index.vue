@@ -228,7 +228,7 @@
               <!-- 活动环节 -->
               <div>
                 <div class="text-12px text-gray-500 mb-8px">活动环节 ({{ selectedActivity.phases?.length || 0 }}个)</div>
-                <div class="space-y-12px max-h-300px overflow-y-auto">
+                <div class="space-y-12px max-h-500px overflow-y-auto">
                   <div v-for="(phase, index) in selectedActivity.phases" :key="phase.id"
                     class="p-12px border border-gray-200 rounded-8px bg-gray-50 hover:bg-gray-100 transition-colors">
                     <!-- 环节标题 -->
@@ -287,7 +287,7 @@
         <!-- 职责分配区域 -->
         <div class="lg:col-span-1" style="min-width: 320px;">
           <a-card title="职责分配" size="small">
-            <div class="space-y-12px max-h-400px overflow-y-auto">
+            <div class="space-y-12px  overflow-y-auto">
               <!-- 按类别分组显示职责 -->
               <div v-for="category in dutyCategories" :key="category.key">
                 <div class="flex items-center gap-6px mb-8px">
@@ -307,12 +307,25 @@
                         <div class="text-13px font-500 text-gray-800 mb-4px">{{ duty.title }}</div>
                         <div class="text-11px text-gray-600 leading-1.3 mb-6px">{{ duty.description }}</div>
 
-                        <div class="flex items-center gap-8px text-11px text-gray-500">
-                          <div class="flex items-center gap-2px">
+                        <div class="space-y-4px">
+                          <!-- 负责人信息 -->
+                          <div class="flex items-center gap-2px text-11px text-gray-500">
                             <i class="i-carbon:group" />
-                            <span>{{ duty.assignees.map(a => getMemberName(a.userId)).join('、') }}</span>
+                            <span class="mr-4px">负责人：</span>
                           </div>
-                          <div v-if="duty.timeRange" class="flex items-center gap-2px">
+                          <div class="flex flex-wrap gap-4px">
+                            <div v-for="assignee in duty.assignees" :key="assignee.userId"
+                              class="inline-flex items-center px-4px py-2px bg-blue-50 border border-blue-200 rounded-4px text-10px">
+                              <span class="font-500 text-blue-800 mr-2px">{{ getMemberName(assignee.userId) }}</span>
+                              <span v-if="ministryStore.members.find(m => m.id === assignee.userId)?.phone"
+                                class="text-blue-600">
+                                📞{{ ministryStore.members.find(m => m.id === assignee.userId)?.phone }}
+                              </span>
+                            </div>
+                          </div>
+
+                          <!-- 时间范围 -->
+                          <div v-if="duty.timeRange" class="flex items-center gap-2px text-11px text-gray-500">
                             <i class="i-carbon:time" />
                             <span>{{ formatDate(duty.timeRange.start) }} - {{ formatDate(duty.timeRange.end) }}</span>
                           </div>
@@ -375,7 +388,8 @@ const dutyCategories = [
   { key: 'preparation', label: '准备工作', icon: '📋' },
   { key: 'logistics', label: '后勤保障', icon: '🚛' },
   { key: 'coordination', label: '现场协调', icon: '👥' },
-  { key: 'support', label: '技术支持', icon: '🔧' }
+  { key: 'support', label: '技术支持', icon: '🔧' },
+  { key: 'childcare', label: '孩童看护', icon: '👶' }
 ]
 
 // 计算属性
@@ -659,9 +673,28 @@ const getCategoryDuties = (category: string) => {
 
 /**
  * 获取营会的职责列表（用于模板中的计算）
+ * 根据当前选择的日期过滤职责：
+ * - 如果职责有时间段，只有当选择日期在这个时间段内才显示
+ * - 如果职责没有时间段，表示贯穿整个营会，始终显示
  */
 const getCampDuties = (campId: string) => {
-  return campStore.getCampDuties(campId)
+  const allDuties = campStore.getCampDuties(campId)
+
+  // 如果没有选择营会，直接返回所有职责
+  if (!selectedCampId.value) return allDuties
+
+  // 根据当前选择的日期过滤职责
+  return allDuties.filter(duty => {
+    // 如果职责没有时间段，表示贯穿整个营会，始终显示
+    if (!duty.timeRange) return true
+
+    // 如果有时间段，检查当前选择的日期是否在范围内
+    const selectedDateStr = selectedDate.value.format('YYYY-MM-DD')
+    const startDateStr = dayjs(duty.timeRange.start).format('YYYY-MM-DD')
+    const endDateStr = dayjs(duty.timeRange.end).format('YYYY-MM-DD')
+
+    return selectedDateStr >= startDateStr && selectedDateStr <= endDateStr
+  })
 }
 
 /**
