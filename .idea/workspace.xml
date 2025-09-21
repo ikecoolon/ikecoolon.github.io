@@ -5,10 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新正常范围配置">
-      <change beforePath="$PROJECT_DIR$/backend/data/auth.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/data/auth.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/data/email-whitelist.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/data/email-whitelist.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fontend/unocss.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/fontend/unocss.config.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/fontend/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/fontend/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

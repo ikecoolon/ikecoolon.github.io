@@ -49,7 +49,7 @@
 
 
         <!-- 日历区域 -->
-        <div class="lg:col-span-1">
+        <div class="lg:col-span-1" style="min-width: 320px;">
           <a-card :title="calendarTitle" :loading="loading" size="small">
             <!-- 营会视图 -->
             <div class="calendar-camp">
@@ -179,11 +179,8 @@
 
         </div>
 
-
-        <!-- 详情侧栏 -->
-        <div class="space-y-24px">
-
-          <!-- 活动详情 -->
+        <!-- 活动详情区域 -->
+        <div class="lg:col-span-1" style="min-width: 320px;">
           <a-card title="活动详情" size="small">
 
             <div v-if="selectedActivity" class="space-y-12px">
@@ -285,8 +282,57 @@
               点击活动查看详情
             </div>
           </a-card>
+        </div>
 
+        <!-- 职责分配区域 -->
+        <div class="lg:col-span-1" style="min-width: 320px;">
+          <a-card title="职责分配" size="small">
+            <div class="space-y-12px max-h-400px overflow-y-auto">
+              <!-- 按类别分组显示职责 -->
+              <div v-for="category in dutyCategories" :key="category.key">
+                <div class="flex items-center gap-6px mb-8px">
+                  <span>{{ category.icon }}</span>
+                  <span class="font-500 text-14px">{{ category.label }}</span>
+                  <span class="text-gray-500 text-12px">({{ getCategoryDuties(category.key).length }}项)</span>
+                </div>
 
+                <div class="space-y-6px ml-16px">
+                  <div
+                    v-for="duty in getCategoryDuties(category.key)"
+                    :key="duty.id"
+                    class="p-8px border border-gray-200 rounded-6px bg-gray-50"
+                  >
+                    <div class="flex items-start justify-between">
+                      <div class="flex-1">
+                        <div class="text-13px font-500 text-gray-800 mb-4px">{{ duty.title }}</div>
+                        <div class="text-11px text-gray-600 leading-1.3 mb-6px">{{ duty.description }}</div>
+
+                        <div class="flex items-center gap-8px text-11px text-gray-500">
+                          <div class="flex items-center gap-2px">
+                            <i class="i-carbon:group" />
+                            <span>{{ duty.assignees.map(a => getMemberName(a.userId)).join('、') }}</span>
+                          </div>
+                          <div v-if="duty.timeRange" class="flex items-center gap-2px">
+                            <i class="i-carbon:time" />
+                            <span>{{ formatDate(duty.timeRange.start) }} - {{ formatDate(duty.timeRange.end) }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="getCategoryDuties(category.key).length === 0" class="text-11px text-gray-400 ml-16px py-4px">
+                  暂无{{ category.label }}职责
+                </div>
+              </div>
+
+              <div v-if="getCampDuties(selectedCampId).length === 0" class="text-center py-16px text-gray-400">
+                <i class="i-carbon:group text-20px mb-4px block" />
+                <div class="text-12px">暂无职责分配</div>
+              </div>
+            </div>
+          </a-card>
         </div>
       </div>
       <div v-else>
@@ -323,6 +369,14 @@ const dashboardStore = useDashboardStore()
 const loading = ref(false)
 const selectedActivity = ref<Activity | null>(null)
 const selectedCampId = ref<string>('')
+
+// 职责分类定义
+const dutyCategories = [
+  { key: 'preparation', label: '准备工作', icon: '📋' },
+  { key: 'logistics', label: '后勤保障', icon: '🚛' },
+  { key: 'coordination', label: '现场协调', icon: '👥' },
+  { key: 'support', label: '技术支持', icon: '🔧' }
+]
 
 // 计算属性
 const currentView = computed({
@@ -593,6 +647,21 @@ const handleCampChange = () => {
  */
 const getCampActivityCount = (campId: string) => {
   return activityStore.activities.filter(activity => activity.campId === campId).length
+}
+
+/**
+ * 获取指定类别的职责列表
+ */
+const getCategoryDuties = (category: string) => {
+  const campDuties = getCampDuties(selectedCampId.value)
+  return campDuties.filter(duty => duty.category === category)
+}
+
+/**
+ * 获取营会的职责列表（用于模板中的计算）
+ */
+const getCampDuties = (campId: string) => {
+  return campStore.getCampDuties(campId)
 }
 
 /**
