@@ -4,7 +4,27 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新正常范围配置" />
+    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新正常范围配置">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/data/auth.json" beforeDir="false" afterPath="$PROJECT_DIR$/backend/data/auth.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/BasicLayout-ec5dc402.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-01fb81ac.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-2b70bb34.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-32a6c413.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-38dcd954.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-7b64e3f4.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-b89cb239.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-f796f93b.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-fcfa83c9.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/json/camp-duties.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/json/camp-duties.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/json/camp.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/json/camp.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/json/participants.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/json/participants.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/public/json/camp-duties.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/json/camp-duties.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/public/json/camp.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/json/camp.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/public/json/participants.json" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/public/json/participants.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/view/camp/index.vue" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/view/camp/index.vue" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -45,24 +65,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/activity",
-    "last_opened_file_path": "/Users/zhaoyanlong/Documents/ikecoolon.github.io",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.stylelint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.stylelint": "/Users/zhaoyanlong/Documents/ikecoolon.github.io/node_modules/stylelint",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "yarn",
-    "prettierjs.PrettierConfiguration.Package": "/Users/zhaoyanlong/Documents/ikecoolon.github.io/fontend/node_modules/prettier",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/activity&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/zhaoyanlong/Documents/ikecoolon.github.io&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.stylelint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.stylelint&quot;: &quot;/Users/zhaoyanlong/Documents/ikecoolon.github.io/node_modules/stylelint&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;yarn&quot;,
+    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;/Users/zhaoyanlong/Documents/ikecoolon.github.io/fontend/node_modules/prettier&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="ReadonlyStatusHandler">
     <option name="SHOW_DIALOG" value="false" />
   </component>
@@ -143,6 +163,7 @@
       <workItem from="1758078582993" duration="1248000" />
       <workItem from="1758161195773" duration="2881000" />
       <workItem from="1758247112406" duration="3235000" />
+      <workItem from="1758465772913" duration="650000" />
     </task>
     <task id="LOCAL-00001" summary="更新脚本">
       <created>1694153698121</created>
@@ -234,7 +255,15 @@
       <option name="project" value="LOCAL" />
       <updated>1758019854563</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="修复前端路径错误，更新数据文件，优化活动和参与者信息&#10;&#10;- 修改 server.js 中的前端数据文件路径，确保正确引用&#10;- 删除不再使用的 camp-duties.json 和 camp.json 文件&#10;- 更新 activities.json 和 participants.json 文件，添加新参与者信息和活动细节&#10;- 在 camp.json 中添加新的职责 ID，确保数据一致性&#10;- 优化职责管理界面，提升用户体验">
+      <option name="closed" value="true" />
+      <created>1758465831767</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1758465831767</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -294,6 +323,7 @@
     <MESSAGE value="重新提交必要文件" />
     <MESSAGE value="更新前后端系统" />
     <MESSAGE value="更新正常范围配置" />
-    <option name="LAST_COMMIT_MESSAGE" value="更新正常范围配置" />
+    <MESSAGE value="修复前端路径错误，更新数据文件，优化活动和参与者信息&#10;&#10;- 修改 server.js 中的前端数据文件路径，确保正确引用&#10;- 删除不再使用的 camp-duties.json 和 camp.json 文件&#10;- 更新 activities.json 和 participants.json 文件，添加新参与者信息和活动细节&#10;- 在 camp.json 中添加新的职责 ID，确保数据一致性&#10;- 优化职责管理界面，提升用户体验" />
+    <option name="LAST_COMMIT_MESSAGE" value="修复前端路径错误，更新数据文件，优化活动和参与者信息&#10;&#10;- 修改 server.js 中的前端数据文件路径，确保正确引用&#10;- 删除不再使用的 camp-duties.json 和 camp.json 文件&#10;- 更新 activities.json 和 participants.json 文件，添加新参与者信息和活动细节&#10;- 在 camp.json 中添加新的职责 ID，确保数据一致性&#10;- 优化职责管理界面，提升用户体验" />
   </component>
 </project>

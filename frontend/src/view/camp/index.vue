@@ -132,42 +132,7 @@
         </div>
       </a-card>
 
-      <!-- 关联活动 -->
-      <a-card>
-        <template #title>
-          <div class="flex items-center justify-between">
-            <span>关联活动</span>
-            <a-button type="primary" size="small" @click="showActivityModal = true">
-              <template #icon>
-                <i class="i-carbon:add" />
-              </template>
-              添加活动
-            </a-button>
-          </div>
-        </template>
-
-        <div class="space-y-8px max-h-400px overflow-y-auto">
-          <div v-for="activityId in selectedCamp.activities" :key="activityId"
-            class="p-12px border border-gray-200 rounded-8px flex items-center justify-between hover:bg-gray-50">
-            <div class="flex-1">
-              <div class="text-14px font-500">{{ getActivityTitle(activityId) }}</div>
-              <div class="text-12px text-gray-500 mt-4px">
-                {{ getActivityTime(activityId) }}
-              </div>
-            </div>
-            <a-tag :color="getActivityStatusColor(getActivityStatus(activityStore.activities.find(a => a.id === activityId)))" size="small" class="mr-8px">
-              {{ getActivityStatusText(getActivityStatus(activityStore.activities.find(a => a.id === activityId))) }}
-            </a-tag>
-            <a-button type="text" size="small" @click="removeActivityFromCamp(activityId)"
-              class="text-red-500 hover:text-red-700">
-              <i class="i-carbon:trash-can" />
-            </a-button>
-          </div>
-          <div v-if="selectedCamp.activities.length === 0" class="text-center py-20px text-gray-400">
-            暂无关联活动
-          </div>
-        </div>
-      </a-card>
+      
 
       <!-- 职责分配 -->
       <a-card>
@@ -433,10 +398,6 @@ const dutyFormRules = {
   title: [
     { required: true, message: '请输入职责名称', trigger: 'blur' },
     { min: 2, max: 50, message: '职责名称长度应在2-50个字符之间', trigger: 'blur' }
-  ],
-  description: [
-    { required: true, message: '请输入职责说明', trigger: 'blur' },
-    { min: 10, message: '职责说明至少需要10个字符', trigger: 'blur' }
   ],
   category: [{ required: true, message: '请选择职责类型', trigger: 'change' }]
 }
@@ -816,8 +777,8 @@ const handleSubmitDuty = async () => {
 
     // 构建时间范围
     const timeRange = dutyFormData.timeRangeValue.length > 0 ? {
-      start: dutyFormData.timeRangeValue[0].format(), // 保存为 ISO 字符串格式
-      end: dutyFormData.timeRangeValue[1].format()    // 保存为 ISO 字符串格式
+      start: dutyFormData.timeRangeValue[0].startOf('day').format(), // 保存为 ISO 字符串格式
+      end: dutyFormData.timeRangeValue[1].endOf('day').format()    // 保存为 ISO 字符串格式
     } : undefined
 
     const dutyData = {

@@ -90,5 +90,154 @@
     "id": "duty_1758464807361",
     "createdAt": "2025-09-21T22:26:47+08:00",
     "updatedAt": "2025-09-21T22:27:11+08:00"
+  },
+  {
+    "campId": "camp_1758097218959",
+    "title": "看娃(day1)",
+    "description": "",
+    "category": "childcare",
+    "assignees": [
+      {
+        "userId": "member_1758186252572",
+        "userName": "鱿鱼丝"
+      },
+      {
+        "userId": "5",
+        "userName": "丹"
+      }
+    ],
+    "timeRange": {
+      "start": "2025-10-01T00:00:00+08:00",
+      "end": "2025-10-01T23:59:59+08:00"
+    },
+    "id": "duty_1758466021968",
+    "createdAt": "2025-09-21T22:47:01+08:00",
+    "updatedAt": "2025-09-21T22:50:08+08:00"
+  },
+  {
+    "campId": "camp_1758097218959",
+    "title": "看娃(day2上午)",
+    "description": "",
+    "category": "childcare",
+    "assignees": [
+      {
+        "userId": "10",
+        "userName": "媛林"
+      },
+      {
+        "userId": "member_1758189587521",
+        "userName": "L君"
+      }
+    ],
+    "timeRange": {
+      "start": "2025-10-02T00:00:00+08:00",
+      "end": "2025-10-02T23:59:59+08:00"
+    },
+    "id": "duty_1758466246116",
+    "createdAt": "2025-09-21T22:50:46+08:00"
+  },
+  {
+    "campId": "camp_1758097218959",
+    "title": "看娃(day2下午)",
+    "description": "",
+    "category": "childcare",
+    "assignees": [
+      {
+        "userId": "3",
+        "userName": "苏大厨"
+      },
+      {
+        "userId": "4",
+        "userName": "星儿"
+      }
+    ],
+    "timeRange": {
+      "start": "2025-10-02T00:00:00+08:00",
+      "end": "2025-10-02T23:59:59+08:00"
+    },
+    "id": "duty_1758466304402",
+    "createdAt": "2025-09-21T22:51:44+08:00"
+  },
+  {
+    "campId": "camp_1758097218959",
+    "title": "看娃(day2晚)",
+    "description": "",
+    "category": "childcare",
+    "assignees": [
+      {
+        "userId": "member_1758466412009",
+        "userName": "efay"
+      },
+      {
+        "userId": "member_1758466365429",
+        "userName": "叶子"
+      }
+    ],
+    "timeRange": {
+      "start": "2025-10-02T00:00:00+08:00",
+      "end": "2025-10-02T23:59:59+08:00"
+    },
+    "id": "duty_1758466457403",
+    "createdAt": "2025-09-21T22:54:17+08:00",
+    "updatedAt": "2025-09-21T22:57:11+08:00"
+  },
+  {
+    "campId": "camp_1758097218959",
+    "title": "看娃(day3上午)",
+    "description": "",
+    "category": "childcare",
+    "assignees": [
+      {
+        "userId": "7",
+        "userName": "祎校长"
+      },
+      {
+        "userId": "1",
+        "userName": "Lily"
+      }
+    ],
+    "timeRange": {
+      "start": "2025-10-03T00:00:00+08:00",
+      "end": "2025-10-03T23:59:59+08:00"
+    },
+    "id": "duty_1758466668603",
+    "createdAt": "2025-09-21T22:57:48+08:00"
+  },
+  {
+    "campId": "camp_1758097218959",
+    "title": "小儿主(day4上午)",
+    "description": "",
+    "category": "childcare",
+    "assignees": [
+      {
+        "userId": "9",
+        "userName": "胡椒鱼"
+      }
+    ],
+    "timeRange": {
+      "start": "2025-10-04T00:00:00+08:00",
+      "end": "2025-10-04T23:59:59+08:00"
+    },
+    "id": "duty_1758466702226",
+    "createdAt": "2025-09-21T22:58:22+08:00"
+  },
+  {
+    "campId": "camp_1758097218959",
+    "title": "大儿主(day4上午)",
+    "description": "",
+    "category": "childcare",
+    "assignees": [
+      {
+        "userId": "6",
+        "userName": "珊"
+      }
+    ],
+    "timeRange": {
+      "start": "2025-10-04T00:00:00+08:00",
+      "end": "2025-10-04T23:59:59+08:00"
+    },
+    "id": "duty_1758466727162",
+    "createdAt": "2025-09-21T22:58:47+08:00",
+    "updatedAt": "2025-09-21T22:59:02+08:00"
   }
 ]
