@@ -1,0 +1,20 @@
+[
+  {
+    "id": "1",
+    "title": "信仰基础",
+    "instructor": "张牧师",
+    "description": "基督教信仰的基本真理",
+    "duration": 90,
+    "activities": ["1", "2"],
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  },
+  {
+    "id": "2",
+    "title": "生活见证",
+    "instructor": "李传道",
+    "description": "分享生活中的信仰见证",
+    "duration": 60,
+    "activities": ["3"],
+    "createdAt": "2024-01-01T00:00:00.000Z"
+  }
+]
