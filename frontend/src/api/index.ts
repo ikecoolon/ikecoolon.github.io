@@ -11,7 +11,8 @@ import utc from 'dayjs/plugin/utc'
 dayjs.extend(utc)
 
 // 后端API基础URL
-const BACKEND_URL = 'http://localhost:9010'
+// 开发环境使用绝对路径，生产环境使用相对路径
+const BACKEND_URL = import.meta.env.DEV ? 'http://localhost:9010' : ''
 
 /**
  * 转换UTC时间字符串为本地时间字符串格式
