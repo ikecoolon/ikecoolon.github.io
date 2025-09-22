@@ -159,8 +159,7 @@
         "title": "早餐",
         "description": "",
         "assignedMembers": [
-          "2",
-          "8"
+          "2"
         ],
         "notes": "",
         "order": 0
@@ -168,7 +167,7 @@
     ],
     "id": "activity_1758187631489",
     "createdAt": "2025-09-18T17:27:11+08:00",
-    "updatedAt": "2025-09-18T17:28:32+08:00"
+    "updatedAt": "2025-09-22T15:13:09+08:00"
   },
   {
     "title": "晨祷(day4) ",
@@ -412,15 +411,15 @@
         "title": "就餐",
         "description": "",
         "assignedMembers": [
-          "2",
-          "8"
+          "2"
         ],
         "notes": "",
         "order": 0
       }
     ],
     "id": "activity_1758187116126",
-    "createdAt": "2025-09-18T17:18:36+08:00"
+    "createdAt": "2025-09-18T17:18:36+08:00",
+    "updatedAt": "2025-09-22T15:12:45+08:00"
   },
   {
     "title": "专题：试炼中的信心",
@@ -600,8 +599,7 @@
         "title": "早餐",
         "description": "",
         "assignedMembers": [
-          "2",
-          "8"
+          "2"
         ],
         "notes": "",
         "order": 0
@@ -609,7 +607,7 @@
     ],
     "id": "activity_1758185087933",
     "createdAt": "2025-09-18T16:44:47+08:00",
-    "updatedAt": "2025-09-18T17:13:22+08:00"
+    "updatedAt": "2025-09-22T15:12:32+08:00"
   },
   {
     "title": "晨祷(day2)",
