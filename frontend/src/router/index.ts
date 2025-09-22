@@ -16,9 +16,9 @@ const routes: Array<RouteRecordRaw> = [
         name: 'Dashboard',
         component: () => import('@/view/dashboard/index.vue'),
         meta: {
-          title: '总览',
+          title: '概况',
           icon: 'dashboard',
-          permissions: ['dashboard'] // 所有用户都可以访问总览
+          permissions: ['dashboard'] // 所有用户都可以访问概况
         }
       },
       {

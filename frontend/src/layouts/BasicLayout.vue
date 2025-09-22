@@ -32,7 +32,7 @@
           <template #icon>
             <i class="i-carbon:dashboard text-18px" />
           </template>
-          <span>总览</span>
+          <span>概况</span>
         </a-menu-item>
 
         <a-menu-item key="ministry" v-if="hasPermission('ministry')">

@@ -38,7 +38,7 @@
         <div class="flex justify-center space-x-24px">
           <a-button type="link" @click="goToDashboard">
             <i class="i-carbon:dashboard mr-4px" />
-            总览
+            概况
           </a-button>
           <a-button type="link" @click="goToActivity">
             <i class="i-carbon:calendar mr-4px" />
