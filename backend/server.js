@@ -380,6 +380,38 @@ function initializeEmailWhitelist() {
 }
 
 /**
+ * 标准化白名单中的邮箱地址（转换为小写）
+ * @param {object} config - 邮箱白名单配置
+ * @returns {object} 标准化后的配置
+ */
+function normalizeEmailWhitelist(config) {
+  if (!config || !config.whitelistedEmails) {
+    return config;
+  }
+
+  const normalizedEmails = config.whitelistedEmails.map(email =>
+    email.toLowerCase().trim()
+  );
+
+  // 去重
+  const uniqueEmails = [...new Set(normalizedEmails)];
+
+  if (uniqueEmails.length !== config.whitelistedEmails.length) {
+    console.log(`📧 邮箱白名单已标准化并去重，原有 ${config.whitelistedEmails.length} 个邮箱，标准化后 ${uniqueEmails.length} 个邮箱`);
+    config.whitelistedEmails = uniqueEmails;
+    config.lastUpdated = new Date().toISOString();
+    saveEmailWhitelist(config);
+  } else if (normalizedEmails.some((email, index) => email !== config.whitelistedEmails[index])) {
+    console.log('📧 邮箱白名单已标准化（大小写）');
+    config.whitelistedEmails = uniqueEmails;
+    config.lastUpdated = new Date().toISOString();
+    saveEmailWhitelist(config);
+  }
+
+  return config;
+}
+
+/**
  * 验证邮箱是否在白名单中
  * @param {string} email - 要验证的邮箱地址
  * @returns {boolean} 是否在白名单中
@@ -389,7 +421,13 @@ function isEmailWhitelisted(email) {
   if (!config || !config.whitelistedEmails) {
     return false;
   }
-  return config.whitelistedEmails.includes(email.toLowerCase().trim());
+
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // 不区分大小写地检查邮箱是否在白名单中
+  return config.whitelistedEmails.some(whitelistedEmail =>
+    whitelistedEmail.toLowerCase().trim() === normalizedEmail
+  );
 }
 
 /**
@@ -902,6 +940,13 @@ ${timestamp}
       error: error.code || 'UNKNOWN_ERROR'
     };
   }
+}
+
+// 启动服务器前标准化邮箱白名单
+console.log('📧 检查并标准化邮箱白名单...');
+let whitelistConfig = loadEmailWhitelist();
+if (whitelistConfig) {
+  normalizeEmailWhitelist(whitelistConfig);
 }
 
 // 启动服务器

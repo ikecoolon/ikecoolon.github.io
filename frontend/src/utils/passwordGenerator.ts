@@ -285,7 +285,7 @@ export const sendPasswordToEmail = async (email: string): Promise<{success: bool
     console.error('发送密码邮件失败:', error)
     return {
       success: false,
-      message: '发送失败，请稍后重试'
+      message: `${error || '发送失败，请稍后重试'}`
     }
   }
 }
