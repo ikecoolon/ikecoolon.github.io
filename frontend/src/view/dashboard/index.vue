@@ -305,7 +305,7 @@
                     <div class="flex items-start justify-between">
                       <div class="flex-1">
                         <div class="text-13px font-500 text-gray-800 mb-4px">{{ duty.title }}</div>
-                        <div class="text-11px text-gray-600 leading-1.3 mb-6px">{{ duty.description }}</div>
+                        <div class="text-11px text-gray-600  mb-6px">{{ duty.description }}</div>
 
                         <div class="space-y-4px">
                           <!-- 负责人信息 -->
