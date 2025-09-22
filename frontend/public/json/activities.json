@@ -569,22 +569,27 @@
         "id": "phase_1758186459360",
         "title": "游戏",
         "description": "约40分钟",
-        "assignedMembers": [],
-        "notes": "负责人待定",
+        "assignedMembers": [
+          "3",
+          "4"
+        ],
+        "notes": "",
         "order": 4
       },
       {
         "id": "phase_1758186498752",
         "title": "小组",
         "description": "约30分钟；小组提问：1、我的信心旅程(認識基督、刚信主時的經)；2、灵修带给我的祝福（启示 、 得胜的经验  ）；",
-        "assignedMembers": [],
-        "notes": "负责人待定，与游戏环节为同一人",
+        "assignedMembers": [
+          "member_1758186227509"
+        ],
+        "notes": "",
         "order": 5
       }
     ],
     "id": "activity_1758185488958",
     "createdAt": "2025-09-18T16:51:28+08:00",
-    "updatedAt": "2025-09-21T22:30:19+08:00"
+    "updatedAt": "2025-09-22T20:19:34+08:00"
   },
   {
     "title": "早餐(day2)",
