@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新职责管理功能，添加新职责和参与者信息&#10;&#10;- 更新 camp.json，添加多个新职责 ID，确保数据一致性&#10;- 更新 camp-duties.json，新增多个职责条目，包含详细的时间范围和分配信息&#10;- 更新 participants.json，添加新参与者信息，确保参与者数据完整&#10;- 修改 index.vue，优化职责表单逻辑，调整时间范围处理方式，提升用户体验" />
+    <list default="true" id="105d434e-bf8a-4020-81ab-39f8fd3be21d" name="Changes" comment="更新职责管理功能，添加新职责和参与者信息&#10;&#10;- 更新 camp.json，添加多个新职责 ID，确保数据一致性&#10;- 更新 camp-duties.json，新增多个职责条目，包含详细的时间范围和分配信息&#10;- 更新 participants.json，添加新参与者信息，确保参与者数据完整&#10;- 修改 index.vue，优化职责表单逻辑，调整时间范围处理方式，提升用户体验">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -147,6 +149,8 @@
       <workItem from="1758503075547" duration="656000" />
       <workItem from="1758509204624" duration="1899000" />
       <workItem from="1758543776062" duration="508000" />
+      <workItem from="1758592412317" duration="407000" />
+      <workItem from="1758707922884" duration="62000" />
     </task>
     <task id="LOCAL-00001" summary="更新脚本">
       <created>1694153698121</created>

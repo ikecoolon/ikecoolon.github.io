@@ -61,7 +61,7 @@
   {
     "campId": "camp_1758097218959",
     "title": "设备调试",
-    "description": "话筒、音响、zoom 连线、线上发声、线下收声",
+    "description": "话筒、音响、zoom 连线、线上发声、线下收声、录音",
     "category": "support",
     "assignees": [
       {
@@ -75,7 +75,7 @@
     ],
     "id": "duty_1758427417397",
     "createdAt": "2025-09-21T12:03:37+08:00",
-    "updatedAt": "2025-09-21T22:18:32+08:00"
+    "updatedAt": "2025-09-29T10:19:24+08:00"
   },
   {
     "campId": "camp_1758097218959",

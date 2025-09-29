@@ -262,6 +262,16 @@
         "order": 0
       },
       {
+        "id": "phase_1759112601435",
+        "title": "游戏:信心之旅",
+        "description": "",
+        "assignedMembers": [
+          "member_1758186279976"
+        ],
+        "notes": "",
+        "order": 1
+      },
+      {
         "id": "phase_1758188731926",
         "title": "工作坊：信心蓝圈",
         "description": "",
@@ -269,12 +279,20 @@
           "member_1758186279976"
         ],
         "notes": "",
-        "order": 1
+        "order": 2
+      },
+      {
+        "id": "phase_1759112645323",
+        "title": "结营感言",
+        "description": "",
+        "assignedMembers": [],
+        "notes": "需一位主持",
+        "order": 3
       }
     ],
     "id": "activity_1758188734937",
     "createdAt": "2025-09-18T17:45:34+08:00",
-    "updatedAt": "2025-09-22T15:57:29+08:00"
+    "updatedAt": "2025-09-29T10:24:35+08:00"
   },
   {
     "title": "专题：信心的实践",
@@ -470,9 +488,9 @@
         "order": 3
       },
       {
-        "id": "phase_1758187905329_otv7xbvjr",
-        "title": "工作坊",
-        "description": "约40分钟",
+        "id": "phase_1758187905329_p8nb5foea",
+        "title": "小组",
+        "description": "约30分钟，小组提问：「我如何面对困難?在什麼试煉中最需要信心?曾有过的试炼中得胜的经历?」",
         "assignedMembers": [
           "member_1758186279976"
         ],
@@ -480,9 +498,9 @@
         "order": 4
       },
       {
-        "id": "phase_1758187905329_p8nb5foea",
-        "title": "小组",
-        "description": "约30分钟，小组提问：「我如何面对困難?在什麼试煉中最需要信心?曾有过的试炼中得胜的经历?」",
+        "id": "phase_1758187905329_otv7xbvjr",
+        "title": "彼此代祷",
+        "description": "约40分钟",
         "assignedMembers": [
           "member_1758186279976"
         ],
@@ -492,7 +510,7 @@
     ],
     "id": "activity_1758187905329",
     "createdAt": "2025-09-18T17:31:45+08:00",
-    "updatedAt": "2025-09-21T22:29:39+08:00"
+    "updatedAt": "2025-09-29T10:22:48+08:00"
   },
   {
     "title": "午饭及午休(day2)",
@@ -661,7 +679,7 @@
     ],
     "id": "activity_1758184578609",
     "createdAt": "2025-09-18T16:36:18+08:00",
-    "updatedAt": "2025-09-21T22:28:18+08:00"
+    "updatedAt": "2025-09-29T10:20:01+08:00"
   },
   {
     "title": "晚餐(day1)",
