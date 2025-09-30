@@ -324,29 +324,29 @@
         "order": 1
       },
       {
-        "id": "phase_1758188202203_e2p0diabj",
-        "title": "敬拜",
-        "description": "约10分钟",
-        "assignedMembers": [
-          "member_1758186252572"
-        ],
-        "notes": "",
-        "order": 2
-      },
-      {
         "id": "phase_1758188202203_04plfyo31",
         "title": "休息",
         "description": "约10分钟",
         "assignedMembers": [],
         "notes": "",
-        "order": 3
+        "order": 2
       },
       {
         "id": "phase_1758188202203_wz9o6blzs",
-        "title": "工作坊：游戏",
+        "title": "游戏:城墙保卫站",
         "description": "约40分钟",
         "assignedMembers": [
           "member_1758186227509",
+          "member_1758186252572"
+        ],
+        "notes": "",
+        "order": 3
+      },
+      {
+        "id": "phase_1758188202203_e2p0diabj",
+        "title": "敬拜",
+        "description": "约10分钟",
+        "assignedMembers": [
           "member_1758186252572"
         ],
         "notes": "",
@@ -355,7 +355,7 @@
       {
         "id": "phase_1758188202203_3lssq0mxe",
         "title": "小组",
-        "description": "约30分钟，小组提问：「建造家庭，最挑战你信心的地方是什么?建造教会，最挑战你信心的地方是什么?」",
+        "description": "约30分钟",
         "assignedMembers": [
           "member_1758186227509",
           "member_1758186252572"
@@ -366,7 +366,7 @@
     ],
     "id": "activity_1758188202203",
     "createdAt": "2025-09-18T17:36:42+08:00",
-    "updatedAt": "2025-09-18T17:40:57+08:00"
+    "updatedAt": "2025-09-30T15:59:33+08:00"
   },
   {
     "title": "晨祷(day3)",
@@ -566,24 +566,6 @@
         "order": 1
       },
       {
-        "id": "phase_1758186342634",
-        "title": "敬拜",
-        "description": "约10分钟",
-        "assignedMembers": [
-          "7"
-        ],
-        "notes": "",
-        "order": 2
-      },
-      {
-        "id": "phase_1758186440472",
-        "title": "休息",
-        "description": "约10分钟",
-        "assignedMembers": [],
-        "notes": "",
-        "order": 3
-      },
-      {
         "id": "phase_1758186459360",
         "title": "游戏",
         "description": "约40分钟",
@@ -591,6 +573,24 @@
           "3",
           "4"
         ],
+        "notes": "",
+        "order": 2
+      },
+      {
+        "id": "phase_1758186342634",
+        "title": "敬拜",
+        "description": "约10分钟",
+        "assignedMembers": [
+          "7"
+        ],
+        "notes": "",
+        "order": 3
+      },
+      {
+        "id": "phase_1758186440472",
+        "title": "休息",
+        "description": "约10分钟",
+        "assignedMembers": [],
         "notes": "",
         "order": 4
       },
@@ -607,7 +607,7 @@
     ],
     "id": "activity_1758185488958",
     "createdAt": "2025-09-18T16:51:28+08:00",
-    "updatedAt": "2025-09-22T20:19:34+08:00"
+    "updatedAt": "2025-09-30T16:00:19+08:00"
   },
   {
     "title": "早餐(day2)",
