@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>停词器</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff6b6b;
+            --secondary: #4ecdc4;
+            --accent: #ffe66d;
+            --dark: #2c3e50;
+            --light: #f7f7f7;
+            --glow: rgba(255, 107, 107, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 背景动画粒子 */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 15s infinite ease-in-out;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.3; }
+            90% { opacity: 0.3; }
+            100% { transform: translateY(-100vh) rotate(720deg); opacity: 0; }
+        }
+
+        /* 主容器 */
+        .main-container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        /* 标题 */
+        .title {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            color: var(--accent);
+            text-shadow: 0 0 30px rgba(255, 230, 109, 0.5);
+            margin-bottom: 3rem;
+            text-align: center;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { text-shadow: 0 0 20px rgba(255, 230, 109, 0.5); }
+            to { text-shadow: 0 0 40px rgba(255, 230, 109, 0.8), 0 0 60px rgba(255, 230, 109, 0.4); }
+        }
+
+        /* 问题展示区 */
+        .question-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 4rem;
+        }
+
+        .static-text {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: clamp(3rem, 10vw, 8rem);
+            color: #fff;
+            text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .word-slot {
+            position: relative;
+            min-width: 200px;
+            height: clamp(4rem, 12vw, 10rem);
+            overflow: hidden;
+            border-radius: 20px;
+            background: linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            border: 3px solid rgba(255,255,255,0.2);
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.3),
+                inset 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+
+        .word-slot.spinning {
+            border-color: var(--primary);
+            box-shadow: 
+                0 0 30px var(--glow),
+                0 10px 40px rgba(0, 0, 0, 0.3),
+                inset 0 0 30px rgba(255, 107, 107, 0.2);
+        }
+
+        .word-slot.stopped {
+            border-color: var(--secondary);
+            box-shadow: 
+                0 0 30px rgba(78, 205, 196, 0.6),
+                0 10px 40px rgba(0, 0, 0, 0.3);
+            animation: pulse 0.5s ease-out;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .word-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.05s ease-out;
+        }
+
+        .word-item {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: clamp(2rem, 8vw, 6rem);
+            color: #fff;
+            padding: 0 2rem;
+            height: clamp(4rem, 12vw, 10rem);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 按钮区域 */
+        .button-area {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .main-btn {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+            padding: 1rem 3rem;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, var(--primary) 0%, #ee5a5a 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 107, 107, 0.5);
+        }
+
+        .start-btn:active {
+            transform: translateY(0);
+        }
+
+        .stop-btn {
+            background: linear-gradient(135deg, var(--secondary) 0%, #3dbdb5 100%);
+            color: white;
+            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.4);
+        }
+
+        .stop-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(78, 205, 196, 0.5);
+        }
+
+        .stop-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 结果展示 */
+        .result-display {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            font-size: clamp(1.2rem, 3vw, 2rem);
+            color: var(--accent);
+            text-align: center;
+            min-height: 3rem;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .result-display.show {
+            opacity: 1;
+            animation: bounceIn 0.6s ease;
+        }
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* 管理面板触发按钮 */
+        .admin-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+
+        .admin-toggle:hover {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        /* 管理面板 */
+        .admin-panel {
+            position: fixed;
+            top: 0;
+            right: -450px;
+            width: 450px;
+            height: 100vh;
+            background: rgba(20, 30, 48, 0.98);
+            backdrop-filter: blur(20px);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 2rem;
+            transition: right 0.4s ease;
+            z-index: 99;
+            overflow-y: auto;
+        }
+
+        .admin-panel.open {
+            right: 0;
+        }
+
+        .admin-panel h2 {
+            font-family: 'ZCOOL KuaiLe', cursive;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .admin-section {
+            margin-bottom: 2rem;
+        }
+
+        .admin-section h3 {
+            color: var(--secondary);
+            margin-bottom: 0.8rem;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .admin-section h3 span {
+            background: var(--secondary);
+            color: var(--dark);
+            padding: 0.2rem 0.6rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+        }
+
+        .word-input-area {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .word-input-area input {
+            flex: 1;
+            padding: 0.8rem;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .word-input-area input:focus {
+            outline: none;
+            border-color: var(--secondary);
+        }
+
+        .word-input-area button {
+            padding: 0.8rem 1.2rem;
+            border: none;
+            border-radius: 10px;
+            background: var(--secondary);
+            color: var(--dark);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .word-input-area button:hover {
+            background: #5de0d6;
+        }
+
+        .word-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0.5rem;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .word-tag {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            padding: 0.4rem 0.8rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            color: white;
+            font-size: 0.9rem;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .word-tag .delete-word {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 107, 107, 0.6);
+            color: white;
+            font-size: 0.7rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s ease;
+        }
+
+        .word-tag .delete-word:hover {
+            background: var(--primary);
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .admin-actions button {
+            flex: 1;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .reset-btn {
+            background: rgba(255, 107, 107, 0.2);
+            color: var(--primary);
+            border: 2px solid var(--primary) !important;
+        }
+
+        .reset-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .save-btn {
+            background: var(--secondary);
+            color: var(--dark);
+        }
+
+        .save-btn:hover {
+            background: #5de0d6;
+        }
+
+        /* 关闭按钮 */
+        .close-panel {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1.2rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-panel:hover {
+            background: var(--primary);
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .word-slot {
+                min-width: 150px;
+            }
+            
+            .admin-panel {
+                width: 100%;
+                right: -100%;
+            }
+            
+            .button-area {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        /* 彩带效果 */
+        .confetti {
+            position: fixed;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        /* 提示文字 */
+        .hint {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 0.8rem;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <!-- 背景粒子 -->
+    <div class="particles" id="particles"></div>
+
+    <!-- 主容器 -->
+    <div class="main-container">
+        <h1 class="title">✨ 年度问答挑战 ✨</h1>
+        
+        <div class="question-display">
+            <span class="static-text">今年最</span>
+            <div class="word-slot" id="slot1">
+                <div class="word-container" id="container1"></div>
+            </div>
+            <span class="static-text">的</span>
+            <div class="word-slot" id="slot2">
+                <div class="word-container" id="container2"></div>
+            </div>
+        </div>
+
+        <div class="button-area">
+            <button class="main-btn start-btn" id="startBtn" onclick="startSpin()">🎰 开始</button>
+            <button class="main-btn stop-btn" id="stopBtn" onclick="stopSpin()" disabled>🛑 停止</button>
+        </div>
+
+        <div class="result-display" id="resultDisplay"></div>
+    </div>
+
+    <!-- 管理面板触发按钮 -->
+    <button class="admin-toggle" onclick="toggleAdminPanel()">⚙️</button>
+    <div class="hint">点击齿轮管理词库</div>
+
+    <!-- 管理面板 -->
+    <div class="admin-panel" id="adminPanel">
+        <button class="close-panel" onclick="toggleAdminPanel()">✕</button>
+        <h2>🎯 词库管理</h2>
+        
+        <div class="admin-section">
+            <h3>形容词库 (最___的) <span id="xxCount">0</span></h3>
+            <div class="word-input-area">
+                <input type="text" id="xxInput" placeholder="输入形容词..." onkeypress="handleKeyPress(event, 'xx')">
+                <button onclick="addWord('xx')">添加</button>
+            </div>
+            <div class="word-tags" id="xxTags"></div>
+        </div>
+
+        <div class="admin-section">
+            <h3>名词库 (的___) <span id="yyCount">0</span></h3>
+            <div class="word-input-area">
+                <input type="text" id="yyInput" placeholder="输入名词..." onkeypress="handleKeyPress(event, 'yy')">
+                <button onclick="addWord('yy')">添加</button>
+            </div>
+            <div class="word-tags" id="yyTags"></div>
+        </div>
+
+        <div class="admin-actions">
+            <button class="reset-btn" onclick="resetToDefault()">恢复默认</button>
+            <button class="save-btn" onclick="saveWords()">保存词库</button>
+        </div>
+    </div>
+
+    <script>
+        // 默认词库
+        const defaultXXWords = [
+            '大', '难忘', '感动', '意外', '惊喜', '开心', '重要', '特别', 
+            '温暖', '珍贵', '勇敢', '骄傲', '疯狂', '幸福', '心动',
+            '治愈', '遗憾', '后悔', '值得', '艰难', '轻松', '紧张',
+            '搞笑', '尴尬', '浪漫', '冲动', '理智', '大胆', '害羞'
+        ];
+
+        const defaultYYWords = [
+            '成长', '收获', '改变', '感谢的人', '遗憾', '惊喜', '挑战', 
+            '成就', '决定', '突破', '回忆', '时刻', '朋友', '经历',
+            '旅行', '美食', '电影', '歌曲', '书籍', '习惯', '爱好',
+            '目标', '梦想', '失败', '成功', '告白', '拥抱', '眼泪',
+            '笑容', '秘密', '礼物', '惊吓', '发现', '领悟', '坚持'
+        ];
+
+        // 当前词库
+        let xxWords = [...defaultXXWords];
+        let yyWords = [...defaultYYWords];
+
+        // 动画状态
+        let isSpinning = false;
+        let spinInterval1 = null;
+        let spinInterval2 = null;
+        let currentIndex1 = 0;
+        let currentIndex2 = 0;
+
+        // 初始化
+        function init() {
+            loadWords();
+            createParticles();
+            renderWordTags();
+            renderSlots();
+        }
+
+        // 加载保存的词库
+        function loadWords() {
+            const savedXX = localStorage.getItem('xxWords');
+            const savedYY = localStorage.getItem('yyWords');
+            if (savedXX) xxWords = JSON.parse(savedXX);
+            if (savedYY) yyWords = JSON.parse(savedYY);
+        }
+
+        // 保存词库
+        function saveWords() {
+            localStorage.setItem('xxWords', JSON.stringify(xxWords));
+            localStorage.setItem('yyWords', JSON.stringify(yyWords));
+            showToast('词库已保存！');
+        }
+
+        // 恢复默认词库
+        function resetToDefault() {
+            if (confirm('确定要恢复默认词库吗？')) {
+                xxWords = [...defaultXXWords];
+                yyWords = [...defaultYYWords];
+                renderWordTags();
+                renderSlots();
+                saveWords();
+            }
+        }
+
+        // 渲染词条标签
+        function renderWordTags() {
+            const xxTags = document.getElementById('xxTags');
+            const yyTags = document.getElementById('yyTags');
+            
+            xxTags.innerHTML = xxWords.map((word, i) => 
+                `<div class="word-tag">
+                    ${word}
+                    <button class="delete-word" onclick="removeWord('xx', ${i})">×</button>
+                </div>`
+            ).join('');
+            
+            yyTags.innerHTML = yyWords.map((word, i) => 
+                `<div class="word-tag">
+                    ${word}
+                    <button class="delete-word" onclick="removeWord('yy', ${i})">×</button>
+                </div>`
+            ).join('');
+
+            document.getElementById('xxCount').textContent = xxWords.length;
+            document.getElementById('yyCount').textContent = yyWords.length;
+        }
+
+        // 渲染滚动槽位
+        function renderSlots() {
+            const container1 = document.getElementById('container1');
+            const container2 = document.getElementById('container2');
+            
+            container1.innerHTML = xxWords.map(word => 
+                `<div class="word-item">${word}</div>`
+            ).join('');
+            
+            container2.innerHTML = yyWords.map(word => 
+                `<div class="word-item">${word}</div>`
+            ).join('');
+        }
+
+        // 添加词语
+        function addWord(type) {
+            const input = document.getElementById(`${type}Input`);
+            const word = input.value.trim();
+            if (!word) return;
+            
+            if (type === 'xx') {
+                if (!xxWords.includes(word)) {
+                    xxWords.push(word);
+                }
+            } else {
+                if (!yyWords.includes(word)) {
+                    yyWords.push(word);
+                }
+            }
+            
+            input.value = '';
+            renderWordTags();
+            renderSlots();
+        }
+
+        // 删除词语
+        function removeWord(type, index) {
+            if (type === 'xx') {
+                xxWords.splice(index, 1);
+            } else {
+                yyWords.splice(index, 1);
+            }
+            renderWordTags();
+            renderSlots();
+        }
+
+        // 键盘事件处理
+        function handleKeyPress(event, type) {
+            if (event.key === 'Enter') {
+                addWord(type);
+            }
+        }
+
+        // 开始转动
+        function startSpin() {
+            if (xxWords.length === 0 || yyWords.length === 0) {
+                alert('请先添加词语到词库！');
+                return;
+            }
+
+            isSpinning = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('stopBtn').disabled = false;
+            document.getElementById('resultDisplay').classList.remove('show');
+            document.getElementById('slot1').classList.add('spinning');
+            document.getElementById('slot2').classList.add('spinning');
+            document.getElementById('slot1').classList.remove('stopped');
+            document.getElementById('slot2').classList.remove('stopped');
+
+            const container1 = document.getElementById('container1');
+            const container2 = document.getElementById('container2');
+            const itemHeight = container1.querySelector('.word-item').offsetHeight;
+
+            // 转动效果
+            let speed1 = 50;
+            let speed2 = 60;
+
+            spinInterval1 = setInterval(() => {
+                currentIndex1 = (currentIndex1 + 1) % xxWords.length;
+                container1.style.transform = `translateY(-${currentIndex1 * itemHeight}px)`;
+            }, speed1);
+
+            spinInterval2 = setInterval(() => {
+                currentIndex2 = (currentIndex2 + 1) % yyWords.length;
+                container2.style.transform = `translateY(-${currentIndex2 * itemHeight}px)`;
+            }, speed2);
+        }
+
+        // 停止转动
+        function stopSpin() {
+            if (!isSpinning) return;
+
+            document.getElementById('stopBtn').disabled = true;
+
+            // 渐慢停止效果 - 先停第一个
+            slowDown(1, () => {
+                document.getElementById('slot1').classList.remove('spinning');
+                document.getElementById('slot1').classList.add('stopped');
+                
+                // 延迟停止第二个
+                setTimeout(() => {
+                    slowDown(2, () => {
+                        document.getElementById('slot2').classList.remove('spinning');
+                        document.getElementById('slot2').classList.add('stopped');
+                        
+                        isSpinning = false;
+                        document.getElementById('startBtn').disabled = false;
+                        
+                        // 显示结果
+                        showResult();
+                        
+                        // 庆祝效果
+                        createConfetti();
+                    });
+                }, 500);
+            });
+        }
+
+        // 减速效果
+        function slowDown(slotNum, callback) {
+            const interval = slotNum === 1 ? spinInterval1 : spinInterval2;
+            const container = document.getElementById(`container${slotNum}`);
+            const words = slotNum === 1 ? xxWords : yyWords;
+            let currentIndex = slotNum === 1 ? currentIndex1 : currentIndex2;
+            const itemHeight = container.querySelector('.word-item').offsetHeight;
+
+            clearInterval(interval);
+
+            let speed = 50;
+            let steps = 10 + Math.floor(Math.random() * 10);
+
+            const slowInterval = setInterval(() => {
+                currentIndex = (currentIndex + 1) % words.length;
+                container.style.transform = `translateY(-${currentIndex * itemHeight}px)`;
+                
+                steps--;
+                speed += 30;
+                
+                if (steps <= 0) {
+                    clearInterval(slowInterval);
+                    if (slotNum === 1) currentIndex1 = currentIndex;
+                    else currentIndex2 = currentIndex;
+                    callback();
+                }
+            }, speed);
+        }
+
+        // 显示结果
+        function showResult() {
+            const xx = xxWords[currentIndex1];
+            const yy = yyWords[currentIndex2];
+            const resultDisplay = document.getElementById('resultDisplay');
+            resultDisplay.innerHTML = `🎊 请回答：今年最<strong style="color: var(--primary)">${xx}</strong>的<strong style="color: var(--secondary)">${yy}</strong>是什么？ 🎊`;
+            resultDisplay.classList.add('show');
+        }
+
+        // 创建背景粒子
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+                const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#a8e6cf', '#ffd3b6'];
+                particle.style.background = colors[Math.floor(Math.random() * colors.length)];
+                container.appendChild(particle);
+            }
+        }
+
+        // 创建彩带效果
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#a8e6cf', '#ffd3b6', '#ff8b94'];
+            for (let i = 0; i < 100; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.top = '-10px';
+                    confetti.style.width = (5 + Math.random() * 10) + 'px';
+                    confetti.style.height = (5 + Math.random() * 10) + 'px';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    confetti.style.transform = `rotate(${Math.random() * 360}deg)`;
+                    document.body.appendChild(confetti);
+
+                    const duration = 2000 + Math.random() * 2000;
+                    const startTime = Date.now();
+                    const startX = parseFloat(confetti.style.left);
+                    const endX = startX + (Math.random() - 0.5) * 20;
+
+                    function animateConfetti() {
+                        const elapsed = Date.now() - startTime;
+                        const progress = elapsed / duration;
+
+                        if (progress < 1) {
+                            const y = progress * window.innerHeight * 1.2;
+                            const x = startX + (endX - startX) * progress + Math.sin(progress * Math.PI * 4) * 20;
+                            const rotation = progress * 720;
+                            confetti.style.top = y + 'px';
+                            confetti.style.left = x + 'vw';
+                            confetti.style.transform = `rotate(${rotation}deg)`;
+                            confetti.style.opacity = 1 - progress;
+                            requestAnimationFrame(animateConfetti);
+                        } else {
+                            confetti.remove();
+                        }
+                    }
+                    requestAnimationFrame(animateConfetti);
+                }, i * 20);
+            }
+        }
+
+        // 切换管理面板
+        function toggleAdminPanel() {
+            document.getElementById('adminPanel').classList.toggle('open');
+        }
+
+        // 显示提示
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: var(--secondary);
+                color: var(--dark);
+                padding: 1rem 2rem;
+                border-radius: 50px;
+                font-weight: bold;
+                z-index: 1000;
+                animation: fadeIn 0.3s ease;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transition = 'opacity 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        }
+
+        // 页面加载完成后初始化
+        window.onload = init;
+    </script>
+</body>
+</html>
+
