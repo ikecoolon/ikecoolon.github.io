@@ -3,72 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PET PC 管理端原型</title>
+    <title>PET 检测管理后台</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
     <style>
+        :root {
+            --sidebar-bg: #1e293b;
+            --sidebar-hover: #334155;
+            --sidebar-active: #0d9488;
+            --primary: #0d9488;
+            --primary-hover: #0f766e;
+        }
         .sidebar {
-            width: 200px;
-            min-width: 200px;
-            background-color: #334155; /* slate-700 */
-            color: white;
-            padding: 1rem;
+            width: 220px;
+            min-width: 220px;
+            background-color: var(--sidebar-bg);
+            color: #e2e8f0;
+            padding: 1rem 0.75rem;
         }
         .main-content {
             flex-grow: 1;
-            padding: 1.5rem;
-            background-color: #f3f4f6; /* gray-100 */
+            padding: 1.25rem 1.5rem;
+            background-color: #f1f5f9;
+            min-width: 0;
+        }
+        .nav-section-title {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #94a3b8;
+            padding: 0.75rem 0.75rem 0.35rem;
+            margin-top: 0.25rem;
         }
         .nav-item {
-            padding: 0.75rem 1rem;
-            margin-bottom: 0.5rem;
-            border-radius: 0.375rem; /* rounded-md */
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 0.75rem;
+            margin-bottom: 0.15rem;
+            border-radius: 0.375rem;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: background-color 0.15s;
+            font-size: 0.875rem;
+            color: #cbd5e1;
         }
-        .nav-item:hover {
-            background-color: #475569; /* slate-600 */
+        .nav-item:hover { background-color: var(--sidebar-hover); color: #fff; }
+        .nav-item.active { background-color: var(--sidebar-active); color: #fff; font-weight: 500; }
+        .nav-item i { width: 1.1rem; text-align: center; font-size: 0.8rem; }
+        .btn-primary {
+            background-color: var(--primary);
+            color: #fff;
         }
-        .nav-item.active {
-            background-color: #1d4ed8; /* blue-700 */
+        .btn-primary:hover { background-color: var(--primary-hover); }
+        .btn-secondary {
+            background-color: #e2e8f0;
+            color: #334155;
+        }
+        .btn-secondary:hover { background-color: #cbd5e1; }
+        #toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 360px;
+        }
+        .toast-item { transition: opacity 0.3s; }
+        @media (max-width: 768px) {
+            .sidebar { width: 100%; min-width: 100%; height: auto; position: relative; }
+            .main-content { margin-left: 0 !important; }
         }
     </style>
 </head>
-<body class="flex min-h-screen">
-    <aside class="sidebar flex flex-col h-screen fixed">
-        <div class="text-xl font-bold mb-6 text-center">PET 管理端</div>
-        <nav class="flex-grow">
-            <ul id="main-nav">
-                <!-- <li><a class="nav-item active block" href="#" data-page="dashboard">仪表盘</a></li> -->
-                <li><a class="nav-item block" href="#" data-page="dictionary-management">字典管理</a></li>
-                <li><a class="nav-item block" href="#" data-page="normal-range-config">正常范围配置</a></li>
-                <li><a class="nav-item block" href="#" data-page="health-level-management">健康分级</a></li>
-                <li><a class="nav-item block" href="#" data-page="customer-management">客户管理</a></li>
-                <li><a class="nav-item block" href="#" data-page="pet-information">宠物档案</a></li>
-                <li><a class="nav-item block" href="#" data-page="pet-report-management">萌宠报告</a></li>
-                <li><a class="nav-item block" href="#" data-page="analysis-rules">分析建议规则</a></li>
-            </ul>
+<body class="flex min-h-screen flex-col md:flex-row">
+    <aside class="sidebar flex flex-col md:h-screen md:fixed md:top-0 md:left-0 md:overflow-y-auto">
+        <div class="text-lg font-bold mb-4 px-2 flex items-center gap-2">
+            <i class="fas fa-paw text-teal-400"></i>
+            <span>PET 管理端</span>
+        </div>
+        <nav class="flex-grow" id="main-nav">
+            <div class="nav-section-title">概览</div>
+            <a class="nav-item block" href="#dashboard" data-page="dashboard"><i class="fas fa-gauge-high"></i>工作台</a>
+
+            <div class="nav-section-title">检测管理</div>
+            <a class="nav-item block" href="#detection-records" data-page="detection-records"><i class="fas fa-vial"></i>检测记录</a>
+            <a class="nav-item block" href="#excel-import" data-page="excel-import"><i class="fas fa-file-excel"></i>Excel 导入</a>
+
+            <div class="nav-section-title">报告管理</div>
+            <a class="nav-item block" href="#report-review" data-page="report-review"><i class="fas fa-clipboard-check"></i>待审核</a>
+            <a class="nav-item block" href="#published-reports" data-page="published-reports"><i class="fas fa-file-medical"></i>已发布</a>
+
+            <div class="nav-section-title">专业配置</div>
+            <a class="nav-item block" href="#normal-range-config" data-page="normal-range-config"><i class="fas fa-sliders"></i>指标/参考范围</a>
+            <a class="nav-item block" href="#analysis-rules" data-page="analysis-rules"><i class="fas fa-brain"></i>分析规则</a>
+            <a class="nav-item block" href="#recommendation-mapping" data-page="recommendation-mapping"><i class="fas fa-link"></i>推荐映射</a>
+
+            <div class="nav-section-title">用户与宠物</div>
+            <a class="nav-item block" href="#customer-management" data-page="customer-management"><i class="fas fa-users"></i>客户管理</a>
+            <a class="nav-item block" href="#pet-information" data-page="pet-information"><i class="fas fa-dog"></i>宠物档案</a>
+            <a class="nav-item block" href="#dictionary-management" data-page="dictionary-management"><i class="fas fa-book"></i>字典管理</a>
+            <a class="nav-item block" href="#health-level-management" data-page="health-level-management"><i class="fas fa-heart-pulse"></i>健康分级</a>
         </nav>
-        <div class="mt-auto text-sm text-gray-400 text-center">
-            &copy; 2025 ikecoolon Technology
+        <div class="mt-4 px-2 text-xs text-slate-500 text-center border-t border-slate-600 pt-3">
+            &copy; 2025 ikecoolon
         </div>
     </aside>
 
-    <main class="main-content ml-[200px] flex-grow">
-        <header class="flex justify-between items-center pb-4 border-b border-gray-200 mb-6">
-            <h1 id="page-title" class="text-3xl font-semibold"></h1>
-            <div class="flex items-center space-x-4">
-                <span class="text-gray-600">欢迎, 管理员!</span>
-                <button class="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600">退出</button>
+    <main class="main-content md:ml-[220px] flex-grow">
+        <header class="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-slate-200 mb-5">
+            <h1 id="page-title" class="text-2xl font-semibold text-slate-800"></h1>
+            <div class="flex flex-wrap items-center gap-3">
+                <label class="flex items-center gap-2 text-sm text-slate-600">
+                    <i class="fas fa-user-shield text-slate-400"></i>
+                    <span>演示身份</span>
+                    <select id="role-switcher" class="border border-slate-300 rounded-md py-1 px-2 text-sm bg-white">
+                        <option value="reviewer">审核员</option>
+                        <option value="reviser">数据修订员</option>
+                    </select>
+                </label>
+                <span class="text-sm text-slate-500 hidden sm:inline">管理员</span>
             </div>
         </header>
 
-        <div id="page-content-container">
-            <!-- Pages will be loaded here dynamically -->
-        </div>
+        <div id="page-content-container"></div>
     </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.3.0/dist/echarts.min.js"></script>
+    <div id="toast-container" aria-live="polite"></div>
+
+    <script src="../shared/mock-store.js"></script>
+    <script src="./js/admin-common.js"></script>
     <script src="./js/dictionary-data-service.js"></script>
     <script src="./js/script.js"></script>
 </body>

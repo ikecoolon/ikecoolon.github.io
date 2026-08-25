@@ -1,0 +1,47 @@
+<div id="report-review" class="page space-y-4">
+    <div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex flex-wrap gap-2 items-center">
+            <label class="text-sm text-slate-600">待审核报告</label>
+            <select id="select-report" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm min-w-[200px]"></select>
+            <span id="report-status-badge"></span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" id="btn-reject" class="px-3 py-1.5 rounded-md text-sm border border-red-300 text-red-700 hover:bg-red-50">
+                <i class="fas fa-times mr-1"></i>驳回
+            </button>
+            <button type="button" id="btn-approve" class="btn-primary px-3 py-1.5 rounded-md text-sm">
+                <i class="fas fa-check mr-1"></i>批准
+            </button>
+            <button type="button" id="btn-publish" class="btn-primary px-3 py-1.5 rounded-md text-sm hidden">
+                <i class="fas fa-share-from-square mr-1"></i>发布
+            </button>
+        </div>
+    </div>
+
+    <div id="reviser-banner" class="hidden bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-2 rounded-md text-sm">
+        <i class="fas fa-user-pen mr-1"></i>数据修订员模式：修正原始指标将新建结果修订并生成报告新版本，不会静默覆盖。
+    </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 min-h-[520px]">
+        <section class="xl:col-span-3 bg-white rounded-lg border border-slate-200 p-4 overflow-y-auto max-h-[70vh]">
+            <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-database text-teal-600 mr-1"></i>源数据 / 样本</h3>
+            <div id="source-panel" class="text-sm space-y-2"></div>
+            <h4 class="font-medium text-slate-700 mt-4 mb-2 text-sm">原始指标</h4>
+            <div id="indicators-panel" class="space-y-2 text-sm"></div>
+        </section>
+
+        <section class="xl:col-span-5 bg-white rounded-lg border border-slate-200 p-4 overflow-y-auto max-h-[70vh]">
+            <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-mobile-screen text-teal-600 mr-1"></i>小程序报告预览</h3>
+            <div id="mini-preview" class="bg-slate-50 rounded-lg p-4 border border-slate-100 text-sm"></div>
+            <div id="version-timeline" class="mt-4 text-xs text-slate-500"></div>
+        </section>
+
+        <section class="xl:col-span-4 bg-white rounded-lg border border-slate-200 p-4 overflow-y-auto max-h-[70vh]">
+            <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-pen-to-square text-teal-600 mr-1"></i>发现与建议</h3>
+            <div id="findings-editor" class="space-y-4"></div>
+            <button type="button" id="btn-save-draft" class="mt-4 btn-secondary w-full py-2 rounded-md text-sm">
+                <i class="fas fa-save mr-1"></i>保存编辑（会话草稿）
+            </button>
+        </section>
+    </div>
+</div>

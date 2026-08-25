@@ -1,0 +1,31 @@
+<div id="published-reports" class="page space-y-4">
+    <div class="bg-white rounded-lg border border-slate-200 p-5">
+        <div class="flex flex-wrap gap-3 mb-4 items-center justify-between">
+            <h2 class="text-lg font-semibold text-slate-800">已发布 / 已更正报告</h2>
+            <input type="search" id="search-published" placeholder="搜索报告号" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm w-56">
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-slate-50 text-slate-600">
+                    <tr>
+                        <th class="px-3 py-2 text-left">报告号</th>
+                        <th class="px-3 py-2 text-left">用户 / 宠物</th>
+                        <th class="px-3 py-2 text-left">状态</th>
+                        <th class="px-3 py-2 text-left">当前版本</th>
+                        <th class="px-3 py-2 text-left">最近更新</th>
+                        <th class="px-3 py-2 text-left">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="published-tbody" class="divide-y divide-slate-100"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="detail-drawer" class="hidden bg-white rounded-lg border border-slate-200 p-5">
+        <div class="flex justify-between items-start mb-4">
+            <h3 id="detail-title" class="text-lg font-semibold"></h3>
+            <button type="button" id="btn-close-detail" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+        </div>
+        <div id="detail-content" class="text-sm space-y-4"></div>
+    </div>
+</div>

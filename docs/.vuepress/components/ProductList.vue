@@ -7,7 +7,6 @@
         </h3>
         <div class="product-info">
           <span class="product-date">{{ formatDate(group.date) }}</span>
-          <span class="product-type">{{ getProductTypeName(group.type) }}</span>
         </div>
         <div class="product-tags">
           <span class="tag" v-for="tag in group.tags" :key="tag">{{ tag }}</span>
@@ -43,10 +42,6 @@ export default {
       type: String,
       required: false
     },
-    type: {
-      type: String,
-      required: false
-    },
     directory: {
       type: String,
       required: false,
@@ -55,12 +50,7 @@ export default {
   },
   data() {
     return {
-      moment,
-      productTypeNames: {
-        'charging-products': '电商产品',
-        'virtual-power': '其他产品',
-        'personal-products': '个人产品',
-      }
+      moment
     }
   },
   computed: {
@@ -69,28 +59,28 @@ export default {
       // 获取所有页面
       const pages = this.$site.pages
       
-      // 筛选产品页面（frontmatter中包含title、date和type的页面）
+      // 筛选产品页面（frontmatter 含 title、date 的文档页）
       return pages.filter(page => {
-        // 检查目录路径是否匹配
-        const isInDirectory = this.directory ? page.path.includes(`/products/${this.directory}/`) : page.path.includes('/products/');
-        
-        return page.frontmatter.title && 
-               page.frontmatter.date && 
-               page.frontmatter.type &&
-               !page.path.endsWith('README.html') && // 排除索引页
+        const isInDirectory = this.directory
+          ? page.path.includes(`/products/${this.directory}/`)
+          : page.path.includes('/products/')
+
+        const isIndexPage = /\/products\/(\d{4}\/)?$/.test(page.path) ||
+          page.path.endsWith('README.html')
+
+        return page.frontmatter.title &&
+               page.frontmatter.date &&
+               !isIndexPage &&
                isInDirectory
       }).map(page => {
         return {
           title: page.frontmatter.title,
           path: page.path,
-          date: page.frontmatter.date, // 保持原始日期格式
-          type: page.frontmatter.type,
+          date: page.frontmatter.date,
           tags: page.frontmatter.tags || [],
-          // 提取产品项目标识符
           projectId: this.extractProjectId(page.path)
         }
       }).sort((a, b) => {
-        // 按日期降序排序
         return new Date(b.date) - new Date(a.date)
       })
     },
@@ -115,11 +105,6 @@ export default {
         })
       }
       
-      // 如果指定了类型，按类型筛选
-      if (this.type) {
-        result = result.filter(product => product.type === this.type)
-      }
-      
       return result
     },
     
@@ -137,8 +122,7 @@ export default {
             id: projectId,
             title: this.getProjectTitle(product.title),
             mainPath: product.path,
-            date: product.date, // 保持原始日期格式
-            type: product.type,
+            date: product.date,
             tags: product.tags,
             versions: [],
             allVersions: []
@@ -171,15 +155,10 @@ export default {
     }
   },
   methods: {
-    // 获取产品类型名称
-    getProductTypeName(type) {
-      return this.productTypeNames[type] || type
-    },
-    
     // 从路径中提取项目标识符
+    // 例如 /products/2025/8-pat-admin/prd/first/ → 8-pat-admin
     extractProjectId(path) {
-      // 例如从 "/products/charging-products/2025/5-merchant-mini-program/..." 提取 "5-merchant-mini-program"
-      const match = path.match(/\/products\/[\w-]+\/\d+\/([\w-]+)\//)
+      const match = path.match(/\/products\/\d{4}\/([\w-]+)\//)
       return match ? match[1] : path
     },
     
@@ -248,8 +227,6 @@ export default {
 }
 
 .product-info {
-  display: flex;
-  justify-content: space-between;
   margin-bottom: 0.5rem;
   font-size: 0.9rem;
   color: #666;

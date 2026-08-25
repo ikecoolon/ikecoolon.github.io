@@ -5,6 +5,6 @@ sidebar: auto
 
 # 产品中心
 
-ikecoolon产品中心收录了所有产品的PRD文档，您可以按年份或产品类型浏览。
+个人产品库，收录所有产品的 PRD 文档，可按年份浏览。
 
 <ProductList /> 

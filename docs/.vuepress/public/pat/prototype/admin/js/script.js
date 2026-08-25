@@ -1,241 +1,137 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const navItems = document.querySelectorAll('#main-nav .nav-item');
-    const pageContentContainer = document.getElementById('page-content-container');
-    const pageTitle = document.getElementById('page-title');
+document.addEventListener('DOMContentLoaded', function () {
+  var C = window.PetAdminCommon;
+  var navItems = document.querySelectorAll('#main-nav .nav-item');
+  var pageContentContainer = document.getElementById('page-content-container');
+  var pageTitle = document.getElementById('page-title');
+  var roleSwitcher = document.getElementById('role-switcher');
+  var loadedScripts = {};
+  var currentPageId = null;
+  var unsubscribe = null;
 
-    const pageTitlesMap = {
-        'pet-information': '宠物信息',
-        'customer-management': '客户管理',
-        'pet-report-management': '萌宠报告',
-        'analysis-rules': '分析建议规则',
-        'dictionary-management': '字典管理',
-        'normal-range-config': '正常范围配置',
-        'health-level-management': '健康值分级'
-    };
+  var PAGE_CONFIG = {
+    dashboard: { title: '工作台', script: 'dashboard-script.js', init: 'initDashboard' },
+    'detection-records': { title: '检测记录', script: 'detection-records-script.js', init: 'initDetectionRecords' },
+    'excel-import': { title: 'Excel 导入', script: 'excel-import-script.js', init: 'initExcelImport' },
+    'report-review': { title: '报告审核', script: 'report-review-script.js', init: 'initReportReview' },
+    'published-reports': { title: '已发布报告', script: 'published-reports-script.js', init: 'initPublishedReports' },
+    'recommendation-mapping': { title: '推荐映射', script: 'recommendation-mapping-script.js', init: 'initRecommendationMapping' },
+    'customer-management': { title: '客户管理', script: 'customer-management-script.js', init: 'initCustomerManagement' },
+    'pet-information': { title: '宠物档案', script: 'pet-information-script.js', init: 'initPetInformation' },
+    'pet-report-management': { title: '萌宠报告', script: 'pet-report-management-script.js', init: 'initPetReportManagement' },
+    'analysis-rules': { title: '分析规则', script: 'analysis-rules-script.js', init: 'initAnalysisRules' },
+    'dictionary-management': { title: '字典管理', script: 'dictionary-management-script.js', init: 'initDictionaryManagement' },
+    'normal-range-config': { title: '指标/参考范围', script: 'normal-range-config-script.js', init: 'initNormalRangeConfig' },
+    'health-level-management': { title: '健康分级', script: 'health-level-management-script.js', init: 'initHealthLevelManagement' }
+  };
 
-    function initMainChart() {
-        const chartDom = document.getElementById('main-chart');
-        if (chartDom) {
-            const myChart = echarts.init(chartDom);
-            const option = {
-                tooltip: {
-                    trigger: 'axis'
-                },
-                legend: {
-                    data: ['访问量', '交易额']
-                },
-                grid: {
-                    left: '3%',
-                    right: '4%',
-                    bottom: '3%',
-                    containLabel: true
-                },
-                xAxis: {
-                    type: 'category',
-                    boundaryGap: false,
-                    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
-                },
-                yAxis: {
-                    type: 'value'
-                },
-                series: [
-                    {
-                        name: '访问量',
-                        type: 'line',
-                        stack: '总量',
-                        data: [120, 132, 101, 134, 90, 230, 210]
-                    },
-                    {
-                        name: '交易额',
-                        type: 'line',
-                        stack: '总量',
-                        data: [220, 182, 191, 234, 290, 330, 310]
-                    }
-                ]
-            };
-            myChart.setOption(option);
-        }
-    }
-
-    async function loadPage(pageId, updateHash = true) {
-        try {
-            const response = await fetch(`./${pageId}.html`);
-            const html = await response.text();
-            pageContentContainer.innerHTML = html;
-            pageTitle.textContent = pageTitlesMap[pageId];
-
-            // Update active state of nav items
-            navItems.forEach(nav => nav.classList.remove('active'));
-            const activeNavItem = document.querySelector(`[data-page="${pageId}"]`);
-            if (activeNavItem) {
-                activeNavItem.classList.add('active');
-            }
-
-            if (pageId === 'dashboard') {
-                initMainChart();
-            } else if (pageId === 'pet-information') {
-                if (typeof FontAwesomeConfig !== 'undefined' && FontAwesomeConfig.autoReplaceSvg) {
-                    FontAwesomeConfig.autoReplaceSvg();
-                } else if (typeof FontAwesome !== 'undefined' && FontAwesome.dom && FontAwesome.dom.i2svg) {
-                    FontAwesome.dom.i2svg();
-                } else if (document.head.querySelector('link[href*="font-awesome"]')) {
-                    document.querySelectorAll('.fas, .far, .fal, .fab').forEach(icon => {
-                        icon.classList.add('fa-fw');
-                    });
-                }
-                // Dynamically load pet-information-script.js
-                const petInfoScript = document.createElement('script');
-                petInfoScript.src = './js/pet-information-script.js';
-                petInfoScript.onload = () => {
-                    console.log('Pet information script loaded successfully');
-                };
-                petInfoScript.onerror = () => {
-                    console.error('Failed to load pet information script');
-                };
-                document.head.appendChild(petInfoScript);
-            } else if (pageId === 'customer-management') {
-                if (typeof FontAwesomeConfig !== 'undefined' && FontAwesomeConfig.autoReplaceSvg) {
-                    FontAwesomeConfig.autoReplaceSvg();
-                } else if (typeof FontAwesome !== 'undefined' && FontAwesome.dom && FontAwesome.dom.i2svg) {
-                    FontAwesome.dom.i2svg();
-                } else if (document.head.querySelector('link[href*="font-awesome"]')) {
-                    document.querySelectorAll('.fas, .far, .fal, .fab').forEach(icon => {
-                        icon.classList.add('fa-fw');
-                    });
-                }
-                // Dynamically load customer-management-script.js
-                const customerMgmtScript = document.createElement('script');
-                customerMgmtScript.src = './js/customer-management-script.js';
-                customerMgmtScript.onload = () => {
-                    console.log('Customer management script loaded successfully');
-                };
-                customerMgmtScript.onerror = () => {
-                    console.error('Failed to load customer management script');
-                };
-                document.head.appendChild(customerMgmtScript);
-            } else if (pageId === 'analysis-rules') {
-                if (typeof FontAwesomeConfig !== 'undefined' && FontAwesomeConfig.autoReplaceSvg) {
-                    FontAwesomeConfig.autoReplaceSvg();
-                } else if (typeof FontAwesome !== 'undefined' && FontAwesome.dom && FontAwesome.dom.i2svg) {
-                    FontAwesome.dom.i2svg();
-                } else if (document.head.querySelector('link[href*="font-awesome"]')) {
-                    document.querySelectorAll('.fas, .far, .fal, .fab').forEach(icon => {
-                        icon.classList.add('fa-fw');
-                    });
-                }
-                // Dynamically load analysis-rules-script.js
-                const analysisRulesScript = document.createElement('script');
-                analysisRulesScript.src = './js/analysis-rules-script.js';
-                analysisRulesScript.onload = () => {
-                    console.log('Analysis rules script loaded successfully');
-                };
-                analysisRulesScript.onerror = () => {
-                    console.error('Failed to load analysis rules script');
-                };
-                document.head.appendChild(analysisRulesScript);
-            } else if (pageId === 'dictionary-management') {
-                if (typeof FontAwesomeConfig !== 'undefined' && FontAwesomeConfig.autoReplaceSvg) {
-                    FontAwesomeConfig.autoReplaceSvg();
-                } else if (typeof FontAwesome !== 'undefined' && FontAwesome.dom && FontAwesome.dom.i2svg) {
-                    FontAwesome.dom.i2svg();
-                } else if (document.head.querySelector('link[href*="font-awesome"]')) {
-                    document.querySelectorAll('.fas, .far, .fal, .fab').forEach(icon => {
-                        icon.classList.add('fa-fw');
-                    });
-                }
-                // Dynamically load dictionary-management-script.js
-                const script = document.createElement('script');
-                script.src = './js/dictionary-management-script.js';
-                script.onload = () => {
-                    console.log('Dictionary management script loaded successfully');
-                };
-                script.onerror = () => {
-                    console.error('Failed to load dictionary management script');
-                };
-                document.head.appendChild(script);
-            } else if (pageId === 'pet-report-management') {
-                if (typeof FontAwesomeConfig !== 'undefined' && FontAwesomeConfig.autoReplaceSvg) {
-                    FontAwesomeConfig.autoReplaceSvg();
-                } else if (typeof FontAwesome !== 'undefined' && FontAwesome.dom && FontAwesome.dom.i2svg) {
-                    FontAwesome.dom.i2svg();
-                } else if (document.head.querySelector('link[href*="font-awesome"]')) {
-                    document.querySelectorAll('.fas, .far, .fal, .fab').forEach(icon => {
-                        icon.classList.add('fa-fw');
-                    });
-                }
-                // Dynamically load pet-report-management-script.js
-                const petReportScript = document.createElement('script');
-                petReportScript.src = './js/pet-report-management-script.js';
-                petReportScript.onload = () => {
-                    console.log('Pet report management script loaded successfully');
-                };
-                petReportScript.onerror = () => {
-                    console.error('Failed to load pet report management script');
-                };
-                document.head.appendChild(petReportScript);
-            } else if (pageId === 'health-level-management') {
-                if (typeof FontAwesomeConfig !== 'undefined' && FontAwesomeConfig.autoReplaceSvg) {
-                    FontAwesomeConfig.autoReplaceSvg();
-                } else if (typeof FontAwesome !== 'undefined' && FontAwesome.dom && FontAwesome.dom.i2svg) {
-                    FontAwesome.dom.i2svg();
-                } else if (document.head.querySelector('link[href*="font-awesome"]')) {
-                    document.querySelectorAll('.fas, .far, .fal, .fab').forEach(icon => {
-                        icon.classList.add('fa-fw');
-                    });
-                }
-                // Dynamically load health-level-management-script.js
-                const healthScript = document.createElement('script');
-                healthScript.src = './js/health-level-management-script.js';
-                healthScript.onload = () => {
-                    console.log('Health level management script loaded successfully');
-                };
-                healthScript.onerror = () => {
-                    console.error('Failed to load health level management script');
-                };
-                document.head.appendChild(healthScript);
-            } else if (pageId === 'normal-range-config') {
-                // Dynamically load normal-range-config-script.js
-                const rangeConfigScript = document.createElement('script');
-                rangeConfigScript.src = './js/normal-range-config-script.js';
-                rangeConfigScript.onload = () => {
-                    console.log('Normal range config script loaded successfully');
-                    if (typeof initNormalRangeConfig === 'function') {
-                        initNormalRangeConfig();
-                    }
-                };
-                rangeConfigScript.onerror = () => {
-                    console.error('Failed to load normal range config script');
-                };
-                document.head.appendChild(rangeConfigScript);
-            }
-
-            if (updateHash) {
-                window.location.hash = pageId;
-            }
-        } catch (error) {
-            console.error(`Error loading page ${pageId}.html:`, error);
-            pageContentContainer.innerHTML = `<p class="text-red-500 p-4">页面加载失败: ${pageTitlesMap[pageId]}。</p>`;
-        }
-    }
-
-    navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const pageId = item.dataset.page;
-            loadPage(pageId);
-        });
+  if (roleSwitcher) {
+    roleSwitcher.value = C.getRole();
+    roleSwitcher.addEventListener('change', function () {
+      C.setRole(roleSwitcher.value);
+      C.toast(roleSwitcher.value === 'reviser' ? '已切换为数据修订员，可更正原始指标' : '已切换为审核员', 'info');
+      if (currentPageId === 'report-review') {
+        loadPage('report-review', false);
+      }
     });
+  }
 
-    // Handle initial page load and hash changes
-    const initialPageId = window.location.hash ? window.location.hash.substring(1) : 'dictionary-management';
-    loadPage(initialPageId, false); // Load page without updating hash again
+  function setActiveNav(pageId) {
+    navItems.forEach(function (nav) {
+      nav.classList.toggle('active', nav.dataset.page === pageId);
+    });
+  }
 
-    window.addEventListener('hashchange', () => {
-        const pageIdFromHash = window.location.hash.substring(1);
-        if (pageIdFromHash) {
-            loadPage(pageIdFromHash, false); // Load page from hash without updating hash again
+  function loadScript(src) {
+    return new Promise(function (resolve, reject) {
+      if (loadedScripts[src]) {
+        resolve();
+        return;
+      }
+      var s = document.createElement('script');
+      s.src = './js/' + src;
+      s.onload = function () {
+        loadedScripts[src] = true;
+        resolve();
+      };
+      s.onerror = function () { reject(new Error('Failed to load ' + src)); };
+      document.head.appendChild(s);
+    });
+  }
+
+  function teardownPage() {
+    if (typeof unsubscribe === 'function') {
+      unsubscribe();
+      unsubscribe = null;
+    }
+    window.__petAdminPageTeardown && window.__petAdminPageTeardown();
+    window.__petAdminPageTeardown = null;
+  }
+
+  function runPageInit(config) {
+    var initName = config.init;
+    if (initName && typeof window[initName] === 'function') {
+      window[initName]();
+    }
+  }
+
+  async function loadPage(pageId, updateHash) {
+    if (updateHash === undefined) updateHash = true;
+    var config = PAGE_CONFIG[pageId];
+    if (!config) {
+      pageId = 'dashboard';
+      config = PAGE_CONFIG.dashboard;
+    }
+
+    teardownPage();
+    currentPageId = pageId;
+
+    try {
+      var response = await fetch('./' + pageId + '.html');
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      var html = await response.text();
+      pageContentContainer.innerHTML = html;
+      pageTitle.textContent = config.title;
+      setActiveNav(pageId);
+
+      if (config.script) {
+        await loadScript(config.script);
+      }
+      runPageInit(config);
+
+      if (updateHash) {
+        var route = C.parseRoute();
+        if (route.pageId !== pageId || Object.keys(route.params).length) {
+          var hash = pageId;
+          if (route.pageId === pageId && Object.keys(route.params).length) {
+            hash += '?' + Object.keys(route.params).map(function (k) {
+              return encodeURIComponent(k) + '=' + encodeURIComponent(route.params[k]);
+            }).join('&');
+          }
+          window.location.hash = hash;
         } else {
-            loadPage('dictionary-management', false); // Default to dashboard if hash is empty
+          window.location.hash = pageId;
         }
+      }
+    } catch (err) {
+      console.error('Error loading page ' + pageId, err);
+      pageContentContainer.innerHTML =
+        '<div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">页面加载失败: ' +
+        C.escapeHtml(config.title) + '</div>';
+    }
+  }
+
+  navItems.forEach(function (item) {
+    item.addEventListener('click', function (e) {
+      e.preventDefault();
+      loadPage(item.dataset.page, true);
     });
+  });
+
+  function handleRoute() {
+    var route = C.parseRoute();
+    loadPage(route.pageId, false);
+  }
+
+  window.addEventListener('hashchange', handleRoute);
+  handleRoute();
 });

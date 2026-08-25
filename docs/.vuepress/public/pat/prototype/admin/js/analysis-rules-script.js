@@ -301,7 +301,41 @@ function initAnalysisRules() {
     }
   ];
 
-  // 初始化测试数据
+  // 演示规则种子（与 PetAdminCommon.DEMO_ANALYSIS_RULES 对齐）
+  analysisRules = (window.PetAdminCommon && window.PetAdminCommon.DEMO_ANALYSIS_RULES
+    ? window.PetAdminCommon.DEMO_ANALYSIS_RULES
+    : []
+  ).map(function (rule, idx) {
+    return {
+      id: idx + 1,
+      name: rule.name,
+      description: '物种: ' + (rule.species || '通用') + ' · 数据状态: ' + (rule.dataStatus || 'PRESENT'),
+      species: rule.species || '通用',
+      indicatorKey: rule.indicatorKey,
+      dataStatus: rule.dataStatus || 'PRESENT',
+      riskLevel: rule.riskLevel || 'medium',
+      priority: rule.priority || (idx + 1) * 10,
+      module: rule.module || 'general',
+      recommendAction: rule.recommendAction || 'NONE',
+      conditions: [
+        {
+          indicator: rule.indicatorKey,
+          operator: '=',
+          value: rule.dataStatus || 'PRESENT',
+          unit: ''
+        }
+      ],
+      logicOperator: 'AND',
+      analysisContent: rule.professional,
+      suggestionContent: rule.consumer,
+      outputType: 'both',
+      isActive: rule.isActive !== false,
+      createdAt: '2025-08-25 08:00:00',
+      updatedAt: '2025-08-25 08:00:00'
+    };
+  });
+
+  if (!analysisRules.length) {
   analysisRules = [
     {
       id: 1,
@@ -382,6 +416,7 @@ function initAnalysisRules() {
       updatedAt: "2025-01-13 16:20:00"
     }
   ];
+  }
 
   function generateId() {
     return Math.max(...analysisRules.map((r) => r.id || 0), 0) + 1;
@@ -567,6 +602,7 @@ function initAnalysisRules() {
         <td class="px-3 py-4">
           <div class="text-sm font-medium text-gray-900 break-words">${rule.name}</div>
           <div class="text-xs text-gray-500 mt-1 break-words">${rule.description || '无描述'}</div>
+          <div class="text-xs text-gray-500 mt-1">优先级 ${rule.priority != null ? rule.priority : '—'} · 风险 ${rule.riskLevel || '—'} · 主题 ${rule.module || '—'} · 推荐 ${rule.recommendAction || '—'}</div>
           <div class="mt-1">
             <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${rule.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
               ${rule.isActive ? '启用' : '停用'}

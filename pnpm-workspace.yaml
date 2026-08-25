@@ -1,0 +1,8 @@
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+  esbuild: true
+  fsevents: true
+  highlight.js: true
+  vue-demi: true
+  vuepress: true

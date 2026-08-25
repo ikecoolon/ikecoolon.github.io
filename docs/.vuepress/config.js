@@ -53,16 +53,9 @@ module.exports = config({
               { text: '2025年', link: '/products/2025/' },
               { text: '2024年', link: '/products/2024/' }
             ]
-          },
-          { 
-            text: '按类型浏览',
-            items: [
-              { text: '电商产品', link: '/products/charging-products/'},
-              { text: '其他产品', link: '/products/virtual-power/' }
-            ]
           }
         ]
-          }
+      }
     ],
     sidebar: {
       '/rules/': [
@@ -99,24 +92,8 @@ module.exports = config({
             '2025/',
             '2024/'
           ]
-        },
-        {
-          title: '按类型',
-          children: [
-            'charging-products/',
-            'virtual-power/'
-          ]
         }
-      ],
-      '/products/charging-products/': [
-        {
-          title: '2025',
-          collapsable: false,
-          children: [
-            '/products/charging-products/2025/5-merchant-mini-program/prd/ninth.md'
-          ]
-        }
-          ]
+      ]
     },
     lastUpdated: '上次更新',
         editLinkText: '编辑此页'

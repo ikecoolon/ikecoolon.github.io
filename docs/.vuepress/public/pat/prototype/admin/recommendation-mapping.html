@@ -1,0 +1,41 @@
+<div id="recommendation-mapping" class="page space-y-4">
+    <div class="bg-white rounded-lg border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold text-slate-800 mb-2"><i class="fas fa-link text-teal-600 mr-2"></i>推荐映射配置</h2>
+        <p class="text-sm text-slate-600 mb-4">PRODUCT 必须配置分类兜底；产品不可用时自动降级为 CATEGORY，分类不可用则为 NONE。页面不展示价格或购买入口。</p>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <section>
+                <h3 class="font-medium text-slate-700 mb-3">产品与分类（来自 Mock Store）</h3>
+                <div id="products-list" class="space-y-2 text-sm max-h-64 overflow-y-auto"></div>
+            </section>
+            <section>
+                <h3 class="font-medium text-slate-700 mb-3">映射规则演示</h3>
+                <div class="space-y-3" id="mapping-rules"></div>
+            </section>
+        </div>
+
+        <div class="mt-6 border-t border-slate-200 pt-5">
+            <h3 class="font-medium text-slate-700 mb-3">解析模拟器</h3>
+            <div class="flex flex-wrap gap-3 items-end">
+                <div>
+                    <label class="text-xs text-slate-500">目标类型</label>
+                    <select id="sim-type" class="block border rounded-md py-1.5 px-2 text-sm mt-1">
+                        <option value="PRODUCT">PRODUCT</option>
+                        <option value="CATEGORY">CATEGORY</option>
+                        <option value="NONE">NONE</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">产品</label>
+                    <select id="sim-product" class="block border rounded-md py-1.5 px-2 text-sm mt-1 min-w-[180px]"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">分类兜底</label>
+                    <select id="sim-category" class="block border rounded-md py-1.5 px-2 text-sm mt-1 min-w-[180px]"></select>
+                </div>
+                <button type="button" id="btn-resolve" class="btn-primary px-4 py-2 rounded-md text-sm">解析推荐</button>
+            </div>
+            <div id="resolve-result" class="mt-4 p-4 bg-slate-50 rounded-md text-sm hidden"></div>
+        </div>
+    </div>
+</div>
