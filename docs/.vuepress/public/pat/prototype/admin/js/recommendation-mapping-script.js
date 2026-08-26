@@ -262,7 +262,7 @@ function initRecommendationMapping() {
       candidatesHtml = '<p class="text-xs text-slate-500 mt-1">无标签候选 SPU</p>';
     }
 
-    var downgradeHtml = result.downgradePath.length
+    var downgradeHtml = result.downgradePath && result.downgradePath.length
       ? '<p class="text-amber-700 text-xs mt-2"><i class="fas fa-arrow-down mr-1"></i>' + C.escapeHtml(result.downgradePath.join(' → ')) + '</p>'
       : '';
 
