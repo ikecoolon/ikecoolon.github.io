@@ -1,125 +1,274 @@
 function initExcelImport() {
   var C = window.PetAdminCommon;
   var store = C.store();
-  var wizard = { step: 1, scenario: null, fileName: '', testRecordId: null, previewRows: [], warnings: [], blocked: false, result: null, reportId: null };
 
-  var preTr = sessionStorage.getItem('pet-admin-excel-tr');
-  if (preTr) sessionStorage.removeItem('pet-admin-excel-tr');
+  var STATUS_LABELS = {
+    success: '成功',
+    partial: '局部异常',
+    failed: '关键失败',
+    duplicate: '重复阻断'
+  };
 
-  populateTestRecords();
-  if (preTr) {
-    var sel = document.getElementById('select-test-record');
-    if (sel.querySelector('option[value="' + preTr + '"]')) sel.value = preTr;
-  }
+  var wizard = { step: 1, files: [], batchResult: null };
+  var demoSeq = 0;
+
+  var fileInput = document.getElementById('file-input');
+  var dropZone = document.getElementById('drop-zone');
+  var fileQueueWrap = document.getElementById('file-queue-wrap');
+  var fileQueue = document.getElementById('file-queue');
+  var fileQueueCount = document.getElementById('file-queue-count');
+  var btnStartImport = document.getElementById('btn-start-import');
+  var demoBatchPreview = document.getElementById('demo-batch-preview');
 
   document.getElementById('btn-download-template').onclick = downloadTemplate;
-
-  document.querySelectorAll('.demo-file-card').forEach(function (card) {
-    card.addEventListener('click', function () {
-      document.querySelectorAll('.demo-file-card').forEach(function (c) { c.classList.remove('selected'); });
-      card.classList.add('selected');
-      wizard.scenario = card.dataset.scenario;
-      wizard.fileName = card.querySelector('.font-medium').textContent + '.csv';
-      document.getElementById('selected-file-name').textContent = '已选择: ' + wizard.fileName;
-      document.getElementById('btn-step1-next').disabled = false;
-    });
-  });
-
-  document.getElementById('file-input').addEventListener('change', function (e) {
-    var f = e.target.files[0];
-    if (!f) return;
-    wizard.scenario = 'success_warn';
-    wizard.fileName = f.name;
-    document.getElementById('selected-file-name').textContent = '已上传: ' + f.name;
-    document.getElementById('btn-step1-next').disabled = false;
-    document.querySelectorAll('.demo-file-card').forEach(function (c) { c.classList.remove('selected'); });
-  });
-
-  document.getElementById('select-test-record').addEventListener('change', function () {
-    wizard.testRecordId = this.value || null;
-  });
-
-  document.getElementById('btn-step1-next').onclick = function () {
-    wizard.testRecordId = document.getElementById('select-test-record').value || null;
-    if (!wizard.scenario) {
-      C.toast('请选择演示文件或上传文件', 'warning');
-      return;
-    }
-    buildPreview();
-    goStep(2);
-  };
-
-  document.getElementById('btn-step2-next').onclick = function () {
-    if (wizard.blocked) {
-      C.toast('解析失败，无法继续', 'error');
-      return;
-    }
-    renderMapping();
-    goStep(3);
-  };
-
-  document.getElementById('btn-step3-next').onclick = function () {
-    if (wizard.blocked) {
-      goStep(4);
-      renderResult();
-      return;
-    }
-    executeImport();
-    goStep(4);
-    renderResult();
+  document.getElementById('btn-load-demo-batch').onclick = loadDemoBatch;
+  document.getElementById('btn-clear-queue').onclick = clearQueue;
+  btnStartImport.onclick = startImport;
+  document.getElementById('btn-go-unassigned').onclick = function () {
+    C.navigate('report-center', { view: 'unassigned' });
   };
 
   document.querySelectorAll('.wizard-back').forEach(function (btn) {
     btn.onclick = function () { goStep(parseInt(btn.dataset.to, 10)); };
   });
 
-  document.getElementById('btn-generate-draft').onclick = function () {
-    if (!wizard.result || !wizard.result.testRecordId) return;
-    try {
-      store.generateReport({
-        testRecordId: wizard.result.testRecordId,
-        summary: store.DEMO_LABEL + ' Excel 导入生成草稿'
-      });
-      var genState = store.getState();
-      var report = genState.reports.filter(function (r) {
-        return r.testRecordId === wizard.result.testRecordId;
-      }).sort(function (a, b) { return b.createdAt.localeCompare(a.createdAt); })[0];
-      if (!report) throw new Error('报告生成失败');
-      wizard.reportId = report.id;
-      C.toast('报告草稿已生成: ' + report.reportNumber, 'success');
-      document.getElementById('btn-generate-draft').classList.add('hidden');
-      document.getElementById('btn-submit-review').classList.remove('hidden');
-    } catch (e) {
-      C.toast(e.message, 'error');
+  fileInput.addEventListener('change', function (e) {
+    addUploadedFiles(e.target.files);
+    fileInput.value = '';
+  });
+
+  dropZone.addEventListener('dragover', function (e) {
+    e.preventDefault();
+    dropZone.classList.add('drag-over');
+  });
+  dropZone.addEventListener('dragleave', function () {
+    dropZone.classList.remove('drag-over');
+  });
+  dropZone.addEventListener('drop', function (e) {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    addUploadedFiles(e.dataTransfer.files);
+  });
+
+  function buildDemoBatchFiles() {
+    demoSeq += 1;
+    var suffix = String(demoSeq).padStart(3, '0');
+    return [
+      {
+        scenario: 'success',
+        fileName: '小花_肠道检测_' + suffix + '.xlsx',
+        externalReportNumber: 'EXT-DEMO-' + suffix + '-OK',
+        sampleNumber: 'SAMPLE-DEMO-' + suffix + '-OK'
+      },
+      {
+        scenario: 'duplicate',
+        fileName: '重复_已有报告_' + suffix + '.xlsx',
+        sourceOrgId: store.DEFAULT_SOURCE_ORG_ID,
+        externalReportNumber: 'EXT-2025-001'
+      },
+      {
+        scenario: 'partial',
+        fileName: '旺财_局部异常_' + suffix + '.xlsx',
+        externalReportNumber: 'EXT-DEMO-' + suffix + '-PART',
+        sampleNumber: 'SAMPLE-DEMO-' + suffix + '-PART'
+      },
+      {
+        scenario: 'failure',
+        fileName: '缺列_阻断失败_' + suffix + '.xlsx',
+        externalReportNumber: 'EXT-DEMO-' + suffix + '-FAIL',
+        sampleNumber: 'SAMPLE-DEMO-' + suffix + '-FAIL',
+        errorCode: 'MISSING_COLUMN'
+      }
+    ];
+  }
+
+  function renderDemoPreview(files) {
+    demoBatchPreview.innerHTML = files.map(function (f) {
+      return '<li><i class="fas fa-file-excel text-emerald-600 mr-1"></i>' +
+        C.escapeHtml(f.fileName) + ' — ' + C.escapeHtml(STATUS_LABELS[f.scenario] || f.scenario) + '</li>';
+    }).join('');
+    demoBatchPreview.classList.remove('hidden');
+  }
+
+  function loadDemoBatch() {
+    wizard.files = buildDemoBatchFiles();
+    renderQueue();
+    C.toast('已加载演示批次（4 个文件）', 'success');
+  }
+
+  function inferScenario(fileName) {
+    var name = String(fileName || '').toLowerCase();
+    if (/重复|dup|duplicate/.test(name)) return 'duplicate';
+    if (/失败|fail|缺列|阻断/.test(name)) return 'failure';
+    if (/异常|partial|warn|警告/.test(name)) return 'partial';
+    return 'success';
+  }
+
+  function makeUploadMeta(file, index) {
+    var seq = Date.now().toString(36) + '-' + index;
+    var scenario = inferScenario(file.name);
+    var meta = {
+      scenario: scenario,
+      fileName: file.name,
+      externalReportNumber: 'EXT-UP-' + seq,
+      sampleNumber: 'SAMPLE-UP-' + seq,
+      _upload: file
+    };
+    if (scenario === 'duplicate') {
+      meta.sourceOrgId = store.DEFAULT_SOURCE_ORG_ID;
+      meta.externalReportNumber = 'EXT-2025-001';
+      delete meta.sampleNumber;
     }
-  };
+    if (scenario === 'failure') meta.errorCode = 'MISSING_COLUMN';
+    return meta;
+  }
 
-  document.getElementById('btn-submit-review').onclick = function () {
-    if (!wizard.reportId) return;
-    store.submitReport(wizard.reportId);
-    C.toast('已提交审核', 'success');
-    document.getElementById('btn-submit-review').classList.add('hidden');
-    document.getElementById('btn-go-review').classList.remove('hidden');
-  };
-
-  document.getElementById('btn-go-review').onclick = function () {
-    C.navigate('report-review', { reportId: wizard.reportId });
-  };
-
-  function populateTestRecords() {
-    var state = store.getState();
-    var sel = document.getElementById('select-test-record');
-    var opts = '<option value="">— 新建检测记录 —</option>';
-    state.testRecords.forEach(function (tr) {
-      if (tr.status === 'published' && wizard.scenario !== 'duplicate') return;
-      opts += '<option value="' + tr.id + '">' + tr.id + ' (' + (C.TEST_STATUS_LABELS[tr.status] || tr.status) + ')</option>';
+  function addUploadedFiles(fileList) {
+    if (!fileList || !fileList.length) return;
+    Array.prototype.forEach.call(fileList, function (file, idx) {
+      wizard.files.push(makeUploadMeta(file, wizard.files.length + idx));
     });
-    sel.innerHTML = opts;
+    renderQueue();
+  }
+
+  function clearQueue() {
+    wizard.files = [];
+    demoBatchPreview.classList.add('hidden');
+    renderQueue();
+  }
+
+  function removeFile(index) {
+    wizard.files.splice(index, 1);
+    if (!wizard.files.length) demoBatchPreview.classList.add('hidden');
+    renderQueue();
+  }
+
+  function renderQueue() {
+    if (!wizard.files.length) {
+      fileQueueWrap.classList.add('hidden');
+      btnStartImport.disabled = true;
+      fileQueue.innerHTML = '';
+      return;
+    }
+
+    fileQueueWrap.classList.remove('hidden');
+    fileQueueCount.textContent = '（' + wizard.files.length + '）';
+    btnStartImport.disabled = false;
+
+    fileQueue.innerHTML = wizard.files.map(function (f, idx) {
+      var scenarioLabel = STATUS_LABELS[f.scenario] || f.scenario;
+      return '<li class="file-queue-item">' +
+        '<div class="min-w-0">' +
+        '<p class="truncate text-slate-800"><i class="fas fa-file-excel text-emerald-600 mr-1"></i>' + C.escapeHtml(f.fileName) + '</p>' +
+        '<p class="text-xs text-slate-500 mt-0.5">场景：' + C.escapeHtml(scenarioLabel) + '</p>' +
+        '</div>' +
+        '<button type="button" class="remove-file shrink-0" data-index="' + idx + '" title="移除"><i class="fas fa-times"></i></button>' +
+        '</li>';
+    }).join('');
+
+    fileQueue.querySelectorAll('.remove-file').forEach(function (btn) {
+      btn.onclick = function () { removeFile(parseInt(btn.dataset.index, 10)); };
+    });
+  }
+
+  function startImport() {
+    if (!wizard.files.length) {
+      C.toast('请先选择文件或加载演示批次', 'warning');
+      return;
+    }
+
+    var payload = wizard.files.map(function (f) {
+      return {
+        scenario: f.scenario,
+        fileName: f.fileName,
+        sourceOrgId: f.sourceOrgId,
+        externalReportNumber: f.externalReportNumber,
+        sampleNumber: f.sampleNumber,
+        errorCode: f.errorCode,
+        storeId: f.storeId || null
+      };
+    });
+
+    try {
+      wizard.batchResult = store.simulateBatchImport({
+        fileName: '批量导入批次_' + new Date().toISOString().slice(0, 10) + '.zip',
+        files: payload
+      });
+      renderResults();
+      goStep(2);
+
+      var okCount = wizard.batchResult.fileResults.filter(function (r) {
+        return r.status === 'success' || r.status === 'partial';
+      }).length;
+      if (okCount) {
+        C.toast('导入完成：' + okCount + ' 个文件已进入待归属', 'success');
+      } else {
+        C.toast('导入完成，无成功文件', 'warning');
+      }
+    } catch (e) {
+      C.toast(e.message || '导入失败', 'error');
+    }
+  }
+
+  function describeResult(row, testRecord) {
+    if (row.status === 'duplicate') {
+      var dup = row.error || {};
+      var ref = dup.existingTestRecordId ? ('已有记录 ' + dup.existingTestRecordId) : '已有记录';
+      if (dup.externalReportNumber) return '来源机构 + 外部报告号 ' + dup.externalReportNumber + ' 重复（' + ref + '）';
+      if (dup.sampleNumber) return '来源机构 + 样本号 ' + dup.sampleNumber + ' 重复（' + ref + '）';
+      return '重复导入已阻断';
+    }
+    if (row.status === 'failed') {
+      return '关键异常：' + (row.errorCode || 'MISSING_COLUMN') + '，整份文件失败';
+    }
+    if (row.status === 'partial') {
+      return '局部异常已保留（如 NOT_DETECTED），形成待办，可进入待归属继续处理';
+    }
+    if (testRecord && testRecord.label) return testRecord.label;
+    return '解析成功，已进入待归属';
+  }
+
+  function renderResults() {
+    var result = wizard.batchResult;
+    if (!result) return;
+
+    var state = store.getState();
+    var batch = (state.importBatches || []).find(function (b) { return b.id === result.batchId; }) || {};
+    var successCount = result.fileResults.filter(function (r) { return r.status === 'success' || r.status === 'partial'; }).length;
+    var failCount = result.fileResults.length - successCount;
+
+    var batchStatusLabel = batch.status === 'partial' ? '部分成功' : (batch.status === 'failed' ? '全部失败' : '全部成功');
+    var batchCls = batch.status === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-900' :
+      (batch.status === 'partial' ? 'bg-amber-50 border-amber-200 text-amber-900' : 'bg-red-50 border-red-200 text-red-900');
+
+    document.getElementById('batch-summary').innerHTML =
+      '<div class="border rounded-md p-4 text-sm ' + batchCls + '">' +
+      '<p class="font-medium"><i class="fas fa-layer-group mr-1"></i>批次 ' + C.escapeHtml(result.batchId) + ' — ' + batchStatusLabel + '</p>' +
+      '<p class="mt-1">共 ' + result.fileResults.length + ' 个文件，成功/保留 ' + successCount + '，失败/阻断 ' + failCount + '</p>' +
+      '</div>';
+
+    document.getElementById('result-tbody').innerHTML = result.fileResults.map(function (row) {
+      var testRecord = row.testRecordId
+        ? (state.testRecords || []).find(function (tr) { return tr.id === row.testRecordId; })
+        : null;
+      var extNo = testRecord ? (testRecord.externalReportNumber || '—') : (row.error && row.error.externalReportNumber) || '—';
+      var sampleNo = testRecord ? (testRecord.sampleNumber || '—') : (row.error && row.error.sampleNumber) || '—';
+      return '<tr class="hover:bg-slate-50">' +
+        '<td class="px-3 py-2">' +
+        '<p class="font-medium text-slate-800">' + C.escapeHtml(row.fileName) + '</p>' +
+        '<p class="text-xs text-slate-500 mt-0.5">原文件已 Mock 归档</p>' +
+        '</td>' +
+        '<td class="px-3 py-2 font-mono text-xs">' + C.escapeHtml(extNo) + '<br>' + C.escapeHtml(sampleNo) + '</td>' +
+        '<td class="px-3 py-2">' + C.statusBadge(row.status, STATUS_LABELS) + '</td>' +
+        '<td class="px-3 py-2 text-slate-600">' + C.escapeHtml(describeResult(row, testRecord)) + '</td>' +
+        '<td class="px-3 py-2 font-mono text-xs">' + (row.testRecordId ? C.escapeHtml(row.testRecordId) : '—') + '</td>' +
+        '</tr>';
+    }).join('');
   }
 
   function downloadTemplate() {
-    var csv = '\uFEFF样本编号,宠物名,放线菌门,拟杆菌门,厚壁菌门,双歧杆菌,Shannon指数\n' +
-      'SAMPLE-001,小花,22.5,33.1,41.0,8.2,3.45\n';
+    var csv = '\uFEFF外部报告编号,样本编号,宠物名,放线菌门,拟杆菌门,厚壁菌门,双歧杆菌,Shannon指数\n' +
+      'EXT-TPL-001,SAMPLE-TPL-001,小花,22.5,33.1,41.0,8.2,3.45\n';
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -127,184 +276,6 @@ function initExcelImport() {
     a.click();
     URL.revokeObjectURL(a.href);
     C.toast('模板已下载（可用 Excel 打开）', 'success');
-  }
-
-  function buildPreview() {
-    wizard.blocked = false;
-    wizard.warnings = [];
-    wizard.previewRows = [];
-
-    if (wizard.scenario === 'duplicate') {
-      var dupId = wizard.testRecordId || 'tr-004';
-      var dupTr = store.getState().testRecords.find(function (t) { return t.id === dupId; });
-      if (dupTr && dupTr.importBatchId && dupTr.status === 'published') {
-        wizard.blocked = true;
-        wizard.previewRows = [];
-        document.getElementById('parse-summary').innerHTML =
-          '<div class="bg-red-50 border border-red-200 text-red-800 p-3 rounded-md text-sm">' +
-          '<i class="fas fa-ban mr-1"></i>重复导入：检测 ' + dupId + ' 已成功导入并发布，不可重复导入。</div>';
-        document.getElementById('preview-table').innerHTML = '';
-        document.getElementById('btn-step2-next').disabled = true;
-        return;
-      }
-    }
-
-    document.getElementById('btn-step2-next').disabled = false;
-
-    if (wizard.scenario === 'failure') {
-      wizard.blocked = true;
-      wizard.previewRows = [
-        { row: 1, col: '样本编号', value: 'SAMPLE-X', ok: true },
-        { row: 2, col: '放线菌门', value: '(缺列)', ok: false, code: 'MISSING_COLUMN' },
-        { row: 5, col: '双歧杆菌', value: '', ok: false, code: 'EMPTY' }
-      ];
-      document.getElementById('parse-summary').innerHTML =
-        '<div class="bg-red-50 border border-red-200 text-red-800 p-3 rounded-md text-sm">' +
-        '<i class="fas fa-triangle-exclamation mr-1"></i>解析失败：2 处阻断错误，0 行可导入</div>';
-    } else {
-      wizard.previewRows = [
-        { row: 1, col: '放线菌门', value: '22.5', ok: true },
-        { row: 1, col: '拟杆菌门', value: '33.1', ok: true },
-        { row: 1, col: '厚壁菌门', value: '', ok: false, code: 'EMPTY' },
-        { row: 1, col: '双歧杆菌', value: 'ND', ok: false, code: 'NOT_DETECTED' }
-      ];
-      wizard.warnings = [
-        { code: 'EMPTY', message: '厚壁菌门 为空，将标记 EMPTY' },
-        { code: 'NOT_DETECTED', message: '双歧杆菌 未检出' }
-      ];
-      var warnHtml = wizard.warnings.map(function (w) {
-        return '<li>' + C.escapeHtml(w.message) + '</li>';
-      }).join('');
-      document.getElementById('parse-summary').innerHTML =
-        '<div class="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-md text-sm">' +
-        '<i class="fas fa-circle-info mr-1"></i>解析成功（含警告）<ul class="mt-2 list-disc pl-5">' + warnHtml + '</ul></div>';
-    }
-
-    document.getElementById('preview-table').innerHTML =
-      '<thead class="bg-slate-50"><tr><th class="px-3 py-1 text-left">行</th><th class="px-3 py-1 text-left">列</th><th class="px-3 py-1 text-left">值</th><th class="px-3 py-1 text-left">状态</th></tr></thead><tbody>' +
-      wizard.previewRows.map(function (r) {
-        return '<tr><td class="px-3 py-1">' + r.row + '</td><td class="px-3 py-1">' + C.escapeHtml(r.col) + '</td>' +
-          '<td class="px-3 py-1">' + C.escapeHtml(r.value) + '</td><td class="px-3 py-1">' +
-          (r.ok ? C.statusBadge('success', { success: 'OK' }) : C.statusBadge('failed', { failed: r.code })) + '</td></tr>';
-      }).join('') + '</tbody>';
-  }
-
-  function renderMapping() {
-    var alerts = document.getElementById('mapping-alerts');
-    if (wizard.blocked) {
-      alerts.innerHTML = '<div class="bg-red-50 text-red-800 p-3 rounded-md text-sm">字段匹配已跳过：存在阻断错误</div>';
-      document.getElementById('mapping-tbody').innerHTML = '';
-      return;
-    }
-    alerts.innerHTML = wizard.warnings.map(function (w) {
-      return '<div class="bg-amber-50 text-amber-900 px-3 py-2 rounded text-sm"><i class="fas fa-exclamation-triangle mr-1"></i>' + C.escapeHtml(w.message) + '</div>';
-    }).join('');
-
-    var mappings = [
-      { src: '放线菌门', target: '放线菌门', status: 'PRESENT' },
-      { src: '拟杆菌门', target: '拟杆菌门', status: 'PRESENT' },
-      { src: '厚壁菌门', target: '厚壁菌门', status: 'EMPTY' },
-      { src: '双歧杆菌', target: '双歧杆菌', status: 'NOT_DETECTED' }
-    ];
-    document.getElementById('mapping-tbody').innerHTML = mappings.map(function (m) {
-      return '<tr><td class="px-3 py-2">' + C.escapeHtml(m.src) + '</td><td class="px-3 py-2">' + C.escapeHtml(m.target) + '</td>' +
-        '<td class="px-3 py-2">' + C.statusBadge(m.status === 'PRESENT' ? 'published' : 'import_failed', C.DATA_STATUS_LABELS) + ' ' +
-        (C.DATA_STATUS_LABELS[m.status] || m.status) + '</td></tr>';
-    }).join('');
-  }
-
-  function executeImport() {
-    var state = store.getState();
-    var trId = wizard.testRecordId;
-    var petId = null;
-    var userId = null;
-    var storeId = null;
-    if (trId) {
-      var tr = state.testRecords.find(function (t) { return t.id === trId; });
-      if (tr) {
-        petId = tr.petId;
-        userId = tr.userId;
-        storeId = tr.storeId;
-        if (tr.importBatchId && tr.status === 'published') {
-          wizard.blocked = true;
-          wizard.result = { error: 'duplicate', testRecordId: trId };
-          return;
-        }
-      }
-    }
-
-    if (wizard.scenario === 'failure' || wizard.blocked) {
-      store.simulateExcelImportFailure({
-        testRecordId: trId,
-        fileName: wizard.fileName,
-        errorCode: 'MISSING_COLUMN',
-        errorColumn: '放线菌门'
-      });
-      var failState = store.getState();
-      var failBatch = failState.importBatches[failState.importBatches.length - 1];
-      wizard.result = {
-        batchId: failBatch.id,
-        testRecordId: failBatch.testRecordIds[0],
-        failed: true
-      };
-      return;
-    }
-
-    var indicators = [
-      { key: '放线菌门', value: 22.5, unit: '%', dataStatus: 'PRESENT' },
-      { key: '拟杆菌门', value: 33.1, unit: '%', dataStatus: 'PRESENT' },
-      { key: '厚壁菌门', value: null, unit: '%', dataStatus: 'EMPTY' },
-      { key: '双歧杆菌', value: null, unit: '%', dataStatus: 'NOT_DETECTED' }
-    ];
-    store.simulateExcelImportSuccess({
-      testRecordId: trId,
-      petId: petId,
-      userId: userId,
-      storeId: storeId,
-      fileName: wizard.fileName,
-      rows: 4,
-      indicators: indicators
-    });
-    var okState = store.getState();
-    var okBatch = okState.importBatches[okState.importBatches.length - 1];
-    wizard.result = {
-      batchId: okBatch.id,
-      testRecordId: okBatch.testRecordIds[0],
-      failed: false,
-      hasWarnings: true
-    };
-  }
-
-  function renderResult() {
-    var el = document.getElementById('import-result');
-    var genBtn = document.getElementById('btn-generate-draft');
-    var subBtn = document.getElementById('btn-submit-review');
-    var revBtn = document.getElementById('btn-go-review');
-    genBtn.classList.add('hidden');
-    subBtn.classList.add('hidden');
-    revBtn.classList.add('hidden');
-
-    if (!wizard.result) {
-      el.innerHTML = '<p class="text-slate-500">未执行导入</p>';
-      return;
-    }
-
-    if (wizard.result.error === 'duplicate' || (wizard.result.failed && wizard.blocked)) {
-      el.innerHTML = '<div class="bg-red-50 border border-red-200 p-4 rounded-md"><p class="font-medium text-red-800">重复导入已阻断</p>' +
-        '<p class="text-sm text-red-700 mt-1">该检测记录已有成功导入批次，请选择其他记录或重置演示数据。</p></div>';
-      return;
-    }
-
-    if (wizard.result.failed) {
-      el.innerHTML = '<div class="bg-red-50 border border-red-200 p-4 rounded-md"><p class="font-medium text-red-800"><i class="fas fa-times-circle mr-1"></i>导入失败</p>' +
-        '<p class="text-sm mt-1">批次 ' + C.escapeHtml(wizard.result.batchId) + '，检测 ' + C.escapeHtml(wizard.result.testRecordId) + '</p></div>';
-      return;
-    }
-
-    el.innerHTML = '<div class="bg-emerald-50 border border-emerald-200 p-4 rounded-md"><p class="font-medium text-emerald-800"><i class="fas fa-check-circle mr-1"></i>导入成功（含警告）</p>' +
-      '<p class="text-sm mt-1">批次 ' + C.escapeHtml(wizard.result.batchId) + ' → 检测 ' + C.escapeHtml(wizard.result.testRecordId) + '</p>' +
-      '<p class="text-xs text-amber-700 mt-2">EMPTY / NOT_DETECTED 指标不会触发商品推荐</p></div>';
-    genBtn.classList.remove('hidden');
   }
 
   function goStep(n) {

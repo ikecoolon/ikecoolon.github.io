@@ -1,47 +1,58 @@
 <div id="report-review" class="page space-y-4">
     <div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-wrap gap-3 items-center justify-between">
-        <div class="flex flex-wrap gap-2 items-center">
-            <label class="text-sm text-slate-600">待审核报告</label>
-            <select id="select-report" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm min-w-[200px]"></select>
+        <div class="flex flex-wrap gap-3 items-center">
+            <label class="text-sm text-slate-600">审核队列</label>
+            <select id="select-report" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm min-w-[240px]"></select>
             <span id="report-status-badge"></span>
+            <span id="version-badges" class="text-xs text-slate-500"></span>
         </div>
-        <div class="flex flex-wrap gap-2">
-            <button type="button" id="btn-reject" class="px-3 py-1.5 rounded-md text-sm border border-red-300 text-red-700 hover:bg-red-50">
-                <i class="fas fa-times mr-1"></i>驳回
-            </button>
-            <button type="button" id="btn-approve" class="btn-primary px-3 py-1.5 rounded-md text-sm">
-                <i class="fas fa-check mr-1"></i>批准
-            </button>
-            <button type="button" id="btn-publish" class="btn-primary px-3 py-1.5 rounded-md text-sm hidden">
-                <i class="fas fa-share-from-square mr-1"></i>发布
-            </button>
-        </div>
+        <div class="flex flex-wrap gap-2" id="action-bar"></div>
     </div>
 
-    <div id="reviser-banner" class="hidden bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-2 rounded-md text-sm">
-        <i class="fas fa-user-pen mr-1"></i>数据修订员模式：修正原始指标将新建结果修订并生成报告新版本，不会静默覆盖。
+    <div id="correction-banner" class="hidden bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-2 rounded-md text-sm">
+        <i class="fas fa-pen-ruler mr-1"></i>更正草稿审核中：用户仍读取已发布版本 v<span id="correction-pub-ver"></span>，工作版本独立编辑。
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4 min-h-[520px]">
-        <section class="xl:col-span-3 bg-white rounded-lg border border-slate-200 p-4 overflow-y-auto max-h-[70vh]">
-            <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-database text-teal-600 mr-1"></i>源数据 / 样本</h3>
-            <div id="source-panel" class="text-sm space-y-2"></div>
-            <h4 class="font-medium text-slate-700 mt-4 mb-2 text-sm">原始指标</h4>
-            <div id="indicators-panel" class="space-y-2 text-sm"></div>
+    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
+        <section class="xl:col-span-4 space-y-4">
+            <div class="bg-white rounded-lg border border-slate-200 p-4">
+                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-link text-teal-600 mr-1"></i>报告来源 / 归属</h3>
+                <div id="source-panel" class="text-sm space-y-2"></div>
+            </div>
+            <div class="bg-white rounded-lg border border-slate-200 p-4">
+                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-sliders text-teal-600 mr-1"></i>人工综合评定</h3>
+                <p class="text-xs text-slate-500 mb-3">等级、综合分、百分位、平台维度互相独立，不做自动推导。</p>
+                <form id="assessment-form" class="space-y-3 text-sm"></form>
+                <button type="button" id="btn-save-assessment" class="mt-3 btn-secondary w-full py-2 rounded-md text-sm">
+                    <i class="fas fa-save mr-1"></i>保存评定
+                </button>
+            </div>
         </section>
 
-        <section class="xl:col-span-5 bg-white rounded-lg border border-slate-200 p-4 overflow-y-auto max-h-[70vh]">
-            <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-mobile-screen text-teal-600 mr-1"></i>小程序报告预览</h3>
-            <div id="mini-preview" class="bg-slate-50 rounded-lg p-4 border border-slate-100 text-sm"></div>
-            <div id="version-timeline" class="mt-4 text-xs text-slate-500"></div>
+        <section class="xl:col-span-4 space-y-4">
+            <div class="bg-white rounded-lg border border-slate-200 p-4">
+                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-vial text-teal-600 mr-1"></i>有效检测结果</h3>
+                <div id="indicators-panel" class="space-y-2 text-sm max-h-[280px] overflow-y-auto"></div>
+            </div>
+            <div class="bg-white rounded-lg border border-slate-200 p-4">
+                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-microscope text-teal-600 mr-1"></i>规则分析（最新运行）</h3>
+                <div id="analysis-panel" class="text-sm space-y-3"></div>
+                <button type="button" id="btn-save-analysis" class="mt-3 btn-secondary w-full py-2 rounded-md text-sm hidden">
+                    <i class="fas fa-save mr-1"></i>保存最终解释
+                </button>
+            </div>
         </section>
 
-        <section class="xl:col-span-4 bg-white rounded-lg border border-slate-200 p-4 overflow-y-auto max-h-[70vh]">
-            <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-pen-to-square text-teal-600 mr-1"></i>发现与建议</h3>
-            <div id="findings-editor" class="space-y-4"></div>
-            <button type="button" id="btn-save-draft" class="mt-4 btn-secondary w-full py-2 rounded-md text-sm">
-                <i class="fas fa-save mr-1"></i>保存编辑（会话草稿）
-            </button>
+        <section class="xl:col-span-4 space-y-4">
+            <div class="bg-white rounded-lg border border-slate-200 p-4">
+                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-lightbulb text-teal-600 mr-1"></i>推荐映射</h3>
+                <div id="recommendations-panel" class="text-sm space-y-2 max-h-[200px] overflow-y-auto"></div>
+            </div>
+            <div class="bg-white rounded-lg border border-slate-200 p-4">
+                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-clipboard-check text-teal-600 mr-1"></i>发布检查</h3>
+                <p class="text-xs text-amber-700 mb-2">[临时 Mock] 必备模块：综合概览（摘要+等级+分数）、专业检测结果（至少一项有效结果）</p>
+                <div id="checks-panel" class="text-sm space-y-2"></div>
+            </div>
         </section>
     </div>
 </div>

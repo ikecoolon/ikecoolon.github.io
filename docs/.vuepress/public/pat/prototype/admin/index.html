@@ -84,14 +84,14 @@
             <span>PET 管理端</span>
         </div>
         <nav class="flex-grow" id="main-nav">
-            <div class="nav-section-title">概览</div>
-            <a class="nav-item block" href="#dashboard" data-page="dashboard"><i class="fas fa-gauge-high"></i>工作台</a>
+            <div class="nav-section-title">报告中心</div>
+            <a class="nav-item block" href="#report-center" data-page="report-center"><i class="fas fa-table-list"></i>统一报告中心</a>
 
             <div class="nav-section-title">检测管理</div>
             <a class="nav-item block" href="#detection-records" data-page="detection-records"><i class="fas fa-vial"></i>检测记录</a>
             <a class="nav-item block" href="#excel-import" data-page="excel-import"><i class="fas fa-file-excel"></i>Excel 导入</a>
 
-            <div class="nav-section-title">报告管理</div>
+            <div class="nav-section-title">报告管理（迁移）</div>
             <a class="nav-item block" href="#report-review" data-page="report-review"><i class="fas fa-clipboard-check"></i>待审核</a>
             <a class="nav-item block" href="#published-reports" data-page="published-reports"><i class="fas fa-file-medical"></i>已发布</a>
 
@@ -114,17 +114,7 @@
     <main class="main-content md:ml-[220px] flex-grow">
         <header class="flex flex-wrap justify-between items-center gap-3 pb-4 border-b border-slate-200 mb-5">
             <h1 id="page-title" class="text-2xl font-semibold text-slate-800"></h1>
-            <div class="flex flex-wrap items-center gap-3">
-                <label class="flex items-center gap-2 text-sm text-slate-600">
-                    <i class="fas fa-user-shield text-slate-400"></i>
-                    <span>演示身份</span>
-                    <select id="role-switcher" class="border border-slate-300 rounded-md py-1 px-2 text-sm bg-white">
-                        <option value="reviewer">审核员</option>
-                        <option value="reviser">数据修订员</option>
-                    </select>
-                </label>
-                <span class="text-sm text-slate-500 hidden sm:inline">管理员</span>
-            </div>
+            <span class="text-sm text-slate-500 hidden sm:inline">管理员</span>
         </header>
 
         <div id="page-content-container"></div>

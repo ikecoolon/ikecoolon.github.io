@@ -7,7 +7,7 @@
     "docs:dev": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096 --openssl-legacy-provider\" vuepress dev docs --host 0.0.0.0",
     "docs:build": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096 --openssl-legacy-provider\" vuepress build docs",
     "deploy": "sh deploy.sh",
-    "deploy-dist": "sh deploy-simple.sh"
+    "deploy-prototype": "sh deploy-simple.sh"
   },
   "devDependencies": {
     "@vuepress/plugin-active-header-links": "^1.9.10",

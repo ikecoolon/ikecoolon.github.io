@@ -1,6 +1,34 @@
 <div id="pet-information" class="page p-4">
     
-    <!-- 主列表视图 -->
+    <!-- 归属工作台 -->
+    <div id="ownership-workbench" class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+        <div class="flex justify-between items-center mb-3">
+            <h4 class="text-lg font-medium text-amber-900">待归属报告</h4>
+            <span id="unassigned-count" class="text-sm text-amber-800">0 条待处理</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-sm">
+                <thead class="bg-amber-100/60">
+                    <tr>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-amber-900">样本编号</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-amber-900">外部编号</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-amber-900">检测日期</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-amber-900">状态</th>
+                        <th class="px-3 py-2 text-left text-xs font-medium text-amber-900">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="unassigned-tbody" class="divide-y divide-amber-100 bg-white/70"></tbody>
+            </table>
+        </div>
+        <p id="unassigned-empty" class="text-sm text-amber-800 py-3 hidden">当前无待归属检测记录</p>
+    </div>
+
+    <!-- 归属纠错记录 -->
+    <div class="bg-white border border-gray-200 rounded-lg p-4 mb-6">
+        <h4 class="text-lg font-medium text-gray-800 mb-3">归属纠错记录</h4>
+        <div id="correction-history" class="text-sm text-gray-600 space-y-2"></div>
+    </div>
+
     <div id="main-view" class="bg-white p-6 rounded-lg shadow-md">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-semibold">宠物档案管理</h3>
@@ -42,13 +70,15 @@
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">品种信息</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">年龄/性别</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">当前主人</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">报告数</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">归属状态</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">注册时间</th>
                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                     </tr>
                 </thead>
                 <tbody id="pet-table-body" class="bg-white divide-y divide-gray-200">
                     <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">暂无宠物信息</td>
+                        <td colspan="9" class="px-6 py-4 text-center text-gray-500">暂无宠物信息</td>
                     </tr>
                 </tbody>
             </table>
@@ -207,7 +237,83 @@
         </form>
     </div>
 
-    <!-- 主人选择模态框 -->
+    <!-- 归属管理视图 -->
+    <div id="manage-view" class="bg-white p-6 rounded-lg shadow-md hidden">
+        <div class="flex justify-between items-center mb-4">
+            <h3 id="manage-title" class="text-xl font-semibold">宠物归属管理</h3>
+            <button type="button" id="back-from-manage" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">
+                <i class="fas fa-arrow-left mr-2"></i>返回列表
+            </button>
+        </div>
+        <div id="manage-pet-summary" class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4 text-sm"></div>
+        <h4 class="text-lg font-medium text-gray-800 mb-3">名下报告</h4>
+        <div id="manage-reports-list" class="border rounded-lg overflow-hidden mb-6"></div>
+        <h4 class="text-lg font-medium text-gray-800 mb-3">领取凭证</h4>
+        <div id="manage-claims-list" class="border rounded-lg overflow-hidden mb-4"></div>
+    </div>
+
+    <!-- 归属归档模态框 -->
+    <div id="assign-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full mx-4">
+            <h4 class="text-lg font-medium mb-4">报告归属归档</h4>
+            <input type="hidden" id="assign-test-record-id">
+            <div class="space-y-4 text-sm">
+                <div>
+                    <label class="block font-medium mb-1">归档方式</label>
+                    <select id="assign-mode" class="w-full border rounded px-3 py-2">
+                        <option value="new">新建宠物并归档</option>
+                        <option value="existing">归入已有宠物</option>
+                    </select>
+                </div>
+                <div id="assign-new-pet-fields">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div><label class="block mb-1">宠物名称</label><input type="text" id="assign-pet-name" class="w-full border rounded px-3 py-2"></div>
+                        <div><label class="block mb-1">品种</label><input type="text" id="assign-pet-breed" class="w-full border rounded px-3 py-2"></div>
+                        <div><label class="block mb-1">物种</label><select id="assign-pet-species" class="w-full border rounded px-3 py-2"><option value="dog">犬</option><option value="cat">猫</option></select></div>
+                        <div><label class="block mb-1">性别</label><select id="assign-pet-gender" class="w-full border rounded px-3 py-2"><option value="unknown">未知</option><option value="male">公</option><option value="female">母</option></select></div>
+                    </div>
+                </div>
+                <div id="assign-existing-pet-fields" class="hidden">
+                    <label class="block mb-1">选择宠物</label>
+                    <select id="assign-existing-pet" class="w-full border rounded px-3 py-2"></select>
+                </div>
+                <div>
+                    <label class="block font-medium mb-1">用户绑定</label>
+                    <select id="assign-bind-mode" class="w-full border rounded px-3 py-2">
+                        <option value="claim">生成领取凭证（待用户领取）</option>
+                        <option value="direct">直接绑定平台用户</option>
+                    </select>
+                </div>
+                <div id="assign-user-fields" class="hidden">
+                    <label class="block mb-1">平台用户（手机号搜索）</label>
+                    <input type="text" id="assign-user-search" class="w-full border rounded px-3 py-2 mb-2" placeholder="输入手机号">
+                    <select id="assign-user-id" class="w-full border rounded px-3 py-2"></select>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" id="assign-cancel" class="px-4 py-2 bg-gray-500 text-white rounded">取消</button>
+                <button type="button" id="assign-submit" class="px-4 py-2 bg-teal-600 text-white rounded">确认归档</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 归属纠错模态框 -->
+    <div id="correct-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full mx-4">
+            <h4 class="text-lg font-medium mb-4">归属纠错</h4>
+            <input type="hidden" id="correct-report-id">
+            <div class="space-y-3 text-sm">
+                <div><label class="block mb-1">更正为用户</label><select id="correct-user-id" class="w-full border rounded px-3 py-2"></select></div>
+                <div><label class="block mb-1">更正为宠物</label><select id="correct-pet-id" class="w-full border rounded px-3 py-2"></select></div>
+                <div><label class="block mb-1">纠错原因</label><textarea id="correct-reason" class="w-full border rounded px-3 py-2" rows="3" placeholder="请填写纠错原因"></textarea></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button type="button" id="correct-cancel" class="px-4 py-2 bg-gray-500 text-white rounded">取消</button>
+                <button type="button" id="correct-submit" class="px-4 py-2 bg-red-600 text-white rounded">立即更正</button>
+            </div>
+        </div>
+    </div>
+
     <div id="owner-selection-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">

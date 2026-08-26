@@ -13,158 +13,182 @@
       .replace(/"/g, '&quot;');
   }
 
-  function petSwitcher(selectedPetId) {
-    var pets = H.getUserPets();
-    if (!pets.length) {
-      return '<div class="empty-hint"><i class="fas fa-paw"></i><p>暂无宠物，请先认领报告</p></div>';
+  function renderDemoDisclaimer() {
+    return '<p class="demo-disclaimer">演示呈现，最终位置与样式待甲方确认</p>';
+  }
+
+  function renderReportCard(card) {
+    var pet = card.petId ? H.findPet(card.petId) : null;
+    var petName = pet ? H.stripDemo(pet.name) : '—';
+    var statusLabel = H.userStatusLabel(card.userStatus);
+    var badgeClass = card.userStatus === 'published' ? 'badge-info' : 'badge-warn';
+    var html = '';
+
+    if (card.clickable && card.reportId) {
+      html += '<button type="button" class="list-card actionable" data-nav="report" data-report-id="' + esc(card.reportId) + '">';
+    } else {
+      html += '<div class="list-card static-card">';
     }
-  var html = '<div class="pet-switcher" role="tablist" aria-label="切换宠物">';
-    pets.forEach(function (pet) {
-      var active = pet.id === selectedPetId ? ' active' : '';
-      html += '<button type="button" class="pet-chip' + active + '" data-pet-id="' + esc(pet.id) + '" role="tab">' +
-        '<i class="fas ' + H.petSpeciesIcon(pet) + '"></i>' +
-        '<span>' + esc(H.stripDemo(pet.name)) + '</span>' +
-        '</button>';
+
+    html += '<div class="list-card-main">';
+    html += '<div class="list-title">' + esc(card.title) + '</div>';
+    html += '<div class="list-sub">' + esc(petName) + ' · 检测日期 ' + esc(H.formatDate(card.testDate)) + '</div>';
+    html += '</div>';
+    html += '<span class="badge ' + badgeClass + '">' + esc(statusLabel) + '</span>';
+    if (card.clickable) html += '<i class="fas fa-chevron-right list-chevron"></i>';
+    html += card.clickable ? '</button>' : '</div>';
+    return html;
+  }
+
+  function renderFilterChips(activeFilter) {
+    var filters = [
+      { key: 'all', label: '全部' },
+      { key: 'published', label: '已发布' },
+      { key: 'in_progress', label: '进行中' }
+    ];
+    var html = '<div class="filter-chips" role="tablist" aria-label="报告筛选">';
+    filters.forEach(function (f) {
+      var active = activeFilter === f.key ? ' active' : '';
+      html += '<button type="button" class="filter-chip' + active + '" data-filter="' + esc(f.key) + '" role="tab">' +
+        esc(f.label) + '</button>';
     });
     html += '</div>';
     return html;
   }
 
   function renderHome() {
-    var petId = H.getSelectedPetId();
-    var pet = petId ? H.findPet(petId) : null;
-    var latestReport = petId ? H.getLatestPublishedReport(petId) : null;
-    var activeRecords = petId ? H.getActiveTestRecords(petId) : [];
-    var version = latestReport ? H.getCurrentReportVersion(latestReport) : null;
-
+    var stats = H.countUserStats();
     var html = '<div class="page-shell">';
+    html += '<section class="notice-banner"><i class="fas fa-circle-info"></i> 默认首页待甲方确认</section>';
+
     html += '<section class="hero-card">';
     html += '<div class="hero-text"><h2>宠物肠道健康</h2><p>线下检测 · 线上查看报告</p></div>';
-    html += '<button type="button" class="btn-primary" data-nav="claim"><i class="fas fa-qrcode"></i>认领报告</button>';
+    html += '<button type="button" class="btn-primary compact" data-nav="claim"><i class="fas fa-qrcode"></i>领取</button>';
     html += '</section>';
-
-    html += petSwitcher(petId);
-
-    if (pet) {
-      html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>当前宠物</h3></div>';
-      html += '<div class="info-row">';
-      html += '<div class="pet-avatar"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
-      html += '<div class="info-main">';
-      html += '<div class="info-title">' + esc(H.stripDemo(pet.name)) + '</div>';
-      html += '<div class="info-sub">' + esc(pet.breed) + ' · ' + H.genderLabel(pet.gender) + ' · ' + esc(String(pet.age)) + '岁</div>';
-      var store = H.findStore(pet.storeId);
-      if (store) html += '<div class="info-meta"><i class="fas fa-store"></i> ' + esc(H.stripDemo(store.name)) + '</div>';
-      html += '</div></div></section>';
-    }
-
-    if (activeRecords.length) {
-      html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>进行中检测</h3></div>';
-      activeRecords.forEach(function (tr) {
-        html += '<button type="button" class="list-card actionable" data-nav="progress" data-tr-id="' + esc(tr.id) + '">';
-        html += '<div class="list-card-main">';
-        html += '<div class="list-title">' + esc(H.formatDate(tr.testDate)) + ' 肠道检测</div>';
-        html += '<div class="list-sub">' + esc(H.stripDemo(tr.label)) + '</div>';
-        html += '</div>';
-        html += '<span class="badge badge-warn">' + esc(H.testRecordStatusLabel(tr.status)) + '</span>';
-        html += '<i class="fas fa-chevron-right list-chevron"></i>';
-        html += '</button>';
-      });
-      html += '</section>';
-    }
 
     html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>最新报告</h3>';
-    if (latestReport) {
-      html += '<button type="button" class="text-link" data-nav="history" data-report-id="' + esc(latestReport.id) + '">历史</button>';
-    }
-    html += '</div>';
+    html += '<div class="section-head"><h3>快捷入口</h3></div>';
+    html += '<div class="entry-grid">';
+    html += '<button type="button" class="entry-card" data-nav="pets"><i class="fas fa-paw"></i><span>宠物</span><em>' + stats.petCount + ' 只</em></button>';
+    html += '<button type="button" class="entry-card" data-nav="reports"><i class="fas fa-file-medical"></i><span>报告</span><em>' + stats.reportCount + ' 份</em></button>';
+    html += '<button type="button" class="entry-card" data-nav="claim"><i class="fas fa-gift"></i><span>领取</span><em>认领码</em></button>';
+    html += '</div></section>';
 
-    if (latestReport && version) {
-      html += '<button type="button" class="report-summary-card actionable" data-nav="report" data-report-id="' + esc(latestReport.id) + '">';
-      html += '<div class="report-grade grade-' + esc(version.healthLevel || 'C') + '">' + esc(version.healthLevel || '—') + '</div>';
-      html += '<div class="report-summary-main">';
-      html += '<div class="list-title">' + esc(H.stripDemo(latestReport.reportNumber)) + '</div>';
-      html += '<div class="list-sub">' + esc(H.stripDemo(version.summary)) + '</div>';
-      html += '<div class="report-meta">综合评分 ' + esc(String(version.healthScore != null ? version.healthScore : '—')) +
-        ' · v' + esc(String(latestReport.currentVersion)) + ' · ' + esc(H.reportStatusLabel(latestReport.status)) + '</div>';
-      html += '</div>';
-      html += '<i class="fas fa-chevron-right list-chevron"></i>';
-      html += '</button>';
+    html += '<section class="section-block">';
+    html += '<div class="section-head"><h3>最近报告</h3>';
+    html += '<button type="button" class="text-link" data-nav="reports">查看全部</button></div>';
+    var recent = H.getUserVisibleCards(H.CURRENT_USER_ID).slice(0, 3);
+    if (!recent.length) {
+      html += '<div class="empty-inline">暂无可见报告，领取检测后可在此查看</div>';
     } else {
-      html += '<div class="empty-inline">暂无已发布报告，完成检测并认领后可查看</div>';
+      recent.forEach(function (card) { html += renderReportCard(card); });
     }
-    html += '</section>';
-    html += '</div>';
+    html += '</section></div>';
     return html;
   }
 
-  function renderReports() {
-    var petId = H.getSelectedPetId();
-    var reports = petId ? H.getPetReports(petId) : [];
-    var testRecords = petId ? H.getPetTestRecords(petId) : [];
+  function renderReports(params) {
+    params = params || {};
+    var filter = params.filter || 'all';
+    var options = {};
+    if (filter === 'published' || filter === 'in_progress') options.userStatus = filter;
+    var cards = H.getUserVisibleCards(H.CURRENT_USER_ID, options);
 
     var html = '<div class="page-shell">';
     html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>按宠物查看</h3></div>';
-    html += petSwitcher(petId);
+    html += '<div class="section-head"><h3>全部报告</h3></div>';
+    html += renderFilterChips(filter);
     html += '</section>';
 
     html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>报告列表</h3></div>';
+    if (!cards.length) {
+      html += '<div class="empty-hint"><i class="fas fa-file-medical"></i><p>暂无符合条件的报告</p></div>';
+    } else {
+      cards.forEach(function (card) { html += renderReportCard(card); });
+    }
+    html += '</section></div>';
+    return html;
+  }
 
-    if (!reports.length && !testRecords.length) {
-      html += '<div class="empty-hint"><i class="fas fa-file-medical"></i><p>该宠物暂无报告记录</p></div>';
+  function renderPets() {
+    var pets = H.getUserPets();
+    var html = '<div class="page-shell">';
+    html += '<section class="section-block">';
+    html += '<div class="section-head"><h3>我的宠物</h3></div>';
+
+    if (!pets.length) {
+      html += '<div class="empty-hint"><i class="fas fa-paw"></i><p>暂无宠物，领取检测后可查看</p></div>';
     }
 
-    reports.forEach(function (report) {
-      var ver = H.getCurrentReportVersion(report);
-      var viewable = ['published', 'corrected', 'pending_review', 'approved', 'draft'].indexOf(report.status) >= 0;
-      var tag = H.reportStatusLabel(report.status);
-      var tr = H.findTestRecord(report.testRecordId);
-      var testDate = tr ? tr.testDate : '—';
-
-      if (viewable) {
-        html += '<button type="button" class="list-card actionable" data-nav="report" data-report-id="' + esc(report.id) + '">';
-      } else {
-        html += '<div class="list-card">';
-      }
-
+    pets.forEach(function (pet) {
+      var count = H.countVisibleReportsForPet(pet.id, H.CURRENT_USER_ID);
+      html += '<button type="button" class="list-card actionable" data-nav="pet-reports" data-pet-id="' + esc(pet.id) + '">';
+      html += '<div class="pet-avatar sm"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
       html += '<div class="list-card-main">';
-      html += '<div class="list-title">' + esc(H.stripDemo(report.reportNumber)) + '</div>';
-      html += '<div class="list-sub">检测日期 ' + esc(H.formatDate(testDate)) + ' · v' + esc(String(report.currentVersion)) + '</div>';
-      if (ver && ver.correctionNote) {
-        html += '<div class="list-note"><i class="fas fa-info-circle"></i> ' + esc(H.stripDemo(ver.correctionNote)) + '</div>';
-      }
+      html += '<div class="list-title">' + esc(H.stripDemo(pet.name)) + '</div>';
+      html += '<div class="list-sub">' + esc(pet.breed) + ' · ' + count + ' 份可见报告</div>';
       html += '</div>';
-      html += '<span class="badge ' + (report.status === 'corrected' ? 'badge-info' : report.status === 'rejected' ? 'badge-danger' : report.status === 'pending_review' ? 'badge-warn' : 'badge-muted') + '">' + esc(tag) + '</span>';
-      if (viewable) html += '<i class="fas fa-chevron-right list-chevron"></i>';
-      html += (viewable ? '</button>' : '</div>');
-    });
-
-    testRecords.filter(function (tr) {
-      return !reports.some(function (r) { return r.testRecordId === tr.id; });
-    }).forEach(function (tr) {
-      html += '<button type="button" class="list-card actionable" data-nav="progress" data-tr-id="' + esc(tr.id) + '">';
-      html += '<div class="list-card-main">';
-      html += '<div class="list-title">' + esc(H.formatDate(tr.testDate)) + ' 检测记录</div>';
-      html += '<div class="list-sub">' + esc(H.stripDemo(tr.label)) + '</div>';
-      html += '</div>';
-      html += '<span class="badge badge-warn">' + esc(H.testRecordStatusLabel(tr.status)) + '</span>';
-      html += '<i class="fas fa-chevron-right list-chevron"></i>';
-      html += '</button>';
+      html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
     });
 
     html += '</section></div>';
     return html;
   }
 
+  function renderPetReports(params) {
+    var pet = params.petId ? H.findPet(params.petId) : null;
+    if (!pet || pet.userId !== H.CURRENT_USER_ID) {
+      return '<div class="page-shell"><div class="empty-hint"><p>未找到宠物或无权查看</p></div></div>';
+    }
+
+    var cards = H.getUserVisibleCards(H.CURRENT_USER_ID, { petId: pet.id });
+    var html = '<div class="page-shell">';
+    html += '<section class="section-block">';
+    html += '<button type="button" class="pet-profile-link" data-nav="pet-detail" data-pet-id="' + esc(pet.id) + '">';
+    html += '<div class="pet-avatar"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
+    html += '<div class="info-main">';
+    html += '<div class="info-title">' + esc(H.stripDemo(pet.name)) + '</div>';
+    html += '<div class="info-sub">' + esc(pet.breed) + ' · 查看宠物资料</div>';
+    html += '</div><i class="fas fa-chevron-right list-chevron"></i></button>';
+    html += '</section>';
+
+    html += '<section class="section-block">';
+    html += '<div class="section-head"><h3>检测报告</h3><span class="hint-text">' + cards.length + ' 份</span></div>';
+    if (!cards.length) {
+      html += '<div class="empty-inline">该宠物暂无可查看报告</div>';
+    } else {
+      cards.forEach(function (card) { html += renderReportCard(card); });
+    }
+    html += '</section></div>';
+    return html;
+  }
+
+  function renderPetDetail(params) {
+    var pet = params.petId ? H.findPet(params.petId) : null;
+    if (!pet || pet.userId !== H.CURRENT_USER_ID) {
+      return '<div class="page-shell"><div class="empty-hint"><p>未找到宠物或无权查看</p></div></div>';
+    }
+
+    var store = H.findStore(pet.storeId);
+    var html = '<div class="page-shell">';
+    html += '<section class="section-block">';
+    html += '<div class="section-head"><h3>宠物资料</h3><span class="readonly-tag">只读</span></div>';
+    html += '<div class="info-row">';
+    html += '<div class="pet-avatar lg"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
+    html += '<div class="info-main">';
+    html += '<div class="info-title">' + esc(H.stripDemo(pet.name)) + '</div>';
+    html += '<div class="info-sub">' + esc(pet.breed) + '</div>';
+    html += '</div></div>';
+    html += '<dl class="detail-list">';
+    html += '<div><dt>性别</dt><dd>' + esc(H.genderLabel(pet.gender)) + '</dd></div>';
+    html += '<div><dt>年龄</dt><dd>' + esc(pet.age != null ? String(pet.age) + ' 岁' : '—') + '</dd></div>';
+  if (store) html += '<div><dt>登记门店</dt><dd>' + esc(H.stripDemo(store.name)) + '</dd></div>';
+    html += '</dl></section></div>';
+    return html;
+  }
+
   function renderProfile() {
     var user = H.getCurrentUser();
-    var stats = H.countUserStats();
-    var pets = H.getUserPets();
-
     var html = '<div class="page-shell">';
     html += '<section class="profile-header">';
     html += '<div class="profile-avatar"><i class="fas fa-user"></i></div>';
@@ -173,24 +197,13 @@
     html += '<div class="profile-phone">' + esc(user ? user.phone : '') + '</div>';
     html += '</div></section>';
 
-    html += '<section class="stats-grid">';
-    html += '<div class="stat-item"><div class="stat-num">' + stats.petCount + '</div><div class="stat-label">宠物</div></div>';
-    html += '<div class="stat-item"><div class="stat-num">' + stats.reportCount + '</div><div class="stat-label">报告</div></div>';
-    html += '<div class="stat-item"><div class="stat-num">' + stats.publishedCount + '</div><div class="stat-label">已发布</div></div>';
-    html += '<div class="stat-item"><div class="stat-num">' + stats.inProgressCount + '</div><div class="stat-label">进行中</div></div>';
-    html += '</section>';
-
     html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>我的宠物</h3></div>';
-    pets.forEach(function (pet) {
-      html += '<div class="list-card">';
-      html += '<div class="pet-avatar sm"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
-      html += '<div class="list-card-main">';
-      html += '<div class="list-title">' + esc(H.stripDemo(pet.name)) + '</div>';
-      html += '<div class="list-sub">' + esc(pet.breed) + '</div>';
-      html += '</div></div>';
-    });
-    html += '</section>';
+    html += '<div class="section-head"><h3>我的服务</h3></div>';
+    html += '<div class="menu-list">';
+    html += '<button type="button" class="menu-item" data-nav="pets"><i class="fas fa-paw"></i><span>宠物</span><i class="fas fa-chevron-right"></i></button>';
+    html += '<button type="button" class="menu-item" data-nav="reports"><i class="fas fa-file-medical"></i><span>报告</span><i class="fas fa-chevron-right"></i></button>';
+    html += '<button type="button" class="menu-item" data-nav="claim"><i class="fas fa-gift"></i><span>领取</span><i class="fas fa-chevron-right"></i></button>';
+    html += '</div></section>';
 
     html += '<section class="section-block">';
     html += '<button type="button" class="btn-danger-outline" id="reset-demo-btn"><i class="fas fa-rotate-left"></i> 重置演示数据</button>';
@@ -202,288 +215,403 @@
     return html;
   }
 
-  function renderClaim() {
-    var user = H.getCurrentUser();
-    var pets = H.getUserPets();
-    var scenarios = H.getClaimDemoScenarios();
+  function renderClaim(params) {
+    params = params || {};
+    var step = params.step || 'input';
+    var pendingCode = params.code || '';
+    var pendingClaims = H.getPendingClaimCodes();
 
     var html = '<div class="page-shell">';
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>门店预绑定</h3></div>';
-    html += '<p class="hint-text">若门店已登记宠物信息，可选择已有宠物进行认领绑定。</p>';
-    if (pets.length) {
-      html += '<div class="field"><label>选择宠物（可选）</label>';
-      html += '<select id="claim-pet-select" class="input">';
-      html += '<option value="">创建新宠物（首次认领）</option>';
-      pets.forEach(function (pet) {
-        html += '<option value="' + esc(pet.id) + '">' + esc(H.stripDemo(pet.name)) + ' · ' + esc(pet.breed) + '</option>';
-      });
-      html += '</select></div>';
-    }
-    html += '</section>';
 
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>认领码认领</h3></div>';
-    html += '<div class="field"><label>手机号</label><input class="input" id="claim-phone" value="' + esc(user ? user.phone : '') + '" readonly /></div>';
-    html += '<div class="field"><label>验证码</label><input class="input" id="claim-verify" placeholder="请输入验证码" inputmode="numeric" maxlength="6" /></div>';
-    html += '<div class="field"><label>认领码</label><input class="input" id="claim-code" placeholder="请输入门店提供的认领码" /></div>';
-    html += '<div id="claim-message" class="form-message" hidden></div>';
-    html += '<button type="button" class="btn-primary" id="claim-submit-btn">确认认领</button>';
-    html += '</section>';
-
-    if (scenarios.length) {
+    if (step === 'confirm' && pendingCode) {
+      var preview = H.previewClaimCode(pendingCode);
       html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>演示快捷入口</h3></div>';
-      scenarios.forEach(function (s, idx) {
-        html += '<button type="button" class="demo-btn" data-demo-idx="' + idx + '">';
-        html += '<div class="demo-btn-title">' + esc(s.label) + '</div>';
-        html += '<div class="demo-btn-desc">' + esc(s.desc) + '</div>';
+      html += '<div class="section-head"><h3>确认领取信息</h3></div>';
+      if (!preview) {
+        html += '<div class="form-message error">' + esc(H.CLAIM_INVALID_MSG) + '</div>';
+        html += '<button type="button" class="btn-secondary" id="claim-back-btn">返回重新输入</button>';
+      } else {
+        html += '<dl class="detail-list claim-preview">';
+        html += '<div><dt>宠物</dt><dd>' + esc(preview.petName) + '</dd></div>';
+        html += '<div><dt>检测项目</dt><dd>' + esc(preview.title) + '</dd></div>';
+        html += '<div><dt>检测日期</dt><dd>' + esc(H.formatDate(preview.testDate)) + '</dd></div>';
+        html += '</dl>';
+        html += '<div id="claim-message" class="form-message" hidden></div>';
+        html += '<button type="button" class="btn-primary" id="claim-confirm-btn" data-code="' + esc(preview.code) + '">确认领取</button>';
+        html += '<button type="button" class="btn-secondary" id="claim-back-btn">返回修改</button>';
+      }
+      html += '</section>';
+      html += '</div>';
+      return { html: html, step: step, code: pendingCode };
+    }
+
+    html += '<section class="section-block">';
+    html += '<div class="section-head"><h3>领取检测</h3></div>';
+    html += '<p class="hint-text">输入门店提供的认领码，或模拟扫码选择演示码。</p>';
+    html += '<div class="field"><label for="claim-code">认领码</label>';
+    html += '<input class="input" id="claim-code" placeholder="请输入认领码" value="' + esc(pendingCode) + '" /></div>';
+    html += '<div id="claim-message" class="form-message" hidden></div>';
+    html += '<button type="button" class="btn-primary" id="claim-preview-btn">下一步</button>';
+    html += '</section>';
+
+    if (pendingClaims.length) {
+      html += '<section class="section-block">';
+      html += '<div class="section-head"><h3>模拟扫码</h3></div>';
+      pendingClaims.forEach(function (claim) {
+        var preview = H.previewClaimCode(claim.code);
+        if (!preview) return;
+        html += '<button type="button" class="demo-btn claim-scan-btn" data-claim-code="' + esc(claim.code) + '">';
+        html += '<div class="demo-btn-title">' + esc(preview.petName) + ' · ' + esc(preview.title) + '</div>';
+        html += '<div class="demo-btn-desc">认领码 ' + esc(claim.code) + ' · ' + esc(H.formatDate(preview.testDate)) + '</div>';
         html += '</button>';
       });
       html += '</section>';
     }
 
     html += '</div>';
-    return { html: html, scenarios: scenarios };
+    return { html: html, step: 'input', code: pendingCode };
   }
 
-  function renderProgress(params) {
-    var tr = H.findTestRecord(params.trId);
-    if (!tr || tr.userId !== H.CURRENT_USER_ID) {
-      return '<div class="page-shell"><div class="empty-hint"><p>未找到检测记录或无权查看</p></div></div>';
+  function renderEcoScene(theme, pet) {
+    var petIcon = pet ? H.petSpeciesIcon(pet) : 'fa-paw';
+    return '<div class="eco-scene" aria-hidden="true">' +
+      '<div class="eco-layer eco-sky"></div>' +
+      '<div class="eco-layer eco-back-hills"></div>' +
+      '<div class="eco-layer eco-mid-trees"></div>' +
+      '<div class="eco-layer eco-front-ground"></div>' +
+      '<div class="eco-pet"><i class="fas ' + petIcon + '"></i></div>' +
+      '<div class="eco-microbe eco-microbe-a"><i class="fas fa-bacteria"></i></div>' +
+      '<div class="eco-microbe eco-microbe-b"><i class="fas fa-virus"></i></div>' +
+      '<div class="eco-microbe eco-microbe-c"><i class="fas fa-circle-dot"></i></div>' +
+      '</div>';
+  }
+
+  function renderIndicatorRow(ind, finding, species, options) {
+    options = options || {};
+    if (!H.shouldShowIndicator(ind)) return '';
+    var pres = H.evaluateIndicatorPresentation(ind, finding, species);
+    var label = H.getIndicatorLabel(ind.key);
+    var navAttrs = '';
+    if (finding) {
+      navAttrs = ' data-nav="finding" data-finding-id="' + esc(finding.id) + '"';
+    } else if (options.navigable) {
+      navAttrs = ' data-nav="finding" data-report-id="' + esc(ind.reportId) + '" data-indicator-key="' + esc(ind.key) + '"';
     }
+    var tag = (finding || options.navigable) ? 'button' : 'div';
+    var cls = 'result-row' + ((finding || options.navigable) ? ' actionable' : '');
+    var typeAttr = tag === 'button' ? ' type="button"' : '';
+    var html = '<' + tag + typeAttr + ' class="' + cls + '"' + navAttrs + '>';
+    html += '<div class="result-row-main">';
+    html += '<div class="result-name">' + esc(label) + '</div>';
+    if (pres.valueText) html += '<div class="result-value">' + esc(pres.valueText) + '</div>';
+    if (pres.rangeText) html += '<div class="result-range">参考 ' + esc(pres.rangeText) + '</div>';
+    html += '</div>';
+    html += '<span class="badge ' + esc(pres.statusClass) + '">' + esc(pres.statusText) + '</span>';
+    if (finding || options.navigable) html += '<i class="fas fa-chevron-right list-chevron"></i>';
+    html += '</' + tag + '>';
+    return html;
+  }
 
-    var pet = tr.petId ? H.findPet(tr.petId) : null;
-    var store = H.findStore(tr.storeId);
-    var steps = H.getProgressSteps(tr);
-    var report = H.getState().reports.find(function (r) { return r.testRecordId === tr.id; });
-
-    var html = '<div class="page-shell">';
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>检测进度</h3></div>';
-    if (pet) {
-      html += '<div class="info-sub mb-2"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i> ' + esc(H.stripDemo(pet.name)) + '</div>';
-    }
-    html += '<div class="info-sub">样本日期 ' + esc(H.formatDate(tr.testDate)) + '</div>';
-    if (store) html += '<div class="info-sub"><i class="fas fa-store"></i> ' + esc(H.stripDemo(store.name)) + '</div>';
-    html += '<div class="status-pill">' + esc(H.testRecordStatusLabel(tr.status)) + '</div>';
-    html += '</section>';
-
-    html += '<section class="section-block"><ol class="progress-timeline">';
-    steps.forEach(function (step) {
-      var cls = 'progress-step';
-      if (step.done) cls += ' done';
-      if (step.active) cls += ' active';
-      if (step.failed) cls += ' failed';
-      html += '<li class="' + cls + '">';
-      html += '<div class="progress-dot"><i class="fas ' + (step.failed ? 'fa-circle-xmark' : step.done ? 'fa-check' : 'fa-circle') + '"></i></div>';
-      html += '<div class="progress-content"><div class="progress-label">' + esc(step.label) + '</div>';
-      html += '<div class="progress-desc">' + esc(step.desc) + '</div></div>';
-      html += '</li>';
+  function renderMicrobiotaNode(node, reportId, species) {
+    if (!node.hasResult) return '';
+    var html = '<div class="microbiota-phylum">';
+    html += renderIndicatorRow(node.indicator, node.finding, species, {
+      navigable: true
     });
-    html += '</ol></section>';
-
-    if (tr.status === 'import_failed') {
-      html += '<section class="section-block alert-block"><i class="fas fa-triangle-exclamation"></i> 检测数据导入异常，请联系门店重新送检。</section>';
+    if (node.genusResults.length) {
+      html += '<div class="microbiota-genus-list">';
+      node.genusResults.forEach(function (child) {
+        html += renderIndicatorRow(child.indicator, child.finding, species, {
+          navigable: true
+        });
+      });
+      html += '</div>';
+    } else if (node.knowledgeOnly) {
+      html += '<div class="knowledge-note"><i class="fas fa-book-open"></i> 本次未包含属级检测</div>';
+      html += '<div class="knowledge-cards">';
+      node.children.forEach(function (child) {
+        html += '<div class="knowledge-card">';
+        html += '<div class="knowledge-title"><i class="fas fa-lightbulb"></i> ' + esc(child.taxon.label) + ' <span class="knowledge-tag">科普</span></div>';
+        html += '<p class="knowledge-text">' + esc(child.taxon.value) + '</p>';
+        html += '</div>';
+      });
+      html += '</div>';
     }
-
-    if (report && (report.status === 'published' || report.status === 'corrected')) {
-      html += '<section class="section-block">';
-      html += '<button type="button" class="btn-primary" data-nav="report" data-report-id="' + esc(report.id) + '">查看报告</button>';
-      html += '</section>';
-    } else if (report && report.status === 'pending_review') {
-      html += '<section class="section-block">';
-      html += '<button type="button" class="btn-primary" data-nav="report" data-report-id="' + esc(report.id) + '">预览报告（审核中）</button>';
-      html += '<p class="hint-text" style="margin-top:8px;">报告正在审核，内容仅供预览。</p>';
-      html += '</section>';
-    }
-
     html += '</div>';
     return html;
   }
 
+  function renderBenchmarkSection(reportId, indicators, species) {
+    var items = indicators.filter(function (ind) {
+      return H.getDemoBenchmark(reportId, ind.key);
+    });
+    if (!items.length) return '';
+    var html = '<section class="report-panel benchmark-panel">';
+    html += '<div class="section-head"><h3>理想菌群对比</h3>';
+    html += '<span class="temp-badge">演示临时基准</span></div>';
+    items.forEach(function (ind) {
+      var bench = H.getDemoBenchmark(reportId, ind.key);
+      var pres = H.evaluateIndicatorPresentation(ind, null, species);
+      if (!pres.showValue) return;
+      var actual = Number(ind.value);
+      var diff = actual - bench.ideal;
+      var diffText = (diff >= 0 ? '+' : '') + diff.toFixed(1) + bench.unit;
+      html += '<div class="benchmark-row">';
+      html += '<div class="benchmark-name">' + esc(H.getIndicatorLabel(ind.key)) + '</div>';
+      html += '<div class="benchmark-bars">';
+      html += '<div class="benchmark-bar actual"><span>本次 ' + esc(pres.valueText) + '</span><em style="width:' + Math.min(100, actual) + '%"></em></div>';
+      html += '<div class="benchmark-bar ideal"><span>基准 ' + bench.ideal + bench.unit + '</span><em style="width:' + Math.min(100, bench.ideal) + '%"></em></div>';
+      html += '</div>';
+      html += '<div class="benchmark-diff">' + esc(diffText) + '</div>';
+      html += '</div>';
+    });
+    html += '</section>';
+    return html;
+  }
+
   function renderReport(params) {
-    var report = H.findReport(params.reportId);
-    if (!report || !H.canUserAccessReport(params.reportId)) {
+    var ctx = H.getPublishedReportContext(params.reportId);
+    if (!ctx) {
       return '<div class="page-shell"><div class="empty-hint"><p>未找到报告或无权查看</p></div></div>';
     }
 
-    var version = params.version
-      ? H.getReportVersion(report, parseInt(params.version, 10))
-      : H.getCurrentReportVersion(report);
-    var verNum = version ? version.version : report.currentVersion;
+    var report = ctx.report;
+    var version = ctx.version;
+    var verNum = ctx.verNum;
     var pet = H.findPet(report.petId);
     var tr = H.findTestRecord(report.testRecordId);
+    var species = H.getReportSpecies(report.id);
+    var level = version.healthLevel || 'C';
+    var theme = H.getThemeConfig(level);
+    var overlay = H.getSnapshotPresentation(report.id) || {
+      percentile: null,
+      dimensions: [],
+      summaryItems: [],
+      benchmarks: {}
+    };
+    var partitioned = H.partitionReportIndicators(report.id, verNum);
+    var microbiotaTree = H.buildMicrobiotaTree(report.id, verNum);
     var findings = H.getReportFindings(report.id, verNum);
-    var indicators = H.getReportIndicators(report.id, verNum);
-    var recs = H.getReportRecommendations(report.id);
 
-    var html = '<div class="page-shell">';
-    if (report.status === 'pending_review') {
-      html += '<section class="alert-block"><i class="fas fa-hourglass-half"></i> 报告审核中，当前内容为预览，正式发布前可能调整。</section>';
-    }
-    html += '<section class="section-block report-hero">';
-    html += '<div class="report-grade lg grade-' + esc(version && version.healthLevel ? version.healthLevel : 'C') + '">' +
-      esc(version && version.healthLevel ? version.healthLevel : '—') + '</div>';
-    html += '<div>';
+    var html = '<div class="page-shell report-reading ' + esc(theme.sceneClass) + '">';
+
+    html += '<section class="report-eco-hero ' + esc(theme.sceneClass) + '">';
+    html += renderEcoScene(theme, pet);
+    html += '<div class="eco-overlay">';
+    html += '<div class="eco-grade-badge">' + esc(level) + '</div>';
+    html += '<div class="eco-meta">';
     html += '<h2 class="report-title">' + esc(H.stripDemo(report.reportNumber)) + '</h2>';
-    html += '<div class="info-sub">v' + esc(String(verNum)) + ' · ' + esc(H.reportStatusLabel(report.status)) + '</div>';
+    html += '<div class="eco-theme-label"><i class="fas ' + theme.icon + '"></i> ' + esc(theme.name) + '</div>';
+    html += '<div class="info-sub">' + esc(pet ? H.stripDemo(pet.name) : '—') + ' · ' + esc(H.formatDate(tr ? tr.testDate : null)) + '</div>';
+    html += '</div></div></section>';
+
+    html += '<section class="report-panel score-panel">';
+    html += '<div class="score-grid">';
+    if (version.healthScore != null) {
+      html += '<div class="score-item"><span class="score-num">' + esc(String(version.healthScore)) + '</span><span class="score-label">综合分</span></div>';
+    }
+    html += '<div class="score-item"><span class="score-num">' + esc(String(overlay.percentile != null ? overlay.percentile : '—')) + (overlay.percentile != null ? '<small>%</small>' : '') + '</span>';
+    html += '<span class="score-label">百分位 <em class="temp-label">临时展示</em></span></div>';
+    html += '<div class="score-item"><span class="score-num grade-inline">' + esc(level) + '</span><span class="score-label">健康等级</span></div>';
     html += '</div></section>';
 
-    html += '<section class="section-block"><div class="section-head"><h3>基本信息</h3></div>';
-    html += '<dl class="detail-list">';
-    html += '<div><dt>宠物</dt><dd>' + esc(pet ? H.stripDemo(pet.name) : '—') + '</dd></div>';
-    html += '<div><dt>品种</dt><dd>' + esc(pet ? pet.breed : '—') + '</dd></div>';
-    html += '<div><dt>检测日期</dt><dd>' + esc(tr ? H.formatDate(tr.testDate) : '—') + '</dd></div>';
-    html += '<div><dt>综合评分</dt><dd>' + esc(version && version.healthScore != null ? String(version.healthScore) : '—') + '</dd></div>';
-    html += '</dl></section>';
-
-    html += '<section class="section-block"><div class="section-head"><h3>整体结论</h3></div>';
-    html += '<p class="body-text">' + esc(version ? H.stripDemo(version.summary) : '暂无结论') + '</p>';
-    if (version && version.correctionNote) {
-      html += '<div class="note-box"><i class="fas fa-pen"></i> ' + esc(H.stripDemo(version.correctionNote)) + '</div>';
+    if (overlay.dimensions && overlay.dimensions.length) {
+      html += '<section class="report-panel dimensions-panel">';
+      html += '<div class="section-head"><h3>平台评估维度</h3><span class="temp-badge">临时展示</span></div>';
+      html += '<div class="dimension-grid">';
+      overlay.dimensions.forEach(function (dim) {
+        html += '<div class="dimension-item">';
+        html += '<div class="dimension-ring" style="--dim-score:' + dim.score + '"><span>' + dim.score + '</span></div>';
+        html += '<div class="dimension-label">' + esc(dim.label) + '</div>';
+        html += '</div>';
+      });
+      html += '</div></section>';
     }
-    html += '</section>';
 
-    html += '<section class="section-block"><div class="section-head"><h3>重点发现</h3></div>';
-    if (!findings.length) {
-      html += '<div class="empty-inline">暂无重点发现项</div>';
+    var summary = H.stripDemo(version.summary);
+    if (summary) {
+      html += '<section class="report-panel"><div class="section-head"><h3>整体解读</h3></div>';
+      html += '<p class="body-text">' + esc(summary) + '</p></section>';
     }
-    findings.forEach(function (f) {
-      var invalid = H.isInvalidDataStatus(f.dataStatus);
-      html += '<button type="button" class="finding-card actionable" data-nav="finding" data-finding-id="' + esc(f.id) + '">';
-      html += '<div class="finding-card-main">';
-      html += '<div class="list-title">' + esc(f.indicatorKey) + '</div>';
-      html += '<div class="list-sub">' + esc(H.stripDemo(f.description)) + '</div>';
-      html += '</div>';
-      if (invalid) {
-        html += '<span class="badge badge-invalid">本次无有效数据</span>';
-      } else {
-        html += '<span class="badge ' + H.conclusionClass(f.conclusion) + '">' + esc(H.conclusionLabel(f.conclusion)) + '</span>';
-      }
-      html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
-    });
-    html += '</section>';
 
-    html += '<section class="section-block"><div class="section-head"><h3>指标概览</h3>';
-    html += '<button type="button" class="text-link" data-nav="metrics" data-report-id="' + esc(report.id) + '" data-version="' + esc(String(verNum)) + '">全部</button>';
-    html += '</div>';
-    indicators.slice(0, 4).forEach(function (ind) {
-      var finding = findings.find(function (f) { return f.indicatorKey === ind.key; });
-      var status = H.indicatorDisplayStatus(ind, finding);
-      html += '<div class="metric-row">';
-      html += '<div class="metric-name">' + esc(ind.key) + '</div>';
-      html += '<div class="metric-value">' + esc(H.formatIndicatorValue(ind)) + '</div>';
-      html += '<span class="badge ' + esc(status.className) + '">' + esc(status.text) + '</span>';
-      html += '</div>';
-    });
-    html += '</section>';
-
-    var validRecs = recs.filter(function (rec) {
-      var finding = H.findFinding(rec.findingId);
-      return !(finding && H.isInvalidDataStatus(finding.dataStatus));
-    });
-    html += '<section class="section-block"><div class="section-head"><h3>建议与推荐</h3>';
-    if (validRecs.length) {
-      html += '<button type="button" class="text-link" data-nav="recommendations" data-report-id="' + esc(report.id) + '">查看全部</button>';
+    if (overlay.summaryItems && overlay.summaryItems.length) {
+      html += '<section class="report-panel summary-trio">';
+      html += '<div class="section-head"><h3>要点速览</h3><span class="temp-badge">临时展示</span></div>';
+      html += '<div class="trio-list">';
+      overlay.summaryItems.forEach(function (item) {
+        html += '<div class="trio-item"><i class="fas ' + esc(item.icon) + '"></i><span>' + esc(item.text) + '</span></div>';
+      });
+      html += '</div></section>';
     }
-    html += '</div>';
-    if (!validRecs.length) {
-      html += '<div class="empty-inline">暂无推荐建议</div>';
-    } else {
-      validRecs.slice(0, 2).forEach(function (rec) {
-        var display = H.resolveRecDisplay(rec);
-        html += '<button type="button" class="list-card actionable" data-nav="recommendation-target" data-rec-id="' + esc(rec.id) + '">';
-        html += '<div class="list-card-main"><div class="list-title">' + esc(display.label) + '</div>';
-        html += '<div class="list-sub">类型：' + esc(display.resolvedType) + '</div></div>';
+
+    if (partitioned.regular.length) {
+      html += '<section class="report-panel">';
+      html += '<div class="section-head"><h3>普通指标</h3>';
+      html += '<button type="button" class="text-link" data-nav="metrics" data-report-id="' + esc(report.id) + '">全部</button></div>';
+      partitioned.regular.forEach(function (ind) {
+        var finding = findings.find(function (f) { return f.indicatorKey === ind.key; });
+        html += renderIndicatorRow(ind, finding, species, { navigable: true });
+      });
+      html += '</section>';
+    }
+
+    if (microbiotaTree.length) {
+      html += '<section class="report-panel microbiota-panel">';
+      html += '<div class="section-head"><h3>菌群门级</h3>';
+      html += '<button type="button" class="text-link" data-nav="metrics" data-report-id="' + esc(report.id) + '">浏览</button></div>';
+      microbiotaTree.forEach(function (node) {
+        html += renderMicrobiotaNode(node, report.id, species);
+      });
+      html += '</section>';
+    }
+
+    html += renderBenchmarkSection(report.id, partitioned.microbiota.concat(partitioned.regular), species);
+
+    var validFindings = findings.filter(function (f) {
+      return f.dataStatus === 'NOT_DETECTED' || !H.isInvalidDataStatus(f.dataStatus);
+    });
+    if (validFindings.length) {
+      html += '<section class="report-panel">';
+      html += '<div class="section-head"><h3>重点发现</h3></div>';
+      validFindings.forEach(function (f) {
+        var invalid = H.isInvalidDataStatus(f.dataStatus) && f.dataStatus !== 'NOT_DETECTED';
+        html += '<button type="button" class="finding-card actionable" data-nav="finding" data-finding-id="' + esc(f.id) + '">';
+        html += '<div class="finding-card-main">';
+        html += '<div class="list-title">' + esc(H.getIndicatorLabel(f.indicatorKey)) + '</div>';
+        html += '<div class="list-sub">' + esc(H.stripDemo(f.description)) + '</div>';
+        html += '</div>';
+        if (f.dataStatus === 'NOT_DETECTED') {
+          html += '<span class="badge status-not-detected">未检出</span>';
+        } else if (invalid) {
+          html += '<span class="badge badge-invalid">' + esc(H.dataStatusLabel(f.dataStatus)) + '</span>';
+        } else {
+          html += '<span class="badge ' + H.conclusionClass(f.conclusion) + '">' + esc(H.conclusionLabel(f.conclusion)) + '</span>';
+        }
         html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
       });
+      html += '</section>';
     }
-    html += '</section>';
 
-    html += '<section class="section-block">';
-    html += '<button type="button" class="btn-secondary" data-nav="history" data-report-id="' + esc(report.id) + '"><i class="fas fa-clock-rotate-left"></i> 查看历史版本</button>';
-    html += '</section>';
-
-    html += '<footer class="disclaimer">' + esc(H.stripDemo(H.getState().meta.disclaimer)) + '</footer>';
     html += '</div>';
     return html;
   }
 
   function renderFinding(params) {
-    var finding = H.findFinding(params.findingId);
-    if (!finding) return '<div class="page-shell"><div class="empty-hint"><p>未发现详情</p></div></div>';
+    var finding = null;
+    var detailCtx = null;
+    var reportId = params.reportId;
 
-    var report = H.findReport(finding.reportId);
-    if (!report || !H.canUserAccessReport(finding.reportId)) {
-      return '<div class="page-shell"><div class="empty-hint"><p>未找到报告或无权查看</p></div></div>';
-    }
-    var indicators = report ? H.getReportIndicators(report.id, finding.reportVersion) : [];
-    var indicator = indicators.find(function (i) { return i.key === finding.indicatorKey; });
-    var rec = H.getFindingRecommendation(finding.id);
-    var invalid = H.isInvalidDataStatus(finding.dataStatus);
-    var modules = [];
-
-    modules.push({
-      id: 'plain',
-      title: '通俗解释',
-      body: H.stripDemo(finding.consumer || finding.description),
-      alwaysOpen: true
-    });
-
-    if (indicator) {
-      modules.push({
-        id: 'pro-value',
-        title: '检测数值',
-        body: H.formatIndicatorValue(indicator) + (indicator.unit && !H.isInvalidDataStatus(indicator.dataStatus) ? '' : ''),
-        detail: '数据状态：' + H.dataStatusLabel(indicator.dataStatus)
-      });
-    }
-
-    modules.push({
-      id: 'pro-conclusion',
-      title: '专业结论',
-      body: invalid ? '本次无有效数据，不能据此判断偏高或偏低。' : ('结论判定：' + H.conclusionLabel(finding.conclusion)),
-      detail: '指标项：' + finding.indicatorKey + ' · 报告版本 v' + finding.reportVersion
-    });
-
-    if (indicator && !invalid) {
-      modules.push({
-        id: 'pro-range',
-        title: '参考说明',
-        body: '该指标反映肠道菌群构成，需结合整体报告与其他指标综合解读。',
-        detail: '此为演示说明，非医疗诊断依据。'
-      });
-    }
-
-    var html = '<div class="page-shell finding-page">';
-    html += '<header class="finding-header">';
-    html += '<h2>' + esc(finding.indicatorKey) + '</h2>';
-    if (invalid) {
-      html += '<span class="badge badge-invalid">本次无有效数据</span>';
+    if (params.findingId) {
+      var liveFinding = H.findFinding(params.findingId);
+      reportId = liveFinding ? liveFinding.reportId : reportId;
+      if (reportId) {
+        finding = H.findReportFinding(reportId, params.findingId);
+      }
+      if (!finding) finding = liveFinding;
+      if (!finding) return '<div class="page-shell"><div class="empty-hint"><p>未发现详情</p></div></div>';
+      if (!reportId) reportId = finding.reportId;
+      var ctx = H.getPublishedReportContext(reportId);
+      if (!ctx || finding.reportVersion !== ctx.verNum) {
+        return '<div class="page-shell"><div class="empty-hint"><p>未找到报告或无权查看</p></div></div>';
+      }
+      detailCtx = H.getIndicatorDetailContext(reportId, finding.indicatorKey);
+    } else if (params.reportId && params.indicatorKey) {
+      detailCtx = H.getIndicatorDetailContext(params.reportId, params.indicatorKey);
+      if (!detailCtx) {
+        return '<div class="page-shell"><div class="empty-hint"><p>未找到指标或无权查看</p></div></div>';
+      }
+      finding = detailCtx.finding;
     } else {
-      html += '<span class="badge ' + H.conclusionClass(finding.conclusion) + '">' + esc(H.conclusionLabel(finding.conclusion)) + '</span>';
+      return '<div class="page-shell"><div class="empty-hint"><p>未发现详情</p></div></div>';
     }
+
+    var report = detailCtx.report;
+    var version = detailCtx.version;
+    var indicator = detailCtx.indicator;
+    var pres = detailCtx.presentation;
+    var rec = finding ? H.getFindingRecommendation(finding.id) : null;
+    var level = version.healthLevel || 'C';
+    var theme = H.getThemeConfig(level);
+    var parentTaxon = null;
+    if (detailCtx.entry && detailCtx.entry.type === 'microbiota' && detailCtx.entry.item.parentKey) {
+      parentTaxon = H.findCatalogEntryByKey(detailCtx.entry.item.parentKey);
+    }
+
+    var html = '<div class="page-shell finding-page ' + esc(theme.sceneClass) + '">';
+    html += '<header class="finding-header">';
+    html += '<div><h2>' + esc(detailCtx.label) + '</h2>';
+    if (parentTaxon) {
+      html += '<div class="finding-hierarchy"><i class="fas fa-sitemap"></i> ' + esc(parentTaxon.item.label) + ' → ' + esc(detailCtx.label) + '</div>';
+    }
+    html += '</div>';
+    html += '<span class="badge ' + esc(pres.statusClass) + '">' + esc(pres.statusText) + '</span>';
     html += '</header>';
 
-    modules.forEach(function (mod) {
-      html += '<section class="module-card" data-module="' + esc(mod.id) + '">';
-      html += '<button type="button" class="module-head" aria-expanded="' + (mod.alwaysOpen ? 'true' : 'false') + '">';
-      html += '<span>' + esc(mod.title) + '</span>';
-      if (!mod.alwaysOpen) html += '<i class="fas fa-chevron-down"></i>';
-      html += '</button>';
-      html += '<div class="module-body' + (mod.alwaysOpen ? ' open' : '') + '">';
-      html += '<p class="body-text">' + esc(mod.body) + '</p>';
-      if (mod.detail) html += '<p class="hint-text">' + esc(mod.detail) + '</p>';
-      html += '</div></section>';
-    });
+    html += '<section class="detail-value-card">';
+    html += '<div class="detail-value-row">';
+    html += '<span class="detail-label">检测数值</span>';
+    html += '<span class="detail-value">' + esc(pres.valueText || '—') + '</span>';
+    html += '</div>';
+    if (indicator && indicator.unit && pres.showValue && indicator.dataStatus !== 'NOT_DETECTED') {
+      html += '<div class="detail-value-row"><span class="detail-label">单位</span><span class="detail-value">' + esc(indicator.unit) + '</span></div>';
+    }
+    if (pres.rangeText) {
+      html += '<div class="detail-value-row"><span class="detail-label">参考范围</span><span class="detail-value">' + esc(pres.rangeText) + '</span></div>';
+    } else if (pres.showValue && indicator.dataStatus !== 'NOT_DETECTED') {
+      html += '<div class="detail-value-row"><span class="detail-label">参考范围</span><span class="detail-value muted">暂无参考范围</span></div>';
+    }
+    html += '</section>';
 
-    if (rec && !invalid) {
-      html += '<section class="section-block">';
-      html += '<button type="button" class="btn-primary" data-nav="recommendation-target" data-rec-id="' + esc(rec.id) + '">查看相关建议</button>';
+    var consumerText = finding ? H.stripDemo(finding.consumer) : null;
+    if (!consumerText && detailCtx.knowledge) consumerText = detailCtx.knowledge;
+    if (consumerText) {
+      html += '<section class="report-panel">';
+      html += '<div class="section-head"><h3>通俗解释</h3></div>';
+      html += '<p class="body-text">' + esc(consumerText) + '</p></section>';
+    }
+
+    if (finding && H.stripDemo(finding.professional || finding.description)) {
+      html += '<section class="report-panel">';
+      html += '<div class="section-head"><h3>本次分析</h3></div>';
+      html += '<p class="body-text">' + esc(H.stripDemo(finding.professional || finding.description)) + '</p></section>';
+    }
+
+    if (detailCtx.entry && detailCtx.entry.type === 'microbiota' && detailCtx.knowledge) {
+      html += '<section class="report-panel knowledge-panel">';
+      html += '<div class="section-head"><h3>菌群科普</h3></div>';
+      html += '<p class="body-text">' + esc(detailCtx.knowledge) + '</p></section>';
+    }
+
+    var bench = H.getDemoBenchmark(report.id, indicator.key);
+    if (bench && pres.showValue) {
+      html += '<section class="report-panel benchmark-panel">';
+      html += '<div class="section-head"><h3>单报告对比</h3><span class="temp-badge">演示临时基准</span></div>';
+      var actual = Number(indicator.value);
+      var diff = actual - bench.ideal;
+      html += '<div class="benchmark-inline">';
+      html += '<div><strong>本次</strong> ' + esc(pres.valueText) + '</div>';
+      html += '<div><strong>基准</strong> ' + bench.ideal + bench.unit + '</div>';
+      html += '<div><strong>差值</strong> ' + (diff >= 0 ? '+' : '') + diff.toFixed(1) + bench.unit + '</div>';
+      html += '</div></section>';
+    }
+
+    if (rec) {
+      var display = H.resolveRecDisplay(rec);
+      html += '<section class="report-panel advice-panel">';
+      html += '<div class="section-head"><h3>健康建议</h3></div>';
+      html += '<p class="body-text">' + esc(display.label) + '</p>';
+      if (display.reason && display.reason !== display.label) {
+        html += '<p class="hint-text">' + esc(display.reason) + '</p>';
+      }
+      html += renderDemoDisclaimer();
+      if (!H.isInvalidDataStatus(finding.dataStatus)) {
+        html += '<button type="button" class="btn-primary" data-nav="recommendation-target" data-rec-id="' + esc(rec.id) + '">查看相关建议</button>';
+      }
       html += '</section>';
-    } else if (invalid) {
-      html += '<section class="section-block"><div class="hint-text">数据无效或未检出，不提供商品推荐。</div></section>';
+    } else if (finding && H.stripDemo(finding.consumer) && !rec) {
+      html += '<section class="report-panel advice-panel">';
+      html += '<div class="section-head"><h3>健康建议</h3></div>';
+      html += '<p class="body-text">建议关注饮食与作息，必要时咨询专业兽医。</p></section>';
     }
 
     html += '</div>';
@@ -491,46 +619,55 @@
   }
 
   function renderMetrics(params) {
-    var report = H.findReport(params.reportId);
-    if (!report || !H.canUserAccessReport(params.reportId)) {
+    var ctx = H.getPublishedReportContext(params.reportId);
+    if (!ctx) {
       return '<div class="page-shell"><div class="empty-hint"><p>未找到报告或无权查看</p></div></div>';
     }
 
-    var verNum = params.version ? parseInt(params.version, 10) : report.currentVersion;
-    var indicators = H.getReportIndicators(report.id, verNum);
-    var findings = H.getReportFindings(report.id, verNum);
+    var species = H.getReportSpecies(ctx.report.id);
+    var partitioned = H.partitionReportIndicators(ctx.report.id, ctx.verNum);
+    var microbiotaTree = H.buildMicrobiotaTree(ctx.report.id, ctx.verNum);
+    var findings = H.getReportFindings(ctx.report.id, ctx.verNum);
+    var level = ctx.version.healthLevel || 'C';
+    var theme = H.getThemeConfig(level);
 
-    var html = '<div class="page-shell">';
-    html += '<section class="section-block"><div class="section-head"><h3>全部指标</h3></div>';
-    html += '<p class="hint-text">' + esc(H.stripDemo(report.reportNumber)) + ' · v' + verNum + '</p>';
+    var html = '<div class="page-shell metrics-page ' + esc(theme.sceneClass) + '">';
+    html += '<header class="metrics-header">';
+    html += '<h2>检测指标</h2>';
+    html += '<p class="hint-text">' + esc(H.stripDemo(ctx.report.reportNumber)) + '</p>';
+    html += '</header>';
 
-    if (!indicators.length) {
-      html += '<div class="empty-hint"><p>暂无指标数据</p></div>';
+    if (partitioned.regular.length) {
+      html += '<section class="report-panel">';
+      html += '<div class="section-head"><h3>普通指标</h3></div>';
+      partitioned.regular.forEach(function (ind) {
+        var finding = findings.find(function (f) { return f.indicatorKey === ind.key; });
+        html += renderIndicatorRow(ind, finding, species, { navigable: true });
+      });
+      html += '</section>';
     }
 
-    indicators.forEach(function (ind) {
-      var finding = findings.find(function (f) { return f.indicatorKey === ind.key; });
-      var status = H.indicatorDisplayStatus(ind, finding);
-      html += '<div class="metric-row full">';
-      html += '<div class="metric-name">' + esc(ind.key) + '</div>';
-      html += '<div class="metric-value">' + esc(H.formatIndicatorValue(ind)) + '</div>';
-      html += '<span class="badge ' + esc(status.className) + '">' + esc(status.text) + '</span>';
-      if (H.isInvalidDataStatus(ind.dataStatus)) {
-        html += '<div class="metric-note">数据状态：' + esc(H.dataStatusLabel(ind.dataStatus)) + '，本次无有效数据</div>';
-      }
-      html += '</div>';
-    });
-    html += '</section></div>';
+    if (microbiotaTree.length) {
+      html += '<section class="report-panel microbiota-panel">';
+      html += '<div class="section-head"><h3>菌群检测</h3></div>';
+      microbiotaTree.forEach(function (node) {
+        html += renderMicrobiotaNode(node, ctx.report.id, species);
+      });
+      html += '</section>';
+    }
+
+    html += renderBenchmarkSection(ctx.report.id, partitioned.microbiota.concat(partitioned.regular), species);
+    html += '</div>';
     return html;
   }
 
   function renderRecommendations(params) {
-    var report = H.findReport(params.reportId);
-    if (!report || !H.canUserAccessReport(params.reportId)) {
+    var ctx = H.getPublishedReportContext(params.reportId);
+    if (!ctx) {
       return '<div class="page-shell"><div class="empty-hint"><p>未找到报告或无权查看</p></div></div>';
     }
 
-    var recs = H.getReportRecommendations(report.id);
+    var recs = H.getReportRecommendations(ctx.report.id);
     var html = '<div class="page-shell">';
     html += '<section class="section-block"><div class="section-head"><h3>建议与推荐</h3></div>';
 
@@ -539,14 +676,18 @@
     }
 
     recs.forEach(function (rec) {
-      var finding = H.findFinding(rec.findingId);
+      var finding = rec.findingId ? H.findReportFinding(ctx.report.id, rec.findingId) : null;
+      if (!finding && rec.findingId) finding = H.findFinding(rec.findingId);
       var invalid = finding && H.isInvalidDataStatus(finding.dataStatus);
       var display = H.resolveRecDisplay(rec);
 
       html += '<div class="list-card' + (invalid ? ' disabled' : '') + '">';
       html += '<div class="list-card-main">';
-      html += '<div class="list-title">' + esc(finding ? finding.indicatorKey : '综合') + '</div>';
+      html += '<div class="list-title">' + esc(finding ? H.getIndicatorLabel(finding.indicatorKey) : '综合') + '</div>';
       html += '<div class="list-sub">' + esc(display.label) + '</div>';
+      if (display.reason && display.reason !== display.label) {
+        html += '<div class="list-note">' + esc(display.reason) + '</div>';
+      }
       if (invalid) {
         html += '<div class="list-note">关联指标无有效数据，不推荐商品</div>';
       }
@@ -557,18 +698,30 @@
       html += '</div>';
     });
 
+    html += renderDemoDisclaimer();
     html += '</section></div>';
     return html;
   }
 
   function renderRecommendationTarget(params) {
     var rec = H.findRecommendation(params.recId);
+    if (!rec) {
+      var reportIds = H.getUserVisibleCards(H.CURRENT_USER_ID)
+        .filter(function (c) { return c.reportId; })
+        .map(function (c) { return c.reportId; });
+      reportIds.forEach(function (rid) {
+        if (!rec) {
+          rec = H.getReportRecommendations(rid).find(function (r) { return r.id === params.recId; }) || null;
+        }
+      });
+    }
     if (!rec) return '<div class="page-shell"><div class="empty-hint"><p>未找到推荐</p></div></div>';
-    if (!H.canUserAccessReport(rec.reportId)) {
+    if (!H.canUserAccessPublishedReport(rec.reportId)) {
       return '<div class="page-shell"><div class="empty-hint"><p>无权查看该推荐</p></div></div>';
     }
 
-    var finding = H.findFinding(rec.findingId);
+    var finding = rec.findingId ? H.findReportFinding(rec.reportId, rec.findingId) : null;
+    if (!finding && rec.findingId) finding = H.findFinding(rec.findingId);
     if (finding && H.isInvalidDataStatus(finding.dataStatus)) {
       return '<div class="page-shell"><section class="section-block"><div class="alert-block">该发现无有效检测数据，不提供商品推荐。</div>' +
         '<button type="button" class="btn-secondary" data-nav="report" data-report-id="' + esc(rec.reportId) + '">返回报告</button></section></div>';
@@ -580,33 +733,50 @@
     html += '<section class="section-block">';
     html += '<div class="section-head"><h3>健康建议</h3></div>';
     html += '<p class="body-text">' + esc(display.label) + '</p>';
-    if (finding) {
-      html += '<p class="hint-text">关联指标：' + esc(finding.indicatorKey) + ' · ' + esc(H.stripDemo(finding.description)) + '</p>';
+    if (display.reason && display.reason !== display.label) {
+      html += '<p class="hint-text">' + esc(display.reason) + '</p>';
     }
+    if (finding) {
+      html += '<p class="hint-text">关联指标：' + esc(H.getIndicatorLabel(finding.indicatorKey)) + ' · ' + esc(H.stripDemo(finding.description)) + '</p>';
+    } else if (rec.findingId) {
+      html += '<p class="hint-text">关联发现：' + esc(rec.findingId) + '（快照中无详细发现，已展示冻结建议）</p>';
+    }
+    html += renderDemoDisclaimer();
     html += '</section>';
 
     if (display.resolvedType === 'PRODUCT' && display.product) {
       html += '<section class="section-block product-card">';
       html += '<div class="product-icon"><i class="fas fa-box-open"></i></div>';
       html += '<h3>' + esc(H.stripDemo(display.product.name)) + '</h3>';
-      html += '<p class="hint-text">适用原因：针对' + esc(finding ? finding.indicatorKey : '相关指标') + '的调理建议</p>';
-      if (display.category) {
-        html += '<div class="category-tag"><i class="fas fa-tag"></i> ' + esc(H.stripDemo(display.category.name)) + '</div>';
-      }
+      html += '<p class="hint-text">适用原因：针对' + esc(finding ? H.getIndicatorLabel(finding.indicatorKey) : '相关指标') + '的调理建议</p>';
+      html += '<div class="spu-status-row">';
+      html += '<span class="badge ' + H.productStatusClass(display.product) + '">' + esc(H.productStatusLabel(display.product)) + '</span>';
+      html += '<span class="hint-text">库存 ' + esc(String(display.product.stock != null ? display.product.stock : '—')) + '</span>';
+      html += '</div>';
+      html += '<button type="button" class="btn-secondary" data-nav="spu-detail" data-product-id="' + esc(display.product.id) + '">查看 SPU 详情</button>';
       html += '<p class="hint-text">演示环境不展示价格与购买入口</p>';
       html += '</section>';
-    } else if (display.resolvedType === 'CATEGORY' && display.category) {
+    } else if (display.resolvedType === 'TAG_CANDIDATE' && display.candidates.length) {
       html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>分类推荐</h3></div>';
-      html += '<div class="category-card"><i class="fas fa-layer-group"></i>';
-      html += '<div><div class="list-title">' + esc(H.stripDemo(display.category.name)) + '</div>';
-      html += '<div class="list-sub">目标产品不可用时，推荐同类调理方向</div></div></div>';
+      html += '<div class="section-head"><h3>标签候选商品</h3></div>';
+      display.candidates.forEach(function (candidate) {
+        var prod = candidate.product;
+        if (!prod) return;
+        html += '<button type="button" class="list-card actionable spu-candidate-card" data-nav="spu-detail" data-product-id="' + esc(prod.id) + '">';
+        html += '<div class="list-card-main">';
+        html += '<div class="list-title">' + esc(H.stripDemo(prod.name)) + '</div>';
+        html += '<div class="list-sub">';
+        html += '<span class="badge ' + H.productStatusClass(prod) + '">' + esc(H.productStatusLabel(prod)) + '</span>';
+        html += ' · 库存 ' + esc(String(prod.stock != null ? prod.stock : '—'));
+        html += '</div></div>';
+        html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
+      });
       html += '</section>';
     } else {
       html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>健康建议</h3></div>';
+      html += '<div class="section-head"><h3>商品推荐</h3></div>';
       html += '<div class="advice-card"><i class="fas fa-heart-pulse"></i>';
-      html += '<p>建议关注饮食与作息，必要时复检或咨询专业兽医。演示环境无商品推荐。</p></div>';
+      html += '<p>当前无可用商品展示，请优先参考上方健康建议。演示环境无购买入口。</p></div>';
       if (display.downgradePath && display.downgradePath.length) {
         html += '<p class="hint-text">' + esc(display.downgradePath.join(' → ')) + '</p>';
       }
@@ -619,53 +789,43 @@
     return html;
   }
 
-  function renderHistory(params) {
-    var report = H.findReport(params.reportId);
-    if (!report || !H.canUserAccessReport(params.reportId)) {
-      return '<div class="page-shell"><div class="empty-hint"><p>未找到报告或无权查看</p></div></div>';
+  function renderSpuDetail(params) {
+    var productId = params.productId;
+    var product = productId ? H.getProductById(productId) : null;
+    if (!product) {
+      return '<div class="page-shell"><div class="empty-hint"><p>未找到商品</p></div></div>';
     }
 
-    var tr = H.findTestRecord(report.testRecordId);
-    var html = '<div class="page-shell">';
-    html += '<section class="section-block"><div class="section-head"><h3>报告历史</h3></div>';
-    html += '<p class="hint-text">' + esc(H.stripDemo(report.reportNumber)) + ' · 检测日期 ' + esc(tr ? H.formatDate(tr.testDate) : '—') + '</p>';
-    html += '<p class="hint-text">只读查看，专业数据不可修改</p>';
-
-    html += '<ol class="history-timeline">';
-    report.versions.slice().reverse().forEach(function (ver) {
-      var isCurrent = ver.version === report.currentVersion;
-      html += '<li class="history-item' + (isCurrent ? ' current' : '') + '">';
-      html += '<div class="history-marker">v' + esc(String(ver.version)) + '</div>';
-      html += '<div class="history-content">';
-      html += '<div class="list-title">' + esc(H.reportStatusLabel(ver.status)) + (isCurrent ? '（当前）' : '') + '</div>';
-      html += '<div class="list-sub">' + esc(H.formatDateTime(ver.publishedAt || ver.createdAt)) + '</div>';
-      html += '<p class="body-text">' + esc(H.stripDemo(ver.summary)) + '</p>';
-      if (ver.correctionNote) {
-        html += '<div class="note-box"><i class="fas fa-pen"></i> ' + esc(H.stripDemo(ver.correctionNote)) + '</div>';
-      }
-      if (ver.rejectReason) {
-        html += '<div class="note-box danger"><i class="fas fa-ban"></i> ' + esc(H.stripDemo(ver.rejectReason)) + '</div>';
-      }
-      if (ver.status === 'published' || ver.status === 'corrected') {
-        html += '<button type="button" class="btn-text" data-nav="report" data-report-id="' + esc(report.id) + '" data-version="' + esc(String(ver.version)) + '">查看此版本</button>';
-      }
-      html += '</div></li>';
-    });
-    html += '</ol></section></div>';
+    var html = '<div class="page-shell spu-detail-page">';
+    html += '<section class="section-block spu-detail-card">';
+    html += '<div class="spu-detail-icon"><i class="fas fa-box-open"></i></div>';
+    html += '<h2 class="spu-detail-name">' + esc(H.stripDemo(product.name)) + '</h2>';
+    html += '<p class="hint-text">SPU ID：' + esc(product.id) + '</p>';
+    html += '<dl class="detail-list spu-detail-meta">';
+    html += '<div><dt>销售状态</dt><dd><span class="badge ' + H.productStatusClass(product) + '">' + esc(H.productStatusLabel(product)) + '</span></dd></div>';
+    html += '<div><dt>库存</dt><dd>' + esc(String(product.stock != null ? product.stock : '—')) + '</dd></div>';
+    html += '<div><dt>可售</dt><dd>' + esc(product.available ? '是' : '否') + '</dd></div>';
+    html += '</dl>';
+    html += renderDemoDisclaimer();
+    html += '<p class="hint-text">演示环境不展示价格、规格与购买入口</p>';
+    html += '</section>';
+    html += '</div>';
     return html;
   }
 
   root.PetMiniPages = {
     renderHome: renderHome,
     renderReports: renderReports,
+    renderPets: renderPets,
+    renderPetReports: renderPetReports,
+    renderPetDetail: renderPetDetail,
     renderProfile: renderProfile,
     renderClaim: renderClaim,
-    renderProgress: renderProgress,
     renderReport: renderReport,
     renderFinding: renderFinding,
     renderMetrics: renderMetrics,
     renderRecommendations: renderRecommendations,
     renderRecommendationTarget: renderRecommendationTarget,
-    renderHistory: renderHistory
+    renderSpuDetail: renderSpuDetail
   };
 })(window);

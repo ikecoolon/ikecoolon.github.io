@@ -3,12 +3,18 @@ document.addEventListener('DOMContentLoaded', function () {
   var navItems = document.querySelectorAll('#main-nav .nav-item');
   var pageContentContainer = document.getElementById('page-content-container');
   var pageTitle = document.getElementById('page-title');
-  var roleSwitcher = document.getElementById('role-switcher');
   var loadedScripts = {};
   var currentPageId = null;
   var unsubscribe = null;
 
+  var DEFAULT_PAGE = 'report-center';
+
+  var DEPRECATED_PAGES = {
+    'pet-report-management': 'report-center'
+  };
+
   var PAGE_CONFIG = {
+    'report-center': { title: '报告中心', script: 'report-center-script.js', init: 'initReportCenter' },
     dashboard: { title: '工作台', script: 'dashboard-script.js', init: 'initDashboard' },
     'detection-records': { title: '检测记录', script: 'detection-records-script.js', init: 'initDetectionRecords' },
     'excel-import': { title: 'Excel 导入', script: 'excel-import-script.js', init: 'initExcelImport' },
@@ -23,17 +29,6 @@ document.addEventListener('DOMContentLoaded', function () {
     'normal-range-config': { title: '指标/参考范围', script: 'normal-range-config-script.js', init: 'initNormalRangeConfig' },
     'health-level-management': { title: '健康分级', script: 'health-level-management-script.js', init: 'initHealthLevelManagement' }
   };
-
-  if (roleSwitcher) {
-    roleSwitcher.value = C.getRole();
-    roleSwitcher.addEventListener('change', function () {
-      C.setRole(roleSwitcher.value);
-      C.toast(roleSwitcher.value === 'reviser' ? '已切换为数据修订员，可更正原始指标' : '已切换为审核员', 'info');
-      if (currentPageId === 'report-review') {
-        loadPage('report-review', false);
-      }
-    });
-  }
 
   function setActiveNav(pageId) {
     navItems.forEach(function (nav) {
@@ -74,13 +69,16 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  function resolvePageId(pageId) {
+    if (!pageId || pageId === 'dashboard') return DEFAULT_PAGE;
+    if (DEPRECATED_PAGES[pageId]) return DEPRECATED_PAGES[pageId];
+    return PAGE_CONFIG[pageId] ? pageId : DEFAULT_PAGE;
+  }
+
   async function loadPage(pageId, updateHash) {
     if (updateHash === undefined) updateHash = true;
+    pageId = resolvePageId(pageId);
     var config = PAGE_CONFIG[pageId];
-    if (!config) {
-      pageId = 'dashboard';
-      config = PAGE_CONFIG.dashboard;
-    }
 
     teardownPage();
     currentPageId = pageId;
@@ -100,16 +98,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
       if (updateHash) {
         var route = C.parseRoute();
-        if (route.pageId !== pageId || Object.keys(route.params).length) {
-          var hash = pageId;
-          if (route.pageId === pageId && Object.keys(route.params).length) {
-            hash += '?' + Object.keys(route.params).map(function (k) {
-              return encodeURIComponent(k) + '=' + encodeURIComponent(route.params[k]);
-            }).join('&');
-          }
+        var resolvedRoutePage = resolvePageId(route.pageId);
+        var params = resolvedRoutePage === pageId ? route.params : {};
+        var hash = pageId;
+        if (Object.keys(params).length) {
+          hash += '?' + Object.keys(params).map(function (k) {
+            return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+          }).join('&');
+        }
+        if (window.location.hash.replace(/^#/, '') !== hash) {
           window.location.hash = hash;
-        } else {
-          window.location.hash = pageId;
         }
       }
     } catch (err) {
@@ -129,7 +127,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function handleRoute() {
     var route = C.parseRoute();
-    loadPage(route.pageId, false);
+    loadPage(resolvePageId(route.pageId), false);
   }
 
   window.addEventListener('hashchange', handleRoute);

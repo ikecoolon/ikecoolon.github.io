@@ -2,13 +2,9 @@
     <div class="bg-white rounded-lg border border-slate-200 p-5">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-2 text-sm" id="wizard-steps">
-                <span class="step-pill active" data-step="1">1. 上传文件</span>
+                <span class="step-pill active" data-step="1">1. 选择文件</span>
                 <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
-                <span class="step-pill" data-step="2">2. 解析预览</span>
-                <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
-                <span class="step-pill" data-step="3">3. 字段匹配</span>
-                <i class="fas fa-chevron-right text-slate-300 text-xs"></i>
-                <span class="step-pill" data-step="4">4. 生成报告</span>
+                <span class="step-pill" data-step="2">2. 导入结果</span>
             </div>
             <button type="button" id="btn-download-template" class="btn-secondary text-sm px-3 py-1.5 rounded-md">
                 <i class="fas fa-download mr-1"></i>下载模板
@@ -16,70 +12,65 @@
         </div>
 
         <div id="step-1" class="wizard-panel">
-            <p class="text-sm text-slate-600 mb-4">选择演示导入场景（Mock 解析，无需真实 xlsx 库）。可关联待导入检测记录。</p>
-            <label class="block text-sm text-slate-600 mb-1">关联检测记录（可选）</label>
-            <select id="select-test-record" class="border border-slate-300 rounded-md py-2 px-3 text-sm w-full max-w-md mb-4"></select>
+            <p class="text-sm text-slate-600 mb-4">
+                每个 Excel 文件对应一只宠物的一次检测。系统仅解析已知模板，逐文件独立处理；成功或局部异常将立即进入报告中心「待归属」视图。
+            </p>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                <button type="button" class="demo-file-card border-2 border-slate-200 rounded-lg p-4 text-left hover:border-teal-500" data-scenario="success_warn">
-                    <i class="fas fa-file-excel text-emerald-600 mb-2"></i>
-                    <p class="font-medium text-slate-800">成功（含警告）</p>
-                    <p class="text-xs text-slate-500 mt-1">部分指标空值/未检出，可继续生成草稿</p>
-                </button>
-                <button type="button" class="demo-file-card border-2 border-slate-200 rounded-lg p-4 text-left hover:border-red-400" data-scenario="failure">
-                    <i class="fas fa-file-circle-xmark text-red-500 mb-2"></i>
-                    <p class="font-medium text-slate-800">阻断失败</p>
-                    <p class="text-xs text-slate-500 mt-1">缺少必需列，整批失败</p>
-                </button>
-                <button type="button" class="demo-file-card border-2 border-slate-200 rounded-lg p-4 text-left hover:border-amber-400" data-scenario="duplicate">
-                    <i class="fas fa-clone text-amber-500 mb-2"></i>
-                    <p class="font-medium text-slate-800">重复导入</p>
-                    <p class="text-xs text-slate-500 mt-1">已发布记录 tr-004 不可重复</p>
-                </button>
+            <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center mb-4" id="drop-zone">
+                <i class="fas fa-cloud-arrow-up text-3xl text-slate-400 mb-2"></i>
+                <p class="text-sm text-slate-600 mb-2">拖拽或点击选择多个 Excel / CSV 文件</p>
+                <input type="file" id="file-input" accept=".csv,.xlsx,.xls" multiple class="text-sm" />
             </div>
-            <input type="file" id="file-input" accept=".csv,.xlsx" class="text-sm mb-4" />
-            <p id="selected-file-name" class="text-sm text-slate-500"></p>
-            <button type="button" id="btn-step1-next" class="btn-primary px-4 py-2 rounded-md text-sm mt-2" disabled>下一步：解析预览</button>
+
+            <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    <div>
+                        <p class="font-medium text-slate-800 text-sm">预置 Mock 批次</p>
+                        <p class="text-xs text-slate-500 mt-0.5">一键演示：正常、重复、局部异常、关键失败四场景</p>
+                    </div>
+                    <button type="button" id="btn-load-demo-batch" class="btn-secondary text-sm px-3 py-1.5 rounded-md">
+                        <i class="fas fa-flask mr-1"></i>加载演示批次
+                    </button>
+                </div>
+                <ul id="demo-batch-preview" class="text-xs text-slate-600 space-y-1 hidden"></ul>
+            </div>
+
+            <div id="file-queue-wrap" class="hidden mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-sm font-medium text-slate-800">待导入文件 <span id="file-queue-count" class="text-slate-500 font-normal"></span></h3>
+                    <button type="button" id="btn-clear-queue" class="text-xs text-slate-500 hover:text-red-600">清空</button>
+                </div>
+                <ul id="file-queue" class="divide-y divide-slate-100 border border-slate-200 rounded-md text-sm max-h-48 overflow-y-auto"></ul>
+            </div>
+
+            <button type="button" id="btn-start-import" class="btn-primary px-4 py-2 rounded-md text-sm" disabled>
+                <i class="fas fa-play mr-1"></i>开始批量导入
+            </button>
         </div>
 
         <div id="step-2" class="wizard-panel hidden">
-            <div id="parse-summary" class="mb-4"></div>
-            <div class="overflow-x-auto max-h-64 border border-slate-200 rounded-md">
-                <table class="min-w-full text-sm" id="preview-table"></table>
+            <div id="batch-summary" class="mb-4"></div>
+            <div class="overflow-x-auto border border-slate-200 rounded-md">
+                <table class="min-w-full text-sm">
+                    <thead class="bg-slate-50 text-slate-600">
+                        <tr>
+                            <th class="px-3 py-2 text-left">原文件</th>
+                            <th class="px-3 py-2 text-left">外部报告号 / 样本号</th>
+                            <th class="px-3 py-2 text-left">状态</th>
+                            <th class="px-3 py-2 text-left">说明</th>
+                            <th class="px-3 py-2 text-left">检测记录</th>
+                        </tr>
+                    </thead>
+                    <tbody id="result-tbody" class="divide-y divide-slate-100"></tbody>
+                </table>
             </div>
-            <div class="flex gap-2 mt-4">
-                <button type="button" class="btn-secondary px-4 py-2 rounded-md text-sm wizard-back" data-to="1">上一步</button>
-                <button type="button" id="btn-step2-next" class="btn-primary px-4 py-2 rounded-md text-sm">下一步：字段匹配</button>
-            </div>
-        </div>
-
-        <div id="step-3" class="wizard-panel hidden">
-            <div id="mapping-alerts" class="mb-4 space-y-2"></div>
-            <table class="min-w-full text-sm border border-slate-200 rounded-md overflow-hidden">
-                <thead class="bg-slate-50"><tr>
-                    <th class="px-3 py-2 text-left">源列</th>
-                    <th class="px-3 py-2 text-left">目标指标</th>
-                    <th class="px-3 py-2 text-left">校验</th>
-                </tr></thead>
-                <tbody id="mapping-tbody"></tbody>
-            </table>
-            <div class="flex gap-2 mt-4">
-                <button type="button" class="btn-secondary px-4 py-2 rounded-md text-sm wizard-back" data-to="2">上一步</button>
-                <button type="button" id="btn-step3-next" class="btn-primary px-4 py-2 rounded-md text-sm">下一步：生成报告</button>
-            </div>
-        </div>
-
-        <div id="step-4" class="wizard-panel hidden">
-            <div id="import-result" class="mb-4"></div>
-            <div class="flex flex-wrap gap-2">
-                <button type="button" class="btn-secondary px-4 py-2 rounded-md text-sm wizard-back" data-to="3">上一步</button>
-                <button type="button" id="btn-generate-draft" class="btn-primary px-4 py-2 rounded-md text-sm hidden">
-                    <i class="fas fa-file-pen mr-1"></i>生成报告草稿
+            <div class="flex flex-wrap gap-2 mt-4">
+                <button type="button" class="btn-secondary px-4 py-2 rounded-md text-sm wizard-back" data-to="1">
+                    <i class="fas fa-arrow-left mr-1"></i>继续导入
                 </button>
-                <button type="button" id="btn-submit-review" class="btn-primary px-4 py-2 rounded-md text-sm hidden">
-                    <i class="fas fa-paper-plane mr-1"></i>提交审核
+                <button type="button" id="btn-go-unassigned" class="btn-primary px-4 py-2 rounded-md text-sm">
+                    <i class="fas fa-inbox mr-1"></i>查看待归属
                 </button>
-                <button type="button" id="btn-go-review" class="btn-primary px-4 py-2 rounded-md text-sm hidden">进入审核</button>
             </div>
         </div>
     </div>
@@ -87,5 +78,8 @@
 <style>
     .step-pill { padding: 0.35rem 0.65rem; border-radius: 9999px; background: #f1f5f9; color: #64748b; font-size: 0.75rem; }
     .step-pill.active { background: #0d9488; color: #fff; }
-    .demo-file-card.selected { border-color: #0d9488; background: #f0fdfa; }
+    #drop-zone.drag-over { border-color: #0d9488; background: #f0fdfa; }
+    .file-queue-item { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; }
+    .file-queue-item .remove-file { color: #94a3b8; }
+    .file-queue-item .remove-file:hover { color: #dc2626; }
 </style>

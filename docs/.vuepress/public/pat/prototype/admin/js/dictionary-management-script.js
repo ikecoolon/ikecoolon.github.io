@@ -1,505 +1,252 @@
 function initDictionaryManagement() {
-  // DOM 元素
-  const mainView = document.getElementById("main-view");
-  const formView = document.getElementById("form-view");
-  const formTitle = document.getElementById("form-title");
-  const searchInput = document.getElementById("search-custom-key");
-  const tableBody = document.getElementById("custom-key-table-body");
-  const addNewKeyButton = document.getElementById("add-new-key");
-  const backToListButton = document.getElementById("back-to-list");
-  const keyForm = document.getElementById("key-form");
-  const formCustomKey = document.getElementById("form-custom-key");
-  const formCustomLabel = document.getElementById("form-custom-label");
-  const formParentKey = document.getElementById("form-parent-key");
-  const formCustomValue = document.getElementById("form-custom-value");
+  var svc = window.dictionaryDataService;
+  var C = window.PetAdminCommon;
+  if (!svc) return;
 
-  const cancelFormButton = document.getElementById("cancel-form");
+  var mainView = document.getElementById('main-view');
+  var formView = document.getElementById('form-view');
+  var formTitle = document.getElementById('form-title');
+  var searchInput = document.getElementById('search-custom-key');
+  var tableBody = document.getElementById('custom-key-table-body');
+  var addNewKeyButton = document.getElementById('add-new-key');
+  var backToListButton = document.getElementById('back-to-list');
+  var keyForm = document.getElementById('key-form');
+  var formCustomKey = document.getElementById('form-custom-key');
+  var formCustomLabel = document.getElementById('form-custom-label');
+  var formParentKey = document.getElementById('form-parent-key');
+  var formCustomValue = document.getElementById('form-custom-value');
+  var formTaxonomyLevel = document.getElementById('form-taxonomy-level');
+  var formStandardUnit = document.getElementById('form-standard-unit');
+  var parentKeyField = document.getElementById('parent-key-field');
+  var taxonomyLevelField = document.getElementById('taxonomy-level-field');
+  var standardUnitField = document.getElementById('standard-unit-field');
+  var catalogTabs = document.getElementById('catalog-tabs');
+  var cancelFormButton = document.getElementById('cancel-form');
 
-  // 数据存储
-  let customKeys = [];
-  let currentEditIndex = -1; // -1 表示新增，>=0 表示编辑
+  var currentTab = 'breeds';
+  var currentEditId = null;
 
-  // 初始化测试数据
-  customKeys = [
-    {
-      id: 1,
-      key: "pet",
-      label: "宠物类别",
-      value: "宠物类别根节点",
-      parentKey: null,
-    },
-    {
-      id: 2,
-      key: "cat",
-      label: "猫科",
-      value: "猫科动物",
-      parentKey: "pet",
-    },
-    {
-      id: 3,
-      key: "dog",
-      label: "犬科",
-      value: "犬科动物",
-      parentKey: "pet",
-    },
-    {
-      id: 4,
-      key: "british-short",
-      label: "英短",
-      value: "英国短毛猫",
-      parentKey: "cat",
-    },
-    {
-      id: 5,
-      key: "orange-cat",
-      label: "橘猫",
-      value: "橘猫",
-      parentKey: "cat",
-    },
-    {
-      id: "10",
-      key: "men",
-      label: "门",
-      value: "门类是什么",
-      parentKey: null,
-    },
-    {
-      id: "101",
-      key: "actinobacteria",
-      label: "放线菌门",
-      value: "放线菌门是什么什么",
-      parentKey: "men",
-    },
-    {
-      id: "102",
-      key: "bacteroidetes",
-      label: "拟杆菌门",
-      value: "拟杆菌门是什么什么",
-      parentKey: "men",
-    },
-    {
-      id: "103",
-      key:'firmicutes',
-      label:'厚壁菌门',
-      value:'厚壁菌均是微生态中的强力草食者',
-      parentKey:'men',
-
-    },
-    {
-      id: "20",
-      key: "shu",
-      label: "属",
-      value: "属类是什么什么",
-      parentKey: null,
-    },
-    {
-      id: "201",
-      key: "Peptacetobacter",
-      label: "Peptacetobacter属类",
-      value: "善于发酵碳水，产生短链脂肪酸(SCFA);过多时可能挤压其他保护性菌种",
-      parentKey: "shu",
-    },
-    {
-      id: "202",
-      key: "Lachnoclostridium",
-      label: "Lachnoclostridium属类",
-      value: "Lachnoclostridium属类是什么什么",
-      parentKey: "shu",
-    },
-    {
-      id: 7,
-      key: "evenness",
-      label: "均匀度",
-      value: "均匀度是什么什么",
-      parentKey: null,
-    },
-    {
-      id: 8,
-      key: "richness",
-      label: "丰富度",
-      value: "丰富度是什么什么",
-      parentKey: null,
-    },
-    {
-      id: 6,
-      key: "alpha-diversity",
-      label: "alpha多样性",
-      value: "alpha多样性是什么什么",
-      parentKey: null,
-    },
-  ];
-
-  function generateId() {
-    return Math.max(...customKeys.map((k) => k.id || 0), 0) + 1;
+  function collectionName() {
+    if (currentTab === 'breeds') return 'breeds';
+    if (currentTab === 'indicators') return 'testIndicators';
+    return 'microbiotaTaxa';
   }
 
-  function getIndentLevel(key) {
-    let level = 0;
-    let currentKey = key;
-    while (currentKey.parentKey) {
-      level++;
-      currentKey = customKeys.find((k) => k.key === currentKey.parentKey);
-      if (!currentKey) break; // 防止无限循环
+  function loadRows() {
+    var catalog = svc.getCatalog();
+    if (currentTab === 'breeds') return catalog.breeds.slice();
+    if (currentTab === 'indicators') return catalog.testIndicators.slice();
+    return catalog.microbiotaTaxa.slice();
+  }
+
+  function tabLabel() {
+    if (currentTab === 'breeds') return '品种';
+    if (currentTab === 'indicators') return '普通指标';
+    return '菌群分类';
+  }
+
+  function getIndentLevel(item, rows) {
+    var level = 0;
+    var current = item;
+    while (current && current.parentKey) {
+      level += 1;
+      current = rows.find(function (r) { return r.key === current.parentKey; });
+      if (level > 10) break;
     }
     return level;
   }
 
-  function renderTable(filter = "") {
-    // 过滤数据
-    let filteredKeys = customKeys.filter(
-      (key) =>
-        key.key.toLowerCase().includes(filter.toLowerCase()) ||
-        key.label.toLowerCase().includes(filter.toLowerCase()) ||
-        key.value.toLowerCase().includes(filter.toLowerCase())
-    );
-
-    // 构建层级结构并排序
-    function buildHierarchy(items) {
-      const result = [];
-      const itemMap = {};
-
-      // 创建映射
-      items.forEach((item) => {
-        itemMap[item.key] = { ...item, children: [] };
-      });
-
-      // 构建层级关系
-      items.forEach((item) => {
-        if (item.parentKey && itemMap[item.parentKey]) {
-          itemMap[item.parentKey].children.push(itemMap[item.key]);
-        } else {
-          result.push(itemMap[item.key]);
-        }
-      });
-
-      // 递归排序并扁平化
-      function flattenSorted(items, level = 0) {
-        const flat = [];
-        items.sort((a, b) => a.key.localeCompare(b.key));
-
-        items.forEach((item) => {
-          const { children, ...itemData } = item;
-          flat.push(itemData);
-          if (children.length > 0) {
-            flat.push(...flattenSorted(children, level + 1));
-          }
-        });
-
-        return flat;
+  function buildHierarchy(items) {
+    var result = [];
+    var itemMap = {};
+    items.forEach(function (item) {
+      itemMap[item.key] = Object.assign({}, item, { children: [] });
+    });
+    items.forEach(function (item) {
+      if (item.parentKey && itemMap[item.parentKey]) {
+        itemMap[item.parentKey].children.push(itemMap[item.key]);
+      } else {
+        result.push(itemMap[item.key]);
       }
-
-      return flattenSorted(result);
+    });
+    function flatten(nodes, flat) {
+      flat = flat || [];
+      nodes.sort(function (a, b) { return String(a.key).localeCompare(String(b.key)); });
+      nodes.forEach(function (node) {
+        var copy = Object.assign({}, node);
+        delete copy.children;
+        flat.push(copy);
+        if (node.children && node.children.length) flatten(node.children, flat);
+      });
+      return flat;
     }
+    return flatten(result);
+  }
 
-    filteredKeys = buildHierarchy(filteredKeys);
-
-    tableBody.innerHTML = "";
-
-    if (filteredKeys.length === 0) {
-      tableBody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="px-6 py-4 text-center text-gray-500">暂无自定义 Key</td>
-                </tr>
-            `;
+  function renderTable(filter) {
+    filter = (filter || '').toLowerCase();
+    var rows = loadRows().filter(function (item) {
+      if (!filter) return true;
+      return [item.key, item.label, item.value, item.standardUnit, item.level]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .indexOf(filter) >= 0;
+    });
+    rows = buildHierarchy(rows);
+    tableBody.innerHTML = '';
+    if (!rows.length) {
+      tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无' + tabLabel() + '数据</td></tr>';
       return;
     }
-
-    filteredKeys.forEach((item, index) => {
-      const level = getIndentLevel(item);
-      const indent = "&nbsp;".repeat(level * 4);
-      const parentKeyDisplay = item.parentKey || "-";
-
-      const row = document.createElement("tr");
-      row.className = "hover:bg-gray-50";
-      row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                        ${indent}
-                        ${
-                          level > 0
-                            ? '<i class="fas fa-level-up-alt text-gray-400 mr-2" style="transform: rotate(90deg);"></i>'
-                            : ""
-                        }
-                        <span class="text-sm font-medium text-gray-900">${
-                          item.key
-                        }</span>
-                    </div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="text-sm font-medium text-gray-900">${
-                      item.label
-                    }</div>
-                </td>
-                <td class="px-6 py-4">
-                    <div class="text-sm text-gray-900">${item.value}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="text-sm text-gray-500">${parentKeyDisplay}</span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                    item.parentKey ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800'
-                  }">
-                    ${item.parentKey ? '子项' : '根项'}
-                  </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button class="text-blue-600 hover:text-blue-900 mr-3 edit-key" data-id="${
-                      item.id
-                    }">
-                        <i class="fas fa-edit mr-1"></i>编辑
-                    </button>
-                    <button class="text-green-600 hover:text-green-900 mr-3 client-edit-key" data-id="${
-                      item.id
-                    }">
-                        <i class="fas fa-user-edit mr-1"></i>客户编辑
-                    </button>
-                    <button class="text-red-600 hover:text-red-900 delete-key" data-id="${
-                      item.id
-                    }">
-                        <i class="fas fa-trash mr-1"></i>删除
-                    </button>
-                </td>
-            `;
-      tableBody.appendChild(row);
+    rows.forEach(function (item) {
+      var level = getIndentLevel(item, loadRows());
+      var indent = '&nbsp;'.repeat(level * 4);
+      var meta = currentTab === 'indicators'
+        ? (item.standardUnit || '—')
+        : (currentTab === 'microbiota' ? (svc.levelToLabel(item.level) + (item.parentKey ? ' / ' + item.parentKey : '')) : (item.parentKey || '—'));
+      var typeBadge = currentTab === 'breeds'
+        ? (item.parentKey ? '子品种' : '大类')
+        : (currentTab === 'indicators' ? '普通指标' : (item.level === 'phylum' ? '门' : '属'));
+      var tr = document.createElement('tr');
+      tr.className = 'hover:bg-gray-50';
+      tr.innerHTML =
+        '<td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900">' + indent + C.escapeHtml(item.key) + '</div></td>' +
+        '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + C.escapeHtml(item.label) + '</td>' +
+        '<td class="px-6 py-4 text-sm text-gray-700">' + C.escapeHtml(item.value || item.standardUnit || '—') + '</td>' +
+        '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">' + C.escapeHtml(meta) + '</td>' +
+        '<td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">' + typeBadge + '</span></td>' +
+        '<td class="px-6 py-4 whitespace-nowrap text-sm font-medium">' +
+          '<button class="text-blue-600 hover:text-blue-900 mr-3 edit-key" data-id="' + C.escapeHtml(item.id) + '"><i class="fas fa-edit mr-1"></i>编辑</button>' +
+          '<button class="text-red-600 hover:text-red-900 delete-key" data-id="' + C.escapeHtml(item.id) + '"><i class="fas fa-trash mr-1"></i>删除</button>' +
+        '</td>';
+      tableBody.appendChild(tr);
     });
   }
 
-  function updateParentKeyOptions(excludeId = null) {
+  function updateParentKeyOptions(excludeId) {
     formParentKey.innerHTML = '<option value="">无父级（顶级）</option>';
-
-    customKeys.forEach((key) => {
-      if (excludeId && key.id === excludeId) return; // 不能选择自己作为父级
-
-      const option = document.createElement("option");
-      option.value = key.key;
-      option.textContent = `${key.label} (${key.key})`;
+    loadRows().forEach(function (row) {
+      if (excludeId && row.id === excludeId) return;
+      if (currentTab === 'microbiota' && row.level === 'genus') return;
+      var option = document.createElement('option');
+      option.value = row.key;
+      option.textContent = row.label + ' (' + row.key + ')';
       formParentKey.appendChild(option);
     });
   }
 
-  function addClientEditHints() {
-    // 为编码Key字段添加提示
-    const keyContainer = formCustomKey.parentElement;
-    if (!keyContainer.querySelector(".client-edit-hint")) {
-      const keyHint = document.createElement("p");
-      keyHint.className = "client-edit-hint text-sm text-gray-500 mt-1";
-      keyHint.textContent = "🔒 客户编辑模式下此字段不可修改";
-      keyContainer.appendChild(keyHint);
-    }
-
-    // 为父级Key字段添加提示
-    const parentContainer = formParentKey.parentElement;
-    if (!parentContainer.querySelector(".client-edit-hint")) {
-      const parentHint = document.createElement("p");
-      parentHint.className = "client-edit-hint text-sm text-gray-500 mt-1";
-      parentHint.textContent = "🔒 客户编辑模式下此字段不可修改";
-      parentContainer.appendChild(parentHint);
-    }
-  }
-
-  function removeClientEditHints() {
-    // 移除所有客户编辑提示
-    document.querySelectorAll(".client-edit-hint").forEach((hint) => {
-      hint.remove();
+  function updateTabUi() {
+    catalogTabs.querySelectorAll('.catalog-tab').forEach(function (btn) {
+      var active = btn.dataset.tab === currentTab;
+      btn.className = 'catalog-tab px-4 py-2 rounded-md text-sm font-medium ' +
+        (active ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-700');
     });
+    taxonomyLevelField.classList.toggle('hidden', currentTab !== 'microbiota');
+    standardUnitField.classList.toggle('hidden', currentTab !== 'indicators');
+    parentKeyField.classList.toggle('hidden', currentTab === 'indicators');
   }
 
   function showMainView() {
-    mainView.classList.remove("hidden");
-    formView.classList.add("hidden");
-    renderTable();
-    
-    // 通知其他模块更新品种配置
-    notifyBreedConfigUpdate();
+    mainView.classList.remove('hidden');
+    formView.classList.add('hidden');
+    renderTable(searchInput.value.trim());
+    svc.notifyCatalogUpdated();
   }
 
-  // 通知其他模块品种配置已更新
-  function notifyBreedConfigUpdate() {
-    // 更新字典数据服务
-    if (typeof window.dictionaryDataService !== 'undefined') {
-      // 将当前的 customKeys 数据同步到字典数据服务
-      window.dictionaryDataService.dictionaryData = customKeys;
-      
-      // 触发自定义事件，通知其他模块
-      const event = new CustomEvent('breedConfigUpdated', {
-        detail: { customKeys: customKeys }
-      });
-      document.dispatchEvent(event);
-    }
-  }
-
-  function showFormView(isEdit = false, editId = null, isClientEdit = false) {
-    mainView.classList.add("hidden");
-    formView.classList.remove("hidden");
-
-    // 重置所有字段为可编辑状态
-    formCustomKey.disabled = false;
-    formParentKey.disabled = false;
-    formCustomKey.style.backgroundColor = "";
-    formParentKey.style.backgroundColor = "";
-
-    // 移除客户编辑提示
-    removeClientEditHints();
-
+  function showFormView(isEdit, editId) {
+    mainView.classList.add('hidden');
+    formView.classList.remove('hidden');
+    updateTabUi();
+    currentEditId = isEdit ? editId : null;
+    formTitle.textContent = (isEdit ? '编辑' : '新增') + tabLabel();
+    keyForm.reset();
+    updateParentKeyOptions(editId);
     if (isEdit && editId) {
-      const item = customKeys.find((k) => k.id === editId);
-      if (item) {
-        if (isClientEdit) {
-          formTitle.textContent = "客户编辑自定义 Key";
-          // 客户编辑模式：禁用编码key和父级key字段
-          formCustomKey.disabled = true;
-          formParentKey.disabled = true;
-          formCustomKey.style.backgroundColor = "#f3f4f6";
-          formParentKey.style.backgroundColor = "#f3f4f6";
-
-          // 添加客户编辑模式的提示
-          addClientEditHints();
-        } else {
-          formTitle.textContent = "编辑自定义 Key";
-        }
-        formCustomKey.value = item.key;
-        formCustomLabel.value = item.label;
-        formCustomValue.value = item.value;
-        formParentKey.value = item.parentKey || "";
-
-        currentEditIndex = customKeys.findIndex((k) => k.id === editId);
-        updateParentKeyOptions(editId);
-      }
-    } else {
-      formTitle.textContent = "新增自定义 Key";
-      keyForm.reset();
-      currentEditIndex = -1;
-      updateParentKeyOptions();
+      var item = loadRows().find(function (r) { return String(r.id) === String(editId); });
+      if (!item) return;
+      formCustomKey.value = item.key;
+      formCustomLabel.value = item.label;
+      formCustomValue.value = item.value || '';
+      formParentKey.value = item.parentKey || '';
+      if (currentTab === 'microbiota') formTaxonomyLevel.value = item.level || 'genus';
+      if (currentTab === 'indicators') formStandardUnit.value = item.standardUnit || '';
     }
   }
 
-  // 事件监听器
-  addNewKeyButton.addEventListener("click", () => {
-    showFormView(false);
+  catalogTabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('.catalog-tab');
+    if (!btn) return;
+    currentTab = btn.dataset.tab;
+    updateTabUi();
+    renderTable(searchInput.value.trim());
   });
 
-  backToListButton.addEventListener("click", showMainView);
-  cancelFormButton.addEventListener("click", showMainView);
+  addNewKeyButton.addEventListener('click', function () { showFormView(false); });
+  backToListButton.addEventListener('click', showMainView);
+  cancelFormButton.addEventListener('click', showMainView);
+  searchInput.addEventListener('input', function (e) { renderTable(e.target.value.trim()); });
 
-  keyForm.addEventListener("submit", (e) => {
+  keyForm.addEventListener('submit', function (e) {
     e.preventDefault();
-
-    const key = formCustomKey.value.trim();
-    const label = formCustomLabel.value.trim();
-    const value = formCustomValue.value.trim();
-    const parentKey = formParentKey.value || null;
-
+    var key = formCustomKey.value.trim();
+    var label = formCustomLabel.value.trim();
     if (!key || !label) {
-      alert("编码 Key 和标签名称不能为空！");
+      C.toast('编码 Key 和标签名称不能为空', 'warning');
       return;
     }
-
-    // 正常范围验证已移除，现在由专门的正常范围配置模块处理
-
-    // 检查 key 是否重复
-    const existingKey = customKeys.find(
-      (k) =>
-        k.key === key &&
-        (currentEditIndex === -1 || k.id !== customKeys[currentEditIndex].id)
-    );
-    if (existingKey) {
-      alert("编码 Key 已存在，请使用其他名称！");
-      return;
+    var payload = {
+      id: currentEditId,
+      key: key,
+      label: label,
+      value: formCustomValue.value.trim(),
+      parentKey: currentTab === 'indicators' ? null : (formParentKey.value || null)
+    };
+    if (currentTab === 'microbiota') {
+      payload.level = formTaxonomyLevel.value;
+      if (!payload.parentKey && payload.level === 'genus') {
+        C.toast('属级分类需选择父级门', 'warning');
+        return;
+      }
     }
-
-    if (currentEditIndex >= 0) {
-      // 编辑
-      customKeys[currentEditIndex] = {
-        ...customKeys[currentEditIndex],
-        key,
-        label,
-        value,
-        parentKey,
-      };
-    } else {
-      // 新增
-      customKeys.push({
-        id: generateId(),
-        key,
-        label,
-        value,
-        parentKey,
-      });
+    if (currentTab === 'indicators') {
+      payload.standardUnit = formStandardUnit.value.trim() || '%';
     }
-
+    svc.saveCatalogItem(collectionName(), payload);
+    C.toast('已保存到共享 Store', 'success');
     showMainView();
   });
 
-  // 表格操作事件代理
-  tableBody.addEventListener("click", (e) => {
-    if (
-      e.target.classList.contains("edit-key") ||
-      e.target.closest(".edit-key")
-    ) {
-      const button = e.target.classList.contains("edit-key")
-        ? e.target
-        : e.target.closest(".edit-key");
-      const id = parseInt(button.dataset.id);
-      showFormView(true, id);
-    } else if (
-      e.target.classList.contains("client-edit-key") ||
-      e.target.closest(".client-edit-key")
-    ) {
-      const button = e.target.classList.contains("client-edit-key")
-        ? e.target
-        : e.target.closest(".client-edit-key");
-      const id = parseInt(button.dataset.id);
-      showFormView(true, id, true); // 第三个参数为true表示客户编辑模式
-    } else if (
-      e.target.classList.contains("delete-key") ||
-      e.target.closest(".delete-key")
-    ) {
-      const button = e.target.classList.contains("delete-key")
-        ? e.target
-        : e.target.closest(".delete-key");
-      const id = parseInt(button.dataset.id);
-
-      // 检查是否有子项
-      const hasChildren = customKeys.some(
-        (k) => k.parentKey === customKeys.find((item) => item.id === id)?.key
-      );
-
-      let confirmMessage = "确定要删除这个自定义 Key 吗？";
-      if (hasChildren) {
-        confirmMessage += "\n注意：删除后，其子项将变为顶级项。";
-      }
-
-      if (confirm(confirmMessage)) {
-        const keyToDelete = customKeys.find((k) => k.id === id);
-
-        // 将子项的父级设为 null
-        if (hasChildren && keyToDelete) {
-          customKeys.forEach((k) => {
-            if (k.parentKey === keyToDelete.key) {
-              k.parentKey = null;
-            }
-          });
-        }
-
-        // 删除项目
-        customKeys = customKeys.filter((k) => k.id !== id);
-        renderTable();
-      }
+  tableBody.addEventListener('click', function (e) {
+    var editBtn = e.target.closest('.edit-key');
+    if (editBtn) {
+      showFormView(true, editBtn.dataset.id);
+      return;
+    }
+    var delBtn = e.target.closest('.delete-key');
+    if (delBtn) {
+      C.confirmDialog('确定删除该资料项？', function () {
+        svc.deleteCatalogItem(collectionName(), delBtn.dataset.id);
+        C.toast('已删除', 'success');
+        renderTable(searchInput.value.trim());
+        svc.notifyCatalogUpdated();
+      });
     }
   });
 
-  searchInput.addEventListener("input", (e) => {
-    renderTable(e.target.value.trim());
-  });
+  if (window.PetAdminCommon && window.PetAdminCommon.subscribeDemo) {
+    window.__petAdminPageTeardown = window.PetAdminCommon.subscribeDemo(function () {
+      if (!formView.classList.contains('hidden')) return;
+      renderTable(searchInput.value.trim());
+    });
+  }
 
-  // 初始化
+  updateTabUi();
   showMainView();
 }
 
-// 如果 DOM 已加载完成，立即执行；否则等待 DOMContentLoaded 事件
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initDictionaryManagement);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initDictionaryManagement);
 } else {
   initDictionaryManagement();
 }
