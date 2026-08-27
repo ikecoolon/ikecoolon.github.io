@@ -1,0 +1,136 @@
+<div id="microbiota-knowledge" class="page space-y-4">
+    <style>
+        #mk-tree .mk-node {
+            background: #fff;
+            color: #334155;
+            border-color: transparent;
+        }
+        #mk-tree .mk-node:hover { background: #f8fafc; }
+        #mk-tree .mk-node.is-selected {
+            background: #f0fdfa;
+            color: #134e4a;
+            border-color: #99f6e4;
+        }
+    </style>
+    <div class="bg-white rounded-lg border border-slate-200 p-5">
+        <h2 class="text-lg font-semibold text-slate-800 mb-1">
+            <i class="fas fa-book-open text-teal-600 mr-2"></i>菌群科普模板
+        </h2>
+        <p class="text-sm text-slate-600 leading-relaxed">
+            本页只管<strong>场景句短语与中性的菌群科普正文</strong>，挂在已有门/属节点上；<strong>不新增、不删除</strong>分类。
+            参考范围请到「指标 / 参考范围」维护；结果解释与总体建议请到「分析规则 / 报告审核」维护。
+            门–属关系请到
+            <a href="#dictionary-management" data-page="dictionary-management" class="text-teal-700 hover:underline">字典管理 → 菌群分类树</a>。
+        </p>
+    </div>
+
+    <div class="flex flex-col md:flex-row gap-4 items-start">
+        <aside class="w-full md:w-[280px] md:max-w-[280px] shrink-0 bg-white rounded-lg border border-slate-200 p-4 md:sticky md:top-4">
+            <label class="block text-xs font-medium text-slate-500 mb-1" for="mk-search">分类树</label>
+            <div class="relative mb-3">
+                <i class="fas fa-search absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
+                <input type="search" id="mk-search" autocomplete="off"
+                    class="w-full border border-slate-300 rounded-md py-1.5 pl-7 pr-2 text-sm"
+                    placeholder="搜索门、属、学名或编码">
+            </div>
+            <div id="mk-tree" class="space-y-0.5 max-h-[60vh] overflow-y-auto text-sm"></div>
+            <p class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
+                门–属关系在字典管理中维护；本页只编辑面向用户的科普模板。
+            </p>
+        </aside>
+
+        <div class="flex-1 min-w-0 space-y-4">
+            <section id="mk-global-pres" class="bg-white rounded-lg border border-slate-200 p-4">
+                <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+                    <div>
+                        <h3 class="text-sm font-medium text-slate-700">场景状态词（全局共用）</h3>
+                        <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                            依据<strong>有效参考范围</strong>判定偏低 / 正常 / 偏高后，拼入用户端场景句尾部；所有门、属共用。留空则对应状态不追加文案。
+                        </p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="text-xs text-slate-500" for="mk-pres-low">偏低（low）</label>
+                        <input type="text" id="mk-pres-low"
+                            class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
+                            placeholder="如「略显稀疏」">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500" for="mk-pres-normal">正常（normal）</label>
+                        <input type="text" id="mk-pres-normal"
+                            class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
+                            placeholder="如「生机适宜」">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500" for="mk-pres-high">偏高（high）</label>
+                        <input type="text" id="mk-pres-high"
+                            class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
+                            placeholder="如「略显繁茂」">
+                    </div>
+                </div>
+            </section>
+
+            <div id="mk-empty" class="bg-white rounded-lg border border-slate-200 px-8 py-16 text-center">
+                <i class="fas fa-hand-pointer text-3xl text-slate-300 mb-3"></i>
+                <p class="text-slate-600">请从左侧选择一个菌门或菌属，编辑面向用户的科普模板。</p>
+                <p class="text-xs text-slate-400 mt-2">支持深链 <span class="font-mono">#microbiota-knowledge?taxon=拟杆菌门</span></p>
+            </div>
+
+            <div id="mk-editor" class="hidden space-y-4">
+                <section class="bg-white rounded-lg border border-slate-200 p-5">
+                    <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+                        <div>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h3 id="mk-label" class="text-xl font-semibold text-slate-800">—</h3>
+                                <span id="mk-level-badge" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-teal-50 text-teal-800">门</span>
+                            </div>
+                            <p id="mk-parent-line" class="hidden text-xs text-slate-500 mt-1"></p>
+                        </div>
+                        <button type="button" id="mk-btn-save" class="btn-primary px-4 py-2 rounded-md text-sm">
+                            <i class="fas fa-save mr-1"></i>保存科普模板与状态词
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <div>
+                            <label class="text-xs text-slate-500" for="mk-latin-name">学名</label>
+                            <input type="text" id="mk-latin-name"
+                                class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
+                                placeholder="如 Bacteroidetes">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500" for="mk-key">编码 key</label>
+                            <input type="text" id="mk-key" readonly
+                                class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm bg-slate-50 text-slate-500 font-mono">
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-xs text-slate-500" for="mk-scene-copy">场景句核心短语（可选）</label>
+                            <input type="text" id="mk-scene-copy"
+                                class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
+                                placeholder="如「敏捷的采集者」—— 拼入用户端场景句，留空则不显示">
+                        </div>
+                        <div>
+                            <label class="text-xs text-slate-500" for="mk-knowledge-text">中性科普正文（可选）</label>
+                            <textarea id="mk-knowledge-text" rows="4"
+                                class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
+                                placeholder="科普弹层展示的中性说明；不写偏高偏低或干预建议，留空则不显示"></textarea>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="bg-white rounded-lg border border-dashed border-slate-300 p-5">
+                    <div class="flex items-center justify-between gap-2 mb-3">
+                        <h4 class="text-sm font-medium text-slate-700">
+                            <i class="fas fa-mobile-screen-button text-slate-400 mr-1"></i>用户端预览
+                        </h4>
+                    </div>
+                    <div id="mk-preview" class="text-sm text-slate-700 space-y-3"></div>
+                </section>
+            </div>
+        </div>
+    </div>
+</div>

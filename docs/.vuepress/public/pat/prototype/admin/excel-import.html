@@ -22,19 +22,6 @@
                 <input type="file" id="file-input" accept=".csv,.xlsx,.xls" multiple class="text-sm" />
             </div>
 
-            <div class="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-4">
-                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-                    <div>
-                        <p class="font-medium text-slate-800 text-sm">预置 Mock 批次</p>
-                        <p class="text-xs text-slate-500 mt-0.5">一键演示：正常、重复、局部异常、关键失败四场景</p>
-                    </div>
-                    <button type="button" id="btn-load-demo-batch" class="btn-secondary text-sm px-3 py-1.5 rounded-md">
-                        <i class="fas fa-flask mr-1"></i>加载演示批次
-                    </button>
-                </div>
-                <ul id="demo-batch-preview" class="text-xs text-slate-600 space-y-1 hidden"></ul>
-            </div>
-
             <div id="file-queue-wrap" class="hidden mb-4">
                 <div class="flex items-center justify-between mb-2">
                     <h3 class="text-sm font-medium text-slate-800">待导入文件 <span id="file-queue-count" class="text-slate-500 font-normal"></span></h3>

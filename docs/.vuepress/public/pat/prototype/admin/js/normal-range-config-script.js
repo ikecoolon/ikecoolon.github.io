@@ -28,196 +28,179 @@ function initNormalRangeConfigCore() {
 
   var mainView = document.getElementById('main-view');
   var formView = document.getElementById('form-view');
-  var addConfigBtn = document.getElementById('add-config-btn');
-  var batchImportBtn = document.getElementById('batch-import-btn');
-  var backToListBtn = document.getElementById('back-to-list-btn');
-  var cancelFormBtn = document.getElementById('cancel-form-btn');
-  var configForm = document.getElementById('config-form');
-  var formTitle = document.getElementById('form-title');
   var tableBody = document.getElementById('table-body');
+  var schemeForm = document.getElementById('scheme-form');
+  var formTitle = document.getElementById('form-title');
+  var itemsBody = document.getElementById('items-body');
+  var speciesCheckboxes = document.getElementById('species-checkboxes');
   var importModal = document.getElementById('import-modal');
-  var confirmImportBtn = document.getElementById('confirm-import-btn');
-  var cancelImportBtn = document.getElementById('cancel-import-btn');
-  var downloadTemplateBtn = document.getElementById('download-template-btn');
-  var searchBtn = document.getElementById('search-btn');
-  var resetFilterBtn = document.getElementById('reset-filter-btn');
-  var formMajorBreed = document.getElementById('form-major-breed');
-  var formMinorBreed = document.getElementById('form-minor-breed');
-  var formMinValue = document.getElementById('form-min-value');
-  var formMaxValue = document.getElementById('form-max-value');
-  var formUnit = document.getElementById('form-unit');
-  var formNotes = document.getElementById('form-notes');
-  var referenceSuggestions = document.getElementById('reference-suggestions');
-  var referenceContent = document.getElementById('reference-content');
-  var indicatorTree = document.getElementById('indicator-tree');
-  var selectedIndicator = document.getElementById('selected-indicator');
-  var selectedIndicatorText = document.getElementById('selected-indicator-text');
-  var clearSelectionBtn = document.getElementById('clear-selection');
-  var selectedIndicatorType = document.getElementById('selected-indicator-type');
-  var selectedIndicatorName = document.getElementById('selected-indicator-name');
-  var filterMajorBreed = document.getElementById('filter-major-breed');
-  var filterMinorBreed = document.getElementById('filter-minor-breed');
-  var filterIndicatorType = document.getElementById('filter-indicator-type');
-  var filterIndicatorName = document.getElementById('filter-indicator-name');
+  var filterSpecies = document.getElementById('filter-species');
 
   var currentEditId = null;
-  var selectedTarget = null;
+  var formItems = [];
 
-  function getRangeConfigs() {
-    return svc.getPlatformReferenceRanges(false);
+  var STATUS_LABELS = {
+    active: '启用',
+    draft: '草稿',
+    disabled: '停用'
+  };
+
+  function getSchemes() {
+    return svc.getReferenceRangeSchemes(false);
   }
 
-  function speciesFromFormMajor(major) {
-    return svc.speciesFromMajorBreed(major) || (major === '猫' ? 'cat' : major === '狗' ? 'dog' : null);
+  function speciesOptions() {
+    return svc.getPetMajorBreeds();
   }
 
-  function getBreedConfig() {
-    return svc.getFlatBreedConfig();
-  }
-
-  function updateMinorBreedOptions(selectElement, majorBreed) {
-    selectElement.innerHTML = '<option value="">请选择小品种</option>';
-    if (!majorBreed) return;
-    var majorData = svc.getBreedByLabel(majorBreed + '科') || svc.getBreedByLabel(majorBreed);
-    var minors = majorData ? svc.getPetMinorBreeds(majorData.key).map(function (b) { return b.label; }) : (getBreedConfig()[majorBreed] || []);
-    minors.forEach(function (breed) {
+  function renderSpeciesFilters() {
+    var majors = speciesOptions();
+    filterSpecies.innerHTML = '<option value="">全部物种</option>';
+    majors.forEach(function (major) {
       var option = document.createElement('option');
-      option.value = breed;
-      option.textContent = breed;
-      selectElement.appendChild(option);
+      option.value = major.key;
+      option.textContent = major.label.replace(/科$/, '');
+      filterSpecies.appendChild(option);
     });
   }
 
-  function renderIndicatorTree() {
-    indicatorTree.innerHTML = '';
-    var tree = svc.getMicrobiotaTree();
-    Object.keys(tree).forEach(function (phylumName) {
-      var phylumData = tree[phylumName];
-      var phylumDiv = document.createElement('div');
-      phylumDiv.className = 'tree-node-phylum mb-2';
-      var phylumHeader = document.createElement('div');
-      phylumHeader.className = 'flex items-center p-3 rounded cursor-pointer group transition-all duration-200';
-      phylumHeader.setAttribute('data-indicator-name', phylumName);
-      phylumHeader.setAttribute('data-indicator-type', 'microbiota');
-      phylumHeader.setAttribute('data-target-type', 'microbiota');
-      phylumHeader.setAttribute('data-taxonomy-level', 'phylum');
-      phylumHeader.innerHTML = '<div class="flex items-center flex-1"><i class="fas fa-folder text-blue-600 mr-3"></i><div class="flex-1"><div class="font-semibold text-gray-900">' + C.escapeHtml(phylumName) + '</div><div class="text-sm text-gray-600 mt-1">' + C.escapeHtml(phylumData.description) + '</div></div><span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded font-medium">门</span></div>';
-      phylumHeader.addEventListener('click', function () { selectIndicator(phylumName, '门', 'microbiota', 'phylum'); });
-      phylumDiv.appendChild(phylumHeader);
-      if (phylumData.children.length) {
-        var childrenDiv = document.createElement('div');
-        childrenDiv.className = 'ml-8 mt-2 space-y-1';
-        phylumData.children.forEach(function (genus) {
-          var genusDiv = document.createElement('div');
-          genusDiv.className = 'tree-node-genus flex items-center p-2 rounded cursor-pointer';
-          genusDiv.setAttribute('data-indicator-name', genus.name);
-          genusDiv.setAttribute('data-indicator-type', 'microbiota');
-          genusDiv.setAttribute('data-target-type', 'microbiota');
-          genusDiv.setAttribute('data-taxonomy-level', 'genus');
-          genusDiv.innerHTML = '<div class="flex items-center flex-1"><i class="fas fa-leaf text-green-600 mr-3"></i><div class="flex-1"><div class="font-medium text-gray-800">' + C.escapeHtml(genus.name) + '</div></div><span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">属</span></div>';
-          genusDiv.addEventListener('click', function (e) {
-            e.stopPropagation();
-            selectIndicator(genus.name, '属', 'microbiota', 'genus');
-          });
-          childrenDiv.appendChild(genusDiv);
-        });
-        phylumDiv.appendChild(childrenDiv);
-      }
-      indicatorTree.appendChild(phylumDiv);
-    });
-
-    var indicatorSection = document.createElement('div');
-    indicatorSection.className = 'mt-4 border-t pt-4';
-    indicatorSection.innerHTML = '<div class="text-sm font-semibold text-gray-700 mb-2">普通检测指标</div>';
-    svc.getTestIndicators().forEach(function (item) {
-      var row = document.createElement('div');
-      row.className = 'flex items-center p-2 rounded cursor-pointer hover:bg-gray-50';
-      row.setAttribute('data-indicator-name', item.label);
-      row.setAttribute('data-target-type', 'indicator');
-      row.innerHTML = '<div class="flex-1 font-medium text-gray-800">' + C.escapeHtml(item.label) + '</div><span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">普通指标</span>';
-      row.addEventListener('click', function () {
-        selectIndicator(item.key, '普通指标', 'indicator', null);
-      });
-      indicatorSection.appendChild(row);
-    });
-    indicatorTree.appendChild(indicatorSection);
+  function renderSpeciesCheckboxes(selected) {
+    selected = selected || [];
+    var majors = speciesOptions();
+    speciesCheckboxes.innerHTML = majors.map(function (major) {
+      var checked = selected.indexOf(major.key) >= 0 ? ' checked' : '';
+      return '<label class="inline-flex items-center gap-2 border rounded-md px-3 py-2 cursor-pointer hover:bg-gray-50">' +
+        '<input type="checkbox" class="species-checkbox" value="' + C.escapeHtml(major.key) + '"' + checked + '>' +
+        '<span>' + C.escapeHtml(major.label) + '</span></label>';
+    }).join('');
   }
 
-  function selectIndicator(name, typeLabel, targetType, taxonomyLevel) {
-    selectedTarget = { name: name, typeLabel: typeLabel, targetType: targetType, taxonomyLevel: taxonomyLevel };
-    selectedIndicatorType.value = typeLabel;
-    selectedIndicatorName.value = name;
-    selectedIndicatorText.textContent = name + ' (' + typeLabel + ')';
-    selectedIndicator.classList.remove('hidden');
-    indicatorTree.querySelectorAll('.bg-blue-200').forEach(function (el) { el.classList.remove('bg-blue-200'); });
-    var selectedElement = indicatorTree.querySelector('[data-indicator-name="' + name + '"]');
-    if (selectedElement) selectedElement.classList.add('bg-blue-200');
-    updateReferenceRanges();
+  function selectedSpeciesFromForm() {
+    return Array.prototype.slice.call(document.querySelectorAll('.species-checkbox:checked'))
+      .map(function (el) { return el.value; });
   }
 
-  function clearIndicatorSelection() {
-    selectedTarget = null;
-    selectedIndicatorType.value = '';
-    selectedIndicatorName.value = '';
-    selectedIndicator.classList.add('hidden');
-    referenceSuggestions.classList.add('hidden');
+  function statusBadge(status) {
+    var cls = status === 'active' ? 'bg-green-100 text-green-800' :
+      status === 'disabled' ? 'bg-gray-100 text-gray-700' : 'bg-yellow-100 text-yellow-800';
+    return '<span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ' + cls + '">' +
+      (STATUS_LABELS[status] || status) + '</span>';
   }
 
-  function updateReferenceRanges() {
-    if (!selectedTarget || !formMajorBreed.value) {
-      referenceSuggestions.classList.add('hidden');
-      return;
-    }
-    var species = speciesFromFormMajor(formMajorBreed.value);
-    var platform = svc.getPlatformReferenceRanges().find(function (r) {
-      return r.species === species && r.targetKey === selectedTarget.name && r.targetType === selectedTarget.targetType;
+  function speciesLabels(keys) {
+    return (keys || []).map(function (key) {
+      var major = speciesOptions().find(function (m) { return m.key === key; });
+      return major ? major.label.replace(/科$/, '') : svc.speciesLabel(key);
+    }).join('、') || '—';
+  }
+
+  function filterSchemes() {
+    var species = filterSpecies.value;
+    var status = document.getElementById('filter-status').value;
+    var template = document.getElementById('filter-template').value.trim().toLowerCase();
+    var name = document.getElementById('filter-name').value.trim().toLowerCase();
+    return getSchemes().filter(function (scheme) {
+      if (species && (!scheme.applicableSpecies || scheme.applicableSpecies.indexOf(species) < 0)) return false;
+      if (status && scheme.status !== status) return false;
+      if (template && String(scheme.templateId || '').toLowerCase().indexOf(template) < 0) return false;
+      if (name && String(scheme.name || '').toLowerCase().indexOf(name) < 0) return false;
+      return true;
     });
-    if (!platform) {
-      referenceSuggestions.classList.add('hidden');
-      return;
-    }
-    referenceContent.innerHTML = '<div class="bg-blue-100 p-3 rounded-md"><div class="flex items-center justify-between mb-2"><span class="font-medium text-blue-900">平台建议: ' + platform.minValue + ' - ' + platform.maxValue + platform.unit + '</span><button type="button" id="apply-reference" class="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700">应用</button></div><p class="text-sm text-blue-800">' + C.escapeHtml(platform.notes || '') + '</p></div>';
-    document.getElementById('apply-reference').addEventListener('click', function () {
-      formMinValue.value = platform.minValue;
-      formMaxValue.value = platform.maxValue;
-      formUnit.value = platform.unit;
-      formNotes.value = platform.notes || '';
-    });
-    referenceSuggestions.classList.remove('hidden');
   }
 
-  function renderTable(filteredData) {
-    var data = filteredData || getRangeConfigs();
+  function renderTable() {
+    var data = filterSchemes();
     if (!data.length) {
-      tableBody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">暂无平台参考范围配置</td></tr>';
+      tableBody.innerHTML = '<tr><td colspan="8" class="px-6 py-4 text-center text-gray-500">暂无参考范围方案</td></tr>';
       return;
     }
-    tableBody.innerHTML = data.map(function (config) {
+    tableBody.innerHTML = data.map(function (scheme) {
+      var itemCount = (scheme.items || []).length;
       return '<tr class="hover:bg-gray-50">' +
-        '<td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900">' + svc.speciesLabel(config.species) + '</div><div class="text-sm text-gray-500">' + C.escapeHtml(config.breedLabel || '物种通用') + '</div></td>' +
-        '<td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900">' + C.escapeHtml(config.targetKey) + '</div><div class="text-sm text-gray-500">' + (config.targetType === 'indicator' ? '普通指标' : svc.levelToLabel(config.taxonomyLevel)) + '</div></td>' +
-        '<td class="px-6 py-4 whitespace-nowrap"><span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">' + config.minValue + ' - ' + config.maxValue + '</span></td>' +
-        '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + C.escapeHtml(config.unit) + '</td>' +
-        '<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">' + C.escapeHtml((config.createdAt || '').slice(0, 19).replace('T', ' ')) + '</td>' +
-        '<td class="px-6 py-4 whitespace-nowrap text-sm font-medium"><div class="flex space-x-2">' +
-          '<button class="text-blue-600 hover:text-blue-900 edit-btn" data-id="' + C.escapeHtml(config.id) + '"><i class="fas fa-edit"></i></button>' +
-          '<button class="text-red-600 hover:text-red-900 delete-btn" data-id="' + C.escapeHtml(config.id) + '"><i class="fas fa-trash"></i></button>' +
+        '<td class="px-6 py-4"><div class="text-sm font-medium text-gray-900">' + C.escapeHtml(scheme.name || '—') + '</div></td>' +
+        '<td class="px-6 py-4 text-sm text-gray-700 font-mono">' + C.escapeHtml(scheme.templateId || '—') + '</td>' +
+        '<td class="px-6 py-4 text-sm text-gray-700">' + C.escapeHtml(speciesLabels(scheme.applicableSpecies)) + '</td>' +
+        '<td class="px-6 py-4 text-sm text-gray-600 max-w-[200px] truncate" title="' + C.escapeHtml(scheme.evidenceRef || '') + '">' + C.escapeHtml(scheme.evidenceRef || '—') + '</td>' +
+        '<td class="px-6 py-4 text-sm text-gray-700">' + itemCount + '</td>' +
+        '<td class="px-6 py-4 text-sm text-gray-700">v' + (scheme.version || 1) + '</td>' +
+        '<td class="px-6 py-4">' + statusBadge(scheme.status) + '</td>' +
+        '<td class="px-6 py-4 text-sm font-medium"><div class="flex space-x-2">' +
+          '<button type="button" class="text-blue-600 hover:text-blue-900 edit-btn" data-id="' + C.escapeHtml(scheme.id) + '" title="编辑"><i class="fas fa-edit"></i></button>' +
+          '<button type="button" class="text-teal-600 hover:text-teal-900 copy-btn" data-id="' + C.escapeHtml(scheme.id) + '" title="复制"><i class="fas fa-copy"></i></button>' +
+          '<button type="button" class="text-red-600 hover:text-red-900 delete-btn" data-id="' + C.escapeHtml(scheme.id) + '" title="删除"><i class="fas fa-trash"></i></button>' +
         '</div></td></tr>';
     }).join('');
   }
 
-  function filterConfigs() {
-    var majorBreed = filterMajorBreed.value;
-    var indicatorType = filterIndicatorType.value;
-    var indicatorName = filterIndicatorName.value.toLowerCase();
-    var species = speciesFromFormMajor(majorBreed);
-    var filtered = getRangeConfigs().filter(function (config) {
-      var typeLabel = config.targetType === 'indicator' ? '普通指标' : svc.levelToLabel(config.taxonomyLevel);
-      return (!species || config.species === species) &&
-        (!indicatorType || typeLabel === indicatorType || (indicatorType === '门' && config.taxonomyLevel === 'phylum') || (indicatorType === '属' && config.taxonomyLevel === 'genus')) &&
-        (!indicatorName || String(config.targetKey).toLowerCase().indexOf(indicatorName) >= 0);
+  function defaultItemRow() {
+    return {
+      targetType: 'microbiota',
+      targetKey: '',
+      taxonomyLevel: 'phylum',
+      minValue: '',
+      maxValue: '',
+      unit: '%',
+      notes: ''
+    };
+  }
+
+  function indicatorOptionsHtml(selectedKey) {
+    var html = '<optgroup label="菌群门">';
+    Object.keys(svc.getMicrobiotaTree()).forEach(function (phylum) {
+      html += '<option value="' + C.escapeHtml(phylum) + '" data-type="microbiota" data-level="phylum"' +
+        (selectedKey === phylum ? ' selected' : '') + '>' + C.escapeHtml(phylum) + '</option>';
     });
-    renderTable(filtered);
+    html += '</optgroup><optgroup label="菌群属">';
+    svc.getMicrobiotaTaxa().filter(function (t) { return t.level === 'genus'; }).forEach(function (genus) {
+      html += '<option value="' + C.escapeHtml(genus.key) + '" data-type="microbiota" data-level="genus"' +
+        (selectedKey === genus.key ? ' selected' : '') + '>' + C.escapeHtml(genus.label) + '</option>';
+    });
+    html += '</optgroup><optgroup label="普通指标">';
+    svc.getTestIndicators().forEach(function (item) {
+      html += '<option value="' + C.escapeHtml(item.key) + '" data-type="indicator" data-level=""' +
+        (selectedKey === item.key ? ' selected' : '') + '>' + C.escapeHtml(item.label) + '</option>';
+    });
+    html += '</optgroup>';
+    return html;
+  }
+
+  function renderItemsTable() {
+    if (!formItems.length) formItems = [defaultItemRow()];
+    itemsBody.innerHTML = formItems.map(function (item, idx) {
+      return '<tr data-item-idx="' + idx + '">' +
+        '<td class="px-2 py-2"><select class="item-target w-full border rounded px-2 py-1">' + indicatorOptionsHtml(item.targetKey) + '</select></td>' +
+        '<td class="px-2 py-2"><select class="item-type w-full border rounded px-2 py-1">' +
+          '<option value="microbiota"' + (item.targetType === 'microbiota' ? ' selected' : '') + '>菌群</option>' +
+          '<option value="indicator"' + (item.targetType === 'indicator' ? ' selected' : '') + '>普通指标</option>' +
+        '</select></td>' +
+        '<td class="px-2 py-2"><select class="item-level w-full border rounded px-2 py-1">' +
+          '<option value="phylum"' + (item.taxonomyLevel === 'phylum' ? ' selected' : '') + '>门</option>' +
+          '<option value="genus"' + (item.taxonomyLevel === 'genus' ? ' selected' : '') + '>属</option>' +
+          '<option value=""' + (!item.taxonomyLevel ? ' selected' : '') + '>—</option>' +
+        '</select></td>' +
+        '<td class="px-2 py-2"><input type="number" class="item-min w-20 border rounded px-2 py-1" step="0.01" value="' + C.escapeHtml(item.minValue) + '"></td>' +
+        '<td class="px-2 py-2"><input type="number" class="item-max w-20 border rounded px-2 py-1" step="0.01" value="' + C.escapeHtml(item.maxValue) + '"></td>' +
+        '<td class="px-2 py-2"><input type="text" class="item-unit w-16 border rounded px-2 py-1" value="' + C.escapeHtml(item.unit || '%') + '"></td>' +
+        '<td class="px-2 py-2"><input type="text" class="item-notes border rounded px-2 py-1 w-full" value="' + C.escapeHtml(item.notes || '') + '"></td>' +
+        '<td class="px-2 py-2"><button type="button" class="text-red-500 remove-item-btn" data-idx="' + idx + '"><i class="fas fa-times"></i></button></td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function collectItemsFromTable() {
+    return Array.prototype.slice.call(itemsBody.querySelectorAll('tr')).map(function (row) {
+      var targetSelect = row.querySelector('.item-target');
+      var selectedOpt = targetSelect.options[targetSelect.selectedIndex];
+      return {
+        targetType: row.querySelector('.item-type').value,
+        targetKey: targetSelect.value,
+        taxonomyLevel: row.querySelector('.item-level').value || null,
+        minValue: parseFloat(row.querySelector('.item-min').value),
+        maxValue: parseFloat(row.querySelector('.item-max').value),
+        unit: row.querySelector('.item-unit').value.trim() || '%',
+        notes: row.querySelector('.item-notes').value.trim()
+      };
+    }).filter(function (item) { return item.targetKey; });
   }
 
   function showMainView() {
@@ -225,99 +208,130 @@ function initNormalRangeConfigCore() {
     formView.classList.add('hidden');
     renderTable();
     if (window.rangeMatcher) window.rangeMatcher.reloadConfigs();
-    svc.notifyCatalogUpdated();
   }
 
   function showFormView(isEdit, editId) {
     mainView.classList.add('hidden');
     formView.classList.remove('hidden');
-    referenceSuggestions.classList.add('hidden');
-    formTitle.textContent = isEdit ? '编辑平台参考范围' : '新增平台参考范围';
-    renderIndicatorTree();
     currentEditId = isEdit ? editId : null;
-    configForm.reset();
-    clearIndicatorSelection();
+    formTitle.textContent = isEdit ? '编辑参考范围方案' : '新增参考范围方案';
+    schemeForm.reset();
+    formItems = [defaultItemRow()];
+
     if (isEdit && editId) {
-      var config = getRangeConfigs().find(function (c) { return c.id === editId; });
-      if (!config) return;
-      formMajorBreed.value = svc.speciesLabel(config.species);
-      updateMinorBreedOptions(formMinorBreed, formMajorBreed.value);
-      formMinorBreed.value = config.breedLabel || '';
-      var typeLabel = config.targetType === 'indicator' ? '普通指标' : svc.levelToLabel(config.taxonomyLevel);
-      selectIndicator(config.targetKey, typeLabel, config.targetType, config.taxonomyLevel);
-      formMinValue.value = config.minValue;
-      formMaxValue.value = config.maxValue;
-      formUnit.value = config.unit;
-      formNotes.value = config.notes || '';
+      var scheme = getSchemes().find(function (s) { return s.id === editId; });
+      if (!scheme) return;
+      document.getElementById('scheme-name').value = scheme.name || '';
+      document.getElementById('scheme-template').value = scheme.templateId || '';
+      document.getElementById('scheme-method').value = scheme.methodName || '';
+      document.getElementById('scheme-status').value = scheme.status || 'draft';
+      document.getElementById('scheme-evidence-type').value = scheme.evidenceType === 'demo' ? 'internal' : (scheme.evidenceType || 'internal');
+      document.getElementById('scheme-evidence-ref').value = scheme.evidenceRef || '';
+      renderSpeciesCheckboxes(scheme.applicableSpecies || []);
+      formItems = (scheme.items || []).length ? scheme.items.map(function (item) { return Object.assign({}, item); }) : [defaultItemRow()];
+    } else {
+      renderSpeciesCheckboxes([]);
+      document.getElementById('scheme-evidence-type').value = 'internal';
+      document.getElementById('scheme-evidence-ref').value = '检测机构内部参考范围';
     }
+    renderItemsTable();
   }
 
-  function validateForm() {
-    if (!formMajorBreed.value || !selectedTarget) {
-      C.toast('请选择报告物种与检测项', 'warning');
+  function validateSchemeForm() {
+    var name = document.getElementById('scheme-name').value.trim();
+    var templateId = document.getElementById('scheme-template').value.trim();
+    var evidenceRef = document.getElementById('scheme-evidence-ref').value.trim();
+    var species = selectedSpeciesFromForm();
+    var items = collectItemsFromTable();
+    if (!name || !templateId) {
+      C.toast('请填写方案名称与检测模板', 'warning');
       return false;
     }
-    var minValue = parseFloat(formMinValue.value);
-    var maxValue = parseFloat(formMaxValue.value);
-    if (isNaN(minValue) || isNaN(maxValue) || minValue >= maxValue) {
-      C.toast('请输入有效的数值范围', 'warning');
+    if (!species.length) {
+      C.toast('请至少勾选一个适用物种', 'warning');
+      return false;
+    }
+    if (!evidenceRef) {
+      C.toast('请填写专业依据', 'warning');
+      return false;
+    }
+    if (!items.length) {
+      C.toast('请至少添加一条有效范围项', 'warning');
+      return false;
+    }
+    var invalid = items.some(function (item) {
+      return isNaN(item.minValue) || isNaN(item.maxValue) || item.minValue >= item.maxValue;
+    });
+    if (invalid) {
+      C.toast('请检查范围项数值', 'warning');
+      return false;
+    }
+    if (document.getElementById('scheme-status').value === 'active' && !svc.schemeHasValidItems({
+      evidenceRef: evidenceRef,
+      items: items
+    })) {
+      C.toast('启用方案需要专业依据且至少一条有效范围', 'warning');
       return false;
     }
     return true;
   }
 
-  function refreshBreedOptions() {
-    var majors = ['猫', '狗'];
-    filterMajorBreed.innerHTML = '<option value="">全部物种</option>';
-    formMajorBreed.innerHTML = '<option value="">请选择物种</option>';
-    majors.forEach(function (breed) {
-      [filterMajorBreed, formMajorBreed].forEach(function (sel) {
-        var option = document.createElement('option');
-        option.value = breed;
-        option.textContent = breed;
-        sel.appendChild(option);
-      });
-    });
-  }
-
-  addConfigBtn.addEventListener('click', function () { showFormView(false); });
-  batchImportBtn.addEventListener('click', function () { importModal.classList.remove('hidden'); });
-  backToListBtn.addEventListener('click', showMainView);
-  cancelFormBtn.addEventListener('click', showMainView);
-  clearSelectionBtn.addEventListener('click', clearIndicatorSelection);
-  searchBtn.addEventListener('click', filterConfigs);
-  resetFilterBtn.addEventListener('click', function () {
-    filterMajorBreed.value = '';
-    filterIndicatorType.value = '';
-    filterIndicatorName.value = '';
+  document.getElementById('add-scheme-btn').addEventListener('click', function () { showFormView(false); });
+  document.getElementById('batch-import-btn').addEventListener('click', function () { importModal.classList.remove('hidden'); });
+  document.getElementById('back-to-list-btn').addEventListener('click', showMainView);
+  document.getElementById('cancel-form-btn').addEventListener('click', showMainView);
+  document.getElementById('search-btn').addEventListener('click', renderTable);
+  document.getElementById('reset-filter-btn').addEventListener('click', function () {
+    filterSpecies.value = '';
+    document.getElementById('filter-status').value = '';
+    document.getElementById('filter-template').value = '';
+    document.getElementById('filter-name').value = '';
     renderTable();
   });
-  formMajorBreed.addEventListener('change', function (e) {
-    updateMinorBreedOptions(formMinorBreed, e.target.value);
-    updateReferenceRanges();
+  document.getElementById('add-item-btn').addEventListener('click', function () {
+    formItems = collectItemsFromTable();
+    formItems.push(defaultItemRow());
+    renderItemsTable();
   });
-  filterMajorBreed.addEventListener('change', function (e) {
-    updateMinorBreedOptions(filterMinorBreed, e.target.value);
+  itemsBody.addEventListener('click', function (e) {
+    var btn = e.target.closest('.remove-item-btn');
+    if (!btn) return;
+    formItems = collectItemsFromTable();
+    var idx = Number(btn.getAttribute('data-idx'));
+    formItems.splice(idx, 1);
+    if (!formItems.length) formItems = [defaultItemRow()];
+    renderItemsTable();
+  });
+  itemsBody.addEventListener('change', function (e) {
+    if (!e.target.classList.contains('item-target')) return;
+    var row = e.target.closest('tr');
+    var opt = e.target.options[e.target.selectedIndex];
+    row.querySelector('.item-type').value = opt.getAttribute('data-type') || 'microbiota';
+    row.querySelector('.item-level').value = opt.getAttribute('data-level') || '';
   });
 
-  configForm.addEventListener('submit', function (e) {
+  schemeForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    if (!validateForm()) return;
-    svc.savePlatformReferenceRange({
-      id: currentEditId,
-      species: speciesFromFormMajor(formMajorBreed.value),
-      breedLabel: formMinorBreed.value || null,
-      targetType: selectedTarget.targetType,
-      targetKey: selectedTarget.name,
-      taxonomyLevel: selectedTarget.taxonomyLevel,
-      minValue: parseFloat(formMinValue.value),
-      maxValue: parseFloat(formMaxValue.value),
-      unit: formUnit.value || '%',
-      notes: formNotes.value,
-      status: 'active'
-    });
-    C.toast('平台参考范围已保存；新配置不追溯改变已发布报告冻结范围', 'success');
-    showMainView();
+    if (!validateSchemeForm()) return;
+    try {
+      svc.saveReferenceRangeScheme({
+        id: currentEditId,
+        name: document.getElementById('scheme-name').value.trim(),
+        templateId: document.getElementById('scheme-template').value.trim(),
+        methodName: document.getElementById('scheme-method').value.trim(),
+        applicableSpecies: selectedSpeciesFromForm(),
+        evidenceType: document.getElementById('scheme-evidence-type').value,
+        evidenceRef: document.getElementById('scheme-evidence-ref').value.trim(),
+        status: document.getElementById('scheme-status').value,
+        items: collectItemsFromTable(),
+        bumpVersion: !!currentEditId
+      });
+      C.toast('参考范围方案已保存；新配置不追溯改变已发布报告冻结范围', 'success');
+      svc.notifyCatalogUpdated();
+      showMainView();
+    } catch (err) {
+      C.toast((err && err.message) || '保存失败', 'error');
+    }
   });
 
   tableBody.addEventListener('click', function (e) {
@@ -325,17 +339,27 @@ function initNormalRangeConfigCore() {
     if (!btn) return;
     var id = btn.dataset.id;
     if (btn.classList.contains('edit-btn')) showFormView(true, id);
-    if (btn.classList.contains('delete-btn')) {
-      C.confirmDialog('确定删除该配置？', function () {
-        svc.deletePlatformReferenceRange(id);
-        renderTable();
+    if (btn.classList.contains('copy-btn')) {
+      try {
+        svc.duplicateReferenceRangeScheme(id);
+        C.toast('方案已复制为草稿', 'success');
         svc.notifyCatalogUpdated();
+        renderTable();
+      } catch (err) {
+        C.toast((err && err.message) || '复制失败', 'error');
+      }
+    }
+    if (btn.classList.contains('delete-btn')) {
+      C.confirmDialog('确定删除该方案？', function () {
+        svc.deleteReferenceRangeScheme(id);
+        svc.notifyCatalogUpdated();
+        renderTable();
       });
     }
   });
 
-  cancelImportBtn.addEventListener('click', function () { importModal.classList.add('hidden'); });
-  confirmImportBtn.addEventListener('click', function () {
+  document.getElementById('cancel-import-btn').addEventListener('click', function () { importModal.classList.add('hidden'); });
+  document.getElementById('confirm-import-btn').addEventListener('click', function () {
     var fileInput = document.getElementById('import-file');
     if (!fileInput || !fileInput.files || !fileInput.files[0]) {
       C.toast('请选择 CSV 文件', 'warning');
@@ -344,41 +368,78 @@ function initNormalRangeConfigCore() {
     var reader = new FileReader();
     reader.onload = function (ev) {
       var lines = String(ev.target.result).split(/\r?\n/).filter(Boolean);
-      var imported = 0;
+      if (lines.length < 2) {
+        C.toast('文件无有效数据', 'warning');
+        return;
+      }
+      var headers = lines[0].split(',').map(function (h) { return h.trim(); });
+      var grouped = {};
       lines.slice(1).forEach(function (line) {
         var cols = line.split(',');
-        if (cols.length < 6) return;
-        svc.savePlatformReferenceRange({
-          species: cols[0].trim(),
-          targetType: cols[1].trim(),
-          targetKey: cols[2].trim(),
-          taxonomyLevel: cols[3].trim() || null,
-          minValue: parseFloat(cols[4]),
-          maxValue: parseFloat(cols[5]),
-          unit: (cols[6] || '%').trim(),
-          notes: (cols[7] || '').trim(),
-          status: 'active'
+        if (cols.length < 8) return;
+        var row = {};
+        headers.forEach(function (header, idx) {
+          row[header] = (cols[idx] || '').trim();
         });
+        var groupKey = (row.schemeName || '导入方案') + '\0' + (row.templateId || '');
+        if (!grouped[groupKey]) {
+          grouped[groupKey] = {
+            name: row.schemeName || '导入方案',
+            templateId: row.templateId,
+            methodName: row.methodName || '',
+            applicableSpecies: [],
+            evidenceType: row.evidenceType === 'demo' ? 'internal' : (row.evidenceType || 'internal'),
+            evidenceRef: row.evidenceRef || '检测机构内部参考范围',
+            status: row.status || 'draft',
+            items: []
+          };
+        }
+        (row.species || '').split(/[;,]/).map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (sp) {
+          if (grouped[groupKey].applicableSpecies.indexOf(sp) < 0) {
+            grouped[groupKey].applicableSpecies.push(sp);
+          }
+        });
+        grouped[groupKey].items.push({
+          targetType: row.targetType || 'microbiota',
+          targetKey: row.targetKey,
+          taxonomyLevel: row.taxonomyLevel || null,
+          minValue: parseFloat(row.minValue),
+          maxValue: parseFloat(row.maxValue),
+          unit: row.unit || '%',
+          notes: row.notes || ''
+        });
+      });
+      var imported = 0;
+      Object.keys(grouped).forEach(function (key) {
+        svc.saveReferenceRangeScheme(grouped[key]);
         imported += 1;
       });
-      C.toast('已导入 ' + imported + ' 条平台参考范围', 'success');
+      C.toast('已导入 ' + imported + ' 套参考范围方案', 'success');
       importModal.classList.add('hidden');
+      svc.notifyCatalogUpdated();
       showMainView();
     };
     reader.readAsText(fileInput.files[0]);
   });
-  downloadTemplateBtn.addEventListener('click', function () {
-    var csv = 'species,targetType,targetKey,taxonomyLevel,minValue,maxValue,unit,notes\ncat,microbiota,放线菌门,phylum,25,45,%,猫科放线菌门\n';
+
+  document.getElementById('download-template-btn').addEventListener('click', function () {
+    var csv = 'schemeName,templateId,methodName,species,evidenceType,evidenceRef,status,targetType,targetKey,taxonomyLevel,minValue,maxValue,unit,notes\n' +
+      '猫科肠道检测,ORG-LAB-GUT-001,16S肠道菌群,cat,internal,检测机构内部参考范围,draft,microbiota,放线菌门,phylum,25,45,%,\n';
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'platform-reference-ranges-template.csv';
+    a.download = 'reference-range-scheme-template.csv';
     a.click();
   });
 
   document.addEventListener('professionalCatalogUpdated', function () {
-    if (!formView.classList.contains('hidden')) renderIndicatorTree();
-    else renderTable();
+    renderSpeciesFilters();
+    if (!formView.classList.contains('hidden')) {
+      var selected = selectedSpeciesFromForm();
+      renderSpeciesCheckboxes(selected);
+    } else {
+      renderTable();
+    }
   });
 
   if (C.subscribeDemo) {
@@ -388,7 +449,7 @@ function initNormalRangeConfigCore() {
     });
   }
 
-  refreshBreedOptions();
+  renderSpeciesFilters();
   showMainView();
 }
 

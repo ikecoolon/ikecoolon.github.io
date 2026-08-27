@@ -4,19 +4,9 @@ function initDashboard() {
   var unsub = store.subscribe(render);
   window.__petAdminPageTeardown = function () { unsub(); };
 
-  document.getElementById('btn-reset-demo').onclick = function () {
-    C.confirmDialog('确定重置为种子演示数据？所有本地 Mock 状态将恢复初始值。', function () {
-      store.reset();
-      C.toast('演示数据已重置', 'success');
-    });
-  };
-
   render(store.getState());
 
   function render(state) {
-    var disclaimer = document.getElementById('dashboard-disclaimer');
-    if (disclaimer) disclaimer.textContent = state.meta.disclaimer;
-
     var pendingImport = state.testRecords.filter(function (t) {
       return t.status === 'pending_result' || t.status === 'pending_claim';
     }).length;

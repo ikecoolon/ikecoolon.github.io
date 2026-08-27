@@ -6,6 +6,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var loadedScripts = {};
   var currentPageId = null;
   var unsubscribe = null;
+  var lastLoadedHash = null;
+  var loadGeneration = 0;
 
   var DEFAULT_PAGE = 'report-center';
 
@@ -27,7 +29,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'analysis-rules': { title: '分析规则', script: 'analysis-rules-script.js', init: 'initAnalysisRules' },
     'dictionary-management': { title: '字典管理', script: 'dictionary-management-script.js', init: 'initDictionaryManagement' },
     'normal-range-config': { title: '指标/参考范围', script: 'normal-range-config-script.js', init: 'initNormalRangeConfig' },
-    'health-level-management': { title: '健康分级', script: 'health-level-management-script.js', init: 'initHealthLevelManagement' }
+    'microbiota-knowledge': { title: '菌群科普', script: 'microbiota-knowledge-script.js', init: 'initMicrobiotaKnowledge' }
   };
 
   function setActiveNav(pageId) {
@@ -75,10 +77,35 @@ document.addEventListener('DOMContentLoaded', function () {
     return PAGE_CONFIG[pageId] ? pageId : DEFAULT_PAGE;
   }
 
+  function rawHash() {
+    return (window.location.hash || '').replace(/^#/, '');
+  }
+
+  function buildHash(pageId, params) {
+    var hash = pageId;
+    var keys = params ? Object.keys(params) : [];
+    if (keys.length) {
+      hash += '?' + keys.map(function (k) {
+        return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+      }).join('&');
+    }
+    return hash;
+  }
+
   async function loadPage(pageId, updateHash) {
     if (updateHash === undefined) updateHash = true;
     pageId = resolvePageId(pageId);
     var config = PAGE_CONFIG[pageId];
+    var route = C.parseRoute();
+    var params = {};
+    if (!updateHash) {
+      params = route.params || {};
+    } else if (resolvePageId(route.pageId) === pageId) {
+      params = route.params || {};
+    }
+    var hash = buildHash(pageId, params);
+    var gen = ++loadGeneration;
+    lastLoadedHash = hash;
 
     teardownPage();
     currentPageId = pageId;
@@ -86,7 +113,9 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       var response = await fetch('./' + pageId + '.html');
       if (!response.ok) throw new Error('HTTP ' + response.status);
+      if (gen !== loadGeneration) return;
       var html = await response.text();
+      if (gen !== loadGeneration) return;
       pageContentContainer.innerHTML = html;
       pageTitle.textContent = config.title;
       setActiveNav(pageId);
@@ -94,23 +123,14 @@ document.addEventListener('DOMContentLoaded', function () {
       if (config.script) {
         await loadScript(config.script);
       }
+      if (gen !== loadGeneration) return;
       runPageInit(config);
 
-      if (updateHash) {
-        var route = C.parseRoute();
-        var resolvedRoutePage = resolvePageId(route.pageId);
-        var params = resolvedRoutePage === pageId ? route.params : {};
-        var hash = pageId;
-        if (Object.keys(params).length) {
-          hash += '?' + Object.keys(params).map(function (k) {
-            return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
-          }).join('&');
-        }
-        if (window.location.hash.replace(/^#/, '') !== hash) {
-          window.location.hash = hash;
-        }
+      if (updateHash && rawHash() !== hash) {
+        window.location.hash = hash;
       }
     } catch (err) {
+      if (gen !== loadGeneration) return;
       console.error('Error loading page ' + pageId, err);
       pageContentContainer.innerHTML =
         '<div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">页面加载失败: ' +
@@ -121,11 +141,15 @@ document.addEventListener('DOMContentLoaded', function () {
   navItems.forEach(function (item) {
     item.addEventListener('click', function (e) {
       e.preventDefault();
+      var pageId = resolvePageId(item.dataset.page);
+      if (pageId === currentPageId) return;
       loadPage(item.dataset.page, true);
     });
   });
 
   function handleRoute() {
+    var raw = rawHash() || DEFAULT_PAGE;
+    if (raw === lastLoadedHash) return;
     var route = C.parseRoute();
     loadPage(resolvePageId(route.pageId), false);
   }

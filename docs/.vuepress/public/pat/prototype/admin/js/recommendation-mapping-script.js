@@ -2,43 +2,19 @@ function initRecommendationMapping() {
   var C = window.PetAdminCommon;
   var store = C.store();
 
-  var AVAILABILITY_LABELS = {
-    AVAILABLE: '正常上架有库存',
-    ZERO_STOCK: '主推零库存（保留专业关系，展示标签候选）',
-    UNAVAILABLE: '主推下架或不可用（按标签候选解析）',
-    NO_CANDIDATES: '无可用候选商品（健康建议仍保留，商品承接为空）'
+  var PRIMARY_STATUS_LABELS = {
+    AVAILABLE: '上架有库存',
+    ZERO_STOCK: '上架零库存',
+    UNAVAILABLE: '已下架或不可用',
+    MISSING: '商品不存在'
   };
 
-  var DEMO_SCENARIOS = [
-    {
-      key: 'normal',
-      label: '正常上架',
-      primaryProductId: 'prod-001',
-      healthTagIds: ['htag-001'],
-      species: ''
-    },
-    {
-      key: 'zero-stock',
-      label: '零库存',
-      primaryProductId: 'prod-004',
-      healthTagIds: ['htag-001'],
-      species: ''
-    },
-    {
-      key: 'unavailable',
-      label: '下架',
-      primaryProductId: 'prod-002',
-      healthTagIds: ['htag-001'],
-      species: ''
-    },
-    {
-      key: 'no-candidates',
-      label: '无候选',
-      primaryProductId: 'prod-004',
-      healthTagIds: ['htag-003'],
-      species: ''
-    }
-  ];
+  var DISPLAY_MODE_LABELS = {
+    AVAILABLE: '展示主推商品',
+    ZERO_STOCK: '主推零库存，展示标签候选商品',
+    UNAVAILABLE: '主推不可用，按健康标签展示候选商品',
+    NO_CANDIDATES: '无可用商品，仅展示健康建议'
+  };
 
   var editRecId = document.getElementById('edit-rec-id');
   var editLabel = document.getElementById('edit-label');
@@ -47,7 +23,6 @@ function initRecommendationMapping() {
   var editSpecies = document.getElementById('edit-species');
   var resolveResult = document.getElementById('resolve-result');
   var tagMappingOverview = document.getElementById('tag-mapping-overview');
-  var demoScenariosEl = document.getElementById('demo-scenarios');
 
   var unsub = store.subscribe(function (state) {
     render(state);
@@ -93,7 +68,6 @@ function initRecommendationMapping() {
   render(store.getState());
 
   function render(state) {
-    renderDemoScenarios(state);
     renderRecommendationSelect(state);
     renderProductSelect(state);
     renderHealthTagCheckboxes(state);
@@ -103,27 +77,6 @@ function initRecommendationMapping() {
     }
     renderTagMappingOverview(state);
     runPreview(state);
-  }
-
-  function renderDemoScenarios(state) {
-    demoScenariosEl.innerHTML = DEMO_SCENARIOS.map(function (scenario) {
-      var primary = findProduct(state, scenario.primaryProductId);
-      var tag = findHealthTag(state, scenario.healthTagIds[0]);
-      var hint = (primary ? primary.name : scenario.primaryProductId) +
-        ' · ' + (tag ? tag.name : scenario.healthTagIds.join(','));
-      return '<button type="button" class="px-3 py-1.5 text-xs rounded-md border border-slate-300 hover:bg-slate-50" data-scenario="' + scenario.key + '">' +
-        C.escapeHtml(scenario.label) + '<span class="text-slate-400 ml-1">(' + C.escapeHtml(hint) + ')</span></button>';
-    }).join('');
-
-    demoScenariosEl.querySelectorAll('[data-scenario]').forEach(function (btn) {
-      btn.onclick = function () {
-        var scenario = DEMO_SCENARIOS.find(function (s) { return s.key === btn.getAttribute('data-scenario'); });
-        if (!scenario) return;
-        applyScenarioToForm(scenario);
-        runPreview(store.getState());
-        C.toast('已填充演示场景：' + scenario.label, 'info');
-      };
-    });
   }
 
   function renderRecommendationSelect(state) {
@@ -209,19 +162,18 @@ function initRecommendationMapping() {
     editSpecies.value = '';
   }
 
-  function applyScenarioToForm(scenario) {
-    editPrimaryProduct.value = scenario.primaryProductId;
-    renderHealthTagCheckboxes(store.getState());
-    scenario.healthTagIds.forEach(function (tagId) {
-      var cb = editHealthTags.querySelector('input[value="' + tagId + '"]');
-      if (cb) cb.checked = true;
-    });
-    editSpecies.value = scenario.species || '';
-  }
-
   function getSelectedHealthTagIds() {
     return Array.prototype.slice.call(editHealthTags.querySelectorAll('.health-tag-cb:checked'))
       .map(function (cb) { return cb.value; });
+  }
+
+  function primaryStatusKey(result, primaryProduct, primaryProductId) {
+    if (!primaryProductId) return 'MISSING';
+    if (!primaryProduct) return 'MISSING';
+    if (!primaryProduct.available) return 'UNAVAILABLE';
+    var stock = primaryProduct.stock != null ? primaryProduct.stock : 1;
+    if (stock <= 0) return 'ZERO_STOCK';
+    return 'AVAILABLE';
   }
 
   function runPreview(state) {
@@ -238,62 +190,40 @@ function initRecommendationMapping() {
     });
 
     var primaryProduct = primaryProductId ? findProduct(state, primaryProductId) : null;
-    var primaryRelation = primaryProduct
-      ? C.escapeHtml(primaryProduct.name) + '（' + C.escapeHtml(formatProductStatus(primaryProduct)) + '，库存 ' + (primaryProduct.stock != null ? primaryProduct.stock : '—') + '）'
-      : (primaryProductId ? C.escapeHtml(primaryProductId) + '（商品不存在）' : '未配置主推 SPU');
+    var primaryStatus = primaryStatusKey(result, primaryProduct, primaryProductId);
+    var primaryLine = primaryProduct
+      ? C.escapeHtml(primaryProduct.name) + '（' + C.escapeHtml(PRIMARY_STATUS_LABELS[primaryStatus] || primaryStatus) + '）'
+      : (primaryProductId ? '未找到商品' : '未配置主推 SPU');
 
-    var availabilityText = AVAILABILITY_LABELS[result.availability] || result.availability;
+    var displayMode = DISPLAY_MODE_LABELS[result.availability] || '按当前配置解析';
 
     var candidatesHtml = '';
     if (result.candidates && result.candidates.length) {
-      candidatesHtml = '<ul class="list-none mt-1 space-y-1">' +
-        result.candidates.map(function (c, idx) {
+      candidatesHtml = '<ol class="list-decimal list-inside mt-1 space-y-1">' +
+        result.candidates.map(function (c) {
           var p = c.product || findProduct(state, c.productId);
           var name = p ? p.name : c.productId;
           var status = p ? formatProductStatus(p) : '—';
-          return '<li class="text-xs border border-slate-100 rounded px-2 py-1">' +
-            '<span class="text-slate-400">#' + (idx + 1) + ' sort=' + c.sortOrder + '</span> ' +
-            C.escapeHtml(name) + ' · ' + C.escapeHtml(status) +
-            ' · 标签 ' + C.escapeHtml(c.healthTagId || '—') +
-            '</li>';
+          return '<li class="text-xs">' + C.escapeHtml(name) + ' · ' + C.escapeHtml(status) + '</li>';
         }).join('') +
-        '</ul>';
+        '</ol>';
     } else {
-      candidatesHtml = '<p class="text-xs text-slate-500 mt-1">无标签候选 SPU</p>';
+      candidatesHtml = '<p class="text-xs text-slate-500 mt-1">无标签候选商品</p>';
     }
-
-    var downgradeHtml = result.downgradePath && result.downgradePath.length
-      ? '<p class="text-amber-700 text-xs mt-2"><i class="fas fa-arrow-down mr-1"></i>' + C.escapeHtml(result.downgradePath.join(' → ')) + '</p>'
-      : '';
 
     var healthAdviceHtml = labelText
-      ? '<p class="mt-2 text-sm"><span class="text-slate-500">健康建议（编辑区文案）：</span>' + C.escapeHtml(labelText) + '</p>'
+      ? '<p class="mt-2 text-sm">' + C.escapeHtml(labelText) + '</p>'
       : '<p class="mt-2 text-sm text-slate-500">健康建议文案为空；无候选时仍应在此配置建议内容。</p>';
 
-    var extraUnavailable = '';
-    if (primaryProductId === 'prod-002') {
-      var missing = findProduct(state, 'prod-missing');
-      if (missing) {
-        extraUnavailable = '<p class="text-xs text-slate-500 mt-1">参考：' + C.escapeHtml(missing.name) + '（' + C.escapeHtml(formatProductStatus(missing)) + '）亦为下架/不可用示例。</p>';
-      }
-    }
-
     resolveResult.innerHTML =
-      '<p><span class="text-slate-500">主推 SPU 关系：</span>' + primaryRelation + extraUnavailable + '</p>' +
-      '<p><span class="text-slate-500">availability：</span>' + C.escapeHtml(availabilityText) + ' <span class="text-xs text-slate-400">(' + C.escapeHtml(result.availability) + ')</span></p>' +
-      '<p><span class="text-slate-500">解析结果：</span><strong class="text-teal-700">' + C.escapeHtml(result.resolvedType) + '</strong></p>' +
-      '<p class="text-xs text-slate-500 mt-1">Store 解析 label：' + C.escapeHtml(result.label) + '</p>' +
-      '<div class="mt-2"><span class="text-slate-500">标签候选 SPU：</span>' + candidatesHtml + '</div>' +
-      downgradeHtml +
-      healthAdviceHtml;
+      '<p><span class="text-slate-500">主推商品状态：</span>' + primaryLine + '</p>' +
+      '<p><span class="text-slate-500">实际展示方式：</span>' + C.escapeHtml(displayMode) + '</p>' +
+      '<div class="mt-2"><span class="text-slate-500">候选商品顺序：</span>' + candidatesHtml + '</div>' +
+      '<div class="mt-3 pt-3 border-t border-slate-100"><span class="text-slate-500">健康建议：</span>' + healthAdviceHtml + '</div>';
   }
 
   function findProduct(state, productId) {
     return state.products.find(function (p) { return p.id === productId; });
-  }
-
-  function findHealthTag(state, healthTagId) {
-    return (state.healthTags || []).find(function (t) { return t.id === healthTagId; });
   }
 
   function formatProductStatus(product) {

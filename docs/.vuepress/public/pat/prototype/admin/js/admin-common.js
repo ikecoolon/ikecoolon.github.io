@@ -359,10 +359,10 @@
       workingVer.healthLevel &&
       workingVer.healthScore != null && workingVer.healthScore !== '';
     if (!overviewOk) {
-      addBlocker('mock_overview', '[临时 Mock] 综合概览必备：摘要 + 等级 + 分数', 'mock_module');
+      addBlocker('mock_overview', '综合概览必备：摘要 + 等级 + 分数', 'mock_module');
     }
     if (!validResults.length) {
-      addBlocker('mock_results_module', '[临时 Mock] 专业检测结果必备：至少一项有效结果', 'mock_module');
+      addBlocker('mock_results_module', '专业检测结果必备：至少一项有效结果', 'mock_module');
     }
 
     if (!report.userId) {

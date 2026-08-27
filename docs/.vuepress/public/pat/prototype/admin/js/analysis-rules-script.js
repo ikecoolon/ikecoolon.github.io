@@ -6,7 +6,11 @@ function initAnalysisRules() {
 
   svc.ensureDemoCompletionScenario();
 
-  var DEMO = (store.DEMO_LABEL || '[演示 Mock]');
+  function stripDemoName(name) {
+    if (!name) return name;
+    return String(name).replace(/\[演示 Mock\]\s*/g, '').trim();
+  }
+
   var RISK_ORDER = { high: 3, medium: 2, low: 1 };
   var STATUS_LABELS = { active: '启用', draft: '草稿', inactive: '停用' };
   var STATUS_COLORS = {
@@ -723,7 +727,7 @@ function initAnalysisRules() {
     var reports = (state.reports || []).slice();
     wbReportSelect.innerHTML = reports.map(function (r) {
       var pet = C.lookupPet(state, r.petId);
-      var label = (r.reportNumber || r.id) + (pet ? ' · ' + pet.name.replace(DEMO + ' ', '') : '');
+      var label = (r.reportNumber || r.id) + (pet ? ' · ' + stripDemoName(pet.name) : '');
       return '<option value="' + r.id + '"' + (r.id === selectedReportId ? ' selected' : '') + '>' +
         escapeHtml(label) + '</option>';
     }).join('');
@@ -747,11 +751,11 @@ function initAnalysisRules() {
     var runs = getRunsForReport(report.id);
 
     wbReportMeta.innerHTML =
-      '<div><strong>宠物：</strong>' + escapeHtml(pet ? pet.name.replace(DEMO + ' ', '') : '—') +
+      '<div><strong>宠物：</strong>' + escapeHtml(pet ? stripDemoName(pet.name) : '—') +
       '（' + escapeHtml(pet ? pet.breed : '') + '）</div>' +
       '<div><strong>物种：</strong>' + escapeHtml(speciesLabel(species)) + '</div>' +
       '<div><strong>工作版本：</strong>v' + (report.workingVersion || report.currentVersion || 1) + '</div>' +
-      '<div><strong>主人：</strong>' + escapeHtml(user ? user.name.replace(DEMO + ' ', '') : '—') + '</div>' +
+      '<div><strong>主人：</strong>' + escapeHtml(user ? stripDemoName(user.name) : '—') + '</div>' +
       '<div><strong>上次运行：</strong>' + (latest ? C.formatDate(latest.createdAt) : '尚无') + '</div>' +
       (pending ? '<div class="text-amber-700 font-medium mt-1"><i class="fas fa-clock mr-1"></i>待重新分析</div>' : '');
 
@@ -908,7 +912,7 @@ function initAnalysisRules() {
 
   function addManualFinding(runId) {
     var submit = function (professional) {
-      var reason = window.prompt(DEMO + ' 补充原因（可选，直接确定跳过）：') || '';
+      var reason = window.prompt('补充原因（可选，直接确定跳过）：') || '';
       store.updateAnalysisState(function (state) {
         var run = (state.analysisRuns || []).find(function (r) { return r.id === runId; });
         if (!run) return;
@@ -926,7 +930,7 @@ function initAnalysisRules() {
     if (C.promptDialog) {
       C.promptDialog('补充人工发现 — 专业描述', '', submit);
     } else {
-      var text = window.prompt(DEMO + ' 请输入人工发现描述：');
+      var text = window.prompt('请输入人工发现描述：');
       if (text) submit(text);
     }
   }
@@ -1022,7 +1026,7 @@ function initAnalysisRules() {
       selectedRunId = run.id;
       switchTab('workbench');
       renderWorkbench();
-      C.toast && C.toast(DEMO + ' 分析运行完成，共 ' + run.rawHits.length + ' 条命中', 'success');
+      C.toast && C.toast('分析运行完成，共 ' + run.rawHits.length + ' 条命中', 'success');
     } catch (err) {
       alert('运行失败：' + (err.message || err));
     }
@@ -1037,7 +1041,7 @@ function initAnalysisRules() {
     var runId = btn.getAttribute('data-run');
     var hitId = btn.getAttribute('data-hit');
     if (btn.classList.contains('wb-exclude-hit')) {
-      var reason = window.prompt(DEMO + ' 排除原因（可选）：') || '';
+      var reason = window.prompt('排除原因（可选）：') || '';
       excludeHit(runId, hitId, reason);
       renderRunResults(runId);
     } else if (btn.classList.contains('wb-restore-hit')) {

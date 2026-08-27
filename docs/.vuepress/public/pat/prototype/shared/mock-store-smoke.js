@@ -28,6 +28,117 @@ function main() {
   assert(Array.isArray(state.healthTags) && state.healthTags.length >= 3, 'seed healthTags');
   assert(Array.isArray(state.healthTagProducts) && state.healthTagProducts.length >= 3, 'seed healthTagProducts');
   assert(state.professionalCatalog && state.professionalCatalog.microbiotaTaxa.length >= 3, 'seed professionalCatalog');
+  var bacteroidetes = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === '拟杆菌门'; });
+  assert(bacteroidetes && bacteroidetes.edu && bacteroidetes.edu.sceneCopy, '拟杆菌门 has edu.sceneCopy');
+  assert(bacteroidetes.edu.narrativeRole === undefined, 'edu model omits narrativeRole');
+  assert(bacteroidetes.edu.tooLowHint === undefined, 'edu model omits tooLowHint');
+  assert(bacteroidetes.edu.tooHighHint === undefined, 'edu model omits tooHighHint');
+  assert(state.meta.version >= 8, 'meta.version migrated to >= 8');
+  assert(state.meta.version >= 9, 'meta.version migrated to >= 9');
+  assert(state.professionalCatalog.meta && state.professionalCatalog.meta.version >= 7, 'catalog.meta.version migrated to >= 7');
+  assert(state.professionalCatalog.meta.version >= 9, 'catalog.meta.version migrated to >= 9');
+  assert(state.professionalCatalog.microbiotaPresentation, 'seed microbiotaPresentation');
+  assertEqual(state.professionalCatalog.microbiotaPresentation.low, '略显稀疏', 'default low scene status word');
+  assertEqual(state.professionalCatalog.microbiotaPresentation.normal, '生机适宜', 'default normal scene status word');
+  assertEqual(state.professionalCatalog.microbiotaPresentation.high, '略显繁茂', 'default high scene status word');
+  var stripped = store.normalizeTaxonEdu({
+    narrativeRole: '活跃的采集者',
+    functionText: '中性说明',
+    tooLowHint: '旧偏低提示',
+    tooHighHint: '旧偏高提示',
+    mainTasks: ['一', '二']
+  });
+  assertEqual(stripped.sceneCopy, '活跃的采集者', 'normalizeTaxonEdu migrates sceneCopy from narrativeRole');
+  assertEqual(stripped.knowledgeText, '中性说明', 'normalizeTaxonEdu prefers knowledgeText over legacy fields');
+  assert(stripped.narrativeRole === undefined, 'normalizeTaxonEdu strips narrativeRole');
+  assert(stripped.mainTasks === undefined, 'normalizeTaxonEdu strips mainTasks');
+  assert(store.peekState() === store.peekState(), 'peekState returns live state without cloning');
+  assert(store.getState() !== store.peekState(), 'getState still returns a clone');
+  var collinsella = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; });
+  var parentKeyBefore = collinsella && collinsella.parentKey;
+  store.saveTaxonEdu('Collinsella', { edu: { sceneCopy: '药草（已修订）' } });
+  var collinsellaAfter = store.getState().professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; });
+  assertEqual(collinsellaAfter.parentKey, parentKeyBefore, 'saveTaxonEdu merges without changing parentKey');
+  assertEqual(collinsellaAfter.edu.sceneCopy, '药草（已修订）', 'saveTaxonEdu merges edu.sceneCopy');
+  store.saveTaxonEdu('Collinsella', { value: '字典短说明已修订' });
+  var collinsellaValue = store.getState().professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; });
+  assertEqual(collinsellaValue.value, '字典短说明已修订', 'saveTaxonEdu can update dictionary short value');
+  assertEqual(collinsellaValue.edu.sceneCopy, '药草（已修订）', 'saveTaxonEdu value patch keeps edu');
+
+  store.saveMicrobiotaPresentation({ high: '茂盛异常（已修订）' });
+  assertEqual(
+    store.getState().professionalCatalog.microbiotaPresentation.high,
+    '茂盛异常（已修订）',
+    'saveMicrobiotaPresentation persists high status word'
+  );
+  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-high'), '茂盛异常（已修订）', 'resolveMicrobiotaSceneStatusWord maps status-high');
+  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-low'), '略显稀疏', 'resolveMicrobiotaSceneStatusWord maps status-low');
+  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-normal'), '生机适宜', 'resolveMicrobiotaSceneStatusWord maps status-normal');
+  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-no-range'), '', 'resolveMicrobiotaSceneStatusWord skips status-no-range');
+  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-not-detected'), '', 'resolveMicrobiotaSceneStatusWord skips status-not-detected');
+  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-invalid'), '', 'resolveMicrobiotaSceneStatusWord skips status-invalid');
+  store.saveMicrobiotaPresentation({ high: '略显繁茂' });
+
+  var liveState = store.peekState();
+  delete liveState.professionalCatalog.microbiotaPresentation;
+  liveState.meta.version = 8;
+  liveState.professionalCatalog.meta.version = 8;
+  store.getState();
+  var migratedPres = store.getState().professionalCatalog.microbiotaPresentation;
+  assert(migratedPres && migratedPres.high === '略显繁茂', 'migrateMicrobiotaPresentationV9 backfills defaults');
+
+  assert(Array.isArray(state.professionalCatalog.referenceRangeSchemes) &&
+    state.professionalCatalog.referenceRangeSchemes.length >= 2, 'seed referenceRangeSchemes');
+
+  var manualRange = store.resolveEffectiveRangeForIndicator({
+    key: '放线菌门',
+    unit: '%',
+    manualRange: { min: 1, max: 2, unit: '%' },
+    sourceTemplateId: 'ORG-LAB-GUT-001'
+  }, 'cat');
+  assertEqual(manualRange.source, 'manual', 'resolver prefers manualRange');
+
+  var importedRange = store.resolveEffectiveRangeForIndicator({
+    key: '放线菌门',
+    unit: '%',
+    importedRange: { min: 10, max: 20, unit: '%' },
+    sourceTemplateId: 'ORG-LAB-GUT-001'
+  }, 'cat');
+  assertEqual(importedRange.source, 'imported', 'resolver prefers importedRange over scheme');
+
+  var schemeRange = store.resolveEffectiveRangeForIndicator({
+    key: '放线菌门',
+    unit: '%',
+    sourceTemplateId: 'ORG-LAB-GUT-001'
+  }, 'cat');
+  assert(schemeRange && schemeRange.source === 'scheme', 'resolver matches active scheme');
+
+  var missingRange = store.resolveEffectiveRangeForIndicator({
+    key: '放线菌门',
+    unit: '%'
+  }, 'cat');
+  assertEqual(missingRange, null, 'resolver returns null without sourceTemplateId');
+
+  var wrongSpecies = store.resolveEffectiveRangeForIndicator({
+    key: '放线菌门',
+    unit: '%',
+    sourceTemplateId: 'ORG-LAB-GUT-001'
+  }, 'rabbit');
+  assertEqual(wrongSpecies, null, 'resolver rejects species not in applicableSpecies');
+
+  var wrongTemplate = store.resolveEffectiveRangeForIndicator({
+    key: '放线菌门',
+    unit: '%',
+    sourceTemplateId: 'UNKNOWN-TEMPLATE'
+  }, 'cat');
+  assertEqual(wrongTemplate, null, 'resolver rejects template mismatch');
+
+  var wrongUnit = store.resolveEffectiveRangeForIndicator({
+    key: '放线菌门',
+    unit: 'index',
+    sourceTemplateId: 'ORG-LAB-GUT-001'
+  }, 'cat');
+  assertEqual(wrongUnit, null, 'resolver rejects unit mismatch');
   assert(Array.isArray(state.analysisRuleCatalog) && state.analysisRuleCatalog.length >= 3, 'seed analysisRuleCatalog');
   assert(store.RECOMMEND_TYPES.indexOf('CATEGORY') < 0, 'RECOMMEND_TYPES has no CATEGORY');
 
@@ -110,8 +221,21 @@ function main() {
     sampleNumber: 'SAMPLE-SMOKE-LIFE-001',
     petId: 'pet-001',
     userId: 'user-001',
-    indicators: [{ key: '放线菌门', value: 10, unit: '%', dataStatus: 'PRESENT' }]
+    sourceTemplateId: 'ORG-LAB-GUT-001',
+    indicators: [{
+      key: '放线菌门',
+      value: 10,
+      unit: '%',
+      dataStatus: 'PRESENT',
+      importedRange: { min: 8, max: 12, unit: '%' },
+      sourceTemplateId: 'ORG-LAB-GUT-001'
+    }]
   });
+  var importedInd = store.getState().indicators.find(function (ind) {
+    return ind.testRecordId === imported.testRecordId && ind.key === '放线菌门';
+  });
+  assert(importedInd && importedInd.importedRange && importedInd.importedRange.min === 8, 'simulateExcelImportSuccess keeps importedRange');
+  assertEqual(importedInd.sourceTemplateId, 'ORG-LAB-GUT-001', 'simulateExcelImportSuccess keeps sourceTemplateId');
   var lifeReport = store.generateReport({ testRecordId: imported.testRecordId, healthLevel: 'B', healthScore: 80 });
   store.submitReport(lifeReport.id);
   store.approveReport(lifeReport.id);
@@ -196,6 +320,52 @@ function main() {
   assert(!visible.some(function (item) { return item.report.id === 'report-006'; }), 'voided report excluded from user visible reports');
 
   assert(store.normalizeDataStatus('VALID') === 'PRESENT', 'VALID migrates to PRESENT');
+
+  store.reset();
+  var v10Baseline = store.getState();
+  assert(v10Baseline.meta.version >= 10, 'meta.version migrated to >= 10');
+  assert(JSON.stringify(v10Baseline).indexOf('[演示 Mock]') < 0, 'state JSON has no [演示 Mock] prefix');
+  assert(!v10Baseline.meta.disclaimer || !/Mock|演示/.test(v10Baseline.meta.disclaimer), 'meta.disclaimer clean after reset');
+
+  var liveV10 = store.peekState();
+  liveV10.meta.version = 9;
+  liveV10.meta.disclaimer = '演示环境免责声明';
+  if (liveV10.users && liveV10.users.length) {
+    liveV10.users[0].name = '[演示 Mock] 嵌套旧前缀用户';
+  }
+  if (liveV10.reports && liveV10.reports.length && liveV10.reports[0].versions && liveV10.reports[0].versions.length) {
+    liveV10.reports[0].versions[0].summary = '[演示 Mock] 嵌套报告摘要';
+  }
+  var schemeTarget = liveV10.professionalCatalog &&
+    liveV10.professionalCatalog.referenceRangeSchemes &&
+    liveV10.professionalCatalog.referenceRangeSchemes[0];
+  var schemeTargetId = schemeTarget && schemeTarget.id;
+  if (schemeTarget) {
+    schemeTarget.evidenceType = 'demo';
+    schemeTarget.evidenceRef = '演示待专业确认';
+    schemeTarget.name = '参考范围（演示）';
+  }
+  store.getState();
+  var v10Migrated = store.getState();
+  assert(v10Migrated.meta.version >= 10, 'downgrade to v9 triggers v10 migration');
+  assertEqual(v10Migrated.meta.disclaimer, '', 'v10 migration clears demo disclaimer');
+  if (v10Migrated.users && v10Migrated.users.length) {
+    assert(v10Migrated.users[0].name.indexOf('[演示 Mock]') < 0, 'v10 migration strips nested demo prefix from user name');
+    assert(v10Migrated.users[0].name.indexOf('嵌套旧前缀用户') >= 0, 'v10 migration keeps user name body');
+  }
+  if (v10Migrated.reports && v10Migrated.reports.length && v10Migrated.reports[0].versions && v10Migrated.reports[0].versions.length) {
+    assert(v10Migrated.reports[0].versions[0].summary.indexOf('[演示 Mock]') < 0, 'v10 migration strips nested demo prefix from report summary');
+  }
+  if (schemeTargetId) {
+    var migratedScheme = v10Migrated.professionalCatalog.referenceRangeSchemes.find(function (s) {
+      return s.id === schemeTargetId;
+    });
+    assert(migratedScheme, 'v10 migration keeps reference range scheme');
+    assertEqual(migratedScheme.evidenceType, 'internal', 'v10 migration maps demo evidenceType to internal');
+    assertEqual(migratedScheme.evidenceRef, '检测机构内部参考范围', 'v10 migration normalizes demo evidenceRef');
+    assert(migratedScheme.name.indexOf('演示') < 0, 'v10 migration strips demo marker from scheme name');
+  }
+  store.reset();
 
   var resetState = store.reset();
   assert(resetState.meta.resetAt, 'reset preserves resetAt');

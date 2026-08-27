@@ -433,7 +433,7 @@ function initPetReportManagementCore() {
     fileSelected.classList.remove('hidden');
     fileDropZone.classList.add('hidden');
     importPreview.classList.remove('hidden');
-    document.getElementById('preview-summary').textContent = '演示模式：将调用共享 Store 批量导入（成功/重复/局部异常/失败）';
+    document.getElementById('preview-summary').textContent = '将执行批量导入（成功/重复/局部异常/失败）';
     document.getElementById('preview-header').innerHTML = '<tr><th class="px-2 py-1 text-left">场景</th><th class="px-2 py-1 text-left">说明</th></tr>';
     document.getElementById('preview-body').innerHTML =
       '<tr><td class="px-2 py-1">success</td><td class="px-2 py-1">完整导入</td></tr>' +
