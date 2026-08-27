@@ -85,7 +85,8 @@ function initDictionaryManagement() {
 
   function renderTable(filter) {
     filter = (filter || '').toLowerCase();
-    var rows = loadRows().filter(function (item) {
+    var allRows = loadRows();
+    var rows = allRows.filter(function (item) {
       if (!filter) return true;
       return [item.key, item.label, item.value, item.standardUnit, item.level]
         .filter(Boolean)
@@ -100,7 +101,7 @@ function initDictionaryManagement() {
       return;
     }
     rows.forEach(function (item) {
-      var level = getIndentLevel(item, loadRows());
+      var level = getIndentLevel(item, allRows);
       var indent = '&nbsp;'.repeat(level * 4);
       var meta = currentTab === 'indicators'
         ? (item.standardUnit || '—')
@@ -151,7 +152,6 @@ function initDictionaryManagement() {
     mainView.classList.remove('hidden');
     formView.classList.add('hidden');
     renderTable(searchInput.value.trim());
-    svc.notifyCatalogUpdated();
   }
 
   function showFormView(isEdit, editId) {
@@ -213,7 +213,7 @@ function initDictionaryManagement() {
       payload.standardUnit = formStandardUnit.value.trim() || '%';
     }
     svc.saveCatalogItem(collectionName(), payload);
-    C.toast('已保存到共享 Store', 'success');
+    C.toast('已保存', 'success');
     showMainView();
   });
 
@@ -229,7 +229,6 @@ function initDictionaryManagement() {
         svc.deleteCatalogItem(collectionName(), delBtn.dataset.id);
         C.toast('已删除', 'success');
         renderTable(searchInput.value.trim());
-        svc.notifyCatalogUpdated();
       });
     }
   });
@@ -245,8 +244,4 @@ function initDictionaryManagement() {
   showMainView();
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initDictionaryManagement);
-} else {
-  initDictionaryManagement();
-}
+window.initDictionaryManagement = initDictionaryManagement;

@@ -1,8 +1,4 @@
 <div id="analysis-rules" class="page p-4 space-y-4">
-  <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 text-sm text-amber-900">
-    <i class="fas fa-flask mr-2"></i>本页为 <strong>[演示 Mock]</strong> 分析规则与报告分析工作台，数据来自共享 Mock Store。
-  </div>
-
   <!-- 业务区切换 -->
   <div class="flex border-b border-gray-200 bg-white rounded-t-lg px-4 pt-2">
     <button type="button" id="tab-rules" class="ar-tab px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">
@@ -161,11 +157,11 @@
           <i class="fas fa-exclamation-triangle mr-1"></i>
           <span id="wb-reanalysis-text">指标或启用规则已变化，待重新分析</span>
           <button type="button" id="wb-run-analysis" class="mt-2 w-full px-3 py-2 bg-amber-600 text-white rounded text-sm hover:bg-amber-700">
-            <i class="fas fa-play mr-1"></i>重新分析（Mock）
+            <i class="fas fa-play mr-1"></i>重新分析
           </button>
         </div>
         <button type="button" id="wb-run-first" class="w-full px-3 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-          <i class="fas fa-play mr-1"></i>运行分析（Mock）
+          <i class="fas fa-play mr-1"></i>运行分析
         </button>
       </div>
       <div class="lg:col-span-2">
@@ -197,7 +193,7 @@
       <!-- 组合结果 -->
       <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
         <h4 class="text-sm font-semibold mb-2 text-indigo-900">
-          <i class="fas fa-layer-group mr-1"></i>组合结果（Mock 自动合并）
+          <i class="fas fa-layer-group mr-1"></i>组合结果（自动合并）
         </h4>
         <div id="wb-combined-result" class="text-sm space-y-2"></div>
       </div>

@@ -16,6 +16,57 @@
   var STORAGE_KEY = 'pet-report-mock-store-v1';
   var DEMO_LABEL = '[演示 Mock]';
 
+  function stripDemoPrefix(text) {
+    if (text == null || typeof text !== 'string') return text;
+    return text
+      .replace(/\[演示 Mock\]\s*/g, '')
+      .replace(/全部为演示 Mock 数据[^。]*。?/g, '')
+      .replace(/本条为演示呈现[，,]?解读口径待确认。?/g, '')
+      .replace(/演示呈现[，,]?最终位置与样式待甲方确认/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  function migratePresentationCopyV10(state) {
+    function walk(node) {
+      if (node == null) return;
+      if (Array.isArray(node)) {
+        node.forEach(walk);
+        return;
+      }
+      if (typeof node !== 'object') return;
+      Object.keys(node).forEach(function (key) {
+        var val = node[key];
+        if (typeof val === 'string') {
+          node[key] = stripDemoPrefix(val);
+        } else if (val && typeof val === 'object') {
+          walk(val);
+        }
+      });
+    }
+    walk(state);
+    if (state.meta) {
+      var disclaimer = state.meta.disclaimer;
+      if (!disclaimer || /Mock|演示|待甲方|非真实|非最终/.test(disclaimer)) {
+        state.meta.disclaimer = '';
+      } else {
+        state.meta.disclaimer = stripDemoPrefix(disclaimer);
+      }
+    }
+    var schemes = state.professionalCatalog && state.professionalCatalog.referenceRangeSchemes;
+    if (schemes) {
+      schemes.forEach(function (scheme) {
+        if (scheme.evidenceType === 'demo') scheme.evidenceType = 'internal';
+        if (!scheme.evidenceRef || /演示|待专业确认|Mock/.test(scheme.evidenceRef)) {
+          scheme.evidenceRef = '检测机构内部参考范围';
+        }
+        if (scheme.name) {
+          scheme.name = scheme.name.replace(/（演示）/g, '').replace(/\(演示\)/g, '').trim();
+        }
+      });
+    }
+  }
+
   var DATA_STATUSES = ['PRESENT', 'MISSING_COLUMN', 'EMPTY', 'NOT_DETECTED', 'INVALID', 'NOT_APPLICABLE'];
   var CONCLUSION_LEVELS = ['VERY_LOW', 'LOW', 'NORMAL', 'HIGH', 'VERY_HIGH'];
   var REPORT_STATUSES = ['draft', 'pending_review', 'rejected', 'approved', 'published', 'corrected', 'voided'];
@@ -112,29 +163,397 @@
     ];
   }
 
+  function emptyTaxonEdu() {
+    return {
+      sceneCopy: '',
+      knowledgeText: ''
+    };
+  }
+
+  function defaultMicrobiotaPresentation() {
+    return {
+      low: '略显稀疏',
+      normal: '生机适宜',
+      high: '略显繁茂'
+    };
+  }
+
+  function normalizeMicrobiotaPresentation(pres, fillDefaults) {
+    var defaults = defaultMicrobiotaPresentation();
+    var src = pres && typeof pres === 'object' ? pres : {};
+    function val(key) {
+      if (src[key] === undefined) return fillDefaults ? defaults[key] : '';
+      if (src[key] == null) return '';
+      return String(src[key]).trim();
+    }
+    return {
+      low: val('low'),
+      normal: val('normal'),
+      high: val('high')
+    };
+  }
+
+  function presentationKeyFromStatusClass(statusClass) {
+    if (statusClass === 'status-low') return 'low';
+    if (statusClass === 'status-normal') return 'normal';
+    if (statusClass === 'status-high') return 'high';
+    return null;
+  }
+
+  function resolveMicrobiotaSceneStatusWord(statusClass, presentation) {
+    var key = presentationKeyFromStatusClass(statusClass);
+    if (!key) return '';
+    var pres = presentation;
+    if (!pres) {
+      var state = loadState();
+      pres = state.professionalCatalog && state.professionalCatalog.microbiotaPresentation;
+    }
+    pres = normalizeMicrobiotaPresentation(pres, true);
+    if (!pres[key]) return '';
+    return String(pres[key]).trim();
+  }
+
+  function pickFirstNonEmpty() {
+    for (var i = 0; i < arguments.length; i++) {
+      var value = arguments[i];
+      if (value != null && String(value).trim()) return String(value).trim();
+    }
+    return '';
+  }
+
+  function migrateLegacyEduFields(edu) {
+    var src = edu && typeof edu === 'object' ? edu : {};
+    var sceneCopy = pickFirstNonEmpty(src.sceneCopy, src.narrativeRole, src.metaphor, src.sceneRole);
+    var knowledgeText = pickFirstNonEmpty(src.knowledgeText);
+    if (!knowledgeText) {
+      knowledgeText = pickFirstNonEmpty(src.functionText, src.appearance);
+      if (!knowledgeText && Array.isArray(src.mainTasks) && src.mainTasks.length) {
+        knowledgeText = src.mainTasks.map(function (task) {
+          return String(task == null ? '' : task).trim();
+        }).filter(Boolean).join('；');
+      }
+    }
+    return {
+      sceneCopy: sceneCopy,
+      knowledgeText: knowledgeText
+    };
+  }
+
+  function normalizeTaxonEdu(edu) {
+    var migrated = migrateLegacyEduFields(edu);
+    return {
+      sceneCopy: migrated.sceneCopy,
+      knowledgeText: migrated.knowledgeText
+    };
+  }
+
+  function isEmptyEduField(key, value) {
+    return value == null || value === '';
+  }
+
   function defaultMicrobiotaTaxa() {
     return [
-      { id: 'tax-actino', key: '放线菌门', label: '放线菌门', value: '主要包含有益菌群，对肠道健康至关重要', level: 'phylum', parentKey: null },
-      { id: 'tax-bactero', key: '拟杆菌门', label: '拟杆菌门', value: '肠道内重要菌群，参与营养物质消化吸收', level: 'phylum', parentKey: null },
-      { id: 'tax-firmi', key: '厚壁菌门', label: '厚壁菌门', value: '包含多种重要菌属，需保持适当比例', level: 'phylum', parentKey: null },
-      { id: 'tax-proteo', key: '变形菌门', label: '变形菌门', value: '包含潜在有害菌，应控制在较低水平', level: 'phylum', parentKey: null },
-      { id: 'tax-bifi', key: '双歧杆菌', label: '双歧杆菌', value: '肠道健康的关键指标，参与免疫调节', level: 'genus', parentKey: '放线菌门' },
-      { id: 'tax-lacto', key: '乳酸菌', label: '乳酸菌', value: '产生乳酸，维持肠道酸性环境', level: 'genus', parentKey: '厚壁菌门' },
-      { id: 'tax-ecoli', key: '大肠杆菌', label: '大肠杆菌', value: '条件致病菌，正常情况下含量很少', level: 'genus', parentKey: '变形菌门' },
-      { id: 'tax-pept', key: 'Peptacetobacter', label: 'Peptacetobacter属', value: '善于发酵碳水，产生短链脂肪酸', level: 'genus', parentKey: '厚壁菌门' },
-      { id: 'tax-lach', key: 'Lachnoclostridium', label: 'Lachnoclostridium属', value: '厚壁菌门常见属', level: 'genus', parentKey: '厚壁菌门' }
+      {
+        id: 'tax-actino',
+        key: '放线菌门',
+        label: '放线菌门',
+        latinName: 'Actinobacteria',
+        value: '主要包含有益菌群，对肠道健康至关重要',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '药草与苔藓',
+          knowledgeText: '分解复杂有机物，参与有机酸代谢，维持菌群多样性。'
+        })
+      },
+      {
+        id: 'tax-bactero',
+        key: '拟杆菌门',
+        label: '拟杆菌门',
+        latinName: 'Bacteroidetes',
+        value: '肠道内重要菌群，参与营养物质消化吸收',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '活跃的采集者',
+          knowledgeText: '处理脂肪和蛋白类食物，分解复杂多糖，参与营养物质的分解与转化。'
+        })
+      },
+      {
+        id: 'tax-firmi',
+        key: '厚壁菌门',
+        label: '厚壁菌门',
+        latinName: 'Firmicutes',
+        value: '包含多种重要菌属，需保持适当比例',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '强壮的食草者',
+          knowledgeText: '发酵植物纤维，产生短链脂肪酸，参与能量代谢相关过程。'
+        })
+      },
+      {
+        id: 'tax-proteo',
+        key: '变形菌门',
+        label: '变形菌门',
+        latinName: 'Proteobacteria',
+        value: '包含潜在有害菌，应控制在较低水平',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '需要留意的过客',
+          knowledgeText: '在肠道中数量通常较少，参与部分代谢产物处理。'
+        })
+      },
+      {
+        id: 'tax-fuso',
+        key: '梭杆菌门',
+        label: '梭杆菌门',
+        latinName: 'Fusobacteria',
+        value: '含量通常较低，过高可能提示菌群失衡',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '低调的清道夫',
+          knowledgeText: '在肠道中数量通常较少，参与残留有机物分解。'
+        })
+      },
+      {
+        id: 'tax-bifi',
+        key: '双歧杆菌',
+        label: '双歧杆菌',
+        latinName: 'Bifidobacterium',
+        value: '肠道健康的关键指标，参与免疫调节',
+        level: 'genus',
+        parentKey: '放线菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '苔藓',
+          knowledgeText: '体型较小的常见菌属，常出现在肠道菌群结构中。参与糖类发酵与有机酸代谢。'
+        })
+      },
+      {
+        id: 'tax-lacto',
+        key: '乳酸菌',
+        label: '乳酸菌',
+        latinName: 'Lactobacillus',
+        value: '产生乳酸，维持肠道酸性环境',
+        level: 'genus',
+        parentKey: '厚壁菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '食草者',
+          knowledgeText: '产生乳酸的小型发酵者，帮助维持酸性环境。产生乳酸，参与碳水化合物发酵。'
+        })
+      },
+      {
+        id: 'tax-ecoli',
+        key: '大肠杆菌',
+        label: '大肠杆菌',
+        latinName: 'Escherichia',
+        value: '条件致病菌，正常情况下含量很少',
+        level: 'genus',
+        parentKey: '变形菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '过客',
+          knowledgeText: '肠道中数量通常很少的常见菌属。参与肠道内部分代谢过程。'
+        })
+      },
+      {
+        id: 'tax-pept',
+        key: 'Peptacetobacter',
+        label: 'Peptacetobacter属',
+        latinName: 'Peptacetobacter',
+        value: '善于发酵碳水，产生短链脂肪酸',
+        level: 'genus',
+        parentKey: '厚壁菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '大象',
+          knowledgeText: '厚壁菌门中的纤维发酵者，产出短链脂肪酸。善于发酵碳水，产生短链脂肪酸。'
+        })
+      },
+      {
+        id: 'tax-lach',
+        key: 'Lachnoclostridium',
+        label: 'Lachnoclostridium属',
+        latinName: 'Lachnoclostridium',
+        value: '厚壁菌门常见属',
+        level: 'genus',
+        parentKey: '厚壁菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '大猩猩',
+          knowledgeText: '厚壁菌门常见属，参与纤维发酵。参与植物纤维发酵，协助能量代谢相关过程。'
+        })
+      },
+      {
+        id: 'tax-coll',
+        key: 'Collinsella',
+        label: 'Collinsella属',
+        latinName: 'Collinsella',
+        value: '放线菌门常见属',
+        level: 'genus',
+        parentKey: '放线菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '药草',
+          knowledgeText: '放线菌门中常见的小型成员。参与碳水分解与胆汁酸相关代谢。'
+        })
+      },
+      {
+        id: 'tax-bact',
+        key: 'Bacteroides',
+        label: 'Bacteroides属',
+        latinName: 'Bacteroides',
+        value: '拟杆菌门常见属',
+        level: 'genus',
+        parentKey: '拟杆菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '野猪',
+          knowledgeText: '迅速增殖的小团体，偶尔会惹麻烦。擅长处理蛋白质、脂肪和多糖，是核心代谢成员。'
+        })
+      },
+      {
+        id: 'tax-phoc',
+        key: 'Phocaeicola',
+        label: 'Phocaeicola属',
+        latinName: 'Phocaeicola',
+        value: '拟杆菌门常见属',
+        level: 'genus',
+        parentKey: '拟杆菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '浣熊',
+          knowledgeText: '灵活的小型分解者，常与拟杆菌属共事。协助分解复杂多糖，扩展拟杆菌门的生态功能。'
+        })
+      }
     ];
   }
 
   function defaultPlatformRanges() {
+    var demoNote = '';
     return [
-      { id: 'pr-001', species: 'cat', targetType: 'microbiota', targetKey: '放线菌门', taxonomyLevel: 'phylum', minValue: 25, maxValue: 45, unit: '%', status: 'active', notes: '猫科放线菌门平台范围', createdAt: '2025-01-15T10:30:00.000Z' },
-      { id: 'pr-002', species: 'cat', targetType: 'microbiota', targetKey: '双歧杆菌', taxonomyLevel: 'genus', minValue: 12, maxValue: 28, unit: '%', status: 'active', notes: '猫科双歧杆菌平台范围', createdAt: '2025-01-15T10:35:00.000Z' },
-      { id: 'pr-003', species: 'dog', targetType: 'microbiota', targetKey: '放线菌门', taxonomyLevel: 'phylum', minValue: 30, maxValue: 50, unit: '%', status: 'active', notes: '犬科放线菌门平台范围', createdAt: '2025-01-15T11:00:00.000Z' },
-      { id: 'pr-004', species: 'cat', targetType: 'microbiota', targetKey: '乳酸菌', taxonomyLevel: 'genus', minValue: 15, maxValue: 30, unit: '%', status: 'active', notes: '猫科通用乳酸菌范围', createdAt: '2025-01-15T11:05:00.000Z' },
-      { id: 'pr-005', species: 'dog', targetType: 'microbiota', targetKey: '乳酸菌', taxonomyLevel: 'genus', minValue: 18, maxValue: 35, unit: '%', status: 'active', notes: '犬科通用乳酸菌范围', createdAt: '2025-01-15T11:10:00.000Z' },
-      { id: 'pr-006', species: 'cat', targetType: 'indicator', targetKey: 'alpha-diversity', taxonomyLevel: null, minValue: 3, maxValue: 5.5, unit: 'index', status: 'active', notes: '猫 Alpha 多样性', createdAt: '2025-01-15T11:15:00.000Z' }
+      { id: 'pr-001', species: 'cat', targetType: 'microbiota', targetKey: '放线菌门', taxonomyLevel: 'phylum', minValue: 25, maxValue: 45, unit: '%', status: 'active', notes: demoNote + ' 猫科放线菌门', createdAt: '2025-01-15T10:30:00.000Z' },
+      { id: 'pr-002', species: 'cat', targetType: 'microbiota', targetKey: '双歧杆菌', taxonomyLevel: 'genus', minValue: 12, maxValue: 28, unit: '%', status: 'active', notes: demoNote + ' 猫科双歧杆菌', createdAt: '2025-01-15T10:35:00.000Z' },
+      { id: 'pr-003', species: 'dog', targetType: 'microbiota', targetKey: '放线菌门', taxonomyLevel: 'phylum', minValue: 30, maxValue: 50, unit: '%', status: 'active', notes: demoNote + ' 犬科放线菌门', createdAt: '2025-01-15T11:00:00.000Z' },
+      { id: 'pr-004', species: 'cat', targetType: 'microbiota', targetKey: '乳酸菌', taxonomyLevel: 'genus', minValue: 15, maxValue: 30, unit: '%', status: 'active', notes: demoNote + ' 猫科乳酸菌', createdAt: '2025-01-15T11:05:00.000Z' },
+      { id: 'pr-005', species: 'dog', targetType: 'microbiota', targetKey: '乳酸菌', taxonomyLevel: 'genus', minValue: 18, maxValue: 35, unit: '%', status: 'active', notes: demoNote + ' 犬科乳酸菌', createdAt: '2025-01-15T11:10:00.000Z' },
+      { id: 'pr-006', species: 'cat', targetType: 'indicator', targetKey: 'alpha-diversity', taxonomyLevel: null, minValue: 3, maxValue: 5.5, unit: 'index', status: 'active', notes: demoNote + ' 猫 Alpha 多样性', createdAt: '2025-01-15T11:15:00.000Z' },
+      { id: 'pr-007', species: 'cat', targetType: 'microbiota', targetKey: '拟杆菌门', taxonomyLevel: 'phylum', minValue: 15, maxValue: 40, unit: '%', status: 'active', notes: demoNote + ' 猫科拟杆菌门', createdAt: '2025-01-15T11:20:00.000Z' },
+      { id: 'pr-008', species: 'cat', targetType: 'microbiota', targetKey: '厚壁菌门', taxonomyLevel: 'phylum', minValue: 25, maxValue: 50, unit: '%', status: 'active', notes: demoNote + ' 猫科厚壁菌门', createdAt: '2025-01-15T11:21:00.000Z' },
+      { id: 'pr-009', species: 'cat', targetType: 'microbiota', targetKey: '梭杆菌门', taxonomyLevel: 'phylum', minValue: 0, maxValue: 8, unit: '%', status: 'active', notes: demoNote + ' 猫科梭杆菌门', createdAt: '2025-01-15T11:22:00.000Z' },
+      { id: 'pr-010', species: 'cat', targetType: 'microbiota', targetKey: '变形菌门', taxonomyLevel: 'phylum', minValue: 0, maxValue: 12, unit: '%', status: 'active', notes: demoNote + ' 猫科变形菌门', createdAt: '2025-01-15T11:23:00.000Z' },
+      { id: 'pr-011', species: 'cat', targetType: 'microbiota', targetKey: 'Collinsella', taxonomyLevel: 'genus', minValue: 3, maxValue: 8, unit: '%', status: 'active', notes: demoNote + ' 猫科 Collinsella', createdAt: '2025-01-15T11:24:00.000Z' },
+      { id: 'pr-012', species: 'cat', targetType: 'microbiota', targetKey: 'Bacteroides', taxonomyLevel: 'genus', minValue: 12, maxValue: 20, unit: '%', status: 'active', notes: demoNote + ' 猫科 Bacteroides', createdAt: '2025-01-15T11:25:00.000Z' },
+      { id: 'pr-013', species: 'cat', targetType: 'microbiota', targetKey: 'Phocaeicola', taxonomyLevel: 'genus', minValue: 2, maxValue: 10, unit: '%', status: 'active', notes: demoNote + ' 猫科 Phocaeicola', createdAt: '2025-01-15T11:26:00.000Z' },
+      { id: 'pr-014', species: 'cat', targetType: 'microbiota', targetKey: 'Peptacetobacter', taxonomyLevel: 'genus', minValue: 3, maxValue: 8, unit: '%', status: 'active', notes: demoNote + ' 猫科 Peptacetobacter', createdAt: '2025-01-15T11:27:00.000Z' }
     ];
+  }
+
+  function platformRangeItemKey(item) {
+    return [
+      item.targetType || '',
+      item.targetKey || '',
+      item.taxonomyLevel || '',
+      item.unit || ''
+    ].join('\0');
+  }
+
+  function schemeItemsFromPlatformRanges(ranges) {
+    var seen = {};
+    var items = [];
+    ranges.forEach(function (range) {
+      var key = platformRangeItemKey(range);
+      if (seen[key]) return;
+      seen[key] = true;
+      items.push({
+        targetType: range.targetType,
+        targetKey: range.targetKey,
+        taxonomyLevel: range.taxonomyLevel || null,
+        minValue: range.minValue,
+        maxValue: range.maxValue,
+        unit: range.unit,
+        notes: range.notes || ''
+      });
+    });
+    return items;
+  }
+
+  function defaultReferenceRangeSchemes() {
+    var demoEvidence = '检测机构内部参考范围';
+    var flat = defaultPlatformRanges();
+    var catItems = schemeItemsFromPlatformRanges(flat.filter(function (r) { return r.species === 'cat'; }));
+    var dogItems = schemeItemsFromPlatformRanges(flat.filter(function (r) { return r.species === 'dog'; }));
+    return [
+      {
+        id: 'rrs-cat-gut-001',
+        name: '猫科肠道菌群检测',
+        templateId: 'ORG-LAB-GUT-001',
+        methodName: '16S 肠道菌群检测',
+        applicableSpecies: ['cat'],
+        evidenceType: 'internal',
+        evidenceRef: demoEvidence,
+        status: 'active',
+        version: 1,
+        items: catItems,
+        createdAt: '2025-01-15T10:00:00.000Z',
+        updatedAt: '2025-01-15T10:00:00.000Z'
+      },
+      {
+        id: 'rrs-dog-gut-001',
+        name: '犬科肠道菌群检测',
+        templateId: 'ORG-LAB-GUT-001',
+        methodName: '16S 肠道菌群检测',
+        applicableSpecies: ['dog'],
+        evidenceType: 'internal',
+        evidenceRef: demoEvidence,
+        status: 'active',
+        version: 1,
+        items: dogItems,
+        createdAt: '2025-01-15T11:00:00.000Z',
+        updatedAt: '2025-01-15T11:00:00.000Z'
+      }
+    ];
+  }
+
+  function flattenSchemesToPlatformRanges(schemes) {
+    var out = [];
+    (schemes || []).forEach(function (scheme) {
+      if (!scheme || scheme.status === 'disabled') return;
+      var speciesList = scheme.applicableSpecies || [];
+      (scheme.items || []).forEach(function (item) {
+        if (item.minValue == null || item.maxValue == null || !item.unit) return;
+        speciesList.forEach(function (species) {
+          out.push({
+            id: scheme.id + ':' + species + ':' + item.targetKey + ':' + (item.taxonomyLevel || ''),
+            schemeId: scheme.id,
+            species: species,
+            templateId: scheme.templateId,
+            targetType: item.targetType,
+            targetKey: item.targetKey,
+            taxonomyLevel: item.taxonomyLevel || null,
+            minValue: item.minValue,
+            maxValue: item.maxValue,
+            unit: item.unit,
+            notes: item.notes || scheme.evidenceRef || '',
+            status: scheme.status,
+            createdAt: scheme.createdAt,
+            updatedAt: scheme.updatedAt
+          });
+        });
+      });
+    });
+    return out;
+  }
+
+  function syncPlatformReferenceRangesFromSchemes(catalog) {
+    if (!catalog) return;
+    if (catalog.referenceRangeSchemes && catalog.referenceRangeSchemes.length) {
+      catalog.platformReferenceRanges = flattenSchemesToPlatformRanges(catalog.referenceRangeSchemes);
+    }
+  }
+
+  function schemeHasValidItems(scheme) {
+    if (!scheme || !scheme.evidenceRef || !String(scheme.evidenceRef).trim()) return false;
+    return (scheme.items || []).some(function (item) {
+      return item.minValue != null && item.maxValue != null && item.unit &&
+        item.minValue < item.maxValue;
+    });
   }
 
   function defaultStandardUnits() {
@@ -144,14 +563,291 @@
   }
 
   function defaultCatalog() {
+    var schemes = defaultReferenceRangeSchemes();
     return {
       breeds: defaultBreeds(),
       testIndicators: defaultTestIndicators(),
       microbiotaTaxa: defaultMicrobiotaTaxa(),
-      platformReferenceRanges: defaultPlatformRanges(),
+      microbiotaPresentation: defaultMicrobiotaPresentation(),
+      referenceRangeSchemes: schemes,
+      platformReferenceRanges: flattenSchemesToPlatformRanges(schemes),
       standardUnits: defaultStandardUnits(),
-      meta: { version: 1, initializedAt: nowIso() }
+      meta: { version: 9, initializedAt: nowIso() }
     };
+  }
+
+  function extraReport001V2Indicators() {
+    var ts = '2025-08-24T15:00:00.000Z';
+    function row(id, key, value, unit) {
+      return {
+        id: id,
+        testRecordId: 'tr-004',
+        reportId: 'report-001',
+        key: key,
+        value: value,
+        unit: unit,
+        dataStatus: 'PRESENT',
+        version: 2,
+        isCurrent: true,
+        correctedFrom: null,
+        createdAt: ts
+      };
+    }
+    return [
+      row('ind-011-v2', 'alpha-diversity', 86.1, ''),
+      row('ind-012-v2', 'evenness', 65.2, ''),
+      row('ind-013-v2', 'richness', 70.1, ''),
+      row('ind-014-v2', '厚壁菌门', 32.1, '%'),
+      row('ind-015-v2', '梭杆菌门', 6.4, '%'),
+      row('ind-016-v2', '变形菌门', 7.8, '%'),
+      row('ind-017-v2', '双歧杆菌', 9.6, '%'),
+      row('ind-018-v2', 'Collinsella', 9.6, '%'),
+      row('ind-019-v2', 'Bacteroides', 20, '%'),
+      row('ind-020-v2', 'Phocaeicola', 8, '%'),
+      row('ind-021-v2', 'Peptacetobacter', 16, '%'),
+      row('ind-022-v2', 'Lachnoclostridium', 5, '%'),
+      row('ind-023-v2', '乳酸菌', 12, '%')
+    ];
+  }
+
+  function extraReport001V2Findings() {
+    return [
+      {
+        id: 'finding-006',
+        reportId: 'report-001',
+        reportVersion: 2,
+        indicatorKey: 'Collinsella',
+        conclusion: 'HIGH',
+        dataStatus: 'PRESENT',
+        description: ' Collinsella 高于参考范围（9.6% vs 3–8%）',
+        professional: ' Collinsella 属占比 9.6%，高于猫科平台参考范围 3–8%。',
+        consumer: '该菌属含量偏高。',
+        riskLevel: 'medium',
+        createdAt: '2025-08-24T15:30:00.000Z'
+      },
+      {
+        id: 'finding-007',
+        reportId: 'report-001',
+        reportVersion: 2,
+        indicatorKey: 'Peptacetobacter',
+        conclusion: 'HIGH',
+        dataStatus: 'PRESENT',
+        description: ' Peptacetobacter 高于参考范围（16% vs 3–8%）',
+        professional: ' Peptacetobacter 属占比 16%，高于猫科平台参考范围 3–8%。',
+        consumer: '该菌属含量偏高。',
+        riskLevel: 'medium',
+        createdAt: '2025-08-24T15:30:00.000Z'
+      }
+    ];
+  }
+
+  function catalogItemKey(item) {
+    return item && item.key != null ? String(item.key) : '';
+  }
+
+  function platformRangeMergeKey(range) {
+    return [
+      range.species || '',
+      range.targetType || '',
+      range.targetKey || '',
+      range.taxonomyLevel || ''
+    ].join('\0');
+  }
+
+  function mergeMissingByKey(list, defaults) {
+    if (!list) return;
+    var seen = {};
+    list.forEach(function (item) {
+      var key = catalogItemKey(item);
+      if (key) seen[key] = true;
+    });
+    defaults.forEach(function (item) {
+      var key = catalogItemKey(item);
+      if (!key || seen[key]) return;
+      list.push(clone(item));
+      seen[key] = true;
+    });
+  }
+
+  function mergeMissingPlatformRanges(list, defaults) {
+    if (!list) return;
+    var byId = {};
+    var byTarget = {};
+    list.forEach(function (range) {
+      if (range.id) byId[range.id] = true;
+      byTarget[platformRangeMergeKey(range)] = true;
+    });
+    defaults.forEach(function (range) {
+      var targetKey = platformRangeMergeKey(range);
+      if (range.id && byId[range.id]) return;
+      if (byTarget[targetKey]) return;
+      if (range.targetKey && list.some(function (existing) {
+        return existing.targetKey === range.targetKey && existing.species === range.species;
+      })) return;
+      list.push(clone(range));
+      if (range.id) byId[range.id] = true;
+      byTarget[targetKey] = true;
+    });
+  }
+
+  function mergeMissingIndicators(list, extras) {
+    if (!list) return;
+    extras.forEach(function (item) {
+      var exists = list.some(function (ind) {
+        return ind.id === item.id || (
+          ind.reportId === item.reportId &&
+          ind.key === item.key &&
+          ind.version === item.version
+        );
+      });
+      if (!exists) list.push(clone(item));
+    });
+  }
+
+  function mergeMissingFindings(list, extras) {
+    if (!list) return;
+    extras.forEach(function (item) {
+      var exists = list.some(function (finding) {
+        return finding.id === item.id;
+      });
+      if (!exists) list.push(clone(item));
+    });
+  }
+
+  function rebuildPublishedSnapshotsForReport(state, reportId) {
+    var report = (state.reports || []).find(function (row) { return row.id === reportId; });
+    if (!report) return;
+    (report.versions || []).forEach(function (ver) {
+      if (ver.status === 'published' || ver.status === 'corrected') {
+        ver.contentSnapshot = buildContentSnapshot(state, report, ver.version, ' 迁移回填');
+      }
+    });
+  }
+
+  function migrateCatalogAndReport001V4(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (catalog) {
+      if (!catalog.microbiotaTaxa) catalog.microbiotaTaxa = [];
+      if (!catalog.platformReferenceRanges) catalog.platformReferenceRanges = [];
+      mergeMissingByKey(catalog.microbiotaTaxa, defaultMicrobiotaTaxa());
+      mergeMissingPlatformRanges(catalog.platformReferenceRanges, defaultPlatformRanges());
+    }
+    if (!state.indicators) state.indicators = [];
+    if (!state.findings) state.findings = [];
+    mergeMissingIndicators(state.indicators, extraReport001V2Indicators());
+    mergeMissingFindings(state.findings, extraReport001V2Findings());
+    rebuildPublishedSnapshotsForReport(state, 'report-001');
+  }
+
+  function taxonEduForLevel(taxon, eduPatch) {
+    var src = eduPatch || (taxon && taxon.edu) || {};
+    return normalizeTaxonEdu(src);
+  }
+
+  function migrateTaxonEduV7(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
+    catalog.microbiotaTaxa.forEach(function (taxon) {
+      taxon.edu = normalizeTaxonEdu(taxon.edu);
+    });
+    catalog.meta = catalog.meta || {};
+    catalog.meta.version = Math.max(catalog.meta.version || 0, 7);
+  }
+
+  function migrateMicrobiotaPresentationV9(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (!catalog) return;
+    if (!catalog.microbiotaPresentation) {
+      catalog.microbiotaPresentation = defaultMicrobiotaPresentation();
+    } else {
+      catalog.microbiotaPresentation = normalizeMicrobiotaPresentation(catalog.microbiotaPresentation, true);
+    }
+    catalog.meta = catalog.meta || {};
+    catalog.meta.version = Math.max(catalog.meta.version || 0, 9);
+  }
+
+  function migrateReferenceRangeSchemesV8(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (!catalog) return;
+    if (!catalog.referenceRangeSchemes || !catalog.referenceRangeSchemes.length) {
+      var flat = catalog.platformReferenceRanges && catalog.platformReferenceRanges.length
+        ? catalog.platformReferenceRanges
+        : defaultPlatformRanges();
+      var demoEvidence = '检测机构内部参考范围';
+      var bySpecies = {};
+      flat.forEach(function (range) {
+        if (!range.species) return;
+        if (!bySpecies[range.species]) bySpecies[range.species] = [];
+        bySpecies[range.species].push(range);
+      });
+      catalog.referenceRangeSchemes = Object.keys(bySpecies).map(function (species) {
+        return {
+          id: 'rrs-migrated-' + species,
+          name: (species === 'cat' ? '猫科' : species === 'dog' ? '犬科' : species) + '参考范围（迁移）',
+          templateId: 'ORG-LAB-GUT-001',
+          methodName: '16S 肠道菌群检测',
+          applicableSpecies: [species],
+          evidenceType: 'internal',
+          evidenceRef: demoEvidence,
+          status: 'active',
+          version: 1,
+          items: schemeItemsFromPlatformRanges(bySpecies[species]),
+          createdAt: nowIso(),
+          updatedAt: nowIso()
+        };
+      });
+      if (!catalog.referenceRangeSchemes.length) {
+        catalog.referenceRangeSchemes = defaultReferenceRangeSchemes();
+      }
+    }
+    syncPlatformReferenceRangesFromSchemes(catalog);
+  }
+
+  function migrateDemoIndicatorTemplateIds(state) {
+    (state.indicators || []).forEach(function (ind) {
+      if (!ind.sourceTemplateId && ind.key) {
+        ind.sourceTemplateId = 'ORG-LAB-GUT-001';
+      }
+    });
+  }
+
+  function migrateTaxonEduV6(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
+    catalog.microbiotaTaxa.forEach(function (taxon) {
+      taxon.edu = taxonEduForLevel(taxon);
+    });
+  }
+
+  function migrateTaxonEduV5(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
+    var seedByKey = {};
+    defaultMicrobiotaTaxa().forEach(function (item) {
+      seedByKey[item.key] = item;
+    });
+    catalog.microbiotaTaxa.forEach(function (taxon) {
+      var seed = seedByKey[taxon.key];
+      if (seed && !taxon.latinName && seed.latinName) taxon.latinName = seed.latinName;
+      if (!taxon.edu) {
+        taxon.edu = seed && seed.edu ? normalizeTaxonEdu(clone(seed.edu)) : emptyTaxonEdu();
+        return;
+      }
+      taxon.edu = normalizeTaxonEdu(taxon.edu);
+      if (!seed || !seed.edu) return;
+      var seedEdu = normalizeTaxonEdu(seed.edu);
+      Object.keys(seedEdu).forEach(function (key) {
+        if (isEmptyEduField(key, taxon.edu[key]) && !isEmptyEduField(key, seedEdu[key])) {
+          taxon.edu[key] = key === 'mainTasks' ? seedEdu[key].slice() : seedEdu[key];
+        }
+      });
+    });
   }
 
   var DEMO_ANALYSIS_RULE_SEEDS = [
@@ -236,7 +932,7 @@
         version: 1,
         status: dr.isActive === false ? 'inactive' : 'active',
         name: dr.name,
-        description: DEMO_LABEL + ' ' + (dr.indicatorKey || '') + ' · ' + (dr.dataStatus || 'PRESENT'),
+        description: ' ' + (dr.indicatorKey || '') + ' · ' + (dr.dataStatus || 'PRESENT'),
         conditionLogic: 'ALL',
         conditions: conditions,
         riskLevel: dr.riskLevel || 'medium',
@@ -316,11 +1012,35 @@
 
     ensureDomainState(state);
 
+    if (!state.meta) state.meta = {};
+    if (!state.meta.version || state.meta.version < 4) {
+      migrateCatalogAndReport001V4(state);
+    }
+    if (!state.meta.version || state.meta.version < 5) {
+      migrateTaxonEduV5(state);
+    }
+    if (!state.meta.version || state.meta.version < 6) {
+      migrateTaxonEduV6(state);
+    }
+    if (!state.meta.version || state.meta.version < 7) {
+      migrateTaxonEduV7(state);
+    }
+    if (!state.meta.version || state.meta.version < 8) {
+      migrateReferenceRangeSchemesV8(state);
+      migrateDemoIndicatorTemplateIds(state);
+    }
+    if (!state.meta.version || state.meta.version < 9) {
+      migrateMicrobiotaPresentationV9(state);
+    }
+    if (!state.meta.version || state.meta.version < 10) {
+      migratePresentationCopyV10(state);
+    }
+
     (state.reports || []).forEach(function (report) {
       syncReportVersionFields(report);
       (report.versions || []).forEach(function (ver) {
         if ((ver.status === 'published' || ver.status === 'corrected') && !ver.contentSnapshot) {
-          ver.contentSnapshot = buildContentSnapshot(state, report, ver.version, DEMO_LABEL + ' 迁移回填');
+          ver.contentSnapshot = buildContentSnapshot(state, report, ver.version, ' 迁移回填');
         }
       });
     });
@@ -331,6 +1051,17 @@
       state.meta.workflowStatuses = WORKFLOW_STATUSES.slice();
       state.meta.recommendTypes = RECOMMEND_TYPES.slice();
       if (!state.meta.version || state.meta.version < 3) state.meta.version = 3;
+      if (state.meta.version < 4) state.meta.version = 4;
+      if (state.meta.version < 5) state.meta.version = 5;
+      if (state.meta.version < 6) state.meta.version = 6;
+      if (state.meta.version < 7) state.meta.version = 7;
+      if (state.meta.version < 8) state.meta.version = 8;
+      if (state.meta.version < 9) state.meta.version = 9;
+      if (state.meta.version < 10) state.meta.version = 10;
+      if (state.professionalCatalog && state.professionalCatalog.meta) {
+        if (state.professionalCatalog.meta.version < 7) state.professionalCatalog.meta.version = 7;
+        if (state.professionalCatalog.meta.version < 9) state.professionalCatalog.meta.version = 9;
+      }
     }
 
     return state;
@@ -401,16 +1132,16 @@
     var users = [
       {
         id: 'user-001',
-        name: DEMO_LABEL + ' 张女士',
+        name: ' 张女士',
         phone: '13812345678',
-        address: DEMO_LABEL + ' 北京市朝阳区某某小区',
+        address: ' 北京市朝阳区某某小区',
         createdAt: ts
       },
       {
         id: 'user-002',
-        name: DEMO_LABEL + ' 李先生',
+        name: ' 李先生',
         phone: '13987654321',
-        address: DEMO_LABEL + ' 上海市浦东新区某某路',
+        address: ' 上海市浦东新区某某路',
         createdAt: ts
       }
     ];
@@ -418,13 +1149,13 @@
     var stores = [
       {
         id: 'store-001',
-        name: DEMO_LABEL + ' 萌宠肠道健康中心（朝阳店）',
+        name: ' 萌宠肠道健康中心（朝阳店）',
         code: 'STORE-BJ-CY-001',
         createdAt: ts
       },
       {
         id: 'store-002',
-        name: DEMO_LABEL + ' 宠物医院肠道专科（浦东店）',
+        name: ' 宠物医院肠道专科（浦东店）',
         code: 'STORE-SH-PD-002',
         createdAt: ts
       }
@@ -434,7 +1165,7 @@
       {
         id: 'pet-001',
         userId: 'user-001',
-        name: DEMO_LABEL + ' 小花',
+        name: ' 小花',
         breed: '英国短毛猫',
         age: 3.5,
         gender: 'female',
@@ -446,7 +1177,7 @@
       {
         id: 'pet-002',
         userId: 'user-001',
-        name: DEMO_LABEL + ' 阿黄',
+        name: ' 阿黄',
         breed: '金毛寻回犬',
         age: 5,
         gender: 'male',
@@ -458,7 +1189,7 @@
       {
         id: 'pet-003',
         userId: 'user-002',
-        name: DEMO_LABEL + ' 咪咪',
+        name: ' 咪咪',
         breed: '布偶猫',
         age: 2,
         gender: 'female',
@@ -471,7 +1202,7 @@
       {
         id: 'pet-004',
         userId: null,
-        name: DEMO_LABEL + ' 待认领旺仔',
+        name: ' 待认领旺仔',
         breed: '柯基',
         age: 4,
         gender: 'male',
@@ -484,7 +1215,7 @@
       {
         id: 'pet-005',
         userId: null,
-        name: DEMO_LABEL + ' 待认领豆豆',
+        name: ' 待认领豆豆',
         breed: '中华田园猫',
         age: 1,
         gender: 'female',
@@ -535,7 +1266,7 @@
         testRecordId: null,
         status: 'voided',
         voidedAt: '2025-08-24T12:00:00.000Z',
-        voidReason: DEMO_LABEL + ' 运营手动作废重发',
+        voidReason: ' 运营手动作废重发',
         expiresAt: '2026-12-31T23:59:59.000Z',
         createdAt: ts
       }
@@ -544,19 +1275,19 @@
     var categories = [
       {
         id: 'cat-001',
-        name: DEMO_LABEL + ' 肠道健康',
+        name: ' 肠道健康',
         available: true,
         createdAt: ts
       },
       {
         id: 'cat-002',
-        name: DEMO_LABEL + ' 益生菌调理',
+        name: ' 益生菌调理',
         available: true,
         createdAt: ts
       },
       {
         id: 'cat-003',
-        name: DEMO_LABEL + ' 已下架分类（兜底测试）',
+        name: ' 已下架分类（兜底测试）',
         available: false,
         createdAt: ts
       }
@@ -565,21 +1296,21 @@
     var healthTags = [
       {
         id: 'htag-001',
-        name: DEMO_LABEL + ' 肠道菌群调理',
+        name: ' 肠道菌群调理',
         species: 'cat,dog',
         enabled: true,
         createdAt: ts
       },
       {
         id: 'htag-002',
-        name: DEMO_LABEL + ' 免疫支持',
+        name: ' 免疫支持',
         species: 'cat,dog',
         enabled: true,
         createdAt: ts
       },
       {
         id: 'htag-003',
-        name: DEMO_LABEL + ' 无候选标签',
+        name: ' 无候选标签',
         species: 'cat,dog',
         enabled: true,
         createdAt: ts
@@ -596,7 +1327,7 @@
     var products = [
       {
         id: 'prod-001',
-        name: DEMO_LABEL + ' 益生菌套装 A',
+        name: ' 益生菌套装 A',
         categoryId: 'cat-002',
         available: true,
         stock: 25,
@@ -605,7 +1336,7 @@
       },
       {
         id: 'prod-002',
-        name: DEMO_LABEL + ' 肠道调理粉（已下架）',
+        name: ' 肠道调理粉（已下架）',
         categoryId: 'cat-001',
         available: false,
         stock: 0,
@@ -614,7 +1345,7 @@
       },
       {
         id: 'prod-003',
-        name: DEMO_LABEL + ' 膳食纤维补充剂',
+        name: ' 膳食纤维补充剂',
         categoryId: 'cat-001',
         available: true,
         stock: 15,
@@ -623,7 +1354,7 @@
       },
       {
         id: 'prod-004',
-        name: DEMO_LABEL + ' 益生菌套装 B（零库存）',
+        name: ' 益生菌套装 B（零库存）',
         categoryId: 'cat-002',
         available: true,
         stock: 0,
@@ -632,7 +1363,7 @@
       },
       {
         id: 'prod-missing',
-        name: DEMO_LABEL + ' 已回收商品（不存在）',
+        name: ' 已回收商品（不存在）',
         categoryId: 'cat-001',
         available: false,
         stock: 0,
@@ -644,7 +1375,7 @@
     var importBatches = [
       {
         id: 'batch-001',
-        fileName: DEMO_LABEL + ' 检测结果导入_成功.xlsx',
+        fileName: ' 检测结果导入_成功.xlsx',
         status: 'success',
         totalRows: 12,
         successRows: 12,
@@ -655,40 +1386,40 @@
       },
       {
         id: 'batch-002',
-        fileName: DEMO_LABEL + ' 检测结果导入_失败.xlsx',
+        fileName: ' 检测结果导入_失败.xlsx',
         status: 'failed',
         totalRows: 8,
         successRows: 0,
         failedRows: 8,
         errors: [
-          { row: 2, column: '放线菌门', code: 'MISSING_COLUMN', message: DEMO_LABEL + ' 缺少必需列「放线菌门」' },
-          { row: 5, column: '双歧杆菌', code: 'EMPTY', message: DEMO_LABEL + ' 指标值为空' }
+          { row: 2, column: '放线菌门', code: 'MISSING_COLUMN', message: ' 缺少必需列「放线菌门」' },
+          { row: 5, column: '双歧杆菌', code: 'EMPTY', message: ' 指标值为空' }
         ],
         testRecordIds: ['tr-002'],
         createdAt: '2025-08-21T11:30:00.000Z'
       },
       {
         id: 'batch-003',
-        fileName: DEMO_LABEL + ' 检测结果导入_部分成功.xlsx',
+        fileName: ' 检测结果导入_部分成功.xlsx',
         status: 'partial',
         totalRows: 5,
         successRows: 3,
         failedRows: 2,
         errors: [
-          { row: 4, column: '厚壁菌门', code: 'NOT_DETECTED', message: DEMO_LABEL + ' 未检出' }
+          { row: 4, column: '厚壁菌门', code: 'NOT_DETECTED', message: ' 未检出' }
         ],
         testRecordIds: ['tr-001'],
         createdAt: '2025-08-22T09:15:00.000Z'
       },
       {
         id: 'batch-004',
-        fileName: DEMO_LABEL + ' 批量导入_重复阻断.xlsx',
+        fileName: ' 批量导入_重复阻断.xlsx',
         status: 'duplicate',
         totalRows: 1,
         successRows: 0,
         failedRows: 1,
         errors: [
-          { row: 1, column: '外部报告编号', code: 'DUPLICATE', message: DEMO_LABEL + ' 同机构 EXT-2025-001 已存在' }
+          { row: 1, column: '外部报告编号', code: 'DUPLICATE', message: ' 同机构 EXT-2025-001 已存在' }
         ],
         testRecordIds: [],
         createdAt: '2025-08-19T09:00:00.000Z'
@@ -709,7 +1440,7 @@
         status: 'pending_result',
         importBatchId: 'batch-003',
         claimStatus: 'bound',
-        label: DEMO_LABEL + ' 待结果',
+        label: ' 待结果',
         createdAt: '2025-08-22T09:15:00.000Z',
         updatedAt: '2025-08-22T09:15:00.000Z'
       },
@@ -726,7 +1457,7 @@
         status: 'import_failed',
         importBatchId: 'batch-002',
         claimStatus: 'bound',
-        label: DEMO_LABEL + ' 导入失败',
+        label: ' 导入失败',
         createdAt: '2025-08-21T11:30:00.000Z',
         updatedAt: '2025-08-21T11:30:00.000Z'
       },
@@ -743,7 +1474,7 @@
         status: 'pending_review',
         importBatchId: null,
         claimStatus: 'bound',
-        label: DEMO_LABEL + ' 待审核',
+        label: ' 待审核',
         createdAt: '2025-08-23T14:00:00.000Z',
         updatedAt: '2025-08-23T14:00:00.000Z'
       },
@@ -760,7 +1491,7 @@
         status: 'published',
         importBatchId: 'batch-001',
         claimStatus: 'bound',
-        label: DEMO_LABEL + ' 已发布',
+        label: ' 已发布',
         createdAt: '2025-08-20T10:00:00.000Z',
         updatedAt: '2025-08-24T16:00:00.000Z'
       },
@@ -777,7 +1508,7 @@
         status: 'pending_claim',
         importBatchId: null,
         claimStatus: 'pending_claim',
-        label: DEMO_LABEL + ' 待认领（新记录）',
+        label: ' 待认领（新记录）',
         createdAt: '2025-08-24T08:00:00.000Z',
         updatedAt: '2025-08-24T08:00:00.000Z'
       },
@@ -794,7 +1525,7 @@
         status: 'published',
         importBatchId: 'batch-001',
         claimStatus: 'pending_claim',
-        label: DEMO_LABEL + ' 已发布待认领',
+        label: ' 已发布待认领',
         createdAt: '2025-08-18T09:00:00.000Z',
         updatedAt: '2025-08-19T16:00:00.000Z'
       },
@@ -811,7 +1542,7 @@
         status: 'pending_review',
         importBatchId: null,
         claimStatus: 'pending_claim',
-        label: DEMO_LABEL + ' 审核中待认领',
+        label: ' 审核中待认领',
         createdAt: '2025-08-23T10:00:00.000Z',
         updatedAt: '2025-08-23T14:00:00.000Z'
       },
@@ -828,7 +1559,7 @@
         status: 'voided',
         importBatchId: 'batch-001',
         claimStatus: 'bound',
-        label: DEMO_LABEL + ' 已作废',
+        label: ' 已作废',
         createdAt: '2025-08-10T09:00:00.000Z',
         updatedAt: '2025-08-12T10:00:00.000Z'
       },
@@ -845,7 +1576,7 @@
         status: 'unassigned',
         importBatchId: 'batch-001',
         claimStatus: 'unassigned',
-        label: DEMO_LABEL + ' 批量导入成功待归属',
+        label: ' 批量导入成功待归属',
         createdAt: '2025-08-25T09:00:00.000Z',
         updatedAt: '2025-08-25T09:00:00.000Z'
       }
@@ -890,7 +1621,8 @@
         isCurrent: true,
         correctedFrom: null,
         createdAt: '2025-08-20T10:30:00.000Z'
-      },
+      }
+    ].concat(extraReport001V2Indicators(), [
       {
         id: 'ind-003-v1',
         testRecordId: 'tr-003',
@@ -995,12 +1727,12 @@
         correctedFrom: null,
         createdAt: '2025-08-23T11:30:00.000Z'
       }
-    ];
+    ]);
 
     var reports = [
       {
         id: 'report-001',
-        reportNumber: DEMO_LABEL + ' RPT-2025-001',
+        reportNumber: ' RPT-2025-001',
         externalReportNumber: 'EXT-2025-001',
         sampleNumber: 'SAMPLE-BJ-001',
         sourceOrgId: DEFAULT_SOURCE_ORG_ID,
@@ -1022,7 +1754,7 @@
             status: 'published',
             healthLevel: 'A',
             healthScore: 92,
-            summary: DEMO_LABEL + ' 肠道菌群整体良好。',
+            summary: ' 肠道菌群整体良好。',
             createdAt: '2025-08-20T11:00:00.000Z',
             publishedAt: '2025-08-20T16:00:00.000Z'
           },
@@ -1033,10 +1765,10 @@
             healthScore: 85,
             percentile: 62,
             platformDimensions: { emotion: 75, immunity: 80 },
-            summary: DEMO_LABEL + ' 放线菌门指标已更正，综合评级下调。',
+            summary: ' 放线菌门指标已更正，综合评级下调。',
             createdAt: '2025-08-24T15:30:00.000Z',
             publishedAt: '2025-08-24T16:00:00.000Z',
-            correctionNote: DEMO_LABEL + ' 原始指标放线菌门由实验室复核后更正'
+            correctionNote: ' 原始指标放线菌门由实验室复核后更正'
           }
         ],
         createdAt: '2025-08-20T11:00:00.000Z',
@@ -1044,7 +1776,7 @@
       },
       {
         id: 'report-002',
-        reportNumber: DEMO_LABEL + ' RPT-2025-002',
+        reportNumber: ' RPT-2025-002',
         externalReportNumber: 'EXT-2025-REVIEW-003',
         sampleNumber: 'SAMPLE-REVIEW-003',
         sourceOrgId: DEFAULT_SOURCE_ORG_ID,
@@ -1065,7 +1797,7 @@
             status: 'pending_review',
             healthLevel: 'C',
             healthScore: 68,
-            summary: DEMO_LABEL + ' 部分指标异常，待审核发布。',
+            summary: ' 部分指标异常，待审核发布。',
             createdAt: '2025-08-23T15:00:00.000Z',
             publishedAt: null
           }
@@ -1075,7 +1807,7 @@
       },
       {
         id: 'report-003',
-        reportNumber: DEMO_LABEL + ' RPT-2025-003',
+        reportNumber: ' RPT-2025-003',
         externalReportNumber: 'EXT-2025-FAIL-002',
         sampleNumber: 'SAMPLE-FAIL-002',
         sourceOrgId: DEFAULT_SOURCE_ORG_ID,
@@ -1096,8 +1828,8 @@
             status: 'rejected',
             healthLevel: null,
             healthScore: null,
-            summary: DEMO_LABEL + ' 导入数据不完整，报告驳回。',
-            rejectReason: DEMO_LABEL + ' Excel 缺少必需列，无法生成有效报告',
+            summary: ' 导入数据不完整，报告驳回。',
+            rejectReason: ' Excel 缺少必需列，无法生成有效报告',
             createdAt: '2025-08-21T13:00:00.000Z',
             publishedAt: null
           }
@@ -1107,7 +1839,7 @@
       },
       {
         id: 'report-004',
-        reportNumber: DEMO_LABEL + ' RPT-2025-004',
+        reportNumber: ' RPT-2025-004',
         externalReportNumber: 'EXT-2025-PUB-UNCLAIMED-006',
         sampleNumber: 'SAMPLE-PUB-UNCLAIMED-006',
         sourceOrgId: DEFAULT_SOURCE_ORG_ID,
@@ -1129,7 +1861,7 @@
             status: 'published',
             healthLevel: 'A',
             healthScore: 90,
-            summary: DEMO_LABEL + ' 肠道菌群整体良好，认领后可查看完整报告。',
+            summary: ' 肠道菌群整体良好，认领后可查看完整报告。',
             createdAt: '2025-08-19T11:00:00.000Z',
             publishedAt: '2025-08-19T16:00:00.000Z'
           }
@@ -1139,7 +1871,7 @@
       },
       {
         id: 'report-005',
-        reportNumber: DEMO_LABEL + ' RPT-2025-005',
+        reportNumber: ' RPT-2025-005',
         externalReportNumber: 'EXT-2025-REVIEW-UNCLAIMED-007',
         sampleNumber: 'SAMPLE-REVIEW-UNCLAIMED-007',
         sourceOrgId: DEFAULT_SOURCE_ORG_ID,
@@ -1160,7 +1892,7 @@
             status: 'pending_review',
             healthLevel: 'B',
             healthScore: 75,
-            summary: DEMO_LABEL + ' 报告审核中，认领后可查看进度。',
+            summary: ' 报告审核中，认领后可查看进度。',
             createdAt: '2025-08-23T12:00:00.000Z',
             publishedAt: null
           }
@@ -1170,7 +1902,7 @@
       },
       {
         id: 'report-006',
-        reportNumber: DEMO_LABEL + ' RPT-2025-006',
+        reportNumber: ' RPT-2025-006',
         externalReportNumber: 'EXT-2025-VOID-008',
         sampleNumber: 'SAMPLE-VOID-008',
         sourceOrgId: DEFAULT_SOURCE_ORG_ID,
@@ -1186,14 +1918,14 @@
         publishedVersion: 1,
         correctionDraftActive: false,
         voidedAt: '2025-08-12T10:00:00.000Z',
-        voidReason: DEMO_LABEL + ' 客户要求作废重检',
+        voidReason: ' 客户要求作废重检',
         versions: [
           {
             version: 1,
             status: 'published',
             healthLevel: 'B',
             healthScore: 78,
-            summary: DEMO_LABEL + ' 已发布后被作废。',
+            summary: ' 已发布后被作废。',
             createdAt: '2025-08-10T11:00:00.000Z',
             publishedAt: '2025-08-10T16:00:00.000Z'
           }
@@ -1211,8 +1943,8 @@
         toUserId: 'user-001',
         fromPetId: 'pet-002',
         toPetId: 'pet-002',
-        actor: DEMO_LABEL + ' 运营专员',
-        reason: DEMO_LABEL + ' 线下核对后纠正错绑用户',
+        actor: ' 运营专员',
+        reason: ' 线下核对后纠正错绑用户',
         createdAt: '2025-08-21T14:30:00.000Z'
       }
     ];
@@ -1225,12 +1957,13 @@
         indicatorKey: '放线菌门',
         conclusion: 'LOW',
         dataStatus: 'PRESENT',
-        description: DEMO_LABEL + ' 放线菌门偏低，可能影响肠道屏障功能',
-        professional: DEMO_LABEL + ' 放线菌门占比低于参考范围，可能影响肠道屏障与免疫调节。',
-        consumer: DEMO_LABEL + ' 肠道有益菌偏少，建议关注日常饮食与益生菌补充。',
+        description: ' 放线菌门偏低，可能影响肠道屏障功能',
+        professional: ' 放线菌门占比低于参考范围，可能影响肠道屏障与免疫调节。',
+        consumer: ' 肠道有益菌偏少，建议关注日常饮食与益生菌补充。',
         riskLevel: 'medium',
         createdAt: '2025-08-24T15:30:00.000Z'
-      },
+      }
+    ].concat(extraReport001V2Findings(), [
       {
         id: 'finding-002',
         reportId: 'report-002',
@@ -1238,9 +1971,9 @@
         indicatorKey: '厚壁菌门',
         conclusion: 'HIGH',
         dataStatus: 'NOT_DETECTED',
-        description: DEMO_LABEL + ' 厚壁菌门未检出（数据状态 NOT_DETECTED ≠ 结论 LOW）',
-        professional: DEMO_LABEL + ' 厚壁菌门未检出（NOT_DETECTED），不可等同于偏低结论。',
-        consumer: DEMO_LABEL + ' 该项未检出，需结合复检与其他指标综合判断。',
+        description: ' 厚壁菌门未检出（数据状态 NOT_DETECTED ≠ 结论 LOW）',
+        professional: ' 厚壁菌门未检出（NOT_DETECTED），不可等同于偏低结论。',
+        consumer: ' 该项未检出，需结合复检与其他指标综合判断。',
         riskLevel: 'high',
         createdAt: '2025-08-23T15:00:00.000Z'
       },
@@ -1251,9 +1984,9 @@
         indicatorKey: '放线菌门',
         conclusion: 'LOW',
         dataStatus: 'PRESENT',
-        description: DEMO_LABEL + ' 放线菌门显著偏低',
-        professional: DEMO_LABEL + ' 放线菌门显著低于参考范围。',
-        consumer: DEMO_LABEL + ' 有益菌偏少，建议补充益生菌。',
+        description: ' 放线菌门显著偏低',
+        professional: ' 放线菌门显著低于参考范围。',
+        consumer: ' 有益菌偏少，建议补充益生菌。',
         riskLevel: 'medium',
         createdAt: '2025-08-23T15:00:00.000Z'
       },
@@ -1264,9 +1997,9 @@
         indicatorKey: '放线菌门',
         conclusion: 'NORMAL',
         dataStatus: 'PRESENT',
-        description: DEMO_LABEL + ' 放线菌门处于正常范围',
-        professional: DEMO_LABEL + ' 放线菌门占比正常。',
-        consumer: DEMO_LABEL + ' 该项指标良好，请继续保持。',
+        description: ' 放线菌门处于正常范围',
+        professional: ' 放线菌门占比正常。',
+        consumer: ' 该项指标良好，请继续保持。',
         riskLevel: 'low',
         createdAt: '2025-08-19T11:30:00.000Z'
       },
@@ -1277,13 +2010,13 @@
         indicatorKey: '放线菌门',
         conclusion: 'LOW',
         dataStatus: 'PRESENT',
-        description: DEMO_LABEL + ' 放线菌门偏低，待审核确认',
-        professional: DEMO_LABEL + ' 放线菌门低于参考下限，待审核。',
-        consumer: DEMO_LABEL + ' 有益菌略少，报告审核中。',
+        description: ' 放线菌门偏低，待审核确认',
+        professional: ' 放线菌门低于参考下限，待审核。',
+        consumer: ' 有益菌略少，报告审核中。',
         riskLevel: 'medium',
         createdAt: '2025-08-23T12:30:00.000Z'
       }
-    ];
+    ]);
 
     var recommendations = [
       {
@@ -1299,7 +2032,7 @@
         resolvedProductId: 'prod-001',
         resolvedCategoryId: 'cat-002',
         availability: 'AVAILABLE',
-        label: DEMO_LABEL + ' 推荐益生菌套装 A',
+        label: ' 推荐益生菌套装 A',
         createdAt: '2025-08-24T15:30:00.000Z'
       },
       {
@@ -1316,7 +2049,7 @@
         resolvedCategoryId: null,
         availability: 'UNAVAILABLE',
         candidateProductIds: ['prod-001', 'prod-003'],
-        label: DEMO_LABEL + ' 目标产品已下架，按健康标签解析候选',
+        label: ' 目标产品已下架，按健康标签解析候选',
         createdAt: '2025-08-23T15:00:00.000Z'
       },
       {
@@ -1333,7 +2066,7 @@
         resolvedCategoryId: null,
         availability: 'NO_CANDIDATES',
         candidateProductIds: [],
-        label: DEMO_LABEL + ' 主推零库存且无标签候选，降级为 NONE',
+        label: ' 主推零库存且无标签候选，降级为 NONE',
         createdAt: '2025-08-23T15:00:00.000Z'
       },
       {
@@ -1350,7 +2083,7 @@
         resolvedCategoryId: null,
         availability: 'ZERO_STOCK',
         candidateProductIds: ['prod-001', 'prod-003'],
-        label: DEMO_LABEL + ' 主推零库存，展示标签候选商品',
+        label: ' 主推零库存，展示标签候选商品',
         createdAt: '2025-08-19T11:30:00.000Z'
       }
     ];
@@ -1373,23 +2106,23 @@
             matched: true,
             riskLevel: 'medium',
             output: {
-              professional: DEMO_LABEL + ' 放线菌门显著低于参考范围。',
-              consumer: DEMO_LABEL + ' 有益菌偏少，建议关注日常饮食。'
+              professional: ' 放线菌门显著低于参考范围。',
+              consumer: ' 有益菌偏少，建议关注日常饮食。'
             }
           }
         ],
         combinedResult: {
-          professional: DEMO_LABEL + ' 放线菌门显著低于参考范围。',
-          consumer: DEMO_LABEL + ' 有益菌偏少，建议关注日常饮食。',
-          healthAdvice: DEMO_LABEL + ' 可考虑益生菌补充，3 个月后复检。'
+          professional: ' 放线菌门显著低于参考范围。',
+          consumer: ' 有益菌偏少，建议关注日常饮食。',
+          healthAdvice: ' 可考虑益生菌补充，3 个月后复检。'
         },
         adjustments: {
           excludedHits: [],
           manualFindings: [],
           finalContent: {
-            professional: DEMO_LABEL + ' 放线菌门显著低于参考范围。',
-            consumer: DEMO_LABEL + ' 有益菌偏少，建议关注日常饮食。',
-            healthAdvice: DEMO_LABEL + ' 可考虑益生菌补充，3 个月后复检。',
+            professional: ' 放线菌门显著低于参考范围。',
+            consumer: ' 有益菌偏少，建议关注日常饮食。',
+            healthAdvice: ' 可考虑益生菌补充，3 个月后复检。',
             updatedAt: '2025-08-24T15:30:00.000Z'
           }
         }
@@ -1402,9 +2135,9 @@
 
     return {
       meta: {
-        version: 3,
+        version: 4,
         storageKey: STORAGE_KEY,
-        disclaimer: DEMO_LABEL + ' 全部为演示 Mock 数据，非真实业务数据',
+        disclaimer: '',
         dataStatuses: DATA_STATUSES,
         reportStatuses: REPORT_STATUSES,
         workflowStatuses: WORKFLOW_STATUSES,
@@ -1528,6 +2261,41 @@
     return pet ? pet.species : null;
   }
 
+  function resolveSchemeRangeForIndicator(catalog, indicator, species, entry) {
+    var schemes = (catalog && catalog.referenceRangeSchemes) || [];
+    var targetType = entry && entry.type === 'indicator' ? 'indicator' : 'microbiota';
+    var targetKey = indicator.key;
+    var taxonomyLevel = entry && entry.type === 'microbiota' ? entry.item.level : null;
+    var indicatorUnit = indicator.unit;
+    var sourceTemplateId = indicator.sourceTemplateId;
+    if (!sourceTemplateId || !species) return null;
+
+    for (var i = 0; i < schemes.length; i++) {
+      var scheme = schemes[i];
+      if (scheme.status !== 'active') continue;
+      if (!scheme.applicableSpecies || scheme.applicableSpecies.indexOf(species) < 0) continue;
+      if (scheme.templateId !== sourceTemplateId) continue;
+      if (!schemeHasValidItems(scheme)) continue;
+      var items = scheme.items || [];
+      for (var j = 0; j < items.length; j++) {
+        var item = items[j];
+        if (item.targetType !== targetType) continue;
+        if (item.targetKey !== targetKey) continue;
+        if (taxonomyLevel && item.taxonomyLevel && item.taxonomyLevel !== taxonomyLevel) continue;
+        if (indicatorUnit && item.unit && item.unit !== indicatorUnit) continue;
+        if (item.minValue == null || item.maxValue == null) continue;
+        return {
+          min: item.minValue,
+          max: item.maxValue,
+          unit: item.unit,
+          source: 'scheme',
+          schemeId: scheme.id
+        };
+      }
+    }
+    return null;
+  }
+
   function resolveEffectiveRangeForIndicator(state, indicator, species, options) {
     options = options || {};
     if (indicator.effectiveRange && options.respectFrozen !== false) {
@@ -1551,25 +2319,8 @@
     }
     var catalog = state.professionalCatalog || defaultCatalog();
     var entry = findCatalogEntryByKey(state, indicator.key || indicator.rawImportName);
-    var targetType = entry && entry.type === 'indicator' ? 'indicator' : 'microbiota';
-    var targetKey = indicator.key;
-    var taxonomyLevel = entry && entry.type === 'microbiota' ? entry.item.level : null;
-    var platform = (catalog.platformReferenceRanges || []).find(function (r) {
-      return r.status !== 'disabled' &&
-        r.species === species &&
-        r.targetKey === targetKey &&
-        r.targetType === targetType &&
-        (!taxonomyLevel || !r.taxonomyLevel || r.taxonomyLevel === taxonomyLevel);
-    });
-    if (platform) {
-      return {
-        min: platform.minValue,
-        max: platform.maxValue,
-        unit: platform.unit,
-        source: 'platform',
-        platformRangeId: platform.id
-      };
-    }
+    var schemeRange = resolveSchemeRangeForIndicator(catalog, indicator, species, entry);
+    if (schemeRange) return schemeRange;
     return null;
   }
 
@@ -1619,14 +2370,14 @@
           label: '同龄对比百分位',
           value: version.percentile != null ? version.percentile : null,
           demo: true,
-          note: DEMO_LABEL + ' 未确认 UI 占位'
+          note: ''
         }
       ],
       dimensions: version.platformDimensions ? clone(version.platformDimensions) : {
         emotion: null,
         immunity: null,
         demo: true,
-        note: DEMO_LABEL + ' 平台维度演示占位'
+        note: ''
       }
     };
   }
@@ -1694,9 +2445,12 @@
         finalContent: clone((run.adjustments && run.adjustments.finalContent) || null)
       } : null,
       recommendations: frozenRecommendations,
+      findings: (state.findings || []).filter(function (f) {
+        return f.reportId === report.id && f.reportVersion === versionNo;
+      }).map(function (f) { return clone(f); }),
       presentationMock: buildPresentationMock(report, version, species),
       frozenAt: nowIso(),
-      frozenBy: actor || (DEMO_LABEL + ' 系统')
+      frozenBy: actor || (' 系统')
     };
   }
 
@@ -1892,6 +2646,10 @@
     return clone(loadState());
   }
 
+  function peekState() {
+    return loadState();
+  }
+
   function reset() {
     var state = migrateState(buildSeedState());
     state.meta.resetAt = nowIso();
@@ -1944,7 +2702,7 @@
         status: 'pending_result',
         importBatchId: null,
         claimStatus: pet ? 'bound' : 'unassigned',
-        label: DEMO_LABEL + ' 新登记检测',
+        label: ' 新登记检测',
         createdAt: nowIso(),
         updatedAt: nowIso()
       };
@@ -1983,7 +2741,7 @@
           status: params.petId ? 'pending_review' : 'unassigned',
           importBatchId: batchId,
           claimStatus: params.petId ? 'bound' : (params.userId ? 'bound' : 'unassigned'),
-          label: DEMO_LABEL + ' 导入成功',
+          label: ' 导入成功',
           createdAt: nowIso(),
           updatedAt: nowIso()
         };
@@ -2001,12 +2759,12 @@
       var rows = params.rows || 10;
       var batch = {
         id: batchId,
-        fileName: params.fileName || (DEMO_LABEL + ' 模拟导入成功.xlsx'),
+        fileName: params.fileName || (' 模拟导入成功.xlsx'),
         status: batchStatus,
         totalRows: rows,
         successRows: batchStatus === 'partial' ? Math.max(1, rows - 1) : rows,
         failedRows: batchStatus === 'partial' ? 1 : 0,
-        errors: batchStatus === 'partial' ? [{ row: rows, column: '局部字段', code: 'PARTIAL', message: DEMO_LABEL + ' 局部导入异常' }] : [],
+        errors: batchStatus === 'partial' ? [{ row: rows, column: '局部字段', code: 'PARTIAL', message: ' 局部导入异常' }] : [],
         testRecordIds: [testRecordId],
         createdAt: nowIso()
       };
@@ -2026,6 +2784,8 @@
           value: ind.value,
           unit: ind.unit || '%',
           dataStatus: ind.dataStatus || 'PRESENT',
+          importedRange: ind.importedRange ? clone(ind.importedRange) : null,
+          sourceTemplateId: ind.sourceTemplateId || params.sourceTemplateId || params.templateId || null,
           version: 1,
           isCurrent: true,
           correctedFrom: null,
@@ -2048,7 +2808,7 @@
       files.forEach(function (file) {
         file = file || {};
         var scenario = file.scenario || 'success';
-        var fileName = file.fileName || (DEMO_LABEL + ' 批量文件.xlsx');
+        var fileName = file.fileName || (' 批量文件.xlsx');
 
         if (scenario === 'duplicate') {
           var dup = checkDuplicateImportInternal(state, file);
@@ -2078,7 +2838,7 @@
             status: 'import_failed',
             importBatchId: batchId,
             claimStatus: 'unassigned',
-            label: DEMO_LABEL + ' 批量导入失败',
+            label: ' 批量导入失败',
             createdAt: nowIso(),
             updatedAt: nowIso()
           };
@@ -2117,7 +2877,7 @@
           status: file.petId || file.userId ? 'pending_review' : 'unassigned',
           importBatchId: batchId,
           claimStatus: file.petId || file.userId ? 'bound' : 'unassigned',
-          label: DEMO_LABEL + ' 批量导入' + (partial ? '（局部异常）' : '成功'),
+          label: ' 批量导入' + (partial ? '（局部异常）' : '成功'),
           createdAt: nowIso(),
           updatedAt: nowIso()
         };
@@ -2136,6 +2896,8 @@
             value: ind.value,
             unit: ind.unit || '%',
             dataStatus: ind.dataStatus || 'PRESENT',
+            importedRange: ind.importedRange ? clone(ind.importedRange) : null,
+            sourceTemplateId: ind.sourceTemplateId || file.sourceTemplateId || file.templateId || null,
             version: 1,
             isCurrent: true,
             correctedFrom: null,
@@ -2154,13 +2916,13 @@
       var failedCount = fileResults.filter(function (r) { return r.status === 'failed' || r.status === 'duplicate'; }).length;
       var batch = {
         id: batchId,
-        fileName: params.fileName || (DEMO_LABEL + ' 批量导入批次.xlsx'),
+        fileName: params.fileName || (' 批量导入批次.xlsx'),
         status: failedCount && successCount ? 'partial' : (failedCount ? 'failed' : 'success'),
         totalRows: files.length,
         successRows: successCount,
         failedRows: failedCount,
         errors: fileResults.filter(function (r) { return r.error || r.errorCode; }).map(function (r) {
-          return { fileName: r.fileName, code: r.errorCode || 'DUPLICATE', message: DEMO_LABEL + ' ' + r.status };
+          return { fileName: r.fileName, code: r.errorCode || 'DUPLICATE', message: ' ' + r.status };
         }),
         testRecordIds: fileResults.map(function (r) { return r.testRecordId; }).filter(Boolean),
         fileResults: fileResults,
@@ -2191,7 +2953,7 @@
           status: 'import_failed',
           importBatchId: batchId,
           claimStatus: params.petId ? 'bound' : 'unclaimed',
-          label: DEMO_LABEL + ' 导入失败',
+          label: ' 导入失败',
           createdAt: nowIso(),
           updatedAt: nowIso()
         };
@@ -2206,7 +2968,7 @@
       var errorCode = params.errorCode || 'MISSING_COLUMN';
       var batch = {
         id: batchId,
-        fileName: params.fileName || (DEMO_LABEL + ' 模拟导入失败.xlsx'),
+        fileName: params.fileName || (' 模拟导入失败.xlsx'),
         status: 'failed',
         totalRows: params.totalRows || 5,
         successRows: 0,
@@ -2216,7 +2978,7 @@
             row: params.errorRow || 2,
             column: params.errorColumn || '放线菌门',
             code: errorCode,
-            message: DEMO_LABEL + ' 导入失败: ' + errorCode
+            message: ' 导入失败: ' + errorCode
           }
         ],
         testRecordIds: [testRecordId],
@@ -2237,7 +2999,7 @@
       if (!tr) throw new Error('testRecord not found: ' + params.testRecordId);
 
       var reportId = bumpIds(state, 'reports', 'report');
-      var reportNumber = params.reportNumber || (DEMO_LABEL + ' RPT-' + reportId.replace('report-', ''));
+      var reportNumber = params.reportNumber || (' RPT-' + reportId.replace('report-', ''));
       var report = {
         id: reportId,
         reportNumber: reportNumber,
@@ -2261,7 +3023,7 @@
             status: 'draft',
             healthLevel: params.healthLevel || null,
             healthScore: params.healthScore || null,
-            summary: params.summary || (DEMO_LABEL + ' 草稿报告'),
+            summary: params.summary || (' 草稿报告'),
             createdAt: nowIso(),
             publishedAt: null
           }
@@ -2315,7 +3077,7 @@
       if (report.todoFlags.indexOf('rejected') < 0) report.todoFlags.push('rejected');
       var ver = report.versions[report.versions.length - 1];
       ver.status = 'rejected';
-      ver.rejectReason = reason || (DEMO_LABEL + ' 审核驳回');
+      ver.rejectReason = reason || (' 审核驳回');
 
       var tr = findTestRecord(state, report.testRecordId);
       if (tr) {
@@ -2345,7 +3107,7 @@
   /** 发布报告（允许已发布待认领） */
   function publishReport(reportId, options) {
     options = normalizeActorOptions(options);
-    var actor = options.actor || (DEMO_LABEL + ' 审核员');
+    var actor = options.actor || (' 审核员');
     return commit(function (state) {
       var report = findReport(state, reportId);
       if (!report) throw new Error('report not found: ' + reportId);
@@ -2422,8 +3184,8 @@
         if (report) {
           if (!report.correctionDraftActive) {
             createCorrectionDraftInternal(state, report, {
-              summary: params.correctionNote || (DEMO_LABEL + ' 指标「' + original.key + '」已更正'),
-              correctionNote: params.correctionNote || (DEMO_LABEL + ' 原始指标更正')
+              summary: params.correctionNote || (' 指标「' + original.key + '」已更正'),
+              correctionNote: params.correctionNote || (' 原始指标更正')
             });
           } else {
             var workingVer = report.versions.find(function (v) { return v.version === report.workingVersion; });
@@ -2456,10 +3218,10 @@
       status: 'draft',
       healthLevel: base.healthLevel,
       healthScore: base.healthScore,
-      summary: params.summary || (DEMO_LABEL + ' 更正草稿'),
+      summary: params.summary || (' 更正草稿'),
       createdAt: nowIso(),
       publishedAt: null,
-      correctionNote: params.correctionNote || (DEMO_LABEL + ' 更正草稿')
+      correctionNote: params.correctionNote || (' 更正草稿')
     });
     syncReportWorkflow(report, findTestRecord(state, report.testRecordId));
     return report;
@@ -2494,7 +3256,7 @@
       report.status = 'voided';
       report.workflowStatus = 'voided';
       report.voidedAt = nowIso();
-      report.voidReason = reason || (DEMO_LABEL + ' 报告作废');
+      report.voidReason = reason || (' 报告作废');
       report.updatedAt = nowIso();
       var tr = findTestRecord(state, report.testRecordId);
       if (tr) {
@@ -2560,7 +3322,7 @@
     var reportId = bumpIds(state, 'reports', 'report');
     var report = {
       id: reportId,
-      reportNumber: params.reportNumber || (DEMO_LABEL + ' RPT-' + reportId.replace('report-', '')),
+      reportNumber: params.reportNumber || (' RPT-' + reportId.replace('report-', '')),
       externalReportNumber: tr.externalReportNumber,
       sampleNumber: tr.sampleNumber,
       sourceOrgId: tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
@@ -2580,7 +3342,7 @@
         status: 'draft',
         healthLevel: null,
         healthScore: null,
-        summary: params.summary || (DEMO_LABEL + ' 归属后草稿'),
+        summary: params.summary || (' 归属后草稿'),
         createdAt: nowIso(),
         publishedAt: null
       }],
@@ -2599,7 +3361,7 @@
       var pet = {
         id: petId,
         userId: params.userId || null,
-        name: params.name || (DEMO_LABEL + ' 运营建档宠物'),
+        name: params.name || (' 运营建档宠物'),
         breed: params.breed || '未知品种',
         age: params.age != null ? params.age : null,
         gender: params.gender || 'unknown',
@@ -2659,7 +3421,7 @@
       if (!claim) throw new Error('claim credential not found');
       claim.status = 'voided';
       claim.voidedAt = nowIso();
-      claim.voidReason = params.reason || (DEMO_LABEL + ' 手动作废');
+      claim.voidReason = params.reason || (' 手动作废');
       return claim;
     });
   }
@@ -2680,8 +3442,8 @@
         toUserId: params.userId,
         fromPetId: report.petId,
         toPetId: params.petId,
-        actor: params.actor || (DEMO_LABEL + ' 运营专员'),
-        reason: params.reason || (DEMO_LABEL + ' 归属纠错'),
+        actor: params.actor || (' 运营专员'),
+        reason: params.reason || (' 归属纠错'),
         createdAt: nowIso()
       };
       if (!state.ownershipCorrections) state.ownershipCorrections = [];
@@ -2731,7 +3493,7 @@
         var newPet = {
           id: petId,
           userId: params.userId,
-          name: params.petName || (DEMO_LABEL + ' 新认领宠物'),
+          name: params.petName || (' 新认领宠物'),
           breed: params.petBreed || '未知品种',
           age: params.petAge || null,
           gender: params.petGender || 'unknown',
@@ -2785,7 +3547,7 @@
   function updateReportContent(params) {
     params = params || {};
     if (!params.reportId) throw new Error('reportId is required');
-    var actor = params.actor || (DEMO_LABEL + ' 审核员');
+    var actor = params.actor || (' 审核员');
     return commit(function (state) {
       var report = findReport(state, params.reportId);
       if (!report) throw new Error('report not found: ' + params.reportId);
@@ -2804,7 +3566,7 @@
   function updateFinding(params) {
     params = params || {};
     if (!params.findingId) throw new Error('findingId is required');
-    var actor = params.actor || (DEMO_LABEL + ' 审核员');
+    var actor = params.actor || (' 审核员');
     return commit(function (state) {
       var finding = state.findings.find(function (f) { return f.id === params.findingId; });
       if (!finding) throw new Error('finding not found: ' + params.findingId);
@@ -2826,7 +3588,7 @@
   function updateRecommendation(params) {
     params = params || {};
     if (!params.recommendationId) throw new Error('recommendationId is required');
-    var actor = params.actor || (DEMO_LABEL + ' 审核员');
+    var actor = params.actor || (' 审核员');
     return commit(function (state) {
       var rec = state.recommendations.find(function (r) { return r.id === params.recommendationId; });
       if (!rec) throw new Error('recommendation not found: ' + params.recommendationId);
@@ -2893,7 +3655,7 @@
       availability: 'NO_CANDIDATES',
       candidateProductIds: [],
       candidates: [],
-      label: DEMO_LABEL + ' 无推荐'
+      label: ' 无推荐'
     };
 
     if (targetType === 'PRODUCT' && productId) {
@@ -2904,7 +3666,7 @@
           result.resolvedType = 'PRODUCT';
           result.resolvedProductId = productId;
           result.availability = 'AVAILABLE';
-          result.label = DEMO_LABEL + ' 推荐产品: ' + product.name;
+          result.label = ' 推荐产品: ' + product.name;
           return result;
         }
         result.availability = 'ZERO_STOCK';
@@ -2913,11 +3675,11 @@
         result.candidateProductIds = zeroCandidates.map(function (c) { return c.productId; });
         if (zeroCandidates.length) {
           result.resolvedType = 'TAG_CANDIDATE';
-          result.label = DEMO_LABEL + ' 主推零库存，展示标签候选商品';
+          result.label = ' 主推零库存，展示标签候选商品';
         } else {
           result.resolvedType = 'NONE';
           result.availability = 'NO_CANDIDATES';
-          result.label = DEMO_LABEL + ' 主推零库存且无候选商品';
+          result.label = ' 主推零库存且无候选商品';
         }
         return result;
       }
@@ -2927,7 +3689,7 @@
         result.resolvedType = 'TAG_CANDIDATE';
         result.candidates = tagCandidates;
         result.candidateProductIds = tagCandidates.map(function (c) { return c.productId; });
-        result.label = DEMO_LABEL + ' 按健康标签解析候选: ' + tagCandidates[0].product.name;
+        result.label = ' 按健康标签解析候选: ' + tagCandidates[0].product.name;
         return result;
       }
       return result;
@@ -2940,7 +3702,7 @@
         result.candidates = candidates;
         result.candidateProductIds = candidates.map(function (c) { return c.productId; });
         result.availability = 'AVAILABLE';
-        result.label = DEMO_LABEL + ' 按健康标签解析候选: ' + candidates[0].product.name;
+        result.label = ' 按健康标签解析候选: ' + candidates[0].product.name;
         return result;
       }
     }
@@ -2953,7 +3715,7 @@
     return commit(function (state) {
       var user = {
         id: bumpIds(state, 'users', 'user'),
-        name: params.name || (DEMO_LABEL + ' 新用户'),
+        name: params.name || (' 新用户'),
         phone: params.phone,
         address: params.address || null,
         createdAt: nowIso()
@@ -3002,6 +3764,43 @@
     });
   }
 
+  function saveTaxonEdu(taxonKey, patch) {
+    patch = patch || {};
+    return updateProfessionalCatalog(function (catalog) {
+      if (!catalog.microbiotaTaxa) catalog.microbiotaTaxa = [];
+      var taxon = catalog.microbiotaTaxa.find(function (item) {
+        return item.key === taxonKey;
+      });
+      if (!taxon) throw new Error('taxon not found: ' + taxonKey);
+      if (patch.latinName !== undefined) taxon.latinName = patch.latinName;
+      if (patch.value !== undefined) taxon.value = patch.value;
+      if (patch.edu !== undefined) {
+        taxon.edu = taxonEduForLevel(taxon, Object.assign({}, taxon.edu || {}, patch.edu || {}));
+      }
+      return taxon;
+    });
+  }
+
+  function getMicrobiotaPresentation() {
+    var state = loadState();
+    var catalog = state.professionalCatalog || defaultCatalog();
+    return clone(normalizeMicrobiotaPresentation(catalog.microbiotaPresentation, true));
+  }
+
+  function saveMicrobiotaPresentation(patch) {
+    patch = patch || {};
+    return updateProfessionalCatalog(function (catalog) {
+      var current = catalog.microbiotaPresentation || defaultMicrobiotaPresentation();
+      catalog.microbiotaPresentation = normalizeMicrobiotaPresentation(
+        Object.assign({}, current, patch),
+        false
+      );
+      catalog.meta = catalog.meta || {};
+      catalog.meta.version = Math.max(catalog.meta.version || 0, 9);
+      return catalog.microbiotaPresentation;
+    });
+  }
+
   function updateAnalysisState(mutator) {
     return commit(function (state) {
       ensureDomainState(state);
@@ -3011,7 +3810,7 @@
 
   function saveReportAssessment(reportId, params, actor) {
     params = params || {};
-    actor = actor || (DEMO_LABEL + ' 审核员');
+    actor = actor || (' 审核员');
     return commit(function (state) {
       var report = findReport(state, reportId);
       if (!report) throw new Error('report not found');
@@ -3040,7 +3839,7 @@
   }
 
   function saveAnalysisFinalContent(reportId, finalContent, actor) {
-    actor = actor || (DEMO_LABEL + ' 审核员');
+    actor = actor || (' 审核员');
     finalContent = finalContent || {};
     return commit(function (state) {
       ensureDomainState(state);
@@ -3062,7 +3861,7 @@
   }
 
   function rejectReportToIncomplete(reportId, reason, actor) {
-    actor = actor || (DEMO_LABEL + ' 审核员');
+    actor = actor || (' 审核员');
     return commit(function (state) {
       var report = findReport(state, reportId);
       if (!report) throw new Error('report not found');
@@ -3074,7 +3873,7 @@
       if (report.todoFlags.indexOf('rejected') < 0) report.todoFlags.push('rejected');
       if (ver) {
         ver.status = 'rejected';
-        ver.rejectReason = reason || (DEMO_LABEL + ' 审核退回待完善');
+        ver.rejectReason = reason || (' 审核退回待完善');
       }
       var tr = findTestRecord(state, report.testRecordId);
       if (tr && tr.status === 'import_failed') {
@@ -3095,7 +3894,7 @@
   }
 
   function reviewCorrectionDraft(reportId, decision, reason, actor) {
-    actor = actor || (DEMO_LABEL + ' 审核员');
+    actor = actor || (' 审核员');
     return commit(function (state) {
       var report = findReport(state, reportId);
       if (!report || !report.correctionDraftActive) throw new Error('no active correction draft');
@@ -3161,6 +3960,7 @@
     TODO_FLAG_LABELS: TODO_FLAG_LABELS,
     DEFAULT_SOURCE_ORG_ID: DEFAULT_SOURCE_ORG_ID,
     getState: getState,
+    peekState: peekState,
     reset: reset,
     subscribe: subscribe,
     registerTest: registerTest,
@@ -3200,6 +4000,27 @@
     updatePlatformUser: updatePlatformUser,
     updateOpsPet: updateOpsPet,
     updateProfessionalCatalog: updateProfessionalCatalog,
+    emptyTaxonEdu: emptyTaxonEdu,
+    normalizeTaxonEdu: normalizeTaxonEdu,
+    migrateLegacyEduFields: migrateLegacyEduFields,
+    saveTaxonEdu: saveTaxonEdu,
+    defaultMicrobiotaPresentation: defaultMicrobiotaPresentation,
+    normalizeMicrobiotaPresentation: normalizeMicrobiotaPresentation,
+    presentationKeyFromStatusClass: presentationKeyFromStatusClass,
+    resolveMicrobiotaSceneStatusWord: resolveMicrobiotaSceneStatusWord,
+    getMicrobiotaPresentation: getMicrobiotaPresentation,
+    saveMicrobiotaPresentation: saveMicrobiotaPresentation,
+    resolveEffectiveRangeForIndicator: function (indicator, species, options) {
+      return resolveEffectiveRangeForIndicator(loadState(), indicator, species, options);
+    },
+    resolveSchemeRangeForIndicator: function (indicator, species) {
+      var state = loadState();
+      var catalog = state.professionalCatalog || defaultCatalog();
+      var entry = findCatalogEntryByKey(state, indicator.key || indicator.rawImportName);
+      return resolveSchemeRangeForIndicator(catalog, indicator, species, entry);
+    },
+    flattenSchemesToPlatformRanges: flattenSchemesToPlatformRanges,
+    schemeHasValidItems: schemeHasValidItems,
     updateAnalysisState: updateAnalysisState,
     saveReportAssessment: saveReportAssessment,
     saveAnalysisFinalContent: saveAnalysisFinalContent,

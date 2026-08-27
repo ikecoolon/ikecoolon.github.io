@@ -220,7 +220,7 @@ function initCustomerManagement() {
         if (formAddress) formAddress.value = user.address || '';
       }
     } else {
-      formTitle.textContent = '登记平台用户（演示）';
+      formTitle.textContent = '登记平台用户';
       customerForm.reset();
       if (formServiceLevel) formServiceLevel.value = 'standard';
       currentEditUserId = null;
@@ -373,7 +373,7 @@ function initCustomerManagement() {
           phone: phone,
           address: formAddress ? formAddress.value.trim() : null
         });
-        C.toast('平台用户已登记（演示）', 'success');
+        C.toast('平台用户已登记', 'success');
       }
       showMainView();
     } catch (err) {

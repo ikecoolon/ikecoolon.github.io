@@ -13,10 +13,6 @@
       .replace(/"/g, '&quot;');
   }
 
-  function renderDemoDisclaimer() {
-    return '<p class="demo-disclaimer">演示呈现，最终位置与样式待甲方确认</p>';
-  }
-
   function renderReportCard(card) {
     var pet = card.petId ? H.findPet(card.petId) : null;
     var petName = pet ? H.stripDemo(pet.name) : '—';
@@ -59,7 +55,6 @@
   function renderHome() {
     var stats = H.countUserStats();
     var html = '<div class="page-shell">';
-    html += '<section class="notice-banner"><i class="fas fa-circle-info"></i> 默认首页待甲方确认</section>';
 
     html += '<section class="hero-card">';
     html += '<div class="hero-text"><h2>宠物肠道健康</h2><p>线下检测 · 线上查看报告</p></div>';
@@ -205,12 +200,6 @@
     html += '<button type="button" class="menu-item" data-nav="claim"><i class="fas fa-gift"></i><span>领取</span><i class="fas fa-chevron-right"></i></button>';
     html += '</div></section>';
 
-    html += '<section class="section-block">';
-    html += '<button type="button" class="btn-danger-outline" id="reset-demo-btn"><i class="fas fa-rotate-left"></i> 重置演示数据</button>';
-    html += '<p class="hint-text">重置后将恢复种子数据，认领与本地修改将清除。</p>';
-    html += '</section>';
-
-    html += '<footer class="disclaimer">' + esc(H.stripDemo(H.getState().meta.disclaimer)) + '</footer>';
     html += '</div>';
     return html;
   }
@@ -247,43 +236,64 @@
 
     html += '<section class="section-block">';
     html += '<div class="section-head"><h3>领取检测</h3></div>';
-    html += '<p class="hint-text">输入门店提供的认领码，或模拟扫码选择演示码。</p>';
+    html += '<p class="hint-text">输入门店提供的认领码，或使用扫码识别</p>';
     html += '<div class="field"><label for="claim-code">认领码</label>';
     html += '<input class="input" id="claim-code" placeholder="请输入认领码" value="' + esc(pendingCode) + '" /></div>';
     html += '<div id="claim-message" class="form-message" hidden></div>';
     html += '<button type="button" class="btn-primary" id="claim-preview-btn">下一步</button>';
-    html += '</section>';
-
     if (pendingClaims.length) {
-      html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>模拟扫码</h3></div>';
-      pendingClaims.forEach(function (claim) {
-        var preview = H.previewClaimCode(claim.code);
-        if (!preview) return;
-        html += '<button type="button" class="demo-btn claim-scan-btn" data-claim-code="' + esc(claim.code) + '">';
-        html += '<div class="demo-btn-title">' + esc(preview.petName) + ' · ' + esc(preview.title) + '</div>';
-        html += '<div class="demo-btn-desc">认领码 ' + esc(claim.code) + ' · ' + esc(H.formatDate(preview.testDate)) + '</div>';
-        html += '</button>';
-      });
-      html += '</section>';
+      html += '<button type="button" class="btn-secondary claim-scan-btn"><i class="fas fa-qrcode"></i> 扫码识别</button>';
     }
+    html += '</section>';
 
     html += '</div>';
     return { html: html, step: 'input', code: pendingCode };
   }
 
-  function renderEcoScene(theme, pet) {
-    var petIcon = pet ? H.petSpeciesIcon(pet) : 'fa-paw';
-    return '<div class="eco-scene" aria-hidden="true">' +
-      '<div class="eco-layer eco-sky"></div>' +
-      '<div class="eco-layer eco-back-hills"></div>' +
-      '<div class="eco-layer eco-mid-trees"></div>' +
-      '<div class="eco-layer eco-front-ground"></div>' +
-      '<div class="eco-pet"><i class="fas ' + petIcon + '"></i></div>' +
-      '<div class="eco-microbe eco-microbe-a"><i class="fas fa-bacteria"></i></div>' +
-      '<div class="eco-microbe eco-microbe-b"><i class="fas fa-virus"></i></div>' +
-      '<div class="eco-microbe eco-microbe-c"><i class="fas fa-circle-dot"></i></div>' +
-      '</div>';
+  var HERO_PILL_KEYS = ['alpha-diversity', 'evenness', 'richness'];
+  var ORB_ICONS = ['fa-sun', 'fa-tree', 'fa-leaf', 'fa-cloud'];
+  var PHYLUM_ACCENT = {
+    '放线菌门': 'accent-green',
+    '拟杆菌门': 'accent-teal',
+    '厚壁菌门': 'accent-rose',
+    '梭杆菌门': 'accent-olive',
+    '变形菌门': 'accent-plum'
+  };
+
+  function greetingName() {
+    var user = H.getCurrentUser();
+    return H.stripDemo(user && user.name ? user.name : '你好');
+  }
+
+  function speciesNoun(species) {
+    return species === 'dog' ? '狗狗' : '猫咪';
+  }
+
+  function dimTag(score) {
+    if (score == null || score === '') return null;
+    var n = Number(score);
+    if (n >= 70) return { text: '强健', cls: 'qual-strong' };
+    if (n >= 40) return { text: '中等', cls: 'qual-mid' };
+    return { text: '偏弱', cls: 'qual-weak' };
+  }
+
+  function prettyNum(value) {
+    var n = Number(value);
+    if (isNaN(n)) return value == null ? '—' : String(value);
+    if (Math.abs(n - Math.round(n)) < 0.05) return String(Math.round(n));
+    return n.toFixed(1);
+  }
+
+  function clampPct(n) {
+    var x = Number(n);
+    if (isNaN(x)) return 0;
+    return Math.max(0, Math.min(100, x));
+  }
+
+  function displayName(item) {
+    if (!item) return '';
+    var label = item.label || item.key || '';
+    return String(label).replace(/属$/, '');
   }
 
   function renderIndicatorRow(ind, finding, species, options) {
@@ -341,31 +351,267 @@
     return html;
   }
 
-  function renderBenchmarkSection(reportId, indicators, species) {
-    var items = indicators.filter(function (ind) {
-      return H.getDemoBenchmark(reportId, ind.key);
-    });
-    if (!items.length) return '';
-    var html = '<section class="report-panel benchmark-panel">';
-    html += '<div class="section-head"><h3>理想菌群对比</h3>';
-    html += '<span class="temp-badge">演示临时基准</span></div>';
-    items.forEach(function (ind) {
-      var bench = H.getDemoBenchmark(reportId, ind.key);
-      var pres = H.evaluateIndicatorPresentation(ind, null, species);
+  function renderCompareRows(entries, species) {
+    var html = '';
+    entries.forEach(function (entry) {
+      var ind = entry.indicator;
+      if (!ind || !H.shouldShowIndicator(ind)) return;
+      var pres = entry.presentation || H.evaluateIndicatorPresentation(ind, entry.finding, species);
       if (!pres.showValue) return;
-      var actual = Number(ind.value);
-      var diff = actual - bench.ideal;
-      var diffText = (diff >= 0 ? '+' : '') + diff.toFixed(1) + bench.unit;
-      html += '<div class="benchmark-row">';
-      html += '<div class="benchmark-name">' + esc(H.getIndicatorLabel(ind.key)) + '</div>';
-      html += '<div class="benchmark-bars">';
-      html += '<div class="benchmark-bar actual"><span>本次 ' + esc(pres.valueText) + '</span><em style="width:' + Math.min(100, actual) + '%"></em></div>';
-      html += '<div class="benchmark-bar ideal"><span>基准 ' + bench.ideal + bench.unit + '</span><em style="width:' + Math.min(100, bench.ideal) + '%"></em></div>';
+      var range = H.resolveIndicatorRange(ind, species);
+      var value = clampPct(ind.value);
+      var out = pres.statusClass === 'status-high' || pres.statusClass === 'status-low';
+      var min = range && range.min != null ? clampPct(range.min) : 0;
+      var max = range && range.max != null ? clampPct(range.max) : 0;
+      var bandWidth = range ? Math.max(2, max - min) : 0;
+      html += '<div class="cmp-row">';
+      html += '<div class="cmp-side is-range">';
+      html += '<div class="cmp-track">';
+      if (range) {
+        html += '<span class="cmp-band" style="right:' + min + '%;width:' + bandWidth + '%"></span>';
+      }
+      html += '</div></div>';
+      html += '<div class="cmp-name">' + esc(displayName(entry.taxon || { label: H.getIndicatorLabel(ind.key) })) + '</div>';
+      html += '<div class="cmp-side is-actual">';
+      html += '<div class="cmp-track">';
+      html += '<span class="cmp-bar' + (out ? ' is-out' : '') + '" style="width:' + value + '%"></span>';
+      html += '</div></div></div>';
+    });
+    return html;
+  }
+
+  function renderCompareSection(tree, petName, species) {
+    var phylumEntries = tree.filter(function (n) { return n.hasResult; }).map(function (n) {
+      return { taxon: n.taxon, indicator: n.indicator, finding: n.finding, presentation: n.presentation };
+    });
+    var genusEntries = [];
+    tree.forEach(function (n) {
+      n.genusResults.forEach(function (g) {
+        genusEntries.push({ taxon: g.taxon, indicator: g.indicator, finding: g.finding, presentation: g.presentation });
+      });
+    });
+    if (!phylumEntries.length && !genusEntries.length) return '';
+
+    var html = '<section class="sheet-block compare-block">';
+    html += '<div class="sheet-head">';
+    html += '<h3>微生物组对比</h3>';
+    html += '<p>理想菌群组合 VS ' + esc(petName) + '</p>';
+    html += '</div>';
+    html += '<div class="seg-tabs" role="tablist">';
+    html += '<button type="button" class="seg-tab active" data-compare-tab="phylum">「门」检测数值</button>';
+    html += '<button type="button" class="seg-tab" data-compare-tab="genus">「属」检测数值</button>';
+    html += '</div>';
+    html += '<div class="cmp-card" data-compare-panel="phylum">';
+    html += '<div class="cmp-cols"><span>门（正常范围）</span><span>' + esc(petName) + '</span></div>';
+    html += renderCompareRows(phylumEntries, species);
+    html += '<div class="cmp-axis"><span>100%</span><span>0%</span><span>0%</span><span>100%</span></div>';
+    html += '</div>';
+    html += '<div class="cmp-card" data-compare-panel="genus" hidden>';
+    html += '<div class="cmp-cols"><span>属（正常范围）</span><span>' + esc(petName) + '</span></div>';
+    html += renderCompareRows(genusEntries, species);
+    html += '<div class="cmp-axis"><span>100%</span><span>0%</span><span>0%</span><span>100%</span></div>';
+    html += '</div></section>';
+    return html;
+  }
+
+  function renderAdvicePair(node, reportId) {
+    var analysis = node.finding ? H.stripDemo(node.finding.professional || node.finding.description) : '';
+    var advice = node.finding ? H.stripDemo(node.finding.consumer) : '';
+    var rec = node.finding ? H.getFindingRecommendation(node.finding.id) : null;
+    var recHtml = '';
+    if (rec) {
+      recHtml = '<button type="button" class="text-link" data-nav="recommendation-target" data-rec-id="' + esc(rec.id) + '">查看相关建议</button>';
+    }
+    if (!analysis && !advice && !recHtml) return '';
+
+    if (analysis && (advice || recHtml)) {
+      var html = '<div class="advice-tabs">';
+      html += '<button type="button" class="advice-tab" data-advice-tab="analysis"><i class="fas fa-clock-rotate-left"></i> 分析</button>';
+      html += '<button type="button" class="advice-tab active" data-advice-tab="advice"><i class="fas fa-lightbulb"></i> 总体建议</button>';
       html += '</div>';
-      html += '<div class="benchmark-diff">' + esc(diffText) + '</div>';
+      html += '<div class="advice-panel" data-advice-panel="analysis" hidden>';
+      html += '<p>' + esc(analysis) + '</p></div>';
+      html += '<div class="advice-panel" data-advice-panel="advice">';
+      if (advice) html += '<p>' + esc(advice) + '</p>';
+      html += recHtml;
+      html += '</div>';
+      return html;
+    }
+
+    if (analysis) {
+      return '<div class="advice-panel" data-advice-panel="analysis">' +
+        '<p class="advice-single-label"><i class="fas fa-clock-rotate-left"></i> 分析</p>' +
+        '<p>' + esc(analysis) + '</p></div>';
+    }
+
+    var adviceHtml = '<div class="advice-panel" data-advice-panel="advice">';
+    adviceHtml += '<p class="advice-single-label"><i class="fas fa-lightbulb"></i> 总体建议</p>';
+    if (advice) adviceHtml += '<p>' + esc(advice) + '</p>';
+    adviceHtml += recHtml;
+    adviceHtml += '</div>';
+    return adviceHtml;
+  }
+
+  function renderPhylumPanels(tree, petName, theme, species, reportId) {
+    if (!tree.length) return '';
+    var html = '<section class="sheet-block phylum-block">';
+    html += '<div class="phylum-tabs" role="tablist">';
+    tree.forEach(function (node, idx) {
+      var accent = PHYLUM_ACCENT[node.taxon.key] || 'accent-teal';
+      html += '<button type="button" class="phylum-tab ' + accent + (idx === 0 ? ' active' : '') + '" data-phylum-tab="' + esc(node.taxon.key) + '">' +
+        esc(node.taxon.label) + '</button>';
+    });
+    html += '</div>';
+
+    tree.forEach(function (node, idx) {
+      var accent = PHYLUM_ACCENT[node.taxon.key] || 'accent-teal';
+      var packed = H.getTaxonEdu(node.taxon.key);
+      var edu = packed ? packed.edu : H.emptyTaxonEdu();
+      var latinName = packed && packed.latinName ? packed.latinName : '';
+      var sceneCopy = String(edu.sceneCopy || '').trim();
+      var genera = node.genusResults;
+      html += '<div class="phylum-panel" data-phylum-panel="' + esc(node.taxon.key) + '"' + (idx === 0 ? '' : ' hidden') + '>';
+      html += '<div class="phylum-hero ' + accent + '">';
+      html += '<div class="phylum-mark"><i class="fas fa-bacteria"></i></div>';
+      html += '<div class="phylum-hero-main">';
+      html += '<div class="phylum-hero-name">' + esc(node.taxon.label);
+      if (latinName) html += ' <span class="phylum-latin">(' + esc(latinName) + ')</span>';
+      html += ' <button type="button" class="icon-q" data-open-know="intro" data-know-key="' + esc(node.taxon.key) + '"' +
+        ' aria-label="了解' + esc(node.taxon.label) + '">?</button></div>';
+      var valueAlert = node.presentation && (node.presentation.statusClass === 'status-high' || node.presentation.statusClass === 'status-low');
+      html += '<div class="phylum-hero-value' + (valueAlert ? ' is-alert' : '') + '">' + esc(prettyNum(node.indicator && node.indicator.value)) + '<small>%</small></div>';
+      if (node.presentation && node.presentation.rangeText) {
+        html += '<div class="phylum-hero-range">正常范围: ' + esc(node.presentation.rangeText.replace(/%/g, '')) + '%</div>';
+      }
+      html += '</div></div>';
+
+      if (sceneCopy) {
+        var story = H.buildMicrobiotaStorySentence({
+          petName: petName,
+          themeName: theme.name,
+          sceneCopy: sceneCopy,
+          taxonLabel: node.taxon.label,
+          statusClass: node.presentation && node.presentation.statusClass
+        });
+        if (story) {
+          html += '<div class="story-card ' + accent + '">';
+          html += '<p>' + esc(story) + '</p>';
+          html += '</div>';
+        }
+      }
+
+      html += '<div class="phylum-edu-actions">';
+      html += '<button type="button" class="text-link" data-open-know="genera" data-know-key="' + esc(node.taxon.key) + '">包含哪些属</button>';
+      html += '</div>';
+
+      if (genera.length) {
+        html += '<h4 class="genus-heading">' + esc(node.taxon.label) + '中属的分析：</h4>';
+        html += '<div class="genus-pills">';
+        genera.forEach(function (g, gi) {
+          html += '<button type="button" class="genus-pill' + (gi === 0 ? ' active' : '') + '" data-genus-tab="' + esc(g.taxon.key) + '">' +
+            esc(displayName(g.taxon)) +
+            ' <span class="icon-q" data-open-know="genus" data-know-key="' + esc(g.taxon.key) + '"' +
+            ' role="button" aria-label="了解' + esc(displayName(g.taxon)) + '">?</span></button>';
+        });
+        html += '</div>';
+        genera.forEach(function (g, gi) {
+          var gPacked = H.getTaxonEdu(g.taxon.key);
+          var gEdu = gPacked ? gPacked.edu : H.emptyTaxonEdu();
+          var gKnowledge = String(gEdu.knowledgeText || '').trim();
+          html += '<div class="genus-card" data-genus-panel="' + esc(g.taxon.key) + '"' + (gi === 0 ? '' : ' hidden') + '>';
+          html += '<div class="genus-value-row">';
+          html += '<span>检测值: <strong>' + esc(prettyNum(g.indicator && g.indicator.value)) + '%</strong></span>';
+          if (g.presentation && g.presentation.rangeText) {
+            html += '<span class="muted">（正常范围: ' + esc(g.presentation.rangeText.replace(/%/g, '')) + '%）</span>';
+          }
+          html += '</div>';
+          if (gKnowledge) html += '<p>' + esc(gKnowledge) + '</p>';
+          html += '<button type="button" class="text-link" data-open-know="genus" data-know-key="' + esc(g.taxon.key) + '">了解这个属</button>';
+          html += '</div>';
+        });
+      }
+
+      html += renderAdvicePair(node, reportId);
       html += '</div>';
     });
+
     html += '</section>';
+    return html;
+  }
+
+  function renderReportHero(theme, pet, version, overlay, partitioned, tree, species) {
+    var level = version.healthLevel || 'C';
+    var petName = pet ? H.stripDemo(pet.name) : 'TA';
+    var pills = HERO_PILL_KEYS.map(function (key) {
+      return partitioned.regular.find(function (ind) { return ind.key === key; }) ||
+        partitioned.microbiota.find(function (ind) { return ind.key === key; });
+    }).filter(Boolean);
+    var orbs = tree.slice(0, 4);
+    var dims = overlay.dimensions || [];
+    var emotion = dims.find(function (d) { return d.key === 'emotion'; });
+    var immunity = dims.find(function (d) { return d.key === 'immunity'; });
+    var percentile = overlay.percentile != null ? overlay.percentile : version.percentile;
+    var html = '<section class="report-hero">';
+    html += '<div class="hero-copy">';
+    html += '<p class="hero-hi">Hi, ' + esc(greetingName()) + '</p>';
+    html += '<p class="hero-grade">TA的健康综合评分 <strong>' + esc(level) + '等</strong> (' + esc(theme.name) + ')';
+    html += ' <button type="button" class="icon-q on-dark" data-open-grade-info aria-label="等级说明">i</button></p>';
+    html += '</div>';
+
+    if (pills.length) {
+      html += '<div class="hero-pills">';
+      pills.forEach(function (ind) {
+        html += '<div class="hero-pill"><span class="hero-pill-num">' + esc(prettyNum(ind.value)) + '</span>';
+        html += '<span class="hero-pill-label">' + esc(H.getIndicatorLabel(ind.key)) + '</span></div>';
+      });
+      html += '</div>';
+    }
+
+    html += '<div class="hero-scene" aria-hidden="true">';
+    html += '<div class="scene-glow"></div>';
+    html += '<div class="scene-ground"></div>';
+    html += '<div class="scene-pet"><i class="fas ' + (pet ? H.petSpeciesIcon(pet) : 'fa-paw') + '"></i></div>';
+    orbs.forEach(function (node, idx) {
+      var pres = node.presentation;
+      var shortTag = '';
+      if (pres && pres.statusClass === 'status-high') shortTag = '偏高';
+      else if (pres && pres.statusClass === 'status-low') shortTag = '偏低';
+      html += '<div class="scene-orb orb-' + idx + '">';
+      html += '<i class="fas ' + ORB_ICONS[idx % ORB_ICONS.length] + '"></i>';
+      html += '<em>' + esc(prettyNum(node.indicator && node.indicator.value)) + '</em>';
+      if (shortTag) html += '<span class="orb-tag' + (shortTag === '偏低' ? ' is-low' : '') + '">' + esc(shortTag) + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+
+    html += '<div class="hero-dims">';
+    if (emotion) {
+      var eTag = dimTag(emotion.score);
+      html += '<div class="dim-card"><span class="dim-kicker">情绪</span><strong>' + esc(prettyNum(emotion.score)) + '</strong>';
+      if (eTag) html += '<span class="qual-tag ' + eTag.cls + '">' + esc(eTag.text) + '</span>';
+      html += '</div>';
+    }
+    if (immunity) {
+      var iTag = dimTag(immunity.score);
+      html += '<div class="dim-card"><span class="dim-kicker">免疫</span><strong>' + esc(prettyNum(immunity.score)) + '</strong>';
+      if (iTag) html += '<span class="qual-tag ' + iTag.cls + '">' + esc(iTag.text) + '</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+
+    if (percentile != null && percentile !== '') {
+      html += '<div class="hero-percentile">优于 <strong>' + esc(prettyNum(percentile)) + '%</strong> 的' + esc(speciesNoun(species)) + '</div>';
+    }
+
+    html += '<button type="button" class="hero-more" data-scroll-target="report-sheet">详细 <i class="fas fa-chevron-down"></i></button>';
+    html += '</section>';
+
+    html += '<div class="grade-info-layer" id="grade-info-layer" hidden>';
+    html += '<div class="know-card">';
+    html += '<button type="button" class="know-close" data-close-grade-info aria-label="关闭">×</button>';
+    html += '<h3>综合等级</h3>';
+    html += '<p>A 雨林 · B 森林 · C 草原 · D 苔藓 · E 沙漠。等级由审核填写，只决定报告主题，不与综合分强制对应。</p>';
+    html += '</div></div>';
     return html;
   }
 
@@ -377,9 +623,7 @@
 
     var report = ctx.report;
     var version = ctx.version;
-    var verNum = ctx.verNum;
     var pet = H.findPet(report.petId);
-    var tr = H.findTestRecord(report.testRecordId);
     var species = H.getReportSpecies(report.id);
     var level = version.healthLevel || 'C';
     var theme = H.getThemeConfig(level);
@@ -389,109 +633,31 @@
       summaryItems: [],
       benchmarks: {}
     };
-    var partitioned = H.partitionReportIndicators(report.id, verNum);
-    var microbiotaTree = H.buildMicrobiotaTree(report.id, verNum);
-    var findings = H.getReportFindings(report.id, verNum);
+    var partitioned = H.partitionReportIndicators(report.id, ctx.verNum);
+    var microbiotaTree = H.buildMicrobiotaTree(report.id, ctx.verNum);
+    var petName = pet ? H.stripDemo(pet.name) : 'TA';
 
-    var html = '<div class="page-shell report-reading ' + esc(theme.sceneClass) + '">';
+    var html = '<div class="report-reading ' + esc(theme.sceneClass) + '" data-report-theme="' + esc(theme.sceneClass) + '">';
+    html += renderReportHero(theme, pet, version, overlay, partitioned, microbiotaTree, species);
+    html += '<div class="report-sheet" id="report-sheet">';
+    html += renderCompareSection(microbiotaTree, petName, species);
+    html += renderPhylumPanels(microbiotaTree, petName, theme, species, report.id);
 
-    html += '<section class="report-eco-hero ' + esc(theme.sceneClass) + '">';
-    html += renderEcoScene(theme, pet);
-    html += '<div class="eco-overlay">';
-    html += '<div class="eco-grade-badge">' + esc(level) + '</div>';
-    html += '<div class="eco-meta">';
-    html += '<h2 class="report-title">' + esc(H.stripDemo(report.reportNumber)) + '</h2>';
-    html += '<div class="eco-theme-label"><i class="fas ' + theme.icon + '"></i> ' + esc(theme.name) + '</div>';
-    html += '<div class="info-sub">' + esc(pet ? H.stripDemo(pet.name) : '—') + ' · ' + esc(H.formatDate(tr ? tr.testDate : null)) + '</div>';
-    html += '</div></div></section>';
-
-    html += '<section class="report-panel score-panel">';
-    html += '<div class="score-grid">';
-    if (version.healthScore != null) {
-      html += '<div class="score-item"><span class="score-num">' + esc(String(version.healthScore)) + '</span><span class="score-label">综合分</span></div>';
-    }
-    html += '<div class="score-item"><span class="score-num">' + esc(String(overlay.percentile != null ? overlay.percentile : '—')) + (overlay.percentile != null ? '<small>%</small>' : '') + '</span>';
-    html += '<span class="score-label">百分位 <em class="temp-label">临时展示</em></span></div>';
-    html += '<div class="score-item"><span class="score-num grade-inline">' + esc(level) + '</span><span class="score-label">健康等级</span></div>';
-    html += '</div></section>';
-
-    if (overlay.dimensions && overlay.dimensions.length) {
-      html += '<section class="report-panel dimensions-panel">';
-      html += '<div class="section-head"><h3>平台评估维度</h3><span class="temp-badge">临时展示</span></div>';
-      html += '<div class="dimension-grid">';
-      overlay.dimensions.forEach(function (dim) {
-        html += '<div class="dimension-item">';
-        html += '<div class="dimension-ring" style="--dim-score:' + dim.score + '"><span>' + dim.score + '</span></div>';
-        html += '<div class="dimension-label">' + esc(dim.label) + '</div>';
-        html += '</div>';
-      });
-      html += '</div></section>';
-    }
-
-    var summary = H.stripDemo(version.summary);
-    if (summary) {
-      html += '<section class="report-panel"><div class="section-head"><h3>整体解读</h3></div>';
-      html += '<p class="body-text">' + esc(summary) + '</p></section>';
-    }
-
-    if (overlay.summaryItems && overlay.summaryItems.length) {
-      html += '<section class="report-panel summary-trio">';
-      html += '<div class="section-head"><h3>要点速览</h3><span class="temp-badge">临时展示</span></div>';
-      html += '<div class="trio-list">';
-      overlay.summaryItems.forEach(function (item) {
-        html += '<div class="trio-item"><i class="fas ' + esc(item.icon) + '"></i><span>' + esc(item.text) + '</span></div>';
-      });
-      html += '</div></section>';
-    }
-
-    if (partitioned.regular.length) {
-      html += '<section class="report-panel">';
-      html += '<div class="section-head"><h3>普通指标</h3>';
-      html += '<button type="button" class="text-link" data-nav="metrics" data-report-id="' + esc(report.id) + '">全部</button></div>';
-      partitioned.regular.forEach(function (ind) {
-        var finding = findings.find(function (f) { return f.indicatorKey === ind.key; });
-        html += renderIndicatorRow(ind, finding, species, { navigable: true });
-      });
+    var recs = H.getReportRecommendations(report.id);
+    if (recs.length) {
+      html += '<section class="sheet-block">';
+      html += '<div class="sheet-head"><h3>健康建议与商品</h3></div>';
+      html += '<button type="button" class="btn-primary" data-nav="recommendations" data-report-id="' + esc(report.id) + '">查看全部建议</button>';
       html += '</section>';
     }
 
-    if (microbiotaTree.length) {
-      html += '<section class="report-panel microbiota-panel">';
-      html += '<div class="section-head"><h3>菌群门级</h3>';
-      html += '<button type="button" class="text-link" data-nav="metrics" data-report-id="' + esc(report.id) + '">浏览</button></div>';
-      microbiotaTree.forEach(function (node) {
-        html += renderMicrobiotaNode(node, report.id, species);
-      });
-      html += '</section>';
-    }
-
-    html += renderBenchmarkSection(report.id, partitioned.microbiota.concat(partitioned.regular), species);
-
-    var validFindings = findings.filter(function (f) {
-      return f.dataStatus === 'NOT_DETECTED' || !H.isInvalidDataStatus(f.dataStatus);
-    });
-    if (validFindings.length) {
-      html += '<section class="report-panel">';
-      html += '<div class="section-head"><h3>重点发现</h3></div>';
-      validFindings.forEach(function (f) {
-        var invalid = H.isInvalidDataStatus(f.dataStatus) && f.dataStatus !== 'NOT_DETECTED';
-        html += '<button type="button" class="finding-card actionable" data-nav="finding" data-finding-id="' + esc(f.id) + '">';
-        html += '<div class="finding-card-main">';
-        html += '<div class="list-title">' + esc(H.getIndicatorLabel(f.indicatorKey)) + '</div>';
-        html += '<div class="list-sub">' + esc(H.stripDemo(f.description)) + '</div>';
-        html += '</div>';
-        if (f.dataStatus === 'NOT_DETECTED') {
-          html += '<span class="badge status-not-detected">未检出</span>';
-        } else if (invalid) {
-          html += '<span class="badge badge-invalid">' + esc(H.dataStatusLabel(f.dataStatus)) + '</span>';
-        } else {
-          html += '<span class="badge ' + H.conclusionClass(f.conclusion) + '">' + esc(H.conclusionLabel(f.conclusion)) + '</span>';
-        }
-        html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
-      });
-      html += '</section>';
-    }
-
+    html += '</div>';
+    html += '<div class="know-layer" id="report-know" hidden>';
+    html += '<div class="know-card">';
+    html += '<button type="button" class="know-close" data-close-know aria-label="关闭">×</button>';
+    html += '<h3 id="know-title"></h3>';
+    html += '<div id="know-body"></div>';
+    html += '</div></div>';
     html += '</div>';
     return html;
   }
@@ -563,7 +729,6 @@
     html += '</section>';
 
     var consumerText = finding ? H.stripDemo(finding.consumer) : null;
-    if (!consumerText && detailCtx.knowledge) consumerText = detailCtx.knowledge;
     if (consumerText) {
       html += '<section class="report-panel">';
       html += '<div class="section-head"><h3>通俗解释</h3></div>';
@@ -582,19 +747,6 @@
       html += '<p class="body-text">' + esc(detailCtx.knowledge) + '</p></section>';
     }
 
-    var bench = H.getDemoBenchmark(report.id, indicator.key);
-    if (bench && pres.showValue) {
-      html += '<section class="report-panel benchmark-panel">';
-      html += '<div class="section-head"><h3>单报告对比</h3><span class="temp-badge">演示临时基准</span></div>';
-      var actual = Number(indicator.value);
-      var diff = actual - bench.ideal;
-      html += '<div class="benchmark-inline">';
-      html += '<div><strong>本次</strong> ' + esc(pres.valueText) + '</div>';
-      html += '<div><strong>基准</strong> ' + bench.ideal + bench.unit + '</div>';
-      html += '<div><strong>差值</strong> ' + (diff >= 0 ? '+' : '') + diff.toFixed(1) + bench.unit + '</div>';
-      html += '</div></section>';
-    }
-
     if (rec) {
       var display = H.resolveRecDisplay(rec);
       html += '<section class="report-panel advice-panel">';
@@ -603,15 +755,10 @@
       if (display.reason && display.reason !== display.label) {
         html += '<p class="hint-text">' + esc(display.reason) + '</p>';
       }
-      html += renderDemoDisclaimer();
       if (!H.isInvalidDataStatus(finding.dataStatus)) {
         html += '<button type="button" class="btn-primary" data-nav="recommendation-target" data-rec-id="' + esc(rec.id) + '">查看相关建议</button>';
       }
       html += '</section>';
-    } else if (finding && H.stripDemo(finding.consumer) && !rec) {
-      html += '<section class="report-panel advice-panel">';
-      html += '<div class="section-head"><h3>健康建议</h3></div>';
-      html += '<p class="body-text">建议关注饮食与作息，必要时咨询专业兽医。</p></section>';
     }
 
     html += '</div>';
@@ -656,7 +803,6 @@
       html += '</section>';
     }
 
-    html += renderBenchmarkSection(ctx.report.id, partitioned.microbiota.concat(partitioned.regular), species);
     html += '</div>';
     return html;
   }
@@ -698,7 +844,6 @@
       html += '</div>';
     });
 
-    html += renderDemoDisclaimer();
     html += '</section></div>';
     return html;
   }
@@ -741,7 +886,6 @@
     } else if (rec.findingId) {
       html += '<p class="hint-text">关联发现：' + esc(rec.findingId) + '（快照中无详细发现，已展示冻结建议）</p>';
     }
-    html += renderDemoDisclaimer();
     html += '</section>';
 
     if (display.resolvedType === 'PRODUCT' && display.product) {
@@ -754,7 +898,6 @@
       html += '<span class="hint-text">库存 ' + esc(String(display.product.stock != null ? display.product.stock : '—')) + '</span>';
       html += '</div>';
       html += '<button type="button" class="btn-secondary" data-nav="spu-detail" data-product-id="' + esc(display.product.id) + '">查看 SPU 详情</button>';
-      html += '<p class="hint-text">演示环境不展示价格与购买入口</p>';
       html += '</section>';
     } else if (display.resolvedType === 'TAG_CANDIDATE' && display.candidates.length) {
       html += '<section class="section-block">';
@@ -776,7 +919,7 @@
       html += '<section class="section-block">';
       html += '<div class="section-head"><h3>商品推荐</h3></div>';
       html += '<div class="advice-card"><i class="fas fa-heart-pulse"></i>';
-      html += '<p>当前无可用商品展示，请优先参考上方健康建议。演示环境无购买入口。</p></div>';
+      html += '<p>当前暂无可用商品，请优先参考健康建议</p></div>';
       if (display.downgradePath && display.downgradePath.length) {
         html += '<p class="hint-text">' + esc(display.downgradePath.join(' → ')) + '</p>';
       }
@@ -806,8 +949,6 @@
     html += '<div><dt>库存</dt><dd>' + esc(String(product.stock != null ? product.stock : '—')) + '</dd></div>';
     html += '<div><dt>可售</dt><dd>' + esc(product.available ? '是' : '否') + '</dd></div>';
     html += '</dl>';
-    html += renderDemoDisclaimer();
-    html += '<p class="hint-text">演示环境不展示价格、规格与购买入口</p>';
     html += '</section>';
     html += '</div>';
     return html;

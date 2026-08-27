@@ -1,5 +1,6 @@
 function initReportReview() {
   var C = window.PetAdminCommon;
+  var HEALTH_LEVEL_THEMES = { A: '雨林', B: '森林', C: '草原', D: '苔藓', E: '沙漠' };
   var store = C.store();
   var ds = window.dictionaryDataService;
   var route = C.parseRoute();
@@ -31,7 +32,7 @@ function initReportReview() {
   render(store.getState());
 
   function actorLabel() {
-    return (store.DEMO_LABEL || '[演示 Mock]') + ' 审核员';
+    return '审核员';
   }
 
   function collectAssessmentFromForm() {
@@ -302,7 +303,7 @@ function initReportReview() {
       '<div><label class="text-xs text-slate-500">综合等级 A–E</label>' +
       '<select id="assess-level" class="w-full border rounded px-2 py-1 mt-0.5">' +
       '<option value="">—</option>' + C.HEALTH_LEVELS.map(function (lv) {
-        return '<option value="' + lv + '"' + (workVer && workVer.healthLevel === lv ? ' selected' : '') + '>' + lv + '</option>';
+        return '<option value="' + lv + '"' + (workVer && workVer.healthLevel === lv ? ' selected' : '') + '>' + lv + ' ' + (HEALTH_LEVEL_THEMES[lv] || '') + '</option>';
       }).join('') + '</select></div>' +
       '<div><label class="text-xs text-slate-500">综合分 0–100</label>' +
       '<input id="assess-score" type="number" min="0" max="100" class="w-full border rounded px-2 py-1 mt-0.5" value="' +

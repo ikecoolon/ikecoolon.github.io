@@ -27,6 +27,9 @@
   var navTitle = null;
   var backButton = null;
   var tabBar = null;
+  var navBar = null;
+  var statusBar = null;
+  var frame = null;
   var tabItems = [];
   var pageContainer = null;
   var unsubscribe = null;
@@ -88,12 +91,259 @@
 
   function updateChrome(route) {
     var main = isMainPage(route.page);
-    navTitle.textContent = PAGE_TITLES[route.page] || 'PET 小程序';
+    var immersive = route.page === 'report';
+    navTitle.textContent = immersive ? '' : (PAGE_TITLES[route.page] || 'PET 小程序');
     backButton.classList.toggle('hidden', main);
     tabBar.classList.toggle('hidden', !main);
     pageContainer.classList.toggle('main-tab', main);
     pageContainer.classList.toggle('sub-page', !main);
+    if (frame) {
+      if (!immersive) {
+        frame.classList.remove('is-immersive');
+        frame.removeAttribute('data-report-theme');
+      }
+    }
     if (main) setActiveTab(route.page);
+  }
+
+  function applyImmersiveTheme() {
+    if (!frame) return;
+    var reading = pageContainer.querySelector('.report-reading');
+    if (!reading) {
+      frame.classList.remove('is-immersive');
+      frame.removeAttribute('data-report-theme');
+      frame.querySelectorAll('.know-layer, .grade-info-layer').forEach(function (el) { el.remove(); });
+      return;
+    }
+    frame.classList.add('is-immersive');
+    frame.setAttribute('data-report-theme', reading.getAttribute('data-report-theme') || '');
+  }
+
+  function bindReportSurface(route) {
+    var root = pageContainer.querySelector('.report-reading');
+    if (!root) return;
+
+    function activate(scope, btnSel, keyAttr, panelSel, panelAttr, key) {
+      scope.querySelectorAll(btnSel).forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute(keyAttr) === key);
+      });
+      scope.querySelectorAll(panelSel).forEach(function (panel) {
+        panel.hidden = panel.getAttribute(panelAttr) !== key;
+      });
+    }
+
+    root.querySelectorAll('[data-compare-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var block = btn.closest('.compare-block') || root;
+        activate(block, '[data-compare-tab]', 'data-compare-tab', '[data-compare-panel]', 'data-compare-panel', btn.getAttribute('data-compare-tab'));
+      });
+    });
+
+    root.querySelectorAll('[data-phylum-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var block = btn.closest('.phylum-block') || root;
+        activate(block, '[data-phylum-tab]', 'data-phylum-tab', '[data-phylum-panel]', 'data-phylum-panel', btn.getAttribute('data-phylum-tab'));
+      });
+    });
+
+    root.querySelectorAll('[data-genus-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var panel = btn.closest('.phylum-panel') || root;
+        activate(panel, '[data-genus-tab]', 'data-genus-tab', '[data-genus-panel]', 'data-genus-panel', btn.getAttribute('data-genus-tab'));
+      });
+    });
+
+    root.querySelectorAll('[data-advice-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var panel = btn.closest('.phylum-panel') || root;
+        activate(panel, '[data-advice-tab]', 'data-advice-tab', '[data-advice-panel]', 'data-advice-panel', btn.getAttribute('data-advice-tab'));
+      });
+    });
+
+    var know = document.getElementById('report-know');
+    var knowTitle = document.getElementById('know-title');
+    var knowBody = document.getElementById('know-body');
+    var knowCarousel = null;
+    if (know) (frame || pageContainer).appendChild(know);
+
+    function reportThemeContext() {
+      var ctx = H.getPublishedReportContext(route.id);
+      var pet = ctx && ctx.report ? H.findPet(ctx.report.petId) : null;
+      var level = ctx && ctx.version && ctx.version.healthLevel ? ctx.version.healthLevel : 'C';
+      return {
+        pet: pet ? H.stripDemo(pet.name) : 'TA',
+        theme: H.getThemeConfig(level).name
+      };
+    }
+
+    function knowFillVars(packed) {
+      var themeCtx = reportThemeContext();
+      var detail = packed && packed.taxon && route.id
+        ? H.getIndicatorDetailContext(route.id, packed.taxon.key)
+        : null;
+      var value = '';
+      if (detail && detail.indicator && detail.indicator.value != null && detail.indicator.value !== '') {
+        value = String(detail.indicator.value);
+      }
+      return {
+        pet: themeCtx.pet,
+        theme: themeCtx.theme,
+        taxon: packed && packed.taxon ? (packed.taxon.label || packed.taxon.key || '') : '',
+        value: value,
+        latin: packed && packed.latinName ? packed.latinName : ''
+      };
+    }
+
+    function escText(text) {
+      return H.escapeHtml(text == null ? '' : String(text));
+    }
+
+    function renderKnowledgeBody(packed) {
+      var edu = packed.edu || H.emptyTaxonEdu();
+      var text = String(edu.knowledgeText || '').trim();
+      if (!text) return '';
+      return '<p class="know-body-text">' + escText(text) + '</p>';
+    }
+
+    function genusHeading(packed) {
+      var label = packed.taxon.label || packed.taxon.key || '';
+      if (packed.latinName && packed.latinName !== label) {
+        return label + ' (' + packed.latinName + ')';
+      }
+      return label;
+    }
+
+    function renderGeneraSlide(items, index, phylumVars) {
+      var taxon = items[index];
+      var packed = H.getTaxonEdu(taxon.key) || {
+        taxon: taxon,
+        latinName: taxon.latinName || '',
+        edu: H.emptyTaxonEdu()
+      };
+      var vars = knowFillVars(packed);
+      vars.pet = phylumVars.pet;
+      vars.theme = phylumVars.theme;
+      var edu = packed.edu || H.emptyTaxonEdu();
+      var html = '<div class="know-carousel">';
+      html += '<div class="know-slide">';
+      html += '<div class="know-slide-name">' + H.escapeHtml(taxon.label || taxon.key || '');
+      if (packed.latinName) {
+        html += ' <span class="know-latin">(' + H.escapeHtml(packed.latinName) + ')</span>';
+      }
+      html += '</div>';
+      var knowledge = String(edu.knowledgeText || '').trim();
+      if (knowledge) {
+        html += '<p class="know-body-text">' + escText(knowledge) + '</p>';
+      }
+      html += '</div>';
+      if (items.length > 1) {
+        html += '<div class="know-pager">';
+        html += '<button type="button" class="know-pager-btn" data-know-prev>上一属</button>';
+        html += '<div class="know-dots">';
+        items.forEach(function (_, i) {
+          html += '<button type="button" class="know-dot' + (i === index ? ' active' : '') + '" data-know-dot="' + i + '" aria-label="第' + (i + 1) + '属"></button>';
+        });
+        html += '</div>';
+        html += '<button type="button" class="know-pager-btn" data-know-next>下一属</button>';
+        html += '</div>';
+      }
+      html += '</div>';
+      return html;
+    }
+
+    function paintKnow(mode, key) {
+      if (!know) return;
+      knowCarousel = null;
+      var packed = H.getTaxonEdu(key);
+      if (mode === 'genera') {
+        var children = H.listChildGenera(key);
+        var titleLabel = packed && packed.taxon ? (packed.taxon.label || packed.taxon.key) : key;
+        if (knowTitle) knowTitle.textContent = titleLabel + '包含哪些属';
+        if (!children.length) {
+          if (knowBody) knowBody.innerHTML = '';
+        } else {
+          var phylumVars = packed ? knowFillVars(packed) : knowFillVars({
+            taxon: { key: key, label: key },
+            latinName: '',
+            edu: H.emptyTaxonEdu()
+          });
+          knowCarousel = { items: children, index: 0, vars: phylumVars };
+          if (knowBody) knowBody.innerHTML = renderGeneraSlide(children, 0, phylumVars);
+        }
+        know.hidden = false;
+        return;
+      }
+      if (!packed) {
+        if (knowTitle) knowTitle.textContent = key || '';
+        if (knowBody) knowBody.innerHTML = '';
+        know.hidden = false;
+        return;
+      }
+      if (mode === 'genus') {
+        if (knowTitle) knowTitle.textContent = genusHeading(packed);
+        if (knowBody) knowBody.innerHTML = renderKnowledgeBody(packed);
+      } else {
+        if (knowTitle) knowTitle.textContent = '什么是' + (packed.taxon.label || packed.taxon.key || '') + '？';
+        if (knowBody) knowBody.innerHTML = renderKnowledgeBody(packed);
+      }
+      know.hidden = false;
+    }
+
+    root.querySelectorAll('[data-open-know]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!know) return;
+        var mode = btn.getAttribute('data-open-know') || 'intro';
+        var key = btn.getAttribute('data-know-key') || '';
+        paintKnow(mode, key);
+      });
+    });
+    if (know) {
+      know.querySelectorAll('[data-close-know]').forEach(function (btn) {
+        btn.addEventListener('click', function () { know.hidden = true; });
+      });
+      know.addEventListener('click', function (e) {
+        if (e.target === know) {
+          know.hidden = true;
+          return;
+        }
+        if (!knowCarousel || !knowCarousel.items || !knowCarousel.items.length) return;
+        var prev = e.target.closest('[data-know-prev]');
+        var next = e.target.closest('[data-know-next]');
+        var dot = e.target.closest('[data-know-dot]');
+        if (!prev && !next && !dot) return;
+        e.preventDefault();
+        var len = knowCarousel.items.length;
+        var idx = knowCarousel.index;
+        if (prev) idx = (idx - 1 + len) % len;
+        else if (next) idx = (idx + 1) % len;
+        else idx = Number(dot.getAttribute('data-know-dot')) || 0;
+        knowCarousel.index = idx;
+        if (knowBody) knowBody.innerHTML = renderGeneraSlide(knowCarousel.items, idx, knowCarousel.vars);
+      });
+    }
+
+    var gradeLayer = document.getElementById('grade-info-layer');
+    if (gradeLayer) (frame || pageContainer).appendChild(gradeLayer);
+    root.querySelectorAll('[data-open-grade-info]').forEach(function (btn) {
+      btn.addEventListener('click', function () { if (gradeLayer) gradeLayer.hidden = false; });
+    });
+    if (gradeLayer) {
+      gradeLayer.querySelectorAll('[data-close-grade-info]').forEach(function (btn) {
+        btn.addEventListener('click', function () { gradeLayer.hidden = true; });
+      });
+      gradeLayer.addEventListener('click', function (e) {
+        if (e.target === gradeLayer) gradeLayer.hidden = true;
+      });
+    }
+
+    root.querySelectorAll('[data-scroll-target]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var el = document.getElementById(btn.getAttribute('data-scroll-target'));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
   }
 
   function showClaimMessage(text, type) {
@@ -166,7 +416,14 @@
     document.querySelectorAll('.claim-scan-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var code = btn.getAttribute('data-claim-code');
-        if (!code) return;
+        if (!code) {
+          var pending = H.getPendingClaimCodes();
+          if (!pending.length) {
+            showClaimMessage('暂无可识别的待领取检测', 'error');
+            return;
+          }
+          code = pending[0].code;
+        }
         if (!H.previewClaimCode(code)) {
           showClaimMessage(H.CLAIM_INVALID_MSG, 'error');
           return;
@@ -231,16 +488,8 @@
       });
     });
 
-    var resetBtn = document.getElementById('reset-demo-btn');
-    if (resetBtn) {
-      resetBtn.addEventListener('click', function () {
-        if (!window.confirm('确定重置演示数据？所有本地修改将恢复为种子数据。')) return;
-        H.getStore().reset();
-        renderCurrentRoute();
-      });
-    }
-
     if (route.page === 'claim') bindClaimPage(route);
+    if (route.page === 'report') bindReportSurface(route);
   }
 
   function renderCurrentRoute() {
@@ -318,19 +567,29 @@
     }
 
     pageContainer.innerHTML = html;
+    applyImmersiveTheme();
     bindPageEvents(route);
     pageContainer.scrollTop = 0;
+    if (route.page === 'report' && route.params.view === 'sheet') {
+      requestAnimationFrame(function () {
+        var sheet = document.getElementById('report-sheet');
+        if (sheet) sheet.scrollIntoView({ block: 'start' });
+      });
+    }
   }
 
   function init() {
     if (!window.PetReportMockStore) {
-      document.body.innerHTML = '<p style="padding:24px;color:#c44d4d;">未加载共享 Mock Store，请通过静态服务访问。</p>';
+      document.body.innerHTML = '<p style="padding:24px;color:#c44d4d;">数据服务未加载，请通过静态服务访问。</p>';
       return;
     }
 
     navTitle = document.getElementById('nav-title');
     backButton = document.getElementById('back-button');
     tabBar = document.getElementById('tab-bar');
+    navBar = document.querySelector('.nav-bar');
+    statusBar = document.querySelector('.status-bar');
+    frame = document.querySelector('.iphone-frame');
     tabItems = Array.prototype.slice.call(document.querySelectorAll('.tab-item'));
     pageContainer = document.getElementById('page-content-container');
 

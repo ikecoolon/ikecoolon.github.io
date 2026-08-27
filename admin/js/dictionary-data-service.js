@@ -62,17 +62,238 @@
     ];
   }
 
+  function emptyTaxonEdu() {
+    var st = storeApi();
+    if (st && typeof st.emptyTaxonEdu === 'function') return st.emptyTaxonEdu();
+    return {
+      sceneCopy: '',
+      knowledgeText: ''
+    };
+  }
+
+  function defaultMicrobiotaPresentation() {
+    var st = storeApi();
+    if (st && typeof st.defaultMicrobiotaPresentation === 'function') {
+      return st.defaultMicrobiotaPresentation();
+    }
+    return {
+      low: '略显稀疏',
+      normal: '生机适宜',
+      high: '略显繁茂'
+    };
+  }
+
+  function normalizeMicrobiotaPresentation(pres, fillDefaults) {
+    var st = storeApi();
+    if (st && typeof st.normalizeMicrobiotaPresentation === 'function') {
+      return st.normalizeMicrobiotaPresentation(pres, fillDefaults);
+    }
+    var defaults = defaultMicrobiotaPresentation();
+    var src = pres && typeof pres === 'object' ? pres : {};
+    function val(key) {
+      if (src[key] === undefined) return fillDefaults ? defaults[key] : '';
+      if (src[key] == null) return '';
+      return String(src[key]).trim();
+    }
+    return {
+      low: val('low'),
+      normal: val('normal'),
+      high: val('high')
+    };
+  }
+
+  function normalizeTaxonEdu(edu) {
+    var st = storeApi();
+    if (st && typeof st.normalizeTaxonEdu === 'function') return st.normalizeTaxonEdu(edu);
+    var src = edu && typeof edu === 'object' ? edu : {};
+    function pick() {
+      for (var i = 0; i < arguments.length; i++) {
+        var value = arguments[i];
+        if (value != null && String(value).trim()) return String(value).trim();
+      }
+      return '';
+    }
+    var sceneCopy = pick(src.sceneCopy, src.narrativeRole, src.metaphor, src.sceneRole);
+    var knowledgeText = pick(src.knowledgeText, src.functionText, src.appearance);
+    if (!knowledgeText && Array.isArray(src.mainTasks) && src.mainTasks.length) {
+      knowledgeText = src.mainTasks.map(function (task) {
+        return String(task == null ? '' : task).trim();
+      }).filter(Boolean).join('；');
+    }
+    return { sceneCopy: sceneCopy, knowledgeText: knowledgeText };
+  }
+
   function defaultMicrobiotaTaxa() {
     return [
-      { id: 'tax-actino', key: '放线菌门', label: '放线菌门', value: '主要包含有益菌群，对肠道健康至关重要', level: 'phylum', parentKey: null },
-      { id: 'tax-bactero', key: '拟杆菌门', label: '拟杆菌门', value: '肠道内重要菌群，参与营养物质消化吸收', level: 'phylum', parentKey: null },
-      { id: 'tax-firmi', key: '厚壁菌门', label: '厚壁菌门', value: '包含多种重要菌属，需保持适当比例', level: 'phylum', parentKey: null },
-      { id: 'tax-proteo', key: '变形菌门', label: '变形菌门', value: '包含潜在有害菌，应控制在较低水平', level: 'phylum', parentKey: null },
-      { id: 'tax-bifi', key: '双歧杆菌', label: '双歧杆菌', value: '肠道健康的关键指标，参与免疫调节', level: 'genus', parentKey: '放线菌门' },
-      { id: 'tax-lacto', key: '乳酸菌', label: '乳酸菌', value: '产生乳酸，维持肠道酸性环境', level: 'genus', parentKey: '厚壁菌门' },
-      { id: 'tax-ecoli', key: '大肠杆菌', label: '大肠杆菌', value: '条件致病菌，正常情况下含量很少', level: 'genus', parentKey: '变形菌门' },
-      { id: 'tax-pept', key: 'Peptacetobacter', label: 'Peptacetobacter属', value: '善于发酵碳水，产生短链脂肪酸', level: 'genus', parentKey: '厚壁菌门' },
-      { id: 'tax-lach', key: 'Lachnoclostridium', label: 'Lachnoclostridium属', value: '厚壁菌门常见属', level: 'genus', parentKey: '厚壁菌门' }
+      {
+        id: 'tax-actino',
+        key: '放线菌门',
+        label: '放线菌门',
+        latinName: 'Actinobacteria',
+        value: '主要包含有益菌群，对肠道健康至关重要',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '药草与苔藓',
+          knowledgeText: '分解复杂有机物，参与有机酸代谢，维持菌群多样性。'
+        })
+      },
+      {
+        id: 'tax-bactero',
+        key: '拟杆菌门',
+        label: '拟杆菌门',
+        latinName: 'Bacteroidetes',
+        value: '肠道内重要菌群，参与营养物质消化吸收',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '活跃的采集者',
+          knowledgeText: '处理脂肪和蛋白类食物，分解复杂多糖，参与营养物质的分解与转化。'
+        })
+      },
+      {
+        id: 'tax-firmi',
+        key: '厚壁菌门',
+        label: '厚壁菌门',
+        latinName: 'Firmicutes',
+        value: '包含多种重要菌属，需保持适当比例',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '强壮的食草者',
+          knowledgeText: '发酵植物纤维，产生短链脂肪酸，参与能量代谢相关过程。'
+        })
+      },
+      {
+        id: 'tax-proteo',
+        key: '变形菌门',
+        label: '变形菌门',
+        latinName: 'Proteobacteria',
+        value: '包含潜在有害菌，应控制在较低水平',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '需要留意的过客',
+          knowledgeText: '在肠道中数量通常较少，参与部分代谢产物处理。'
+        })
+      },
+      {
+        id: 'tax-fuso',
+        key: '梭杆菌门',
+        label: '梭杆菌门',
+        latinName: 'Fusobacteria',
+        value: '含量通常较低，过高可能提示菌群失衡',
+        level: 'phylum',
+        parentKey: null,
+        edu: normalizeTaxonEdu({
+          sceneCopy: '低调的清道夫',
+          knowledgeText: '在肠道中数量通常较少，参与残留有机物分解。'
+        })
+      },
+      {
+        id: 'tax-bifi',
+        key: '双歧杆菌',
+        label: '双歧杆菌',
+        latinName: 'Bifidobacterium',
+        value: '肠道健康的关键指标，参与免疫调节',
+        level: 'genus',
+        parentKey: '放线菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '苔藓',
+          knowledgeText: '体型较小的常见菌属，常出现在肠道菌群结构中。参与糖类发酵与有机酸代谢。'
+        })
+      },
+      {
+        id: 'tax-lacto',
+        key: '乳酸菌',
+        label: '乳酸菌',
+        latinName: 'Lactobacillus',
+        value: '产生乳酸，维持肠道酸性环境',
+        level: 'genus',
+        parentKey: '厚壁菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '食草者',
+          knowledgeText: '产生乳酸的小型发酵者，帮助维持酸性环境。产生乳酸，参与碳水化合物发酵。'
+        })
+      },
+      {
+        id: 'tax-ecoli',
+        key: '大肠杆菌',
+        label: '大肠杆菌',
+        latinName: 'Escherichia',
+        value: '条件致病菌，正常情况下含量很少',
+        level: 'genus',
+        parentKey: '变形菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '过客',
+          knowledgeText: '肠道中数量通常很少的常见菌属。参与肠道内部分代谢过程。'
+        })
+      },
+      {
+        id: 'tax-pept',
+        key: 'Peptacetobacter',
+        label: 'Peptacetobacter属',
+        latinName: 'Peptacetobacter',
+        value: '善于发酵碳水，产生短链脂肪酸',
+        level: 'genus',
+        parentKey: '厚壁菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '大象',
+          knowledgeText: '厚壁菌门中的纤维发酵者，产出短链脂肪酸。善于发酵碳水，产生短链脂肪酸。'
+        })
+      },
+      {
+        id: 'tax-lach',
+        key: 'Lachnoclostridium',
+        label: 'Lachnoclostridium属',
+        latinName: 'Lachnoclostridium',
+        value: '厚壁菌门常见属',
+        level: 'genus',
+        parentKey: '厚壁菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '大猩猩',
+          knowledgeText: '厚壁菌门常见属，参与纤维发酵。参与植物纤维发酵，协助能量代谢相关过程。'
+        })
+      },
+      {
+        id: 'tax-coll',
+        key: 'Collinsella',
+        label: 'Collinsella属',
+        latinName: 'Collinsella',
+        value: '放线菌门常见属',
+        level: 'genus',
+        parentKey: '放线菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '药草',
+          knowledgeText: '放线菌门中常见的小型成员。参与碳水分解与胆汁酸相关代谢。'
+        })
+      },
+      {
+        id: 'tax-bact',
+        key: 'Bacteroides',
+        label: 'Bacteroides属',
+        latinName: 'Bacteroides',
+        value: '拟杆菌门常见属',
+        level: 'genus',
+        parentKey: '拟杆菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '野猪',
+          knowledgeText: '迅速增殖的小团体，偶尔会惹麻烦。擅长处理蛋白质、脂肪和多糖，是核心代谢成员。'
+        })
+      },
+      {
+        id: 'tax-phoc',
+        key: 'Phocaeicola',
+        label: 'Phocaeicola属',
+        latinName: 'Phocaeicola',
+        value: '拟杆菌门常见属',
+        level: 'genus',
+        parentKey: '拟杆菌门',
+        edu: normalizeTaxonEdu({
+          sceneCopy: '浣熊',
+          knowledgeText: '灵活的小型分解者，常与拟杆菌属共事。协助分解复杂多糖，扩展拟杆菌门的生态功能。'
+        })
+      }
     ];
   }
 
@@ -83,7 +304,15 @@
       { id: 'pr-003', species: 'dog', targetType: 'microbiota', targetKey: '放线菌门', taxonomyLevel: 'phylum', minValue: 30, maxValue: 50, unit: '%', status: 'active', notes: '犬科放线菌门平台范围', createdAt: '2025-01-15T11:00:00.000Z' },
       { id: 'pr-004', species: 'cat', targetType: 'microbiota', targetKey: '乳酸菌', taxonomyLevel: 'genus', minValue: 15, maxValue: 30, unit: '%', status: 'active', notes: '猫科通用乳酸菌范围', createdAt: '2025-01-15T11:05:00.000Z' },
       { id: 'pr-005', species: 'dog', targetType: 'microbiota', targetKey: '乳酸菌', taxonomyLevel: 'genus', minValue: 18, maxValue: 35, unit: '%', status: 'active', notes: '犬科通用乳酸菌范围', createdAt: '2025-01-15T11:10:00.000Z' },
-      { id: 'pr-006', species: 'cat', targetType: 'indicator', targetKey: 'alpha-diversity', taxonomyLevel: null, minValue: 3, maxValue: 5.5, unit: 'index', status: 'active', notes: '猫 Alpha 多样性', createdAt: '2025-01-15T11:15:00.000Z' }
+      { id: 'pr-006', species: 'cat', targetType: 'indicator', targetKey: 'alpha-diversity', taxonomyLevel: null, minValue: 3, maxValue: 5.5, unit: 'index', status: 'active', notes: '猫 Alpha 多样性', createdAt: '2025-01-15T11:15:00.000Z' },
+      { id: 'pr-007', species: 'cat', targetType: 'microbiota', targetKey: '拟杆菌门', taxonomyLevel: 'phylum', minValue: 15, maxValue: 40, unit: '%', status: 'active', notes: '猫科拟杆菌门平台范围', createdAt: '2025-01-15T11:20:00.000Z' },
+      { id: 'pr-008', species: 'cat', targetType: 'microbiota', targetKey: '厚壁菌门', taxonomyLevel: 'phylum', minValue: 25, maxValue: 50, unit: '%', status: 'active', notes: '猫科厚壁菌门平台范围', createdAt: '2025-01-15T11:21:00.000Z' },
+      { id: 'pr-009', species: 'cat', targetType: 'microbiota', targetKey: '梭杆菌门', taxonomyLevel: 'phylum', minValue: 0, maxValue: 8, unit: '%', status: 'active', notes: '猫科梭杆菌门平台范围', createdAt: '2025-01-15T11:22:00.000Z' },
+      { id: 'pr-010', species: 'cat', targetType: 'microbiota', targetKey: '变形菌门', taxonomyLevel: 'phylum', minValue: 0, maxValue: 12, unit: '%', status: 'active', notes: '猫科变形菌门平台范围', createdAt: '2025-01-15T11:23:00.000Z' },
+      { id: 'pr-011', species: 'cat', targetType: 'microbiota', targetKey: 'Collinsella', taxonomyLevel: 'genus', minValue: 3, maxValue: 8, unit: '%', status: 'active', notes: '猫科 Collinsella 平台范围', createdAt: '2025-01-15T11:24:00.000Z' },
+      { id: 'pr-012', species: 'cat', targetType: 'microbiota', targetKey: 'Bacteroides', taxonomyLevel: 'genus', minValue: 12, maxValue: 20, unit: '%', status: 'active', notes: '猫科 Bacteroides 平台范围', createdAt: '2025-01-15T11:25:00.000Z' },
+      { id: 'pr-013', species: 'cat', targetType: 'microbiota', targetKey: 'Phocaeicola', taxonomyLevel: 'genus', minValue: 2, maxValue: 10, unit: '%', status: 'active', notes: '猫科 Phocaeicola 平台范围', createdAt: '2025-01-15T11:26:00.000Z' },
+      { id: 'pr-014', species: 'cat', targetType: 'microbiota', targetKey: 'Peptacetobacter', taxonomyLevel: 'genus', minValue: 3, maxValue: 8, unit: '%', status: 'active', notes: '猫科 Peptacetobacter 平台范围', createdAt: '2025-01-15T11:27:00.000Z' }
     ];
   }
 
@@ -93,14 +322,69 @@
     ];
   }
 
+  function flattenSchemesToPlatformRanges(schemes) {
+    var st = storeApi();
+    if (st && typeof st.flattenSchemesToPlatformRanges === 'function') {
+      return st.flattenSchemesToPlatformRanges(schemes);
+    }
+    var out = [];
+    (schemes || []).forEach(function (scheme) {
+      if (!scheme || scheme.status === 'disabled') return;
+      (scheme.applicableSpecies || []).forEach(function (species) {
+        (scheme.items || []).forEach(function (item) {
+          if (item.minValue == null || item.maxValue == null || !item.unit) return;
+          out.push({
+            id: scheme.id + ':' + species + ':' + item.targetKey + ':' + (item.taxonomyLevel || ''),
+            schemeId: scheme.id,
+            species: species,
+            templateId: scheme.templateId,
+            targetType: item.targetType,
+            targetKey: item.targetKey,
+            taxonomyLevel: item.taxonomyLevel || null,
+            minValue: item.minValue,
+            maxValue: item.maxValue,
+            unit: item.unit,
+            notes: item.notes || scheme.evidenceRef || '',
+            status: scheme.status,
+            createdAt: scheme.createdAt,
+            updatedAt: scheme.updatedAt
+          });
+        });
+      });
+    });
+    return out;
+  }
+
+  function syncPlatformReferenceRangesFromSchemes(catalog) {
+    if (!catalog) return;
+    if (catalog.referenceRangeSchemes && catalog.referenceRangeSchemes.length) {
+      catalog.platformReferenceRanges = flattenSchemesToPlatformRanges(catalog.referenceRangeSchemes);
+    }
+  }
+
+  function schemeHasValidItems(scheme) {
+    var st = storeApi();
+    if (st && typeof st.schemeHasValidItems === 'function') return st.schemeHasValidItems(scheme);
+    if (!scheme || !scheme.evidenceRef || !String(scheme.evidenceRef).trim()) return false;
+    return (scheme.items || []).some(function (item) {
+      return item.minValue != null && item.maxValue != null && item.unit && item.minValue < item.maxValue;
+    });
+  }
+
   function defaultCatalog() {
+    var st = storeApi();
+    if (st && st.peekState && st.peekState().professionalCatalog) {
+      return clone(st.peekState().professionalCatalog);
+    }
     return {
       breeds: defaultBreeds(),
       testIndicators: defaultTestIndicators(),
       microbiotaTaxa: defaultMicrobiotaTaxa(),
+      microbiotaPresentation: defaultMicrobiotaPresentation(),
+      referenceRangeSchemes: [],
       platformReferenceRanges: defaultPlatformRanges(),
       standardUnits: defaultStandardUnits(),
-      meta: { version: 1, initializedAt: new Date().toISOString() }
+      meta: { version: 9, initializedAt: new Date().toISOString() }
     };
   }
 
@@ -112,8 +396,11 @@
       if (!cat.breeds || !cat.breeds.length) cat.breeds = defaultBreeds();
       if (!cat.testIndicators || !cat.testIndicators.length) cat.testIndicators = defaultTestIndicators();
       if (!cat.microbiotaTaxa || !cat.microbiotaTaxa.length) cat.microbiotaTaxa = defaultMicrobiotaTaxa();
+      if (!cat.microbiotaPresentation) cat.microbiotaPresentation = defaultMicrobiotaPresentation();
+      if (!cat.referenceRangeSchemes) cat.referenceRangeSchemes = [];
       if (!cat.platformReferenceRanges) cat.platformReferenceRanges = defaultPlatformRanges();
       if (!cat.standardUnits) cat.standardUnits = defaultStandardUnits();
+      syncPlatformReferenceRangesFromSchemes(cat);
     }
     return state[CATALOG_KEY];
   }
@@ -133,11 +420,16 @@
     return st.updateAnalysisState(mutator);
   }
 
-  function getCatalog() {
+  function readState() {
     var st = storeApi();
-    if (!st) return defaultCatalog();
-    var state = st.getState();
-    if (!state[CATALOG_KEY]) return defaultCatalog();
+    if (!st) return null;
+    if (typeof st.peekState === 'function') return st.peekState();
+    return st.getState ? st.getState() : null;
+  }
+
+  function getCatalog() {
+    var state = readState();
+    if (!state || !state[CATALOG_KEY]) return defaultCatalog();
     return state[CATALOG_KEY];
   }
 
@@ -235,10 +527,73 @@
     return tree;
   }
 
+  function getReferenceRangeSchemes(activeOnly) {
+    var schemes = getCatalog().referenceRangeSchemes || [];
+    if (activeOnly === false) return clone(schemes);
+    return clone(schemes.filter(function (s) { return s.status !== 'disabled'; }));
+  }
+
   function getPlatformReferenceRanges(activeOnly) {
-    var ranges = getCatalog().platformReferenceRanges || [];
+    var catalog = getCatalog();
+    if (catalog.referenceRangeSchemes && catalog.referenceRangeSchemes.length) {
+      var flat = flattenSchemesToPlatformRanges(catalog.referenceRangeSchemes);
+      if (activeOnly === false) return clone(flat);
+      return clone(flat.filter(function (r) { return r.status !== 'disabled'; }));
+    }
+    var ranges = catalog.platformReferenceRanges || [];
     if (activeOnly === false) return clone(ranges);
     return clone(ranges.filter(function (r) { return r.status !== 'disabled'; }));
+  }
+
+  function saveReferenceRangeScheme(scheme) {
+    return commitCatalog(function (catalog) {
+      if (!catalog.referenceRangeSchemes) catalog.referenceRangeSchemes = [];
+      var row = Object.assign({
+        applicableSpecies: [],
+        items: [],
+        status: 'draft',
+        version: 1,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }, scheme);
+      if (row.status === 'active' && !schemeHasValidItems(row)) {
+        throw new Error('启用方案需要专业依据且至少一条有效范围');
+      }
+      if (scheme.id) {
+        var idx = catalog.referenceRangeSchemes.findIndex(function (s) { return s.id === scheme.id; });
+        if (idx >= 0) {
+          row.updatedAt = new Date().toISOString();
+          if (scheme.bumpVersion) row.version = (catalog.referenceRangeSchemes[idx].version || 1) + 1;
+          catalog.referenceRangeSchemes[idx] = Object.assign({}, catalog.referenceRangeSchemes[idx], row);
+          syncPlatformReferenceRangesFromSchemes(catalog);
+          return catalog.referenceRangeSchemes[idx];
+        }
+      }
+      row.id = row.id || uid('rrs');
+      catalog.referenceRangeSchemes.push(row);
+      syncPlatformReferenceRangesFromSchemes(catalog);
+      return row;
+    });
+  }
+
+  function deleteReferenceRangeScheme(id) {
+    commitCatalog(function (catalog) {
+      catalog.referenceRangeSchemes = (catalog.referenceRangeSchemes || []).filter(function (s) { return s.id !== id; });
+      syncPlatformReferenceRangesFromSchemes(catalog);
+    });
+  }
+
+  function duplicateReferenceRangeScheme(id) {
+    var source = (getCatalog().referenceRangeSchemes || []).find(function (s) { return s.id === id; });
+    if (!source) throw new Error('scheme not found');
+    var copy = clone(source);
+    copy.id = uid('rrs');
+    copy.name = (source.name || '未命名方案') + '（副本）';
+    copy.status = 'draft';
+    copy.version = 1;
+    copy.createdAt = new Date().toISOString();
+    copy.updatedAt = copy.createdAt;
+    return saveReferenceRangeScheme(copy);
   }
 
   function savePlatformReferenceRange(config) {
@@ -286,6 +641,37 @@
     });
   }
 
+  function saveTaxonEdu(key, patch) {
+    var st = storeApi();
+    if (!st || typeof st.saveTaxonEdu !== 'function') return null;
+    return st.saveTaxonEdu(key, patch);
+  }
+
+  function getMicrobiotaPresentation() {
+    var st = storeApi();
+    if (st && typeof st.getMicrobiotaPresentation === 'function') {
+      return st.getMicrobiotaPresentation();
+    }
+    return normalizeMicrobiotaPresentation(getCatalog().microbiotaPresentation, true);
+  }
+
+  function saveMicrobiotaPresentation(patch) {
+    var st = storeApi();
+    if (st && typeof st.saveMicrobiotaPresentation === 'function') {
+      return st.saveMicrobiotaPresentation(patch);
+    }
+    return commitCatalog(function (catalog) {
+      var current = catalog.microbiotaPresentation || defaultMicrobiotaPresentation();
+      catalog.microbiotaPresentation = normalizeMicrobiotaPresentation(
+        Object.assign({}, current, patch || {}),
+        false
+      );
+      catalog.meta = catalog.meta || {};
+      catalog.meta.version = Math.max(catalog.meta.version || 0, 9);
+      return catalog.microbiotaPresentation;
+    });
+  }
+
   function deleteCatalogItem(collection, id) {
     commitCatalog(function (catalog) {
       catalog[collection] = catalog[collection].filter(function (row) {
@@ -330,6 +716,10 @@
   }
 
   function resolveEffectiveRangeForIndicator(indicator, species, options) {
+    var st = storeApi();
+    if (st && typeof st.resolveEffectiveRangeForIndicator === 'function') {
+      return st.resolveEffectiveRangeForIndicator(indicator, species, options);
+    }
     options = options || {};
     if (indicator.effectiveRange && options.respectFrozen !== false) {
       return clone(indicator.effectiveRange);
@@ -350,25 +740,9 @@
         source: 'imported'
       };
     }
-    var entry = findCatalogEntryByKey(indicator.key || indicator.rawImportName);
-    var targetType = entry && entry.type === 'indicator' ? 'indicator' : 'microbiota';
-    var targetKey = indicator.key;
-    var taxonomyLevel = entry && entry.type === 'microbiota' ? entry.item.level : null;
-    var platform = (getCatalog().platformReferenceRanges || []).find(function (r) {
-      return r.status !== 'disabled' &&
-        r.species === species &&
-        r.targetKey === targetKey &&
-        r.targetType === targetType &&
-        (!taxonomyLevel || !r.taxonomyLevel || r.taxonomyLevel === taxonomyLevel);
-    });
-    if (platform) {
-      return {
-        min: platform.minValue,
-        max: platform.maxValue,
-        unit: platform.unit,
-        source: 'platform',
-        platformRangeId: platform.id
-      };
+    if (st && typeof st.resolveSchemeRangeForIndicator === 'function') {
+      var schemeRange = st.resolveSchemeRangeForIndicator(indicator, species);
+      if (schemeRange) return schemeRange;
     }
     return null;
   }
@@ -592,14 +966,22 @@
     });
   }
 
+  var catalogNotifyDepth = 0;
+
   function notifyCatalogUpdated() {
-    if (typeof document !== 'undefined') {
+    if (catalogNotifyDepth) return;
+    if (typeof document === 'undefined') return;
+    catalogNotifyDepth += 1;
+    try {
+      var catalog = getCatalog();
       document.dispatchEvent(new CustomEvent('professionalCatalogUpdated', {
-        detail: { catalog: getCatalog() }
+        detail: { catalog: catalog }
       }));
       document.dispatchEvent(new CustomEvent('breedConfigUpdated', {
-        detail: { customKeys: getCatalog().breeds }
+        detail: { customKeys: catalog.breeds }
       }));
+    } finally {
+      catalogNotifyDepth -= 1;
     }
   }
 
@@ -617,10 +999,18 @@
     getTestIndicators: getTestIndicators,
     getMicrobiotaTaxa: getMicrobiotaTaxa,
     getMicrobiotaTree: getMicrobiotaTree,
+    getReferenceRangeSchemes: getReferenceRangeSchemes,
     getPlatformReferenceRanges: getPlatformReferenceRanges,
+    saveReferenceRangeScheme: saveReferenceRangeScheme,
+    deleteReferenceRangeScheme: deleteReferenceRangeScheme,
+    duplicateReferenceRangeScheme: duplicateReferenceRangeScheme,
+    schemeHasValidItems: schemeHasValidItems,
     savePlatformReferenceRange: savePlatformReferenceRange,
     deletePlatformReferenceRange: deletePlatformReferenceRange,
     saveCatalogItem: saveCatalogItem,
+    saveTaxonEdu: saveTaxonEdu,
+    getMicrobiotaPresentation: getMicrobiotaPresentation,
+    saveMicrobiotaPresentation: saveMicrobiotaPresentation,
     deleteCatalogItem: deleteCatalogItem,
     findCatalogEntryByKey: findCatalogEntryByKey,
     resolveStandardUnit: resolveStandardUnit,
@@ -649,17 +1039,11 @@
       });
     }
     dictionaryDataService.dictionaryData = getCatalog().breeds;
-    notifyCatalogUpdated();
   };
 
   if (typeof document !== 'undefined') {
     document.addEventListener('DOMContentLoaded', function () {
       dictionaryDataService.dictionaryData = getCatalog().breeds;
-    });
-    document.addEventListener('breedConfigUpdated', function (event) {
-      if (event.detail && event.detail.customKeys) {
-        dictionaryDataService.syncFromDictionaryManagement(event.detail.customKeys);
-      }
     });
   }
 

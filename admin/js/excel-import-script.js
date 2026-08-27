@@ -10,7 +10,6 @@ function initExcelImport() {
   };
 
   var wizard = { step: 1, files: [], batchResult: null };
-  var demoSeq = 0;
 
   var fileInput = document.getElementById('file-input');
   var dropZone = document.getElementById('drop-zone');
@@ -18,10 +17,8 @@ function initExcelImport() {
   var fileQueue = document.getElementById('file-queue');
   var fileQueueCount = document.getElementById('file-queue-count');
   var btnStartImport = document.getElementById('btn-start-import');
-  var demoBatchPreview = document.getElementById('demo-batch-preview');
 
   document.getElementById('btn-download-template').onclick = downloadTemplate;
-  document.getElementById('btn-load-demo-batch').onclick = loadDemoBatch;
   document.getElementById('btn-clear-queue').onclick = clearQueue;
   btnStartImport.onclick = startImport;
   document.getElementById('btn-go-unassigned').onclick = function () {
@@ -49,52 +46,6 @@ function initExcelImport() {
     dropZone.classList.remove('drag-over');
     addUploadedFiles(e.dataTransfer.files);
   });
-
-  function buildDemoBatchFiles() {
-    demoSeq += 1;
-    var suffix = String(demoSeq).padStart(3, '0');
-    return [
-      {
-        scenario: 'success',
-        fileName: '小花_肠道检测_' + suffix + '.xlsx',
-        externalReportNumber: 'EXT-DEMO-' + suffix + '-OK',
-        sampleNumber: 'SAMPLE-DEMO-' + suffix + '-OK'
-      },
-      {
-        scenario: 'duplicate',
-        fileName: '重复_已有报告_' + suffix + '.xlsx',
-        sourceOrgId: store.DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-001'
-      },
-      {
-        scenario: 'partial',
-        fileName: '旺财_局部异常_' + suffix + '.xlsx',
-        externalReportNumber: 'EXT-DEMO-' + suffix + '-PART',
-        sampleNumber: 'SAMPLE-DEMO-' + suffix + '-PART'
-      },
-      {
-        scenario: 'failure',
-        fileName: '缺列_阻断失败_' + suffix + '.xlsx',
-        externalReportNumber: 'EXT-DEMO-' + suffix + '-FAIL',
-        sampleNumber: 'SAMPLE-DEMO-' + suffix + '-FAIL',
-        errorCode: 'MISSING_COLUMN'
-      }
-    ];
-  }
-
-  function renderDemoPreview(files) {
-    demoBatchPreview.innerHTML = files.map(function (f) {
-      return '<li><i class="fas fa-file-excel text-emerald-600 mr-1"></i>' +
-        C.escapeHtml(f.fileName) + ' — ' + C.escapeHtml(STATUS_LABELS[f.scenario] || f.scenario) + '</li>';
-    }).join('');
-    demoBatchPreview.classList.remove('hidden');
-  }
-
-  function loadDemoBatch() {
-    wizard.files = buildDemoBatchFiles();
-    renderQueue();
-    C.toast('已加载演示批次（4 个文件）', 'success');
-  }
 
   function inferScenario(fileName) {
     var name = String(fileName || '').toLowerCase();
@@ -133,13 +84,11 @@ function initExcelImport() {
 
   function clearQueue() {
     wizard.files = [];
-    demoBatchPreview.classList.add('hidden');
     renderQueue();
   }
 
   function removeFile(index) {
     wizard.files.splice(index, 1);
-    if (!wizard.files.length) demoBatchPreview.classList.add('hidden');
     renderQueue();
   }
 
@@ -156,11 +105,10 @@ function initExcelImport() {
     btnStartImport.disabled = false;
 
     fileQueue.innerHTML = wizard.files.map(function (f, idx) {
-      var scenarioLabel = STATUS_LABELS[f.scenario] || f.scenario;
       return '<li class="file-queue-item">' +
         '<div class="min-w-0">' +
         '<p class="truncate text-slate-800"><i class="fas fa-file-excel text-emerald-600 mr-1"></i>' + C.escapeHtml(f.fileName) + '</p>' +
-        '<p class="text-xs text-slate-500 mt-0.5">场景：' + C.escapeHtml(scenarioLabel) + '</p>' +
+        '<p class="text-xs text-slate-500 mt-0.5">待解析</p>' +
         '</div>' +
         '<button type="button" class="remove-file shrink-0" data-index="' + idx + '" title="移除"><i class="fas fa-times"></i></button>' +
         '</li>';
@@ -173,7 +121,7 @@ function initExcelImport() {
 
   function startImport() {
     if (!wizard.files.length) {
-      C.toast('请先选择文件或加载演示批次', 'warning');
+      C.toast('请先选择文件', 'warning');
       return;
     }
 
@@ -256,7 +204,7 @@ function initExcelImport() {
       return '<tr class="hover:bg-slate-50">' +
         '<td class="px-3 py-2">' +
         '<p class="font-medium text-slate-800">' + C.escapeHtml(row.fileName) + '</p>' +
-        '<p class="text-xs text-slate-500 mt-0.5">原文件已 Mock 归档</p>' +
+        '<p class="text-xs text-slate-500 mt-0.5">原文件已归档</p>' +
         '</td>' +
         '<td class="px-3 py-2 font-mono text-xs">' + C.escapeHtml(extNo) + '<br>' + C.escapeHtml(sampleNo) + '</td>' +
         '<td class="px-3 py-2">' + C.statusBadge(row.status, STATUS_LABELS) + '</td>' +

@@ -23,7 +23,7 @@ function initPublishedReports() {
   render(store.getState());
 
   function actorLabel() {
-    return (store.DEMO_LABEL || '[演示 Mock]') + ' 运营专员';
+    return '运营专员';
   }
 
   function formatSnapshotSummary(snap) {

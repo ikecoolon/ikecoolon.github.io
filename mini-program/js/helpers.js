@@ -496,11 +496,11 @@
   }
 
   var THEME_CONFIG = {
-    A: { key: 'rainforest', name: '雨林生态', sceneClass: 'theme-A', icon: 'fa-cloud-rain' },
-    B: { key: 'forest', name: '森林生态', sceneClass: 'theme-B', icon: 'fa-tree' },
-    C: { key: 'grassland', name: '草原生态', sceneClass: 'theme-C', icon: 'fa-seedling' },
-    D: { key: 'moss', name: '苔藓生态', sceneClass: 'theme-D', icon: 'fa-leaf' },
-    E: { key: 'desert', name: '沙漠生态', sceneClass: 'theme-E', icon: 'fa-sun' }
+    A: { key: 'rainforest', name: '雨林', sceneClass: 'theme-A', icon: 'fa-cloud-rain' },
+    B: { key: 'forest', name: '森林', sceneClass: 'theme-B', icon: 'fa-tree' },
+    C: { key: 'grassland', name: '草原', sceneClass: 'theme-C', icon: 'fa-seedling' },
+    D: { key: 'moss', name: '苔藓', sceneClass: 'theme-D', icon: 'fa-leaf' },
+    E: { key: 'desert', name: '沙漠', sceneClass: 'theme-E', icon: 'fa-sun' }
   };
 
   var PRESENTATION_DIM_LABELS = {
@@ -557,6 +557,10 @@
 
   function resolveIndicatorRange(indicator, species) {
     if (!indicator) return null;
+    var store = getStore();
+    if (store && typeof store.resolveEffectiveRangeForIndicator === 'function') {
+      return store.resolveEffectiveRangeForIndicator(indicator, species);
+    }
     if (indicator.effectiveRange) {
       return {
         min: indicator.effectiveRange.min,
@@ -579,24 +583,6 @@
         max: indicator.importedRange.max,
         unit: indicator.importedRange.unit || indicator.unit,
         source: 'imported'
-      };
-    }
-    var entry = findCatalogEntryByKey(indicator.key);
-    var targetType = entry && entry.type === 'indicator' ? 'indicator' : 'microbiota';
-    var taxonomyLevel = entry && entry.type === 'microbiota' ? entry.item.level : null;
-    var platform = (getProfessionalCatalog().platformReferenceRanges || []).find(function (r) {
-      return r.status !== 'disabled' &&
-        r.species === species &&
-        r.targetKey === indicator.key &&
-        r.targetType === targetType &&
-        (!taxonomyLevel || !r.taxonomyLevel || r.taxonomyLevel === taxonomyLevel);
-    });
-    if (platform) {
-      return {
-        min: platform.minValue,
-        max: platform.maxValue,
-        unit: platform.unit,
-        source: 'platform'
       };
     }
     return null;
@@ -848,9 +834,157 @@
     return entry ? entry.item.label || entry.item.key : key;
   }
 
-  function getTaxonKnowledge(key) {
+  function escapeHtml(str) {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function localEmptyTaxonEdu() {
+    return {
+      sceneCopy: '',
+      knowledgeText: ''
+    };
+  }
+
+  function emptyTaxonEdu() {
+    var store = getStore();
+    if (store && typeof store.emptyTaxonEdu === 'function') {
+      return store.emptyTaxonEdu();
+    }
+    return localEmptyTaxonEdu();
+  }
+
+  function normalizeTaxonEdu(edu) {
+    var store = getStore();
+    if (store && typeof store.normalizeTaxonEdu === 'function') {
+      return store.normalizeTaxonEdu(edu);
+    }
+    var out = localEmptyTaxonEdu();
+    if (!edu || typeof edu !== 'object') return out;
+    function pick() {
+      for (var i = 0; i < arguments.length; i++) {
+        var value = arguments[i];
+        if (value != null && String(value).trim()) return String(value).trim();
+      }
+      return '';
+    }
+    out.sceneCopy = pick(edu.sceneCopy, edu.narrativeRole, edu.metaphor, edu.sceneRole);
+    out.knowledgeText = pick(edu.knowledgeText, edu.functionText, edu.appearance);
+    if (!out.knowledgeText && Array.isArray(edu.mainTasks) && edu.mainTasks.length) {
+      out.knowledgeText = edu.mainTasks.map(function (task) {
+        return String(task == null ? '' : task).trim();
+      }).filter(Boolean).join('；');
+    }
+    return out;
+  }
+
+  function getTaxonEdu(key) {
+    if (!key) return null;
     var entry = findCatalogEntryByKey(key);
-    return entry && entry.type === 'microbiota' ? entry.item.value : null;
+    if (!entry || entry.type !== 'microbiota') return null;
+    var taxon = entry.item;
+    return {
+      taxon: taxon,
+      latinName: taxon.latinName ? String(taxon.latinName) : '',
+      edu: normalizeTaxonEdu(taxon.edu)
+    };
+  }
+
+  function localDefaultMicrobiotaPresentation() {
+    return {
+      low: '略显稀疏',
+      normal: '生机适宜',
+      high: '略显繁茂'
+    };
+  }
+
+  function normalizeMicrobiotaPresentation(pres, fillDefaults) {
+    var store = getStore();
+    if (store && typeof store.normalizeMicrobiotaPresentation === 'function') {
+      return store.normalizeMicrobiotaPresentation(pres, fillDefaults);
+    }
+    var defaults = localDefaultMicrobiotaPresentation();
+    var src = pres && typeof pres === 'object' ? pres : {};
+    function val(key) {
+      if (src[key] === undefined) return fillDefaults ? defaults[key] : '';
+      if (src[key] == null) return '';
+      return String(src[key]).trim();
+    }
+    return {
+      low: val('low'),
+      normal: val('normal'),
+      high: val('high')
+    };
+  }
+
+  function getMicrobiotaPresentation() {
+    var store = getStore();
+    if (store && typeof store.getMicrobiotaPresentation === 'function') {
+      return store.getMicrobiotaPresentation();
+    }
+    var catalog = getProfessionalCatalog();
+    return normalizeMicrobiotaPresentation(catalog.microbiotaPresentation, true);
+  }
+
+  function resolveMicrobiotaSceneStatusWord(statusClass, presentation) {
+    var store = getStore();
+    if (store && typeof store.resolveMicrobiotaSceneStatusWord === 'function') {
+      return store.resolveMicrobiotaSceneStatusWord(statusClass, presentation);
+    }
+    var key = statusClass === 'status-low' ? 'low'
+      : statusClass === 'status-normal' ? 'normal'
+      : statusClass === 'status-high' ? 'high'
+      : null;
+    if (!key) return '';
+    var pres = normalizeMicrobiotaPresentation(presentation || getMicrobiotaPresentation(), true);
+    if (!pres[key]) return '';
+    return String(pres[key]).trim();
+  }
+
+  function buildMicrobiotaStorySentence(params) {
+    params = params || {};
+    var sceneCopy = String(params.sceneCopy || '').trim();
+    if (!sceneCopy) return '';
+    var petName = params.petName || '';
+    var themeName = params.themeName || '';
+    var taxonLabel = params.taxonLabel || '';
+    var sentence = petName + '的' + themeName + '上有' + sceneCopy + '——' + taxonLabel;
+    var statusWord = '';
+    if (params.forceStatusKey) {
+      var pres = normalizeMicrobiotaPresentation(params.presentation || getMicrobiotaPresentation(), true);
+      statusWord = pres[params.forceStatusKey] ? String(pres[params.forceStatusKey]).trim() : '';
+    } else if (params.statusClass) {
+      statusWord = resolveMicrobiotaSceneStatusWord(params.statusClass, params.presentation);
+    }
+    if (statusWord) sentence += '——' + statusWord;
+    return sentence;
+  }
+
+  function listChildGenera(phylumKey) {
+    if (!phylumKey) return [];
+    return (getProfessionalCatalog().microbiotaTaxa || []).filter(function (taxon) {
+      return taxon.level === 'genus' && taxon.parentKey === phylumKey;
+    });
+  }
+
+  function fillEduTokens(text, vars) {
+    if (text == null || text === '') return '';
+    vars = vars || {};
+    return String(text).replace(/\{(pet|theme|taxon|value|status|latin)\}/g, function (_, token) {
+      if (!Object.prototype.hasOwnProperty.call(vars, token) || vars[token] == null) return '';
+      return String(vars[token]);
+    });
+  }
+
+  function getTaxonKnowledge(key) {
+    var packed = getTaxonEdu(key);
+    if (!packed) return null;
+    var edu = packed.edu || emptyTaxonEdu();
+    return edu.knowledgeText || null;
   }
 
   function findFindingByIndicator(reportId, version, indicatorKey) {
@@ -1034,6 +1168,15 @@
     getSnapshotPresentation: getSnapshotPresentation,
     getDemoBenchmark: getDemoBenchmark,
     getIndicatorLabel: getIndicatorLabel,
+    escapeHtml: escapeHtml,
+    emptyTaxonEdu: emptyTaxonEdu,
+    normalizeTaxonEdu: normalizeTaxonEdu,
+    getTaxonEdu: getTaxonEdu,
+    getMicrobiotaPresentation: getMicrobiotaPresentation,
+    resolveMicrobiotaSceneStatusWord: resolveMicrobiotaSceneStatusWord,
+    buildMicrobiotaStorySentence: buildMicrobiotaStorySentence,
+    listChildGenera: listChildGenera,
+    fillEduTokens: fillEduTokens,
     getTaxonKnowledge: getTaxonKnowledge,
     findFindingByIndicator: findFindingByIndicator,
     shouldShowIndicator: shouldShowIndicator,

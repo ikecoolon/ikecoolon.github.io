@@ -453,7 +453,7 @@ function initPetInformation() {
             var st = store.getState();
             var pending = C.getPendingClaimCodes(st, petId, btn.dataset.trId);
             pending.forEach(function (c) {
-              store.voidClaimCredential({ id: c.id, reason: '[演示 Mock] 作废重发' });
+              store.voidClaimCredential({ id: c.id, reason: '作废重发' });
             });
             var claim = store.generateClaimCredential({ testRecordId: btn.dataset.trId });
             C.toast('新领取码：' + claim.code, 'success');
@@ -812,7 +812,7 @@ function initPetInformation() {
         userId: correctUserId.value,
         petId: correctPetId.value,
         reason: correctReason.value.trim(),
-        actor: '[演示 Mock] 运营专员'
+        actor: '运营专员'
       });
       C.toast('归属已更正', 'success');
       closeCorrectModal();
