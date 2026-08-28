@@ -412,17 +412,36 @@
     return html;
   }
 
+  function renderInlinePrimaryProduct(rec) {
+    if (!rec) return '';
+    var display = H.resolveRecDisplay(rec);
+    if (!display.primaryProductId && !display.primaryProduct) return '';
+
+    var product = display.primaryProduct;
+    var name = product ? H.stripDemo(product.name) : '推荐商品';
+    var navAttr = display.isPrimaryOnSale
+      ? ' data-nav="spu-detail" data-product-id="' + esc(display.primaryProductId) + '"'
+      : ' data-nav="recommendation-target" data-rec-id="' + esc(rec.id) + '"';
+
+    var html = '<button type="button" class="advice-product-inline rec-primary-card"' + navAttr + '>';
+    html += '<div class="rec-primary-icon"><i class="fas fa-box-open"></i></div>';
+    html += '<div class="rec-primary-main">';
+    html += '<div class="rec-primary-name">' + esc(name) + '</div>';
+    html += '<span class="badge ' + H.productStatusClass(product) + '">' + esc(H.productStatusLabel(product)) + '</span>';
+    html += '</div>';
+    html += '<i class="fas fa-chevron-right list-chevron"></i>';
+    html += '</button>';
+    return html;
+  }
+
   function renderAdvicePair(node, reportId) {
     var analysis = node.finding ? H.stripDemo(node.finding.professional || node.finding.description) : '';
     var advice = node.finding ? H.stripDemo(node.finding.consumer) : '';
     var rec = node.finding ? H.getFindingRecommendation(node.finding.id) : null;
-    var recHtml = '';
-    if (rec) {
-      recHtml = '<button type="button" class="text-link" data-nav="recommendation-target" data-rec-id="' + esc(rec.id) + '">查看相关建议</button>';
-    }
-    if (!analysis && !advice && !recHtml) return '';
+    var productHtml = rec ? renderInlinePrimaryProduct(rec) : '';
+    if (!analysis && !advice && !productHtml) return '';
 
-    if (analysis && (advice || recHtml)) {
+    if (analysis && (advice || productHtml)) {
       var html = '<div class="advice-tabs">';
       html += '<button type="button" class="advice-tab" data-advice-tab="analysis"><i class="fas fa-clock-rotate-left"></i> 分析</button>';
       html += '<button type="button" class="advice-tab active" data-advice-tab="advice"><i class="fas fa-lightbulb"></i> 总体建议</button>';
@@ -431,7 +450,7 @@
       html += '<p>' + esc(analysis) + '</p></div>';
       html += '<div class="advice-panel" data-advice-panel="advice">';
       if (advice) html += '<p>' + esc(advice) + '</p>';
-      html += recHtml;
+      html += productHtml;
       html += '</div>';
       return html;
     }
@@ -445,7 +464,7 @@
     var adviceHtml = '<div class="advice-panel" data-advice-panel="advice">';
     adviceHtml += '<p class="advice-single-label"><i class="fas fa-lightbulb"></i> 总体建议</p>';
     if (advice) adviceHtml += '<p>' + esc(advice) + '</p>';
-    adviceHtml += recHtml;
+    adviceHtml += productHtml;
     adviceHtml += '</div>';
     return adviceHtml;
   }
@@ -641,14 +660,6 @@
     html += renderCompareSection(microbiotaTree, petName, species);
     html += renderPhylumPanels(microbiotaTree, petName, theme, species, report.id);
 
-    var recs = H.getReportRecommendations(report.id);
-    if (recs.length) {
-      html += '<section class="sheet-block">';
-      html += '<div class="sheet-head"><h3>健康建议与商品</h3></div>';
-      html += '<button type="button" class="btn-primary" data-nav="recommendations" data-report-id="' + esc(report.id) + '">查看全部建议</button>';
-      html += '</section>';
-    }
-
     html += '</div>';
     html += '<div class="know-layer" id="report-know" hidden>';
     html += '<div class="know-card">';
@@ -754,7 +765,7 @@
         html += '<p class="hint-text">' + esc(display.reason) + '</p>';
       }
       if (!H.isInvalidDataStatus(finding.dataStatus)) {
-        html += '<button type="button" class="btn-primary" data-nav="recommendation-target" data-rec-id="' + esc(rec.id) + '">查看相关建议</button>';
+        html += renderInlinePrimaryProduct(rec);
       }
       html += '</section>';
     }
@@ -882,45 +893,55 @@
     if (finding) {
       html += '<p class="hint-text">关联指标：' + esc(H.getIndicatorLabel(finding.indicatorKey)) + ' · ' + esc(H.stripDemo(finding.description)) + '</p>';
     } else if (rec.findingId) {
-      html += '<p class="hint-text">关联发现：' + esc(rec.findingId) + '（快照中无详细发现，已展示冻结建议）</p>';
+      html += '<p class="hint-text">关联发现：' + esc(rec.findingId) + '</p>';
     }
     html += '</section>';
 
-    if (display.resolvedType === 'PRODUCT' && display.product) {
-      html += '<section class="section-block product-card">';
-      html += '<div class="product-icon"><i class="fas fa-box-open"></i></div>';
-      html += '<h3>' + esc(H.stripDemo(display.product.name)) + '</h3>';
-      html += '<p class="hint-text">适用原因：针对' + esc(finding ? H.getIndicatorLabel(finding.indicatorKey) : '相关指标') + '的调理建议</p>';
-      html += '<div class="spu-status-row">';
-      html += '<span class="badge ' + H.productStatusClass(display.product) + '">' + esc(H.productStatusLabel(display.product)) + '</span>';
-      html += '<span class="hint-text">库存 ' + esc(String(display.product.stock != null ? display.product.stock : '—')) + '</span>';
-      html += '</div>';
-      html += '<button type="button" class="btn-secondary" data-nav="spu-detail" data-product-id="' + esc(display.product.id) + '">查看 SPU 详情</button>';
-      html += '</section>';
-    } else if (display.resolvedType === 'TAG_CANDIDATE' && display.candidates.length) {
+    if (display.primaryProductId || display.primaryProduct) {
+      var primary = display.primaryProduct;
+      var primaryName = primary ? H.stripDemo(primary.name) : '推荐商品';
       html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>标签候选商品</h3></div>';
-      display.candidates.forEach(function (candidate) {
-        var prod = candidate.product;
-        if (!prod) return;
-        html += '<button type="button" class="list-card actionable spu-candidate-card" data-nav="spu-detail" data-product-id="' + esc(prod.id) + '">';
-        html += '<div class="list-card-main">';
-        html += '<div class="list-title">' + esc(H.stripDemo(prod.name)) + '</div>';
-        html += '<div class="list-sub">';
-        html += '<span class="badge ' + H.productStatusClass(prod) + '">' + esc(H.productStatusLabel(prod)) + '</span>';
-        html += ' · 库存 ' + esc(String(prod.stock != null ? prod.stock : '—'));
-        html += '</div></div>';
-        html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
-      });
+      html += '<div class="section-head"><h3>推荐商品</h3></div>';
+      html += '<div class="rec-primary-card rec-primary-card-static">';
+      html += '<div class="rec-primary-icon"><i class="fas fa-box-open"></i></div>';
+      html += '<div class="rec-primary-main">';
+      html += '<div class="rec-primary-name">' + esc(primaryName) + '</div>';
+      html += '<span class="badge ' + H.productStatusClass(primary) + '">' + esc(H.productStatusLabel(primary)) + '</span>';
+      if (primary && primary.stock != null) {
+        html += '<div class="rec-primary-stock hint-text">库存 ' + esc(String(primary.stock)) + '</div>';
+      }
+      html += '</div></div>';
+      if (display.reason) {
+        html += '<p class="hint-text rec-config-reason">配置原因：' + esc(display.reason) + '</p>';
+      }
+      if (primary) {
+        html += '<button type="button" class="btn-secondary" data-nav="spu-detail" data-product-id="' + esc(display.primaryProductId) + '">查看 SPU 详情</button>';
+      }
       html += '</section>';
-    } else {
+    }
+
+    if (display.relatedProducts && display.relatedProducts.length) {
+      html += '<section class="section-block">';
+      html += '<div class="section-head"><h3>相关推荐</h3></div>';
+      html += '<div class="rec-related-list">';
+      display.relatedProducts.forEach(function (item) {
+        var prod = item.product;
+        var prodName = prod ? H.stripDemo(prod.name) : String(item.productId);
+        html += '<button type="button" class="rec-related-item actionable" data-nav="spu-detail" data-product-id="' + esc(item.productId) + '">';
+        html += '<div class="rec-primary-icon sm"><i class="fas fa-box-open"></i></div>';
+        html += '<div class="rec-primary-main">';
+        html += '<div class="rec-primary-name">' + esc(prodName) + '</div>';
+        html += '<span class="badge ' + H.productStatusClass(prod) + '">' + esc(H.productStatusLabel(prod)) + '</span>';
+        html += '</div>';
+        html += '<i class="fas fa-chevron-right list-chevron"></i>';
+        html += '</button>';
+      });
+      html += '</div></section>';
+    } else if (!display.primaryProductId && !display.primaryProduct) {
       html += '<section class="section-block">';
       html += '<div class="section-head"><h3>商品推荐</h3></div>';
       html += '<div class="advice-card"><i class="fas fa-heart-pulse"></i>';
       html += '<p>当前暂无可用商品，请优先参考健康建议</p></div>';
-      if (display.downgradePath && display.downgradePath.length) {
-        html += '<p class="hint-text">' + esc(display.downgradePath.join(' → ')) + '</p>';
-      }
       html += '</section>';
     }
 

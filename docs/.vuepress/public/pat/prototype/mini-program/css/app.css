@@ -1922,6 +1922,96 @@ body.app-body {
 .advice-panel p { margin: 0 0 8px; }
 .advice-panel .text-link { color: #1f4f43; }
 
+.advice-product-inline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(31, 79, 67, 0.14);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f7faf8 0%, #eef6f1 100%);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(28, 63, 52, 0.06);
+}
+.advice-product-inline:active { opacity: 0.82; }
+
+.rec-primary-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.rec-primary-card-static {
+    padding: 12px 14px;
+    border: 1px solid rgba(31, 79, 67, 0.14);
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f7faf8 0%, #eef6f1 100%);
+    box-shadow: 0 4px 14px rgba(28, 63, 52, 0.06);
+}
+
+.rec-primary-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: #d7efe4;
+    color: #1f4f43;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+.rec-primary-icon.sm {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+    border-radius: 10px;
+}
+
+.rec-primary-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.rec-primary-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1c3f34;
+    line-height: 1.35;
+}
+.rec-primary-stock { margin-top: 2px; }
+.rec-config-reason { margin-top: 10px; }
+
+.rec-related-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.rec-related-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid rgba(31, 79, 67, 0.1);
+    border-radius: 12px;
+    background: #fafcf9;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.rec-related-item:active { opacity: 0.8; }
+
+.advice-panel .advice-product-inline { margin-top: 12px; }
+.advice-panel .advice-product-inline:last-child { margin-bottom: 0; }
+
 .know-layer,
 .grade-info-layer {
     position: absolute;

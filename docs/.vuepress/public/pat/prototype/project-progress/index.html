@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>项目进度管理 · ikecoolon PET</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<!--
+THESIS: 一面面向甲方的工程总控墙，把工作量、周次、进度和外部依赖放在同一视野，拒绝通用卡片仪表盘。
+OWN-WORLD: 冷灰墙面、石墨细线、低饱和绿色进度、琥珀待配合；总控板、里程碑图钉、周次标尺。
+STORY: 先看80人日与16人日缓冲，再读五条工作线，最后核对待配合事项和任务明细。
+FIRST VIEWPORT: 标题与更新时间在顶端；工作量与进度占上半部；横向排期从首屏中段展开；待配合条带位于排期上方。
+FORM: 工程总控墙；grounded direction rank 1；seed 2fc4dc8e。
+FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+-->
+    <header class="topbar">
+        <div class="topbar-inner">
+            <div class="title-block">
+                <h1>项目进度管理</h1>
+                <p class="subtitle">宠物健康报告系统 · 面向甲方的工程总控墙：开发工作量、相对周排期、人工进度与会阻塞研发的外部前置事项，同屏可读。</p>
+            </div>
+            <div class="meta-block">
+                <p class="last-updated">最后更新时间：<time id="last-updated" class="num" datetime="">读取中…</time></p>
+                <a class="back-link" href="../index.html">返回原型入口</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="wall">
+        <section class="overview" aria-label="总控数据">
+            <div class="overview-band" id="overview-band"></div>
+        </section>
+
+        <section class="amber-strip" id="amber-strip" aria-label="未完成待配合事项"></section>
+
+        <section class="schedule-section" aria-label="横向周排期">
+            <div class="section-head">
+                <h2>周次排期总控板</h2>
+                <ul class="legend" aria-label="图例">
+                    <li><span class="legend-swatch sw-done" aria-hidden="true"></span>已完成（实心绿）</li>
+                    <li><span class="legend-swatch sw-partial" aria-hidden="true"></span>进行中（绿色填充比例）</li>
+                    <li><span class="legend-swatch sw-todo" aria-hidden="true"></span>未开始（石墨描边）</li>
+                    <li><span class="legend-swatch sw-waiting" aria-hidden="true"></span>等待外部条件（虚线描边）</li>
+                    <li><span class="legend-pin" aria-hidden="true"></span>待配合里程碑（琥珀图钉）</li>
+                    <li><span class="legend-swatch sw-buffer" aria-hidden="true"></span>20% 缓冲区（第 10–11 周，虚线区）</li>
+                </ul>
+            </div>
+            <div class="schedule-scroll">
+                <div class="schedule" id="schedule"></div>
+            </div>
+            <p class="lane-note">小程序外部条件未齐时，公共功能通过 H5 继续开发，仅微信授权、支付与发布验证等待外部条件；H5 不是另一套正式产品。</p>
+        </section>
+
+        <section class="details-section" aria-label="任务明细">
+            <div class="section-head">
+                <h2>任务明细</h2>
+                <p class="section-desc">按状态分组，仅列任务、预计人日与人工进度。进度为人工填写的 0–100 整数，达到 100 自动视为已完成。</p>
+            </div>
+            <div id="detail-groups"></div>
+        </section>
+
+        <section class="prereq-section" aria-label="待配合事项完整清单">
+            <div class="section-head">
+                <h2>待配合事项 · 完整清单</h2>
+                <p class="section-desc">外部依赖与受影响任务。待配合事项不参与研发工作量与进度统计，本页不推演延期。</p>
+            </div>
+            <div class="table-wrap" id="prereq-table-wrap"></div>
+        </section>
+
+        <section class="scope-section" aria-label="范围待确认">
+            <div class="section-head">
+                <h2>范围待确认</h2>
+                <p class="section-desc">以下范围项仅展示、不参与任何统计；确认后重新评估并更新当前计划。</p>
+            </div>
+            <ol class="scope-list" id="scope-list"></ol>
+        </section>
+    </main>
+
+    <footer class="wall-foot">
+        <h2 class="foot-title">排期说明</h2>
+        <ul class="foot-notes" id="foot-notes"></ul>
+    </footer>
+
+    <script src="data.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

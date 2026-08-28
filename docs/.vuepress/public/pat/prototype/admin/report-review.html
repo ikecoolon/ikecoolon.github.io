@@ -1,5 +1,5 @@
-<div id="report-review" class="page space-y-4">
-    <div class="bg-white rounded-lg border border-slate-200 p-4 flex flex-wrap gap-3 items-center justify-between">
+<div id="report-review" class="page">
+    <div class="rw-topbar bg-white rounded-lg border border-slate-200 p-4 flex flex-wrap gap-3 items-center justify-between">
         <div class="flex flex-wrap gap-3 items-center">
             <label class="text-sm text-slate-600">审核队列</label>
             <select id="select-report" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm min-w-[240px]"></select>
@@ -9,50 +9,129 @@
         <div class="flex flex-wrap gap-2" id="action-bar"></div>
     </div>
 
-    <div id="correction-banner" class="hidden bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-2 rounded-md text-sm">
+    <div id="correction-banner" class="hidden bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-2 rounded-md text-sm mt-3">
         <i class="fas fa-pen-ruler mr-1"></i>更正草稿审核中：用户仍读取已发布版本 v<span id="correction-pub-ver"></span>，工作版本独立编辑。
     </div>
 
-    <div class="grid grid-cols-1 xl:grid-cols-12 gap-4">
-        <section class="xl:col-span-4 space-y-4">
-            <div class="bg-white rounded-lg border border-slate-200 p-4">
-                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-link text-teal-600 mr-1"></i>报告来源 / 归属</h3>
-                <div id="source-panel" class="text-sm space-y-2"></div>
-            </div>
-            <div class="bg-white rounded-lg border border-slate-200 p-4">
-                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-sliders text-teal-600 mr-1"></i>人工综合评定</h3>
-                <p class="text-xs text-slate-500 mb-3">等级、综合分、百分位、平台维度互相独立，不做自动推导。</p>
-                <form id="assessment-form" class="space-y-3 text-sm"></form>
-                <button type="button" id="btn-save-assessment" class="mt-3 btn-secondary w-full py-2 rounded-md text-sm">
-                    <i class="fas fa-save mr-1"></i>保存评定
-                </button>
-            </div>
-        </section>
+    <div id="rw-workbench" class="rw-workbench mt-3">
+        <nav id="rw-module-nav" class="rw-module-nav" aria-label="报告模块导航"></nav>
 
-        <section class="xl:col-span-4 space-y-4">
-            <div class="bg-white rounded-lg border border-slate-200 p-4">
-                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-vial text-teal-600 mr-1"></i>有效检测结果</h3>
-                <div id="indicators-panel" class="space-y-2 text-sm max-h-[280px] overflow-y-auto"></div>
-            </div>
-            <div class="bg-white rounded-lg border border-slate-200 p-4">
-                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-microscope text-teal-600 mr-1"></i>规则分析（最新运行）</h3>
-                <div id="analysis-panel" class="text-sm space-y-3"></div>
-                <button type="button" id="btn-save-analysis" class="mt-3 btn-secondary w-full py-2 rounded-md text-sm hidden">
-                    <i class="fas fa-save mr-1"></i>保存最终解释
-                </button>
-            </div>
-        </section>
+        <div class="rw-center">
+            <div id="rw-module-panels" class="rw-module-panels">
+                <section id="module-source" class="rw-module-panel hidden" data-module="source">
+                    <h3 class="rw-panel-title"><i class="fas fa-link text-teal-600 mr-1"></i>来源与归属</h3>
+                    <div id="source-panel" class="text-sm space-y-2"></div>
+                </section>
 
-        <section class="xl:col-span-4 space-y-4">
-            <div class="bg-white rounded-lg border border-slate-200 p-4">
-                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-lightbulb text-teal-600 mr-1"></i>推荐映射</h3>
-                <div id="recommendations-panel" class="text-sm space-y-2 max-h-[200px] overflow-y-auto"></div>
+                <section id="module-results" class="rw-module-panel hidden" data-module="results">
+                    <h3 class="rw-panel-title"><i class="fas fa-vial text-teal-600 mr-1"></i>检测结果</h3>
+                    <div class="rw-results-toolbar flex flex-wrap gap-2 items-center mb-3">
+                        <input type="search" id="results-search" class="border rounded px-2 py-1 text-sm flex-1 min-w-[140px]" placeholder="搜索指标名称…">
+                        <div class="flex flex-wrap gap-1 text-xs" id="results-filters">
+                            <button type="button" class="rw-filter-btn active" data-filter="abnormal">异常</button>
+                            <button type="button" class="rw-filter-btn active" data-filter="missing">缺失</button>
+                            <button type="button" class="rw-filter-btn active" data-filter="modified">已修改</button>
+                        </div>
+                        <button type="button" id="btn-reanalysis-data" class="btn-secondary px-2 py-1 rounded text-xs">
+                            <i class="fas fa-rotate mr-1"></i>数据变更重分析
+                        </button>
+                    </div>
+                    <div class="rw-results-layout">
+                        <div id="indicators-list" class="rw-indicators-list text-sm"></div>
+                        <div id="indicator-detail" class="rw-indicator-detail text-sm border border-slate-100 rounded p-3 bg-slate-50/50"></div>
+                    </div>
+                </section>
+
+                <section id="module-assessment" class="rw-module-panel hidden" data-module="assessment">
+                    <h3 class="rw-panel-title"><i class="fas fa-sliders text-teal-600 mr-1"></i>综合评定</h3>
+                    <p class="text-xs text-slate-500 mb-3">等级、综合分、百分位、平台维度互相独立，不做自动推导。</p>
+                    <form id="assessment-form" class="space-y-3 text-sm"></form>
+                </section>
+
+                <section id="module-analysis" class="rw-module-panel hidden" data-module="analysis">
+                    <h3 class="rw-panel-title"><i class="fas fa-microscope text-teal-600 mr-1"></i>分析解释</h3>
+                    <div id="analysis-panel" class="text-sm space-y-3"></div>
+                </section>
+
+                <section id="module-recommendations" class="rw-module-panel hidden" data-module="recommendations">
+                    <h3 class="rw-panel-title"><i class="fas fa-lightbulb text-teal-600 mr-1"></i>健康建议与推荐</h3>
+                    <p class="text-xs text-slate-500 mb-3">为每条健康建议配置主推商品（0–1）与关联商品（0–3，有序）。</p>
+                    <div id="recommendations-panel" class="text-sm space-y-3"></div>
+                </section>
+
+                <section id="module-checks" class="rw-module-panel hidden" data-module="checks">
+                    <h3 class="rw-panel-title"><i class="fas fa-clipboard-check text-teal-600 mr-1"></i>发布检查</h3>
+                    <p class="text-xs text-amber-700 mb-2">正式发布条件：综合概览（摘要+等级+分数）、专业检测结果（至少一项有效结果）</p>
+                    <div id="checks-summary" class="text-sm mb-3 p-3 rounded border border-slate-100 bg-slate-50"></div>
+                    <div id="checks-panel" class="text-sm space-y-2"></div>
+                </section>
+
+                <section id="module-versions" class="rw-module-panel hidden" data-module="versions">
+                    <h3 class="rw-panel-title"><i class="fas fa-clock-rotate-left text-teal-600 mr-1"></i>版本与记录</h3>
+                    <div id="versions-toggle-wrap" class="hidden mb-3">
+                        <div class="rw-version-toggle inline-flex rounded-md border border-slate-200 overflow-hidden text-sm">
+                            <button type="button" id="ver-toggle-working" class="rw-ver-toggle-btn active px-3 py-1.5">工作版</button>
+                            <button type="button" id="ver-toggle-published" class="rw-ver-toggle-btn px-3 py-1.5">用户可见发布版</button>
+                        </div>
+                    </div>
+                    <div id="versions-content" class="text-sm space-y-3 mb-4"></div>
+                    <h4 class="font-medium text-slate-700 text-sm mb-2">操作记录</h4>
+                    <div id="operation-log" class="text-xs text-slate-600 space-y-1"></div>
+                </section>
             </div>
-            <div class="bg-white rounded-lg border border-slate-200 p-4">
-                <h3 class="font-semibold text-slate-800 mb-3 text-sm"><i class="fas fa-clipboard-check text-teal-600 mr-1"></i>发布检查</h3>
-                <p class="text-xs text-amber-700 mb-2">正式发布条件：综合概览（摘要+等级+分数）、专业检测结果（至少一项有效结果）</p>
-                <div id="checks-panel" class="text-sm space-y-2"></div>
+        </div>
+
+        <div id="rw-preview-resizer" class="rw-preview-resizer" title="拖动调整预览宽度"></div>
+
+        <aside id="rw-preview-pane" class="rw-preview-pane">
+            <div class="rw-preview-header">
+                <span class="rw-preview-label"><i class="fas fa-mobile-screen mr-1"></i>本地预览</span>
+                <div class="flex gap-1">
+                    <button type="button" id="btn-preview-collapse" class="rw-preview-icon-btn" title="收起预览">
+                        <i class="fas fa-angles-right"></i>
+                    </button>
+                    <button type="button" id="btn-preview-drawer-close" class="rw-preview-icon-btn rw-preview-drawer-only" title="关闭">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
-        </section>
+            <div class="rw-preview-tabs">
+                <button type="button" class="rw-preview-tab active" data-preview-tab="overview">概览</button>
+                <button type="button" class="rw-preview-tab" data-preview-tab="results">检测结果</button>
+                <button type="button" class="rw-preview-tab" data-preview-tab="advice">分析建议</button>
+            </div>
+            <div id="rw-preview-frame" class="rw-preview-frame">
+                <div id="preview-content" class="rw-mini-app"></div>
+            </div>
+        </aside>
+    </div>
+
+    <button type="button" id="btn-preview-expand" class="rw-preview-expand hidden" title="展开预览">
+        <i class="fas fa-mobile-screen"></i> 本地预览
+    </button>
+    <button type="button" id="btn-preview-drawer-open" class="rw-preview-drawer-toggle" title="打开预览">
+        <i class="fas fa-mobile-screen"></i>
+    </button>
+
+    <div id="product-picker-modal" class="rw-product-picker hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="rw-product-picker-panel bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col">
+            <div class="flex items-center justify-between px-4 py-3 border-b">
+                <h4 id="picker-title" class="font-medium text-slate-800">选择商品</h4>
+                <button type="button" id="picker-close" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="px-4 py-2 border-b flex flex-wrap gap-2">
+                <input type="search" id="picker-search" class="border rounded px-2 py-1 text-sm flex-1 min-w-[120px]" placeholder="名称或 SPU ID">
+                <select id="picker-category" class="border rounded px-2 py-1 text-sm"></select>
+                <select id="picker-status" class="border rounded px-2 py-1 text-sm">
+                    <option value="">全部状态</option>
+                    <option value="on_sale">在售</option>
+                    <option value="off_shelf">下架</option>
+                    <option value="zero_stock">缺货</option>
+                    <option value="recycled">回收</option>
+                </select>
+            </div>
+            <div id="picker-list" class="flex-1 overflow-y-auto px-4 py-2 text-sm"></div>
+            <div id="picker-pagination" class="px-4 py-2 border-t flex justify-between items-center text-xs text-slate-500"></div>
+        </div>
     </div>
 </div>

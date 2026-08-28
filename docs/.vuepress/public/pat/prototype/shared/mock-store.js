@@ -938,6 +938,21 @@
     catalog.meta.version = Math.max(catalog.meta.version || 0, 13);
   }
 
+  function migrateRecommendationManualRelatedV14(state) {
+    (state.recommendations || []).forEach(function (rec) {
+      if (!rec.relatedProductIds) {
+        rec.relatedProductIds = [];
+        (rec.candidateProductIds || []).forEach(function (id) {
+          if (!id || rec.relatedProductIds.indexOf(id) >= 0) return;
+          if (rec.relatedProductIds.length < 3) rec.relatedProductIds.push(id);
+        });
+      }
+      if (!rec.candidateProductIds && rec.relatedProductIds.length) {
+        rec.candidateProductIds = rec.relatedProductIds.slice();
+      }
+    });
+  }
+
   function migrateTaxonEduV12(state) {
     ensureDomainState(state);
     var catalog = state.professionalCatalog;
@@ -1258,6 +1273,9 @@
     if (!state.meta.version || state.meta.version < 13) {
       migrateCatalogSortOrderV13(state);
     }
+    if (!state.meta.version || state.meta.version < 14) {
+      migrateRecommendationManualRelatedV14(state);
+    }
 
     (state.reports || []).forEach(function (report) {
       syncReportVersionFields(report);
@@ -1284,6 +1302,7 @@
       if (state.meta.version < 11) state.meta.version = 11;
       if (state.meta.version < 12) state.meta.version = 12;
       if (state.meta.version < 13) state.meta.version = 13;
+      if (state.meta.version < 14) state.meta.version = 14;
       if (state.professionalCatalog && state.professionalCatalog.meta) {
         if (state.professionalCatalog.meta.version < 7) state.professionalCatalog.meta.version = 7;
         if (state.professionalCatalog.meta.version < 9) state.professionalCatalog.meta.version = 9;
@@ -1556,8 +1575,10 @@
     var products = [
       {
         id: 'prod-001',
+        spuId: 'prod-001',
         name: ' 益生菌套装 A',
         categoryId: 'cat-002',
+        status: 'on_sale',
         available: true,
         stock: 25,
         price: 199,
@@ -1565,8 +1586,10 @@
       },
       {
         id: 'prod-002',
+        spuId: 'prod-002',
         name: ' 肠道调理粉（已下架）',
         categoryId: 'cat-001',
+        status: 'off_shelf',
         available: false,
         stock: 0,
         price: 159,
@@ -1574,8 +1597,10 @@
       },
       {
         id: 'prod-003',
+        spuId: 'prod-003',
         name: ' 膳食纤维补充剂',
         categoryId: 'cat-001',
+        status: 'on_sale',
         available: true,
         stock: 15,
         price: 89,
@@ -1583,8 +1608,10 @@
       },
       {
         id: 'prod-004',
+        spuId: 'prod-004',
         name: ' 益生菌套装 B（零库存）',
         categoryId: 'cat-002',
+        status: 'zero_stock',
         available: true,
         stock: 0,
         price: 179,
@@ -1592,8 +1619,11 @@
       },
       {
         id: 'prod-missing',
+        spuId: 'prod-missing',
         name: ' 已回收商品（不存在）',
         categoryId: 'cat-001',
+        status: 'recycled',
+        deleted: true,
         available: false,
         stock: 0,
         price: 0,
@@ -2255,12 +2285,15 @@
         targetType: 'PRODUCT',
         productId: 'prod-001',
         primaryProductId: 'prod-001',
+        relatedProductIds: ['prod-003'],
         healthTagIds: ['htag-001'],
         categoryId: 'cat-002',
         resolvedType: 'PRODUCT',
         resolvedProductId: 'prod-001',
         resolvedCategoryId: 'cat-002',
         availability: 'AVAILABLE',
+        candidateProductIds: ['prod-003'],
+        reason: ' 主推在售益生菌，手动关联膳食纤维作为搭配',
         label: ' 推荐益生菌套装 A',
         createdAt: '2025-08-24T15:30:00.000Z'
       },
@@ -2271,14 +2304,16 @@
         targetType: 'PRODUCT',
         productId: 'prod-002',
         primaryProductId: 'prod-002',
+        relatedProductIds: ['prod-001', 'prod-003'],
         healthTagIds: ['htag-001'],
         categoryId: 'cat-001',
-        resolvedType: 'TAG_CANDIDATE',
-        resolvedProductId: null,
+        resolvedType: 'PRODUCT',
+        resolvedProductId: 'prod-002',
         resolvedCategoryId: null,
         availability: 'UNAVAILABLE',
         candidateProductIds: ['prod-001', 'prod-003'],
-        label: ' 目标产品已下架，按健康标签解析候选',
+        reason: ' 保留已下架主推品展示失效状态，手动指定替代浏览顺序',
+        label: ' 目标产品已下架，展示手动关联商品',
         createdAt: '2025-08-23T15:00:00.000Z'
       },
       {
@@ -2286,16 +2321,18 @@
         findingId: 'finding-002',
         reportId: 'report-002',
         targetType: 'PRODUCT',
-        productId: null,
+        productId: 'prod-004',
         primaryProductId: 'prod-004',
+        relatedProductIds: [],
         healthTagIds: ['htag-003'],
         categoryId: null,
-        resolvedType: 'NONE',
-        resolvedProductId: null,
+        resolvedType: 'PRODUCT',
+        resolvedProductId: 'prod-004',
         resolvedCategoryId: null,
-        availability: 'NO_CANDIDATES',
+        availability: 'ZERO_STOCK',
         candidateProductIds: [],
-        label: ' 主推零库存且无标签候选，降级为 NONE',
+        reason: ' 主推零库存且无手动关联，仅展示零库存主推',
+        label: ' 主推零库存，无关联商品',
         createdAt: '2025-08-23T15:00:00.000Z'
       },
       {
@@ -2305,14 +2342,16 @@
         targetType: 'PRODUCT',
         productId: 'prod-004',
         primaryProductId: 'prod-004',
+        relatedProductIds: ['prod-001', 'prod-003'],
         healthTagIds: ['htag-001'],
         categoryId: 'cat-002',
-        resolvedType: 'TAG_CANDIDATE',
-        resolvedProductId: null,
+        resolvedType: 'PRODUCT',
+        resolvedProductId: 'prod-004',
         resolvedCategoryId: null,
         availability: 'ZERO_STOCK',
         candidateProductIds: ['prod-001', 'prod-003'],
-        label: ' 主推零库存，展示标签候选商品',
+        reason: ' 零库存主推保留，手动关联在售替代商品',
+        label: ' 主推零库存，展示手动关联商品',
         createdAt: '2025-08-19T11:30:00.000Z'
       }
     ];
@@ -2631,29 +2670,20 @@
     var run = getLatestAnalysisRun(state, report.id);
     var recs = (state.recommendations || []).filter(function (r) { return r.reportId === report.id; });
     var frozenRecommendations = recs.map(function (rec) {
-      var resolved = resolveRecommendationTarget({
-        targetType: rec.targetType,
-        productId: rec.primaryProductId || rec.productId,
-        primaryProductId: rec.primaryProductId || rec.productId,
-        healthTagIds: rec.healthTagIds || [],
-        species: species
-      }, state);
       return {
         id: rec.id,
         findingId: rec.findingId,
         relation: {
           targetType: rec.targetType,
           primaryProductId: rec.primaryProductId || rec.productId || null,
+          relatedProductIds: (rec.relatedProductIds || []).slice(),
           healthTagIds: (rec.healthTagIds || []).slice(),
           reason: rec.reason || null,
           label: rec.label
         },
         resolution: {
-          resolvedType: resolved.resolvedType,
-          resolvedProductId: resolved.resolvedProductId,
-          availability: resolved.availability,
-          candidateProductIds: (resolved.candidateProductIds || []).slice(),
-          label: resolved.label
+          note: ' 产品解析为实时读取，发布快照仅冻结关系配置',
+          liveRead: true
         }
       };
     });
@@ -3865,6 +3895,77 @@
     });
   }
 
+  function getProductListingStatus(product) {
+    if (!product) return 'recycled';
+    if (product.deleted || product.status === 'recycled') return 'recycled';
+    if (product.status) return product.status;
+    if (!product.available) return 'off_shelf';
+    var stock = product.stock != null ? product.stock : 1;
+    if (stock <= 0) return 'zero_stock';
+    return 'on_sale';
+  }
+
+  function normalizeRelatedProductIds(state, primaryProductId, relatedProductIds) {
+    var seen = {};
+    var normalized = [];
+    (relatedProductIds || []).forEach(function (id) {
+      if (!id || id === primaryProductId || seen[id]) return;
+      if (!findProduct(state, id)) return;
+      seen[id] = true;
+      if (normalized.length < 3) normalized.push(id);
+    });
+    return normalized;
+  }
+
+  function searchProductsForPicker(state, options) {
+    options = options || {};
+    state = state || loadState();
+    var q = (options.q || '').trim();
+    var qLower = q.toLowerCase();
+    var categoryId = options.categoryId || null;
+    var status = options.status || null;
+    var page = Math.max(1, parseInt(options.page, 10) || 1);
+    var pageSize = Math.max(1, parseInt(options.pageSize, 10) || 20);
+    var includeProductIds = options.includeProductIds || [];
+
+    var filtered = (state.products || []).filter(function (product) {
+      var listingStatus = getProductListingStatus(product);
+      if (listingStatus === 'recycled' || product.deleted) {
+        return includeProductIds.indexOf(product.id) >= 0;
+      }
+      if (categoryId && product.categoryId !== categoryId) return false;
+      if (status && listingStatus !== status) return false;
+      if (q) {
+        var nameMatch = (product.name || '').toLowerCase().indexOf(qLower) >= 0;
+        var spu = product.spuId || product.id;
+        var idMatch = String(spu).toLowerCase() === qLower || String(product.id).toLowerCase() === qLower;
+        if (!nameMatch && !idMatch) return false;
+      }
+      return true;
+    });
+
+    var total = filtered.length;
+    var start = (page - 1) * pageSize;
+    var items = filtered.slice(start, start + pageSize).map(function (product) {
+      return {
+        id: product.id,
+        spuId: product.spuId || product.id,
+        name: product.name,
+        categoryId: product.categoryId,
+        status: getProductListingStatus(product),
+        stock: product.stock,
+        available: product.available
+      };
+    });
+
+    return {
+      items: items,
+      total: total,
+      page: page,
+      pageSize: pageSize
+    };
+  }
+
   /** 审核更新推荐映射 */
   function updateRecommendation(params) {
     params = params || {};
@@ -3874,22 +3975,31 @@
       var rec = state.recommendations.find(function (r) { return r.id === params.recommendationId; });
       if (!rec) throw new Error('recommendation not found: ' + params.recommendationId);
       if (params.label != null) rec.label = params.label;
+      if (params.reason != null) rec.reason = params.reason;
       if (params.targetType != null) rec.targetType = params.targetType;
-      if (params.productId !== undefined) rec.productId = params.productId;
-      if (params.primaryProductId !== undefined) rec.primaryProductId = params.primaryProductId;
+      if (params.primaryProductId !== undefined) {
+        rec.primaryProductId = params.primaryProductId;
+        rec.productId = params.primaryProductId;
+      } else if (params.productId !== undefined) {
+        rec.productId = params.productId;
+        rec.primaryProductId = params.productId;
+      }
       if (params.categoryId !== undefined) rec.categoryId = params.categoryId;
-      if (params.healthTagIds !== undefined) rec.healthTagIds = params.healthTagIds;
+      if (params.relatedProductIds !== undefined) rec.relatedProductIds = params.relatedProductIds;
+
+      var primaryProductId = rec.primaryProductId || rec.productId || null;
+      rec.relatedProductIds = normalizeRelatedProductIds(state, primaryProductId, rec.relatedProductIds || []);
 
       var resolved = resolveRecommendationTarget({
         targetType: rec.targetType,
-        productId: rec.primaryProductId || rec.productId,
-        primaryProductId: rec.primaryProductId || rec.productId,
-        healthTagIds: rec.healthTagIds || [],
-        species: params.species
+        primaryProductId: primaryProductId,
+        relatedProductIds: rec.relatedProductIds,
+        label: rec.label
       }, state);
       rec.resolvedType = resolved.resolvedType;
       rec.resolvedProductId = resolved.resolvedProductId;
       rec.availability = resolved.availability;
+      rec.relatedProductIds = resolved.relatedProductIds;
       rec.candidateProductIds = resolved.candidateProductIds;
       rec.updatedAt = nowIso();
       rec.updatedBy = actor;
@@ -3915,79 +4025,57 @@
   }
 
   /**
-   * 解析推荐目标：PRODUCT → TAG_CANDIDATE → NONE
-   * @param {{ targetType: string, productId?: string, healthTagIds?: string[] }} params
+   * 解析推荐目标：基于手动 primaryProductId + relatedProductIds
+   * @param {{ targetType?: string, primaryProductId?: string, productId?: string, relatedProductIds?: string[], label?: string }} params
    * @param {object} [stateOverride]
    */
   function resolveRecommendationTarget(params, stateOverride) {
     params = params || {};
     var state = stateOverride || loadState();
-    var targetType = params.targetType || 'NONE';
-    var productId = params.primaryProductId || params.productId || null;
-    var healthTagIds = params.healthTagIds || (params.healthTagId ? [params.healthTagId] : []);
-    var species = params.species || null;
+    var targetType = params.targetType || 'PRODUCT';
+    var primaryProductId = params.primaryProductId || params.productId || null;
+    var relatedProductIds = normalizeRelatedProductIds(state, primaryProductId, params.relatedProductIds || []);
 
     var result = {
       requestedType: targetType,
-      requestedProductId: productId,
-      healthTagIds: healthTagIds.slice(),
+      requestedProductId: primaryProductId,
+      primaryProductId: primaryProductId,
+      relatedProductIds: relatedProductIds.slice(),
       resolvedType: 'NONE',
       resolvedProductId: null,
       availability: 'NO_CANDIDATES',
-      candidateProductIds: [],
-      candidates: [],
-      label: ' 无推荐'
+      candidateProductIds: relatedProductIds.slice(),
+      label: params.label || ' 无推荐'
     };
 
-    if (targetType === 'PRODUCT' && productId) {
-      var product = findProduct(state, productId);
-      if (product && product.available) {
-        var stock = product.stock != null ? product.stock : 1;
-        if (stock > 0) {
-          result.resolvedType = 'PRODUCT';
-          result.resolvedProductId = productId;
-          result.availability = 'AVAILABLE';
-          result.label = ' 推荐产品: ' + product.name;
-          return result;
-        }
-        result.availability = 'ZERO_STOCK';
-        var zeroCandidates = resolveHealthTagCandidates(state, healthTagIds, species);
-        result.candidates = zeroCandidates;
-        result.candidateProductIds = zeroCandidates.map(function (c) { return c.productId; });
-        if (zeroCandidates.length) {
-          result.resolvedType = 'TAG_CANDIDATE';
-          result.label = ' 主推零库存，展示标签候选商品';
-        } else {
-          result.resolvedType = 'NONE';
-          result.availability = 'NO_CANDIDATES';
-          result.label = ' 主推零库存且无候选商品';
-        }
-        return result;
-      }
-      result.availability = 'UNAVAILABLE';
-      var tagCandidates = resolveHealthTagCandidates(state, healthTagIds, species);
-      if (tagCandidates.length) {
-        result.resolvedType = 'TAG_CANDIDATE';
-        result.candidates = tagCandidates;
-        result.candidateProductIds = tagCandidates.map(function (c) { return c.productId; });
-        result.label = ' 按健康标签解析候选: ' + tagCandidates[0].product.name;
-        return result;
-      }
+    if (targetType !== 'PRODUCT' || !primaryProductId) {
       return result;
     }
 
-    if (healthTagIds.length) {
-      var candidates = resolveHealthTagCandidates(state, healthTagIds, species);
-      if (candidates.length) {
-        result.resolvedType = 'TAG_CANDIDATE';
-        result.candidates = candidates;
-        result.candidateProductIds = candidates.map(function (c) { return c.productId; });
-        result.availability = 'AVAILABLE';
-        result.label = ' 按健康标签解析候选: ' + candidates[0].product.name;
-        return result;
-      }
+    var product = findProduct(state, primaryProductId);
+    if (!product) {
+      result.availability = 'UNAVAILABLE';
+      return result;
     }
 
+    result.resolvedType = 'PRODUCT';
+    result.resolvedProductId = primaryProductId;
+
+    if (!product.available) {
+      result.availability = 'UNAVAILABLE';
+      result.label = params.label || (' 推荐产品: ' + product.name + '（不可用）');
+      return result;
+    }
+
+    var stock = product.stock != null ? product.stock : 1;
+    if (stock <= 0) {
+      result.availability = 'ZERO_STOCK';
+      result.label = params.label || (' 推荐产品: ' + product.name + '（零库存）');
+      return result;
+    }
+
+    result.availability = 'AVAILABLE';
+    result.label = params.label || (' 推荐产品: ' + product.name);
     return result;
   }
 
@@ -4293,6 +4381,7 @@
     bindClaimCode: bindClaimCode,
     preBindPetToStore: preBindPetToStore,
     resolveRecommendationTarget: resolveRecommendationTarget,
+    searchProductsForPicker: searchProductsForPicker,
     createPlatformUser: createPlatformUser,
     updatePlatformUser: updatePlatformUser,
     updateOpsPet: updateOpsPet,

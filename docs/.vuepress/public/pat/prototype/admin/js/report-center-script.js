@@ -3,8 +3,8 @@ function initReportCenter() {
   var store = C.store();
 
   var VIEW_LABELS = {
+    pending: '待处理',
     all: '全部',
-    pending_result: '待出结果',
     unassigned: '待归属',
     incomplete: '待完善',
     pending_review: '待审核',
@@ -13,7 +13,6 @@ function initReportCenter() {
   };
 
   var WORKFLOW_BADGE = {
-    pending_result: 'bg-sky-100 text-sky-800',
     unassigned: 'bg-purple-100 text-purple-800',
     incomplete: 'bg-blue-100 text-blue-800',
     pending_review: 'bg-amber-100 text-amber-800',
@@ -21,23 +20,26 @@ function initReportCenter() {
     voided: 'bg-gray-200 text-gray-600'
   };
 
-  var currentView = 'all';
+  var PENDING_WORKFLOWS = ['unassigned', 'incomplete', 'pending_review'];
+  var COUNT_VIEWS = ['pending', 'all', 'unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
+
+  var SPECIES_LABEL = { cat: '猫', dog: '狗', 猫: '猫', 狗: '狗' };
+
+  var currentView = 'pending';
   var filterState = {};
+  var openMoreMenuId = null;
 
   var viewTabs = document.querySelectorAll('.rc-view-tab');
   var filterForm = document.getElementById('rc-filter-form');
   var listTitle = document.getElementById('rc-list-title');
   var resultCount = document.getElementById('rc-result-count');
-  var tbody = document.getElementById('rc-tbody');
+  var listEl = document.getElementById('rc-list');
   var emptyEl = document.getElementById('rc-empty');
+  var advancedToggle = document.getElementById('rc-advanced-toggle');
+  var advancedPanel = document.getElementById('rc-advanced-filters');
 
   var unsub = store.subscribe(function () { render(store.getState()); });
   window.__petAdminPageTeardown = function () { unsub(); };
-
-  function asArray(value) {
-    if (!value) return [];
-    return Array.isArray(value) ? value : [value];
-  }
 
   function pickFirst(obj, keys) {
     if (!obj) return '';
@@ -48,182 +50,135 @@ function initReportCenter() {
     return '';
   }
 
-  function normalizeWorkflowStatus(raw) {
-    var map = {
-      pending_result: 'pending_result',
-      待出结果: 'pending_result',
-      unassigned: 'unassigned',
-      pending_assignment: 'unassigned',
-      待归属: 'unassigned',
-      incomplete: 'incomplete',
-      pending_completion: 'incomplete',
-      待完善: 'incomplete',
-      pending_review: 'pending_review',
-      待审核: 'pending_review',
-      published: 'published',
-      已发布: 'published',
-      voided: 'voided',
-      cancelled: 'voided',
-      已作废: 'voided'
-    };
-    return map[raw] || raw;
+  function resolveWorkflow(report, testRecord) {
+    if (typeof store.getWorkflowStatus === 'function') {
+      return store.getWorkflowStatus(report, testRecord);
+    }
+    return report.workflowStatus || 'incomplete';
   }
 
-  function isUnassigned(report, testRecord) {
-    if (report && (report.petId || report.userId)) return false;
-    if (testRecord && (testRecord.petId || testRecord.userId)) return false;
-    if (testRecord && testRecord.claimStatus === 'bound') return false;
-    return true;
+  function speciesLabel(report, pet) {
+    var raw = pickFirst(report, ['reportSpecies']) || (pet ? pickFirst(pet, ['species', 'type']) : '');
+    return SPECIES_LABEL[raw] || raw || '';
   }
 
-  function resolveWorkflowStatus(report, testRecord) {
-    if (testRecord && testRecord.status === 'pending_result') return 'pending_result';
-
-    var explicit = pickFirst(report, ['workflowStatus', 'mainStatus', 'lifecycleStatus']);
-    if (explicit) return normalizeWorkflowStatus(explicit);
-
-    var reportStatus = report ? report.status : '';
-    if (reportStatus === 'voided' || reportStatus === 'cancelled') return 'voided';
-    if (reportStatus === 'published' || reportStatus === 'corrected') return 'published';
-    if (reportStatus === 'pending_review' || reportStatus === 'approved') return 'pending_review';
-
-    if (isUnassigned(report, testRecord)) {
-      if (testRecord && testRecord.status === 'import_failed') return 'incomplete';
-      return 'unassigned';
-    }
-
-    if (reportStatus === 'draft' || reportStatus === 'rejected') return 'incomplete';
-
-    if (testRecord) {
-      if (testRecord.status === 'pending_claim') return 'unassigned';
-      if (testRecord.status === 'import_failed') return 'incomplete';
-      if (testRecord.status === 'pending_review') return 'pending_review';
-      if (testRecord.status === 'published') return 'published';
-    }
-
-    return 'incomplete';
+  function resolveSourceName(state, report, testRecord) {
+    var storeEntity = C.lookupStore(state, testRecord ? testRecord.storeId : null);
+    if (storeEntity && storeEntity.name) return String(storeEntity.name).trim();
+    var orgId = pickFirst(report, ['sourceOrgId']) || (testRecord ? testRecord.sourceOrgId : '');
+    return orgId ? String(orgId) : '—';
   }
 
-  var TODO_LABELS = {
-    partial_import: '局部导入异常',
-    import_error: '导入异常',
-    unassigned: '待归属',
-    rejected: '审核驳回'
-  };
-
-  function isPartialImport(state, testRecord) {
-    if (!testRecord || !testRecord.importBatchId) return false;
-    var batch = (state.importBatches || []).find(function (b) { return b.id === testRecord.importBatchId; });
-    if (!batch || !batch.fileResults) return false;
-    return batch.fileResults.some(function (fr) {
-      return fr.testRecordId === testRecord.id && fr.status === 'partial';
-    });
-  }
-
-  function getTodoFlags(state, report, testRecord) {
-    var fromReport = asArray(pickFirst(report, ['todoFlags', 'todos', 'pendingTodos', 'todoMarks']));
-    if (fromReport.length) {
-      return fromReport.map(function (flag) {
-        return TODO_LABELS[flag] || String(flag);
-      });
-    }
-
-    var flags = [];
-    if (testRecord && testRecord.status === 'import_failed') flags.push('导入异常');
-    if (isPartialImport(state, testRecord)) flags.push('局部导入异常');
-    if (report && report.status === 'rejected') flags.push('审核驳回');
-    if (isUnassigned(report, testRecord) && testRecord && testRecord.status !== 'pending_result') {
-      flags.push('待归属');
-    }
-    return flags;
+  function statusEnteredAt(report) {
+    return pickFirst(report, ['statusChangedAt', 'statusEnteredAt']) || report.updatedAt || report.createdAt || '';
   }
 
   function buildRows(state) {
-    var rows = [];
-    var reportByTestId = {};
+    return (state.reports || []).map(function (report) {
+      var testRecord = C.lookupTestRecord(state, report.testRecordId);
+      var user = C.lookupUser(state, report.userId) || C.lookupUser(state, testRecord ? testRecord.userId : null);
+      var pet = C.lookupPet(state, report.petId) || C.lookupPet(state, testRecord ? testRecord.petId : null);
+      var workflow = resolveWorkflow(report, testRecord);
+      var reportNumber = String(pickFirst(report, ['reportNumber', 'platformReportNumber']) || '—').trim();
+      var sampleNumber = String(
+        pickFirst(report, ['sampleNumber']) ||
+        pickFirst(testRecord, ['sampleNumber', 'sampleNo', 'label']) ||
+        ''
+      ).trim();
 
-    (state.reports || []).forEach(function (report) {
-      if (report && report.testRecordId) reportByTestId[report.testRecordId] = report;
+      return {
+        id: report.id,
+        reportId: report.id,
+        testRecordId: report.testRecordId || (testRecord ? testRecord.id : null),
+        reportNumber: reportNumber,
+        externalReportNumber: String(pickFirst(report, ['externalReportNumber', 'externalNumber', 'labReportNumber']) || '').trim(),
+        sampleNumber: sampleNumber,
+        userName: user ? user.name : '—',
+        userPhone: user ? String(pickFirst(user, ['phone', 'mobile']) || '') : '',
+        petName: pet ? pet.name : '—',
+        species: speciesLabel(report, pet),
+        sourceName: resolveSourceName(state, report, testRecord),
+        testDate: testRecord ? (testRecord.testDate || '') : '',
+        workflow: workflow,
+        statusEnteredAt: statusEnteredAt(report),
+        updatedAt: report.updatedAt || report.createdAt || '',
+        rawReportStatus: report.status || '',
+        rawTestStatus: testRecord ? testRecord.status : ''
+      };
     });
-
-    (state.reports || []).forEach(function (report) {
-      var testRecord = (state.testRecords || []).find(function (tr) {
-        return tr.id === report.testRecordId;
-      }) || null;
-      rows.push(assembleRow(state, report, testRecord));
-    });
-
-    (state.testRecords || []).forEach(function (testRecord) {
-      if (reportByTestId[testRecord.id]) return;
-      rows.push(assembleRow(state, null, testRecord));
-    });
-
-    return rows;
-  }
-
-  function assembleRow(state, report, testRecord) {
-    var user = report ? C.lookupUser(state, report.userId) : C.lookupUser(state, testRecord ? testRecord.userId : null);
-    if (!user && testRecord) user = C.lookupUser(state, testRecord.userId);
-
-    var pet = report ? C.lookupPet(state, report.petId) : C.lookupPet(state, testRecord ? testRecord.petId : null);
-    if (!pet && testRecord) pet = C.lookupPet(state, testRecord.petId);
-
-    var storeEntity = C.lookupStore(state, testRecord ? testRecord.storeId : null);
-    var workflow = resolveWorkflowStatus(report, testRecord);
-    var todos = getTodoFlags(state, report, testRecord);
-
-    return {
-      id: report ? report.id : (testRecord ? testRecord.id : ''),
-      reportId: report ? report.id : null,
-      testRecordId: testRecord ? testRecord.id : (report ? report.testRecordId : null),
-      reportNumber: pickFirst(report, ['reportNumber', 'platformReportNumber']) || '—',
-      externalReportNumber: pickFirst(report, ['externalReportNumber', 'externalNumber', 'labReportNumber']) || '—',
-      sampleNumber: pickFirst(testRecord, ['sampleNumber', 'sampleNo', 'label', 'id']) || (report ? report.testRecordId : '—'),
-      userName: user ? user.name : '—',
-      userPhone: user ? (user.phone || user.mobile || '') : '',
-      petName: pet ? pet.name : '—',
-      species: pet ? (pet.species || pet.type || '') : '',
-      storeName: storeEntity ? storeEntity.name : '—',
-      testDate: testRecord ? (testRecord.testDate || '') : '',
-      workflow: workflow,
-      todos: todos,
-      rawReportStatus: report ? report.status : '',
-      rawTestStatus: testRecord ? testRecord.status : ''
-    };
   }
 
   function readFiltersFromForm() {
     return {
-      reportNumber: (document.getElementById('rc-q-report').value || '').trim().toLowerCase(),
-      externalReportNumber: (document.getElementById('rc-q-external').value || '').trim().toLowerCase(),
-      sampleNumber: (document.getElementById('rc-q-sample').value || '').trim().toLowerCase(),
-      phone: (document.getElementById('rc-q-phone').value || '').trim().toLowerCase(),
-      petName: (document.getElementById('rc-q-pet').value || '').trim().toLowerCase(),
-      species: document.getElementById('rc-q-species').value,
-      storeName: (document.getElementById('rc-q-store').value || '').trim().toLowerCase(),
+      search: (document.getElementById('rc-q-search').value || '').trim().toLowerCase(),
       status: document.getElementById('rc-q-status').value,
+      storeName: (document.getElementById('rc-q-store').value || '').trim().toLowerCase(),
+      species: document.getElementById('rc-q-species').value,
       dateFrom: document.getElementById('rc-q-date-from').value,
-      dateTo: document.getElementById('rc-q-date-to').value,
-      todo: document.getElementById('rc-q-todo').value
+      dateTo: document.getElementById('rc-q-date-to').value
     };
   }
 
-  function applyFilters(rows) {
+  function matchesSearch(row, search) {
+    if (!search) return true;
+    var haystack = [
+      row.reportNumber,
+      row.sampleNumber,
+      row.userPhone,
+      row.petName
+    ].join(' ').toLowerCase();
+    return haystack.indexOf(search) >= 0;
+  }
+
+  function applyCommonFilters(rows) {
     return rows.filter(function (row) {
-      if (currentView !== 'all' && row.workflow !== currentView) return false;
       if (filterState.status && row.workflow !== filterState.status) return false;
-      if (filterState.reportNumber && row.reportNumber.toLowerCase().indexOf(filterState.reportNumber) < 0) return false;
-      if (filterState.externalReportNumber && row.externalReportNumber.toLowerCase().indexOf(filterState.externalReportNumber) < 0) return false;
-      if (filterState.sampleNumber && String(row.sampleNumber).toLowerCase().indexOf(filterState.sampleNumber) < 0) return false;
-      if (filterState.phone && row.userPhone.toLowerCase().indexOf(filterState.phone) < 0) return false;
-      if (filterState.petName && row.petName.toLowerCase().indexOf(filterState.petName) < 0) return false;
+      if (!matchesSearch(row, filterState.search)) return false;
+      if (filterState.storeName && row.sourceName.toLowerCase().indexOf(filterState.storeName) < 0) return false;
       if (filterState.species && row.species !== filterState.species) return false;
-      if (filterState.storeName && row.storeName.toLowerCase().indexOf(filterState.storeName) < 0) return false;
       if (filterState.dateFrom && row.testDate && row.testDate < filterState.dateFrom) return false;
       if (filterState.dateTo && row.testDate && row.testDate > filterState.dateTo) return false;
-      if (filterState.todo === 'has_todo' && !row.todos.length) return false;
-      if (filterState.todo === 'no_todo' && row.todos.length) return false;
       return true;
+    });
+  }
+
+  function matchesView(row, view) {
+    if (view === 'all') return true;
+    if (view === 'pending') return PENDING_WORKFLOWS.indexOf(row.workflow) >= 0;
+    return row.workflow === view;
+  }
+
+  function isPendingSortView(view) {
+    return view === 'pending' || PENDING_WORKFLOWS.indexOf(view) >= 0;
+  }
+
+  function sortRows(rows, view) {
+    var sorted = rows.slice();
+    if (isPendingSortView(view)) {
+      sorted.sort(function (a, b) {
+        return String(a.statusEnteredAt).localeCompare(String(b.statusEnteredAt));
+      });
+      return sorted;
+    }
+    sorted.sort(function (a, b) {
+      return String(b.updatedAt).localeCompare(String(a.updatedAt));
+    });
+    return sorted;
+  }
+
+  function countForView(rows, view) {
+    var count = 0;
+    rows.forEach(function (row) {
+      if (matchesView(row, view)) count += 1;
+    });
+    return count;
+  }
+
+  function updateTabCounts(filteredRows) {
+    document.querySelectorAll('.rc-tab-count').forEach(function (el) {
+      var view = el.getAttribute('data-count-for');
+      var count = countForView(filteredRows, view);
+      el.textContent = count ? '(' + count + ')' : '';
     });
   }
 
@@ -233,42 +188,66 @@ function initReportCenter() {
     return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' + cls + '">' + C.escapeHtml(label) + '</span>';
   }
 
-  function todoBadges(todos) {
-    if (!todos.length) return '<span class="text-slate-400">—</span>';
-    return todos.map(function (t) {
-      return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-50 text-rose-700 mr-1 mb-1">' + C.escapeHtml(t) + '</span>';
-    }).join('');
+  function primaryAction(row) {
+    var map = {
+      unassigned: { action: 'review', label: '处理归属' },
+      incomplete: { action: 'review', label: '完善' },
+      pending_review: { action: 'review', label: '审核' },
+      published: { action: 'review', label: '查看' },
+      voided: { action: 'review', label: '追溯' }
+    };
+    var cfg = map[row.workflow];
+    if (!cfg || !row.reportId) return '';
+    return '<button type="button" class="btn-primary px-3 py-1 rounded text-xs rc-action" data-action="' + cfg.action + '" data-report-id="' + C.escapeHtml(row.reportId) + '">' + cfg.label + '</button>';
+  }
+
+  function moreMenuItems(row) {
+    var items = [];
+    if (row.workflow === 'unassigned' && row.testRecordId) {
+      items.push({ action: 'assign', label: '宠物档案归属' });
+    }
+    if (row.workflow === 'incomplete' && row.testRecordId) {
+      items.push({ action: 'import', label: '重新导入' });
+    }
+    if (row.workflow === 'published' && row.reportId) {
+      items.push({ action: 'published', label: '已发布列表' });
+    }
+    if (row.testRecordId) {
+      items.push({ action: 'records', label: '检测记录' });
+    }
+    return items;
+  }
+
+  function buildMoreMenu(row) {
+    var items = moreMenuItems(row);
+    if (!items.length) return '';
+    var menuId = 'rc-more-' + row.id;
+    var open = openMoreMenuId === menuId;
+    return '<div class="relative inline-block rc-more-wrap" data-menu-id="' + C.escapeHtml(menuId) + '">' +
+      '<button type="button" class="btn-secondary px-2 py-1 rounded text-xs rc-more-toggle" data-menu-id="' + C.escapeHtml(menuId) + '">更多 <i class="fas fa-chevron-down text-[10px]"></i></button>' +
+      '<div class="rc-more-menu absolute right-0 mt-1 min-w-[8rem] bg-white border border-slate-200 rounded-md shadow-lg z-10 text-xs' + (open ? '' : ' hidden') + '" data-menu-id="' + C.escapeHtml(menuId) + '">' +
+      items.map(function (item) {
+        return '<button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-50 rc-action" data-action="' + item.action + '" data-report-id="' + C.escapeHtml(row.reportId) + '" data-test-record-id="' + C.escapeHtml(row.testRecordId || '') + '">' + C.escapeHtml(item.label) + '</button>';
+      }).join('') +
+      '</div></div>';
   }
 
   function buildActions(row) {
-    var actions = [];
-    if (row.workflow === 'pending_result') {
-      actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="import">导入结果</button>');
-    } else if (row.workflow === 'unassigned') {
-      actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="assign">处理归属</button>');
-    } else if (row.workflow === 'incomplete') {
-      if (row.rawTestStatus === 'import_failed') {
-        actions.push('<button type="button" class="text-teal-600 hover:underline mr-2 rc-action" data-action="import">重新导入</button>');
-      }
-      if (row.reportId) {
-        actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="review">完善</button>');
-      }
-    } else if (row.workflow === 'pending_review') {
-      if (row.reportId) {
-        actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="review">审核</button>');
-      }
-    } else if (row.workflow === 'published') {
-      if (row.reportId) {
-        actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="published">查看</button>');
-      }
-    } else if (row.workflow === 'voided') {
-      actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="records">追溯</button>');
+    return '<div class="flex items-center justify-end gap-2">' + primaryAction(row) + buildMoreMenu(row) + '</div>';
+  }
+
+  function reportIdentity(row) {
+    var primary = C.escapeHtml(row.reportNumber);
+    var secondary = row.sampleNumber ? C.escapeHtml(row.sampleNumber) : '';
+    if (row.externalReportNumber && row.externalReportNumber !== row.reportNumber) {
+      secondary = secondary ? secondary + ' · ' + C.escapeHtml(row.externalReportNumber) : C.escapeHtml(row.externalReportNumber);
     }
-    return actions.join('') || '—';
+    return '<div class="font-medium text-slate-800">' + primary + '</div>' +
+      (secondary ? '<div class="text-xs text-slate-500 font-mono mt-0.5">' + secondary + '</div>' : '');
   }
 
   function setActiveView(view) {
-    currentView = view || 'all';
+    currentView = view || 'pending';
     viewTabs.forEach(function (tab) {
       var active = tab.dataset.view === currentView;
       tab.classList.toggle('bg-teal-600', active);
@@ -278,20 +257,21 @@ function initReportCenter() {
       tab.classList.toggle('text-slate-600', !active);
       tab.setAttribute('aria-selected', active ? 'true' : 'false');
     });
-    listTitle.textContent = VIEW_LABELS[currentView] + '报告';
+    listTitle.textContent = (VIEW_LABELS[currentView] || currentView) + '报告';
   }
 
   function syncViewFromRoute() {
     var route = C.parseRoute();
-    var view = route.params.view || route.params.status || 'all';
-    if (!VIEW_LABELS[view]) view = 'all';
+    var view = route.params.view || route.params.status || 'pending';
+    if (view === 'pending_result') view = 'pending';
+    if (!VIEW_LABELS[view]) view = 'pending';
     setActiveView(view);
   }
 
   function updateRouteView(view) {
     var route = C.parseRoute();
     var params = Object.assign({}, route.params);
-    if (view === 'all') {
+    if (view === 'pending') {
       delete params.view;
       delete params.status;
     } else {
@@ -310,12 +290,12 @@ function initReportCenter() {
       C.navigate('published-reports', { reportId: row.reportId });
       return;
     }
-    if (action === 'assign') {
+    if (action === 'assign' && row.testRecordId) {
       C.navigate('pet-information', { action: 'assign', testRecordId: row.testRecordId });
       return;
     }
-    if (action === 'import') {
-      if (row.testRecordId) sessionStorage.setItem('pet-admin-excel-tr', row.testRecordId);
+    if (action === 'import' && row.testRecordId) {
+      sessionStorage.setItem('pet-admin-excel-tr', row.testRecordId);
       C.navigate('excel-import');
       return;
     }
@@ -325,40 +305,61 @@ function initReportCenter() {
     }
   }
 
+  function bindRowActions(rows) {
+    listEl.querySelectorAll('.rc-action').forEach(function (btn) {
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        var card = btn.closest('.rc-card');
+        var idx = card ? Number(card.getAttribute('data-row-index')) : -1;
+        if (idx < 0 || !rows[idx]) return;
+        openMoreMenuId = null;
+        handleAction(btn.dataset.action, rows[idx]);
+      };
+    });
+
+    listEl.querySelectorAll('.rc-more-toggle').forEach(function (btn) {
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        var menuId = btn.getAttribute('data-menu-id');
+        openMoreMenuId = openMoreMenuId === menuId ? null : menuId;
+        render(store.getState());
+      };
+    });
+  }
+
   function render(state) {
     syncViewFromRoute();
-    var rows = applyFilters(buildRows(state));
+    var allRows = buildRows(state);
+    var filteredRows = applyCommonFilters(allRows);
+    updateTabCounts(filteredRows);
+
+    var rows = sortRows(
+      filteredRows.filter(function (row) { return matchesView(row, currentView); }),
+      currentView
+    );
+
     resultCount.textContent = '共 ' + rows.length + ' 条';
 
     if (!rows.length) {
-      tbody.innerHTML = '';
+      listEl.innerHTML = '';
       emptyEl.classList.remove('hidden');
       return;
     }
     emptyEl.classList.add('hidden');
 
-    tbody.innerHTML = rows.map(function (row) {
-      return '<tr class="hover:bg-slate-50">' +
-        '<td class="px-3 py-2">' + C.escapeHtml(row.reportNumber) + '</td>' +
-        '<td class="px-3 py-2">' + C.escapeHtml(row.externalReportNumber) + '</td>' +
-        '<td class="px-3 py-2 font-mono text-xs">' + C.escapeHtml(String(row.sampleNumber)) + '</td>' +
-        '<td class="px-3 py-2">' + C.escapeHtml(row.userName) + ' / ' + C.escapeHtml(row.petName) + '</td>' +
-        '<td class="px-3 py-2">' + C.escapeHtml(row.species || '—') + '</td>' +
-        '<td class="px-3 py-2">' + C.escapeHtml(row.storeName) + '</td>' +
-        '<td class="px-3 py-2">' + workflowBadge(row.workflow) + '</td>' +
-        '<td class="px-3 py-2">' + C.escapeHtml(row.testDate || '—') + '</td>' +
-        '<td class="px-3 py-2">' + todoBadges(row.todos) + '</td>' +
-        '<td class="px-3 py-2 whitespace-nowrap">' + buildActions(row) + '</td>' +
-        '</tr>';
+    listEl.innerHTML = rows.map(function (row, index) {
+      return '<article class="rc-card border border-slate-200 rounded-lg px-3 py-2.5 hover:border-slate-300 hover:bg-slate-50/50" data-row-index="' + index + '">' +
+        '<div class="rc-card-grid grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-center text-sm">' +
+        '<div class="sm:col-span-3">' + reportIdentity(row) + '</div>' +
+        '<div class="sm:col-span-2"><div class="text-slate-800">' + C.escapeHtml(row.userName) + '</div><div class="text-xs text-slate-500">' + C.escapeHtml(row.petName) + '</div></div>' +
+        '<div class="sm:col-span-2 text-slate-700">' + C.escapeHtml(row.sourceName) + '</div>' +
+        '<div class="sm:col-span-1">' + workflowBadge(row.workflow) + '</div>' +
+        '<div class="sm:col-span-2 text-slate-600 text-xs">' + C.escapeHtml(C.formatDate(row.updatedAt)) + '</div>' +
+        '<div class="sm:col-span-2">' + buildActions(row) + '</div>' +
+        '</div></article>';
     }).join('');
 
-    tbody.querySelectorAll('.rc-action').forEach(function (btn) {
-      btn.onclick = function () {
-        var tr = btn.closest('tr');
-        var idx = Array.prototype.indexOf.call(tbody.children, tr);
-        handleAction(btn.dataset.action, rows[idx]);
-      };
-    });
+    bindRowActions(rows);
   }
 
   viewTabs.forEach(function (tab) {
@@ -366,6 +367,7 @@ function initReportCenter() {
       var view = tab.dataset.view;
       setActiveView(view);
       updateRouteView(view);
+      openMoreMenuId = null;
       render(store.getState());
     });
   });
@@ -373,18 +375,21 @@ function initReportCenter() {
   filterForm.addEventListener('submit', function (e) {
     e.preventDefault();
     filterState = readFiltersFromForm();
+    openMoreMenuId = null;
     render(store.getState());
   });
 
   document.getElementById('rc-btn-reset').addEventListener('click', function () {
     filterForm.reset();
     filterState = {};
+    openMoreMenuId = null;
     render(store.getState());
   });
 
   filterForm.querySelectorAll('input, select').forEach(function (el) {
     el.addEventListener('change', function () {
       filterState = readFiltersFromForm();
+      openMoreMenuId = null;
       render(store.getState());
     });
   });
@@ -393,20 +398,31 @@ function initReportCenter() {
     C.navigate('excel-import');
   });
 
-  document.getElementById('btn-register-test').addEventListener('click', function () {
-    var state = store.getState();
-    var pet = state.pets.find(function (p) { return p.claimStatus === 'bound'; });
-    store.registerTest({ petId: pet ? pet.id : null });
-    C.toast('已登记新检测，归入待出结果', 'success');
-    setActiveView('pending_result');
-    updateRouteView('pending_result');
-    render(store.getState());
+  advancedToggle.addEventListener('click', function () {
+    var expanded = advancedToggle.getAttribute('aria-expanded') === 'true';
+    expanded = !expanded;
+    advancedToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    advancedPanel.classList.toggle('hidden', !expanded);
+    var chevron = advancedToggle.querySelector('.rc-advanced-chevron');
+    if (chevron) chevron.classList.toggle('rotate-90', expanded);
   });
 
   function onHashChange() {
-    if (C.parseRoute().pageId === 'report-center') render(store.getState());
+    if (C.parseRoute().pageId === 'report-center') {
+      openMoreMenuId = null;
+      render(store.getState());
+    }
   }
+
+  function onDocumentClick() {
+    if (openMoreMenuId) {
+      openMoreMenuId = null;
+      render(store.getState());
+    }
+  }
+
   window.addEventListener('hashchange', onHashChange);
+  document.addEventListener('click', onDocumentClick);
 
   filterState = readFiltersFromForm();
   render(store.getState());
@@ -415,5 +431,6 @@ function initReportCenter() {
   window.__petAdminPageTeardown = function () {
     if (typeof prevTeardown === 'function') prevTeardown();
     window.removeEventListener('hashchange', onHashChange);
+    document.removeEventListener('click', onDocumentClick);
   };
 }
