@@ -1,13 +1,69 @@
 document.addEventListener('DOMContentLoaded', function () {
+  window.__PET_ADMIN_ASSET_VERSION = '20250827';
   var C = window.PetAdminCommon;
   var navItems = document.querySelectorAll('#main-nav .nav-item');
   var pageContentContainer = document.getElementById('page-content-container');
   var pageTitle = document.getElementById('page-title');
+  var sider = document.getElementById('admin-sider');
+  var siderToggle = document.getElementById('sider-toggle');
+  var siderMask = document.getElementById('sider-mask');
+  var mobileNavQuery = window.matchMedia('(max-width: 768px)');
   var loadedScripts = {};
   var currentPageId = null;
   var unsubscribe = null;
   var lastLoadedHash = null;
   var loadGeneration = 0;
+
+  C.enhanceDom(document.body);
+  C.startEnhanceObserver();
+
+  function isMobileNav() {
+    return mobileNavQuery.matches;
+  }
+
+  function setSiderOpen(open) {
+    if (!sider || !siderToggle) return;
+    if (!isMobileNav()) {
+      sider.classList.remove('is-open');
+      if (siderMask) siderMask.classList.remove('is-visible');
+      document.body.classList.remove('ant-sider-open');
+      siderToggle.setAttribute('aria-expanded', 'false');
+      sider.setAttribute('aria-hidden', 'false');
+      if (siderMask) siderMask.setAttribute('aria-hidden', 'true');
+      return;
+    }
+    sider.classList.toggle('is-open', open);
+    if (siderMask) siderMask.classList.toggle('is-visible', open);
+    document.body.classList.toggle('ant-sider-open', open);
+    siderToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    sider.setAttribute('aria-hidden', open ? 'false' : 'true');
+    if (siderMask) siderMask.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+
+  function closeSider() {
+    setSiderOpen(false);
+  }
+
+  if (siderToggle && sider) {
+    setSiderOpen(false);
+    siderToggle.addEventListener('click', function () {
+      if (!isMobileNav()) return;
+      setSiderOpen(!sider.classList.contains('is-open'));
+    });
+    if (siderMask) {
+      siderMask.addEventListener('click', closeSider);
+    }
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && isMobileNav() && sider.classList.contains('is-open')) {
+        closeSider();
+      }
+    });
+    if (typeof mobileNavQuery.addEventListener === 'function') {
+      mobileNavQuery.addEventListener('change', closeSider);
+    } else if (typeof mobileNavQuery.addListener === 'function') {
+      mobileNavQuery.addListener(closeSider);
+    }
+  }
 
   var DEFAULT_PAGE = 'report-center';
 
@@ -38,6 +94,12 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function assetUrl(path) {
+    var version = window.__PET_ADMIN_ASSET_VERSION || '';
+    if (!version) return path;
+    return path + (path.indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(version);
+  }
+
   function loadScript(src) {
     return new Promise(function (resolve, reject) {
       if (loadedScripts[src]) {
@@ -45,7 +107,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       var s = document.createElement('script');
-      s.src = './js/' + src;
+      s.src = assetUrl('./js/' + src);
       s.onload = function () {
         loadedScripts[src] = true;
         resolve();
@@ -64,10 +126,12 @@ document.addEventListener('DOMContentLoaded', function () {
     window.__petAdminPageTeardown = null;
   }
 
-  function runPageInit(config) {
+  async function runPageInit(config) {
     var initName = config.init;
-    if (initName && typeof window[initName] === 'function') {
-      window[initName]();
+    if (!initName || typeof window[initName] !== 'function') return;
+    var result = window[initName]();
+    if (result && typeof result.then === 'function') {
+      await result;
     }
   }
 
@@ -111,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
     currentPageId = pageId;
 
     try {
-      var response = await fetch('./' + pageId + '.html');
+      var response = await fetch(assetUrl('./' + pageId + '.html'));
       if (!response.ok) throw new Error('HTTP ' + response.status);
       if (gen !== loadGeneration) return;
       var html = await response.text();
@@ -124,7 +188,9 @@ document.addEventListener('DOMContentLoaded', function () {
         await loadScript(config.script);
       }
       if (gen !== loadGeneration) return;
-      runPageInit(config);
+      await runPageInit(config);
+      if (gen !== loadGeneration) return;
+      C.enhanceDom(pageContentContainer);
 
       if (updateHash && rawHash() !== hash) {
         window.location.hash = hash;
@@ -132,15 +198,24 @@ document.addEventListener('DOMContentLoaded', function () {
     } catch (err) {
       if (gen !== loadGeneration) return;
       console.error('Error loading page ' + pageId, err);
+      pageTitle.textContent = config.title;
+      setActiveNav(pageId);
       pageContentContainer.innerHTML =
-        '<div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-md">页面加载失败: ' +
-        C.escapeHtml(config.title) + '</div>';
+        '<div class="ant-alert ant-alert-error">' +
+        '<p>页面加载失败: ' + C.escapeHtml(config.title) + '</p>' +
+        '<button type="button" class="btn-primary px-4 py-2 rounded-md text-sm mt-3" id="page-load-retry">重试</button>' +
+        '</div>';
+      var retryBtn = document.getElementById('page-load-retry');
+      if (retryBtn) {
+        retryBtn.onclick = function () { loadPage(pageId, updateHash); };
+      }
     }
   }
 
   navItems.forEach(function (item) {
     item.addEventListener('click', function (e) {
       e.preventDefault();
+      if (isMobileNav()) closeSider();
       var pageId = resolvePageId(item.dataset.page);
       if (pageId === currentPageId) return;
       loadPage(item.dataset.page, true);

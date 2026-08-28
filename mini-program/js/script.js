@@ -7,12 +7,10 @@
 
   var PAGE_TITLES = {
     home: '首页',
-    reports: '报告',
     profile: '我的',
     pets: '宠物',
-    'pet-reports': '宠物报告',
-    'pet-detail': '宠物资料',
-    claim: '领取',
+    'pet-reports': '宠物详情',
+    'pet-detail': '宠物详情',
     report: '报告详情',
     finding: '发现详情',
     metrics: '全部指标',
@@ -21,8 +19,8 @@
     'spu-detail': 'SPU 详情'
   };
 
-  var MAIN_PAGES = ['home', 'reports', 'profile'];
-  var DEPRECATED_PAGES = ['progress', 'history'];
+  var MAIN_PAGES = ['home', 'pets', 'profile'];
+  var DEPRECATED_PAGES = ['progress', 'history', 'reports', 'claim'];
 
   var navTitle = null;
   var backButton = null;
@@ -81,6 +79,22 @@
 
   function isMainPage(page) {
     return MAIN_PAGES.indexOf(page) >= 0;
+  }
+
+  function redirectLegacyRoute(route) {
+    if (route.page === 'reports' || route.page === 'claim') {
+      navigate('pets', null, null, true);
+      return true;
+    }
+    if (route.page === 'pet-detail' && route.id) {
+      navigate('pet-reports', route.id, null, true);
+      return true;
+    }
+    if (DEPRECATED_PAGES.indexOf(route.page) >= 0) {
+      navigate('pets', null, null, true);
+      return true;
+    }
+    return false;
   }
 
   function setActiveTab(page) {
@@ -198,11 +212,60 @@
       return H.escapeHtml(text == null ? '' : String(text));
     }
 
-    function renderKnowledgeBody(packed) {
+    function statusClassForTaxon(key) {
+      if (!route.id || !key) return '';
+      var detail = H.getIndicatorDetailContext(route.id, key);
+      return detail && detail.presentation ? detail.presentation.statusClass : '';
+    }
+
+    function renderStatusHint(edu, statusClass) {
+      var hint = H.resolveTaxonNodeHint(edu, statusClass);
+      if (!hint) return '';
+      return '<div class="know-section know-alert"><h4>当前状态提示</h4><p class="know-body-text">' +
+        escText(hint) + '</p></div>';
+    }
+
+    function renderPhylumIntroBody(packed, statusClass) {
       var edu = packed.edu || H.emptyTaxonEdu();
-      var text = String(edu.knowledgeText || '').trim();
-      if (!text) return '';
-      return '<p class="know-body-text">' + escText(text) + '</p>';
+      var html = '';
+      var intro = String(edu.introText || edu.knowledgeText || '').trim();
+      if (intro) {
+        html += '<p class="know-body-text">' + escText(intro) + '</p>';
+      }
+      var tasks = Array.isArray(edu.mainTasks)
+        ? edu.mainTasks.filter(function (task) { return String(task || '').trim(); })
+        : [];
+      if (tasks.length) {
+        html += '<div class="know-section"><h4>主要工作</h4><ul class="know-tasks">';
+        tasks.forEach(function (task) {
+          html += '<li>' + escText(task) + '</li>';
+        });
+        html += '</ul></div>';
+      }
+      html += renderStatusHint(edu, statusClass);
+      return html;
+    }
+
+    function renderGenusBody(packed, statusClass) {
+      var edu = packed.edu || H.emptyTaxonEdu();
+      var html = '';
+      var role = String(edu.sceneCopy || '').trim();
+      if (role) {
+        html += '<div class="know-section"><h4>在菌群中的角色</h4><p class="know-body-text">' +
+          escText(role) + '</p></div>';
+      }
+      var appearance = String(edu.appearanceText || '').trim();
+      if (appearance) {
+        html += '<div class="know-section"><h4>外观</h4><p class="know-body-text">' +
+          escText(appearance) + '</p></div>';
+      }
+      var func = String(edu.functionText || edu.knowledgeText || '').trim();
+      if (func) {
+        html += '<div class="know-section"><h4>功能</h4><p class="know-body-text">' +
+          escText(func) + '</p></div>';
+      }
+      html += renderStatusHint(edu, statusClass);
+      return html;
     }
 
     function genusHeading(packed) {
@@ -220,10 +283,7 @@
         latinName: taxon.latinName || '',
         edu: H.emptyTaxonEdu()
       };
-      var vars = knowFillVars(packed);
-      vars.pet = phylumVars.pet;
-      vars.theme = phylumVars.theme;
-      var edu = packed.edu || H.emptyTaxonEdu();
+      var statusClass = statusClassForTaxon(taxon.key);
       var html = '<div class="know-carousel">';
       html += '<div class="know-slide">';
       html += '<div class="know-slide-name">' + H.escapeHtml(taxon.label || taxon.key || '');
@@ -231,10 +291,7 @@
         html += ' <span class="know-latin">(' + H.escapeHtml(packed.latinName) + ')</span>';
       }
       html += '</div>';
-      var knowledge = String(edu.knowledgeText || '').trim();
-      if (knowledge) {
-        html += '<p class="know-body-text">' + escText(knowledge) + '</p>';
-      }
+      html += renderGenusBody(packed, statusClass);
       html += '</div>';
       if (items.length > 1) {
         html += '<div class="know-pager">';
@@ -281,10 +338,10 @@
       }
       if (mode === 'genus') {
         if (knowTitle) knowTitle.textContent = genusHeading(packed);
-        if (knowBody) knowBody.innerHTML = renderKnowledgeBody(packed);
+        if (knowBody) knowBody.innerHTML = renderGenusBody(packed, statusClassForTaxon(key));
       } else {
         if (knowTitle) knowTitle.textContent = '什么是' + (packed.taxon.label || packed.taxon.key || '') + '？';
-        if (knowBody) knowBody.innerHTML = renderKnowledgeBody(packed);
+        if (knowBody) knowBody.innerHTML = renderPhylumIntroBody(packed, statusClassForTaxon(key));
       }
       know.hidden = false;
     }
@@ -447,11 +504,13 @@
         var target = el.getAttribute('data-nav');
         if (!target) return;
 
-        if (target === 'claim') return navigate('claim');
         if (target === 'pets') return navigate('pets');
-        if (target === 'reports') return navigate('reports');
         if (target === 'pet-reports') return navigate('pet-reports', el.getAttribute('data-pet-id'));
-        if (target === 'pet-detail') return navigate('pet-detail', el.getAttribute('data-pet-id'));
+        if (target === 'pet-detail') {
+          var legacyPetId = el.getAttribute('data-pet-id');
+          if (legacyPetId) return navigate('pet-reports', legacyPetId);
+          return navigate('pets');
+        }
         if (target === 'report') return navigate('report', el.getAttribute('data-report-id'));
         if (target === 'finding') {
           var findingId = el.getAttribute('data-finding-id');
@@ -470,13 +529,6 @@
       });
     });
 
-    pageContainer.querySelectorAll('.filter-chip').forEach(function (chip) {
-      chip.addEventListener('click', function () {
-        var filter = chip.getAttribute('data-filter') || 'all';
-        navigate('reports', null, { filter: filter });
-      });
-    });
-
     pageContainer.querySelectorAll('.module-head').forEach(function (head) {
       if (!head.querySelector('.fa-chevron-down')) return;
       head.addEventListener('click', function () {
@@ -488,17 +540,13 @@
       });
     });
 
-    if (route.page === 'claim') bindClaimPage(route);
     if (route.page === 'report') bindReportSurface(route);
   }
 
   function renderCurrentRoute() {
     var route = parseRoute();
 
-    if (DEPRECATED_PAGES.indexOf(route.page) >= 0) {
-      navigate('reports', null, null, true);
-      return;
-    }
+    if (redirectLegacyRoute(route)) return;
 
     if (!PAGE_TITLES[route.page]) {
       navigate('home', null, null, true);
@@ -513,9 +561,6 @@
         case 'home':
           html = P.renderHome();
           break;
-        case 'reports':
-          html = P.renderReports({ filter: route.params.filter || 'all' });
-          break;
         case 'profile':
           html = P.renderProfile();
           break;
@@ -528,14 +573,6 @@
         case 'pet-detail':
           html = P.renderPetDetail({ petId: route.id });
           break;
-        case 'claim': {
-          var claimResult = P.renderClaim({
-            step: route.params.step,
-            code: route.params.code
-          });
-          html = claimResult.html;
-          break;
-        }
         case 'report':
           html = P.renderReport({ reportId: route.id });
           break;

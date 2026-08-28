@@ -38,30 +38,25 @@
     var container = document.getElementById('toast-container');
     if (!container) return;
     var el = document.createElement('div');
-    var colors = {
-      success: 'bg-emerald-600',
-      error: 'bg-red-600',
-      warning: 'bg-amber-500',
-      info: 'bg-slate-700'
-    };
-    el.className = 'toast-item px-4 py-3 rounded-md text-white text-sm shadow-lg ' + (colors[type] || colors.info);
+    el.className = 'ant-message-notice ant-message-' + (type === 'error' ? 'error' : type);
+    el.setAttribute('role', 'alert');
     el.textContent = message;
     container.appendChild(el);
     setTimeout(function () {
-      el.classList.add('opacity-0');
+      el.classList.add('is-leaving');
       setTimeout(function () { el.remove(); }, 300);
     }, 3200);
   }
 
   function confirmDialog(message, onConfirm) {
     var overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4';
+    overlay.className = 'ant-modal-root flex items-center justify-center p-4';
     overlay.innerHTML =
-      '<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">' +
-      '<p class="text-gray-800 mb-6">' + escapeHtml(message) + '</p>' +
-      '<div class="flex justify-end gap-3">' +
-      '<button type="button" class="btn-secondary px-4 py-2 rounded-md" data-action="cancel">取消</button>' +
-      '<button type="button" class="btn-primary px-4 py-2 rounded-md" data-action="ok">确定</button>' +
+      '<div class="ant-modal max-w-md w-full">' +
+      '<div class="ant-modal-body"><p style="margin:0">' + escapeHtml(message) + '</p></div>' +
+      '<div class="ant-modal-footer">' +
+      '<button type="button" class="ant-btn ant-btn-default" data-action="cancel">取消</button>' +
+      '<button type="button" class="ant-btn ant-btn-primary" data-action="ok">确定</button>' +
       '</div></div>';
     document.body.appendChild(overlay);
     overlay.querySelector('[data-action="cancel"]').onclick = function () { overlay.remove(); };
@@ -73,14 +68,16 @@
 
   function promptDialog(title, placeholder, onSubmit) {
     var overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4';
+    overlay.className = 'ant-modal-root flex items-center justify-center p-4';
     overlay.innerHTML =
-      '<div class="bg-white rounded-lg shadow-xl max-w-md w-full p-6">' +
-      '<h3 class="font-semibold text-gray-900 mb-3">' + escapeHtml(title) + '</h3>' +
-      '<textarea class="w-full border border-gray-300 rounded-md p-2 text-sm min-h-[80px]" id="prompt-input" placeholder="' + escapeHtml(placeholder || '') + '"></textarea>' +
-      '<div class="flex justify-end gap-3 mt-4">' +
-      '<button type="button" class="btn-secondary px-4 py-2 rounded-md" data-action="cancel">取消</button>' +
-      '<button type="button" class="btn-primary px-4 py-2 rounded-md" data-action="ok">提交</button>' +
+      '<div class="ant-modal max-w-md w-full">' +
+      '<div class="ant-modal-header">' + escapeHtml(title) + '</div>' +
+      '<div class="ant-modal-body">' +
+      '<textarea class="ant-input" id="prompt-input" placeholder="' + escapeHtml(placeholder || '') + '"></textarea>' +
+      '</div>' +
+      '<div class="ant-modal-footer">' +
+      '<button type="button" class="ant-btn ant-btn-default" data-action="cancel">取消</button>' +
+      '<button type="button" class="ant-btn ant-btn-primary" data-action="ok">提交</button>' +
       '</div></div>';
     document.body.appendChild(overlay);
     var input = overlay.querySelector('#prompt-input');
@@ -487,23 +484,235 @@
 
   function statusBadge(status, map) {
     var label = (map && map[status]) || status;
-    var cls = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ';
-    var colors = {
-      pending_result: 'bg-blue-100 text-blue-800',
-      pending_claim: 'bg-purple-100 text-purple-800',
-      import_failed: 'bg-red-100 text-red-800',
-      pending_review: 'bg-amber-100 text-amber-800',
-      published: 'bg-emerald-100 text-emerald-800',
-      draft: 'bg-gray-100 text-gray-700',
-      rejected: 'bg-red-100 text-red-800',
-      approved: 'bg-teal-100 text-teal-800',
-      corrected: 'bg-indigo-100 text-indigo-800',
-      voided: 'bg-gray-200 text-gray-600',
-      success: 'bg-emerald-100 text-emerald-800',
-      failed: 'bg-red-100 text-red-800',
-      partial: 'bg-amber-100 text-amber-800'
+    var tagMap = {
+      pending_result: 'ant-tag ant-tag-processing',
+      pending_claim: 'ant-tag ant-tag-purple',
+      import_failed: 'ant-tag ant-tag-error',
+      pending_review: 'ant-tag ant-tag-warning',
+      published: 'ant-tag ant-tag-success',
+      draft: 'ant-tag ant-tag-default',
+      rejected: 'ant-tag ant-tag-error',
+      approved: 'ant-tag ant-tag-cyan',
+      corrected: 'ant-tag ant-tag-indigo',
+      voided: 'ant-tag ant-tag-default',
+      success: 'ant-tag ant-tag-success',
+      failed: 'ant-tag ant-tag-error',
+      partial: 'ant-tag ant-tag-warning'
     };
-    return '<span class="' + cls + (colors[status] || 'bg-gray-100 text-gray-700') + '">' + escapeHtml(label) + '</span>';
+    return '<span class="' + (tagMap[status] || 'ant-tag ant-tag-default') + '">' + escapeHtml(label) + '</span>';
+  }
+
+  var ENHANCE_SKIP_SELECTOR = '#toast-container, .ant-modal-root, script, style, svg';
+
+  function hasClassToken(cls, token) {
+    return (' ' + cls + ' ').indexOf(' ' + token + ' ') >= 0;
+  }
+
+  function classifyButtonType(btn) {
+    var cls = btn.className || '';
+    if (hasClassToken(cls, 'rc-view-tab') || hasClassToken(cls, 'ar-tab') || hasClassToken(cls, 'health-level-btn')) {
+      return null;
+    }
+    if (hasClassToken(cls, 'ant-btn-primary') || hasClassToken(cls, 'btn-primary')) return 'primary';
+    if (/\bbg-(blue|green|emerald)-[567]00\b/.test(cls)) return 'primary';
+    if (hasClassToken(cls, 'btn-secondary') || /\bbg-gray-[456]00\b/.test(cls) || /\bbg-slate-[456]00\b/.test(cls)) {
+      return 'default';
+    }
+    if (/\bbg-red-[567]00\b/.test(cls) || /\bborder-red-300\b/.test(cls)) return 'danger';
+    if (/\b(delete-btn|remove-item-btn|btn-correct|btn-void|btn-reject)\b/.test(cls)) return 'link-danger';
+    if (/\btext-red-[567]00\b/.test(cls) && !/\bbg-/.test(cls)) return 'link-danger';
+    if (/\btext-(blue|teal|green|indigo|amber)-[567]00\b/.test(cls) && !/\bbg-/.test(cls)) return 'link';
+    if (btn.type === 'submit' && !/\b(btn-secondary|danger|red|gray)\b/.test(cls)) return 'primary';
+    return 'default';
+  }
+
+  function enhanceButton(btn) {
+    if (btn.getAttribute('data-antd-enhanced') === 'button') return;
+    if (btn.closest(ENHANCE_SKIP_SELECTOR)) return;
+    var tabType = classifyButtonType(btn);
+    if (tabType === null) return;
+    btn.classList.add('ant-btn');
+    if (tabType === 'link' || tabType === 'link-danger') {
+      btn.classList.add(tabType === 'link-danger' ? 'ant-btn-link-danger' : 'ant-btn-link');
+    } else {
+      btn.classList.add('ant-btn-' + tabType);
+    }
+    if (/\btext-xs\b/.test(btn.className)) btn.classList.add('ant-btn-sm');
+  }
+
+  function enhanceFormControl(el) {
+    if (el.getAttribute('data-antd-enhanced') === 'input') return;
+    if (el.closest(ENHANCE_SKIP_SELECTOR)) return;
+    var type = (el.getAttribute('type') || '').toLowerCase();
+    if (type === 'hidden') return;
+    if (type === 'checkbox' || type === 'radio') {
+      el.classList.add('ant-checkbox');
+      el.setAttribute('data-antd-enhanced', 'input');
+      return;
+    }
+    if (type === 'file') {
+      el.classList.add('ant-upload-input');
+      el.setAttribute('data-antd-enhanced', 'input');
+      return;
+    }
+    el.classList.add('ant-input');
+    if (el.tagName === 'SELECT') el.classList.add('ant-select-native');
+    el.setAttribute('data-antd-enhanced', 'input');
+  }
+
+  function enhanceTable(table) {
+    if (table.getAttribute('data-antd-enhanced') === 'table') return;
+    table.classList.add('ant-table');
+    table.setAttribute('data-antd-enhanced', 'table');
+  }
+
+  function enhanceCard(el) {
+    if (el.getAttribute('data-antd-enhanced') === 'card') return;
+    if (!/\bbg-white\b/.test(el.className)) return;
+    el.classList.add('ant-card');
+    el.setAttribute('data-antd-enhanced', 'card');
+  }
+
+  function enhanceAlert(el) {
+    if (el.getAttribute('data-antd-enhanced') === 'alert') return;
+    var cls = el.className || '';
+    var variant = null;
+    if (/\bbg-red-50\b/.test(cls) || /\bborder-red-/.test(cls)) variant = 'error';
+    else if (/\bbg-green-50\b/.test(cls) || /\bborder-green-/.test(cls)) variant = 'success';
+    else if (/\bbg-amber-50\b/.test(cls) || /\bborder-amber-/.test(cls)) variant = 'warning';
+    if (!variant) return;
+    el.classList.add('ant-alert', 'ant-alert-' + variant);
+    el.setAttribute('data-antd-enhanced', 'alert');
+  }
+
+  function enhanceModalRoot(el) {
+    if (el.getAttribute('data-antd-enhanced') === 'modal') return;
+    if (!/\bfixed\b/.test(el.className) || !/\binset-0\b/.test(el.className)) return;
+    el.classList.add('ant-modal-root');
+    el.setAttribute('data-antd-enhanced', 'modal');
+  }
+
+  function enhanceTab(btn) {
+    var cls = btn.className || '';
+    if (!hasClassToken(cls, 'rc-view-tab') && !hasClassToken(cls, 'ar-tab')) return;
+    btn.classList.add('ant-tabs-tab');
+    syncTabActiveState(btn);
+    btn.setAttribute('data-antd-enhanced', 'tab');
+  }
+
+  function syncTabActiveState(btn) {
+    if (!hasClassToken(btn.className, 'rc-view-tab') && !hasClassToken(btn.className, 'ar-tab')) return;
+    var active = btn.getAttribute('aria-selected') === 'true' ||
+      /\bbg-teal-600\b/.test(btn.className) ||
+      (hasClassToken(btn.className, 'ar-tab') && /\bborder-blue-600\b/.test(btn.className));
+    btn.classList.toggle('ant-tabs-tab-active', active);
+  }
+
+  function enhanceTag(el) {
+    if (el.getAttribute('data-antd-enhanced') === 'tag') return;
+    var cls = el.className || '';
+    if (!/\binline-flex\b/.test(cls) || !/\brounded/.test(cls)) return;
+    if (!/\b(px-2|px-2\.5|py-0\.5|py-1)\b/.test(cls)) return;
+    el.classList.add('ant-tag');
+    el.setAttribute('data-antd-enhanced', 'tag');
+  }
+
+  function enhancePaginationRoot(el) {
+    if (el.getAttribute('data-antd-enhanced') === 'pagination') return;
+    if (!hasClassToken(el.className, 'ant-pagination') && !hasClassToken(el.className, 'pagination')) return;
+    el.classList.add('ant-pagination');
+    el.setAttribute('data-antd-enhanced', 'pagination');
+  }
+
+  function enhanceDom(root) {
+    root = root || document.body;
+    if (!root || root.nodeType !== 1) return;
+
+    var scope = root === document.body ? document : root;
+    var buttons = scope.querySelectorAll('button');
+    for (var i = 0; i < buttons.length; i++) {
+      if (root !== document.body && !root.contains(buttons[i])) continue;
+      enhanceTab(buttons[i]);
+      enhanceButton(buttons[i]);
+    }
+
+    var inputs = scope.querySelectorAll('input, textarea, select');
+    for (var j = 0; j < inputs.length; j++) {
+      if (root !== document.body && !root.contains(inputs[j])) continue;
+      enhanceFormControl(inputs[j]);
+    }
+
+    var tables = scope.querySelectorAll('table');
+    for (var k = 0; k < tables.length; k++) {
+      if (root !== document.body && !root.contains(tables[k])) continue;
+      enhanceTable(tables[k]);
+    }
+
+    var cards = scope.querySelectorAll('[class*="bg-white"]');
+    for (var c = 0; c < cards.length; c++) {
+      if (root !== document.body && !root.contains(cards[c])) continue;
+      enhanceCard(cards[c]);
+    }
+
+    var alerts = scope.querySelectorAll('[class*="bg-red-50"], [class*="bg-green-50"], [class*="bg-amber-50"]');
+    for (var a = 0; a < alerts.length; a++) {
+      if (root !== document.body && !root.contains(alerts[a])) continue;
+      enhanceAlert(alerts[a]);
+    }
+
+    var modals = scope.querySelectorAll('[class*="fixed"][class*="inset-0"]');
+    for (var m = 0; m < modals.length; m++) {
+      if (root !== document.body && !root.contains(modals[m])) continue;
+      enhanceModalRoot(modals[m]);
+    }
+
+    var tags = scope.querySelectorAll('span.inline-flex, span[class*="inline-flex"]');
+    for (var t = 0; t < tags.length; t++) {
+      if (root !== document.body && !root.contains(tags[t])) continue;
+      enhanceTag(tags[t]);
+    }
+
+    var paginations = scope.querySelectorAll('.pagination, .ant-pagination');
+    for (var p = 0; p < paginations.length; p++) {
+      if (root !== document.body && !root.contains(paginations[p])) continue;
+      enhancePaginationRoot(paginations[p]);
+    }
+  }
+
+  var enhanceObserver = null;
+
+  function startEnhanceObserver() {
+    if (enhanceObserver || typeof MutationObserver === 'undefined') return;
+    var targets = [
+      document.getElementById('page-content-container'),
+      document.getElementById('toast-container'),
+      document.body
+    ].filter(Boolean);
+
+    enhanceObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (mutation) {
+        if (mutation.type === 'attributes') {
+          var target = mutation.target;
+          if (target && target.nodeType === 1 && target.tagName === 'BUTTON') {
+            syncTabActiveState(target);
+          }
+          return;
+        }
+        mutation.addedNodes.forEach(function (node) {
+          if (node.nodeType !== 1) return;
+          enhanceDom(node);
+        });
+      });
+    });
+
+    targets.forEach(function (target) {
+      enhanceObserver.observe(target, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'aria-selected']
+      });
+    });
   }
 
   function canRecommend(dataStatus) {
@@ -538,6 +747,8 @@
     toast: toast,
     confirmDialog: confirmDialog,
     promptDialog: promptDialog,
+    enhanceDom: enhanceDom,
+    startEnhanceObserver: startEnhanceObserver,
     escapeHtml: escapeHtml,
     formatDate: formatDate,
     lookupUser: lookupUser,

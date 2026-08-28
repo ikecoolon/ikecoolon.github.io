@@ -4,20 +4,30 @@ function initMicrobiotaKnowledge() {
 
   var PREVIEW_PET = '小花';
   var PREVIEW_THEME = '草原';
+  var PREVIEW_STATUS_KEY = 'low';
 
   var selectedKey = '';
   var formInteracting = false;
   var previewRaf = 0;
-  var presentationDraft = null;
+  var drawerOpen = false;
+  var drawerReturnFocus = null;
 
   var searchInput = document.getElementById('mk-search');
   var treeEl = document.getElementById('mk-tree');
-  var emptyEl = document.getElementById('mk-empty');
   var editorEl = document.getElementById('mk-editor');
   var previewEl = document.getElementById('mk-preview');
+  var globalSummaryEl = document.getElementById('mk-global-summary');
   var presLowInput = document.getElementById('mk-pres-low');
   var presNormalInput = document.getElementById('mk-pres-normal');
   var presHighInput = document.getElementById('mk-pres-high');
+  var drawerRoot = document.getElementById('mk-drawer-root');
+  var drawerPanel = drawerRoot ? drawerRoot.querySelector('.ant-drawer') : null;
+  var phylumFields = document.getElementById('mk-phylum-fields');
+  var genusFields = document.getElementById('mk-genus-fields');
+  var sceneCopyLabel = document.getElementById('mk-scene-copy-label');
+  var mainTasksListEl = document.getElementById('mk-main-tasks-list');
+  var mainTasksEmptyEl = document.getElementById('mk-main-tasks-empty');
+  var mainTasksAddBtn = document.getElementById('mk-main-tasks-add');
 
   var route = C.parseRoute();
   if (route.params && route.params.taxon) {
@@ -41,15 +51,20 @@ function initMicrobiotaKnowledge() {
       unsub = store.subscribe(onStoreTick);
     }
   }
-  window.__petAdminPageTeardown = function () { unsub(); };
+  window.__petAdminPageTeardown = function () {
+    unsub();
+    closeDrawer(false);
+  };
 
   renderTree();
+  refreshGlobalSummary();
   loadPresentationIntoForm();
   loadSelectedIntoForm();
 
   function onStoreTick() {
     renderTree();
-    if (!formInteracting) {
+    refreshGlobalSummary();
+    if (!formInteracting && !drawerOpen) {
       loadPresentationIntoForm();
       loadSelectedIntoForm();
     }
@@ -66,30 +81,69 @@ function initMicrobiotaKnowledge() {
       selectTaxon(btn.getAttribute('data-taxon-key'));
     });
 
-    document.getElementById('mk-btn-save').addEventListener('click', saveCurrent);
+    document.getElementById('mk-btn-save').addEventListener('click', saveCurrentNode);
+    document.getElementById('mk-btn-open-global').addEventListener('click', openDrawer);
+    document.getElementById('mk-btn-save-global').addEventListener('click', saveGlobalSettings);
 
-    var presSection = document.getElementById('mk-global-pres');
-    if (presSection) {
-      presSection.addEventListener('focusin', function () { formInteracting = true; });
-      presSection.addEventListener('input', function () {
-        formInteracting = true;
-        if (previewRaf) cancelAnimationFrame(previewRaf);
-        previewRaf = requestAnimationFrame(function () {
-          previewRaf = 0;
-          updatePreview();
-        });
+    if (drawerRoot) {
+      drawerRoot.querySelectorAll('[data-mk-drawer-close]').forEach(function (btn) {
+        btn.addEventListener('click', function () { closeDrawer(true); });
       });
     }
 
+    document.addEventListener('keydown', onDocumentKeydown);
+
     editorEl.addEventListener('focusin', function () { formInteracting = true; });
-    editorEl.addEventListener('input', function () {
-      formInteracting = true;
-      if (previewRaf) cancelAnimationFrame(previewRaf);
-      previewRaf = requestAnimationFrame(function () {
-        previewRaf = 0;
-        updatePreview();
+    editorEl.addEventListener('input', schedulePreviewUpdate);
+
+    bindMainTasksEvents();
+
+    if (drawerRoot) {
+      drawerRoot.addEventListener('focusin', function () { formInteracting = true; });
+      drawerRoot.addEventListener('input', function () {
+        formInteracting = true;
+        schedulePreviewUpdate();
       });
+    }
+  }
+
+  function onDocumentKeydown(e) {
+    if (!drawerOpen || e.key !== 'Escape') return;
+    e.preventDefault();
+    closeDrawer(true);
+  }
+
+  function schedulePreviewUpdate() {
+    formInteracting = true;
+    if (previewRaf) cancelAnimationFrame(previewRaf);
+    previewRaf = requestAnimationFrame(function () {
+      previewRaf = 0;
+      updatePreview();
     });
+  }
+
+  function openDrawer() {
+    if (!drawerRoot) return;
+    drawerReturnFocus = document.activeElement;
+    loadPresentationIntoForm();
+    drawerOpen = true;
+    drawerRoot.hidden = false;
+    drawerRoot.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('mk-drawer-open');
+    if (drawerPanel) drawerPanel.focus();
+  }
+
+  function closeDrawer(restoreFocus) {
+    if (!drawerRoot || !drawerOpen) return;
+    drawerOpen = false;
+    drawerRoot.hidden = true;
+    drawerRoot.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('mk-drawer-open');
+    formInteracting = false;
+    if (restoreFocus && drawerReturnFocus && typeof drawerReturnFocus.focus === 'function') {
+      drawerReturnFocus.focus();
+    }
+    drawerReturnFocus = null;
   }
 
   function getSvc() {
@@ -142,10 +196,20 @@ function initMicrobiotaKnowledge() {
     return (taxon && taxon.edu) || {};
   }
 
+  function hasText(value) {
+    return !!String(value || '').trim();
+  }
+
   function isComplete(taxon) {
     if (!taxon) return false;
     var edu = eduOf(taxon);
-    return !!(String(edu.sceneCopy || '').trim() || String(edu.knowledgeText || '').trim());
+    var hints = hasText(edu.lowHint) || hasText(edu.normalHint) || hasText(edu.highHint);
+    if (taxon.level === 'phylum') {
+      return hasText(edu.sceneCopy) || hasText(edu.introText) ||
+        (Array.isArray(edu.mainTasks) && edu.mainTasks.length) || hints;
+    }
+    return hasText(edu.sceneCopy) || hasText(edu.appearanceText) ||
+      hasText(edu.functionText) || hints;
   }
 
   function completenessBadge(taxon) {
@@ -228,6 +292,7 @@ function initMicrobiotaKnowledge() {
     treeEl.innerHTML = shown
       ? html
       : '<p class="text-xs text-slate-400 px-1 py-6 text-center">无匹配分类</p>';
+    markTreeSelection();
   }
 
   function selectTaxon(key) {
@@ -251,18 +316,30 @@ function initMicrobiotaKnowledge() {
     return document.getElementById(id);
   }
 
+  function setLevelFields(isPhylum) {
+    if (phylumFields) phylumFields.classList.toggle('hidden', !isPhylum);
+    if (genusFields) genusFields.classList.toggle('hidden', isPhylum);
+    if (sceneCopyLabel) {
+      sceneCopyLabel.textContent = isPhylum
+        ? '场景句核心短语（可选）'
+        : '在菌群中的角色（可选）';
+    }
+    if (el('mk-scene-copy')) {
+      el('mk-scene-copy').placeholder = isPhylum
+        ? '如「敏捷的采集者」—— 拼入用户端场景句，留空则不显示'
+        : '如「活跃的分解者」—— 属详情与轮播中展示，留空则不显示';
+    }
+  }
+
   function loadSelectedIntoForm() {
     var taxa = getTaxa();
     var taxon = findTaxon(taxa, selectedKey);
     if (taxon) selectedKey = taxon.key;
     if (!taxon) {
-      emptyEl.classList.remove('hidden');
-      editorEl.classList.add('hidden');
+      if (editorEl) editorEl.classList.add('opacity-50');
       return;
     }
-
-    emptyEl.classList.add('hidden');
-    editorEl.classList.remove('hidden');
+    if (editorEl) editorEl.classList.remove('opacity-50');
 
     var edu = eduOf(taxon);
     var isPhylum = taxon.level === 'phylum';
@@ -274,6 +351,7 @@ function initMicrobiotaKnowledge() {
       (isPhylum ? 'bg-teal-50 text-teal-800' : 'bg-sky-50 text-sky-800');
     el('mk-latin-name').value = taxon.latinName || '';
     el('mk-key').value = taxon.key || '';
+    setLevelFields(isPhylum);
 
     var parentLine = el('mk-parent-line');
     if (!isPhylum && taxon.parentKey) {
@@ -286,15 +364,173 @@ function initMicrobiotaKnowledge() {
     }
 
     el('mk-scene-copy').value = edu.sceneCopy || '';
-    el('mk-knowledge-text').value = edu.knowledgeText || '';
+    el('mk-intro-text').value = edu.introText || '';
+    var tasks = Array.isArray(edu.mainTasks) ? edu.mainTasks.slice() : [];
+    renderMainTasksList(tasks);
+    el('mk-appearance-text').value = edu.appearanceText || '';
+    el('mk-function-text').value = edu.functionText || '';
+    el('mk-low-hint').value = edu.lowHint || '';
+    el('mk-normal-hint').value = edu.normalHint || '';
+    el('mk-high-hint').value = edu.highHint || '';
     updatePreview(taxon);
   }
 
-  function readFormEdu() {
-    return {
+  function createMainTasksRow(value, index, total) {
+    var row = document.createElement('div');
+    row.className = 'mk-main-tasks-row';
+    row.setAttribute('role', 'listitem');
+
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'ant-input mk-main-tasks-input text-sm';
+    input.placeholder = '主要工作内容';
+    input.value = value;
+
+    var actions = document.createElement('div');
+    actions.className = 'mk-main-tasks-actions';
+
+    var upBtn = document.createElement('button');
+    upBtn.type = 'button';
+    upBtn.className = 'ant-btn ant-btn-default ant-btn-sm mk-main-tasks-up';
+    upBtn.title = '上移';
+    upBtn.setAttribute('aria-label', '上移');
+    upBtn.textContent = '\u2191';
+    if (index === 0) upBtn.disabled = true;
+
+    var downBtn = document.createElement('button');
+    downBtn.type = 'button';
+    downBtn.className = 'ant-btn ant-btn-default ant-btn-sm mk-main-tasks-down';
+    downBtn.title = '下移';
+    downBtn.setAttribute('aria-label', '下移');
+    downBtn.textContent = '\u2193';
+    if (index === total - 1) downBtn.disabled = true;
+
+    var delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'ant-btn ant-btn-default ant-btn-sm mk-main-tasks-del';
+    delBtn.title = '删除';
+    delBtn.setAttribute('aria-label', '删除');
+    delBtn.textContent = '\u00D7';
+
+    actions.appendChild(upBtn);
+    actions.appendChild(downBtn);
+    actions.appendChild(delBtn);
+    row.appendChild(input);
+    row.appendChild(actions);
+    return row;
+  }
+
+  function syncMainTasksEmptyState(count) {
+    if (!mainTasksEmptyEl) return;
+    var n = count != null ? count : (mainTasksListEl ? mainTasksListEl.querySelectorAll('.mk-main-tasks-row').length : 0);
+    mainTasksEmptyEl.classList.toggle('hidden', n > 0);
+    if (mainTasksListEl) mainTasksListEl.classList.toggle('hidden', n === 0);
+  }
+
+  function renderMainTasksList(taskValues) {
+    if (!mainTasksListEl) return;
+    var values = Array.isArray(taskValues) ? taskValues : [];
+    mainTasksListEl.innerHTML = '';
+    values.forEach(function (val, index) {
+      mainTasksListEl.appendChild(createMainTasksRow(String(val == null ? '' : val), index, values.length));
+    });
+    syncMainTasksEmptyState(values.length);
+  }
+
+  function readMainTaskValues() {
+    if (!mainTasksListEl) return [];
+    var inputs = mainTasksListEl.querySelectorAll('.mk-main-tasks-input');
+    var out = [];
+    for (var i = 0; i < inputs.length; i++) {
+      out.push(inputs[i].value);
+    }
+    return out;
+  }
+
+  function addMainTaskRow(focus) {
+    var values = readMainTaskValues();
+    values.push('');
+    renderMainTasksList(values);
+    if (focus && mainTasksListEl) {
+      var inputs = mainTasksListEl.querySelectorAll('.mk-main-tasks-input');
+      var last = inputs[inputs.length - 1];
+      if (last) last.focus();
+    }
+    schedulePreviewUpdate();
+  }
+
+  function moveMainTaskRow(index, delta) {
+    var values = readMainTaskValues();
+    var newIndex = index + delta;
+    if (newIndex < 0 || newIndex >= values.length) return;
+    var tmp = values[index];
+    values[index] = values[newIndex];
+    values[newIndex] = tmp;
+    renderMainTasksList(values);
+    schedulePreviewUpdate();
+  }
+
+  function deleteMainTaskRow(index) {
+    var values = readMainTaskValues();
+    values.splice(index, 1);
+    renderMainTasksList(values);
+    schedulePreviewUpdate();
+  }
+
+  function bindMainTasksEvents() {
+    if (mainTasksAddBtn) {
+      mainTasksAddBtn.addEventListener('click', function () {
+        addMainTaskRow(true);
+      });
+    }
+    if (mainTasksListEl) {
+      mainTasksListEl.addEventListener('click', function (e) {
+        var row = e.target.closest('.mk-main-tasks-row');
+        if (!row || !mainTasksListEl.contains(row)) return;
+        var rows = mainTasksListEl.querySelectorAll('.mk-main-tasks-row');
+        var index = -1;
+        for (var i = 0; i < rows.length; i++) {
+          if (rows[i] === row) { index = i; break; }
+        }
+        if (index < 0) return;
+        if (e.target.closest('.mk-main-tasks-up')) {
+          e.preventDefault();
+          moveMainTaskRow(index, -1);
+        } else if (e.target.closest('.mk-main-tasks-down')) {
+          e.preventDefault();
+          moveMainTaskRow(index, 1);
+        } else if (e.target.closest('.mk-main-tasks-del')) {
+          e.preventDefault();
+          deleteMainTaskRow(index);
+        }
+      });
+    }
+  }
+
+  function readMainTasks() {
+    var tasks = [];
+    readMainTaskValues().forEach(function (line) {
+      var trimmed = String(line).trim();
+      if (trimmed) tasks.push(trimmed);
+    });
+    return tasks;
+  }
+
+  function readFormEdu(isPhylum) {
+    var edu = {
       sceneCopy: el('mk-scene-copy').value.trim(),
-      knowledgeText: el('mk-knowledge-text').value.trim()
+      lowHint: el('mk-low-hint').value.trim(),
+      normalHint: el('mk-normal-hint').value.trim(),
+      highHint: el('mk-high-hint').value.trim()
     };
+    if (isPhylum) {
+      edu.introText = el('mk-intro-text').value.trim();
+      edu.mainTasks = readMainTasks();
+    } else {
+      edu.appearanceText = el('mk-appearance-text').value.trim();
+      edu.functionText = el('mk-function-text').value.trim();
+    }
+    return edu;
   }
 
   function resolveSaveTaxonEdu() {
@@ -309,7 +545,7 @@ function initMicrobiotaKnowledge() {
     return null;
   }
 
-  function saveCurrent() {
+  function saveCurrentNode() {
     var taxa = getTaxa();
     var taxon = findTaxon(taxa, selectedKey);
     if (!taxon) {
@@ -317,29 +553,45 @@ function initMicrobiotaKnowledge() {
       return;
     }
     var saveFn = resolveSaveTaxonEdu();
-    var savePresentationFn = resolveSavePresentation();
-    if (!saveFn || !savePresentationFn) {
-      C.toast('科普保存接口不可用（saveTaxonEdu / saveMicrobiotaPresentation 未就绪）', 'error');
+    if (!saveFn) {
+      C.toast('科普保存接口不可用（saveTaxonEdu 未就绪）', 'error');
       return;
     }
+    var isPhylum = taxon.level === 'phylum';
     var patch = {
       latinName: el('mk-latin-name').value.trim(),
-      edu: readFormEdu()
+      edu: readFormEdu(isPhylum)
     };
+    formInteracting = true;
+    try {
+      saveFn(taxon.key, patch);
+      formInteracting = false;
+      C.toast('当前节点科普模板已保存', 'success');
+      renderTree();
+      loadSelectedIntoForm();
+    } catch (err) {
+      formInteracting = false;
+      C.toast((err && err.message) || '保存失败，请检查填写后重试', 'error');
+    }
+  }
+
+  function saveGlobalSettings() {
+    var savePresentationFn = resolveSavePresentation();
+    if (!savePresentationFn) {
+      C.toast('全局设置保存接口不可用（saveMicrobiotaPresentation 未就绪）', 'error');
+      return;
+    }
     var presentationPatch = readFormPresentation();
     formInteracting = true;
     try {
       savePresentationFn(presentationPatch);
-      saveFn(taxon.key, patch);
       formInteracting = false;
-      presentationDraft = null;
-      C.toast('科普模板与场景状态词已保存', 'success');
-      renderTree();
-      loadPresentationIntoForm();
-      loadSelectedIntoForm();
+      C.toast('全局场景词已保存', 'success');
+      refreshGlobalSummary();
+      closeDrawer(false);
+      updatePreview();
     } catch (err) {
       formInteracting = false;
-      presentationDraft = readFormPresentation();
       C.toast((err && err.message) || '保存失败，请检查填写后重试', 'error');
     }
   }
@@ -378,7 +630,7 @@ function initMicrobiotaKnowledge() {
     presLowInput.value = pres.low || '';
     presNormalInput.value = pres.normal || '';
     presHighInput.value = pres.high || '';
-    presentationDraft = null;
+    refreshGlobalSummary(pres);
   }
 
   function readFormPresentation() {
@@ -388,6 +640,18 @@ function initMicrobiotaKnowledge() {
       normal: presNormalInput.value.trim(),
       high: presHighInput.value.trim()
     };
+  }
+
+  function refreshGlobalSummary(pres) {
+    if (!globalSummaryEl) return;
+    pres = pres || readPresentationFromStore();
+    function clip(text) {
+      var s = String(text || '').trim();
+      if (!s) return '（空）';
+      return s.length > 8 ? s.slice(0, 8) + '…' : s;
+    }
+    globalSummaryEl.textContent =
+      '偏低「' + clip(pres.low) + '」· 正常「' + clip(pres.normal) + '」· 偏高「' + clip(pres.high) + '」';
   }
 
   function resolveSavePresentation() {
@@ -408,33 +672,80 @@ function initMicrobiotaKnowledge() {
     if (!sceneCopy) return '';
     var sentence = PREVIEW_PET + '的' + PREVIEW_THEME + '上有' + sceneCopy + '——' + label;
     var pres = presentation || readFormPresentation();
-    var statusKey = previewStatusKey || 'high';
+    var statusKey = previewStatusKey || PREVIEW_STATUS_KEY;
     var statusWord = pres[statusKey] ? String(pres[statusKey]).trim() : '';
     if (statusWord) sentence += '——' + statusWord;
     return sentence;
+  }
+
+  function previewStatusHint(edu, statusKey) {
+    var key = statusKey === 'low' ? 'lowHint'
+      : statusKey === 'normal' ? 'normalHint'
+      : statusKey === 'high' ? 'highHint'
+      : null;
+    if (!key) return '';
+    return String(edu[key] || '').trim();
+  }
+
+  function previewStatusLabel(statusKey) {
+    if (statusKey === 'low') return '偏低';
+    if (statusKey === 'normal') return '正常';
+    if (statusKey === 'high') return '偏高';
+    return statusKey;
   }
 
   function updatePreview(taxon) {
     if (!taxon) taxon = findTaxon(getTaxa(), selectedKey);
     if (!taxon || !previewEl) return;
 
-    var edu = readFormEdu();
+    var isPhylum = taxon.level === 'phylum';
+    var edu = readFormEdu(isPhylum);
     var presentation = readFormPresentation();
-    var story = buildStorySentence(taxon, edu, presentation, 'high');
+    var story = buildStorySentence(taxon, edu, presentation, PREVIEW_STATUS_KEY);
     var html = '';
 
+    html += '<p class="text-[11px] text-slate-500 mb-2">' +
+      '<i class="fas fa-eye mr-1"></i>预览状态：<strong>' + previewStatusLabel(PREVIEW_STATUS_KEY) + '</strong>（与用户端结构一致）</p>';
+
     if (story) {
-      html += '<p class="text-[11px] text-slate-500 mb-2">' +
-        '<i class="fas fa-eye mr-1"></i>预览状态：偏高</p>';
       html += '<div class="rounded-md bg-teal-50/70 border border-teal-100 px-3 py-2 text-teal-900">' +
         C.escapeHtml(story) + '</div>';
     } else {
       html += '<p class="text-slate-400 text-xs">填写场景句核心短语后，可预览用户端场景句。</p>';
     }
 
-    if (edu.knowledgeText) {
-      html += '<div class="mt-3"><p class="text-[11px] text-slate-400 mb-1">科普弹层正文</p>' +
-        '<p class="leading-relaxed">' + C.escapeHtml(edu.knowledgeText) + '</p></div>';
+    if (isPhylum) {
+      if (edu.introText) {
+        html += '<div class="mt-3"><p class="text-[11px] text-slate-400 mb-1">什么是弹层 · 导语</p>' +
+          '<p class="leading-relaxed">' + C.escapeHtml(edu.introText) + '</p></div>';
+      }
+      if (edu.mainTasks && edu.mainTasks.length) {
+        html += '<div class="mt-3"><p class="text-[11px] text-slate-400 mb-1">主要工作</p><ul class="list-disc pl-5 space-y-1">';
+        edu.mainTasks.forEach(function (task) {
+          html += '<li>' + C.escapeHtml(task) + '</li>';
+        });
+        html += '</ul></div>';
+      }
+    } else {
+      if (edu.sceneCopy) {
+        html += '<div class="mt-3"><p class="text-[11px] text-slate-400 mb-1">在菌群中的角色</p>' +
+          '<p class="leading-relaxed">' + C.escapeHtml(edu.sceneCopy) + '</p></div>';
+      }
+      if (edu.appearanceText) {
+        html += '<div class="mt-3"><p class="text-[11px] text-slate-400 mb-1">外观</p>' +
+          '<p class="leading-relaxed">' + C.escapeHtml(edu.appearanceText) + '</p></div>';
+      }
+      if (edu.functionText) {
+        html += '<div class="mt-3"><p class="text-[11px] text-slate-400 mb-1">功能</p>' +
+          '<p class="leading-relaxed">' + C.escapeHtml(edu.functionText) + '</p></div>';
+      }
+    }
+
+    var hint = previewStatusHint(edu, PREVIEW_STATUS_KEY);
+    if (hint) {
+      html += '<div class="mt-3 rounded-md bg-amber-50 border border-amber-100 px-3 py-2">' +
+        '<p class="text-[11px] text-amber-700 mb-1">当前状态提示（' + previewStatusLabel(PREVIEW_STATUS_KEY) + '）</p>' +
+        '<p class="leading-relaxed text-amber-900">' + C.escapeHtml(hint) + '</p></div>';
     }
 
     previewEl.innerHTML = html;

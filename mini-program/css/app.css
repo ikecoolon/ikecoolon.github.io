@@ -1985,6 +1985,12 @@ body.app-body {
     font-size: 13px;
     line-height: 1.55;
 }
+.know-alert h4 {
+    color: #eef6f1;
+}
+.know-alert p {
+    color: #e4f0ea;
+}
 .know-note {
     margin-top: 10px;
     font-size: 12px;

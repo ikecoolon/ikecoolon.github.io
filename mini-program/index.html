@@ -2,52 +2,172 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>PET 小程序原型</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <link rel="stylesheet" href="./css/app.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PET 小程序原型预览</title>
+    <link rel="stylesheet" href="./css/gallery.css">
+    <script>
+        (function () {
+            if (location.hash && location.hash.length > 1) {
+                location.replace('./app.html' + location.hash);
+            }
+        })();
+    </script>
 </head>
-<body class="app-body">
-    <div class="iphone-frame">
-        <div class="status-bar" aria-hidden="true">
-            <span>9:41</span>
-            <div class="status-icons">
-                <i class="fas fa-signal"></i>
-                <span>WIFI</span>
-                <i class="fas fa-battery-full"></i>
-            </div>
-        </div>
-
-        <header class="nav-bar">
-            <button type="button" id="back-button" class="nav-back hidden" aria-label="返回">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <h1 id="nav-title" class="nav-title">首页</h1>
-            <div class="nav-spacer" aria-hidden="true"></div>
+<body class="gallery-body">
+    <div class="gallery-page">
+        <header class="gallery-header">
+            <h1 class="gallery-title">PET 小程序原型预览</h1>
+            <p class="gallery-meta">共 10 个页面</p>
+            <p class="gallery-desc">页面可独立滚动与操作，点击名称可单独打开</p>
         </header>
 
-        <main id="page-content-container" class="content-area" role="main"></main>
+        <section class="gallery-section" aria-labelledby="section-main">
+            <h2 class="gallery-section-title" id="section-main">主要入口</h2>
+            <div class="gallery-grid">
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#home" title="首页"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#home" target="_blank" rel="noopener noreferrer">首页</a>
+                        <a class="preview-open" href="./app.html#home" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#pets" title="宠物列表"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#pets" target="_blank" rel="noopener noreferrer">宠物列表</a>
+                        <a class="preview-open" href="./app.html#pets" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#profile" title="我的"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#profile" target="_blank" rel="noopener noreferrer">我的</a>
+                        <a class="preview-open" href="./app.html#profile" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+            </div>
+        </section>
 
-        <nav class="tab-bar" id="tab-bar" aria-label="主导航">
-            <button type="button" class="tab-item active" data-page="home">
-                <i class="fas fa-house"></i>
-                <span>首页</span>
-            </button>
-            <button type="button" class="tab-item" data-page="reports">
-                <i class="fas fa-file-medical"></i>
-                <span>报告</span>
-            </button>
-            <button type="button" class="tab-item" data-page="profile">
-                <i class="fas fa-user"></i>
-                <span>我的</span>
-            </button>
-        </nav>
+        <section class="gallery-section" aria-labelledby="section-pets">
+            <h2 class="gallery-section-title" id="section-pets">宠物详情</h2>
+            <div class="gallery-grid">
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#pet-reports/pet-001" title="宠物详情"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#pet-reports/pet-001" target="_blank" rel="noopener noreferrer">宠物详情（资料+报告）</a>
+                        <a class="preview-open" href="./app.html#pet-reports/pet-001" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="gallery-section" aria-labelledby="section-reports">
+            <h2 class="gallery-section-title" id="section-reports">报告阅读</h2>
+            <div class="gallery-grid">
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#report/report-001" title="报告详情"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#report/report-001" target="_blank" rel="noopener noreferrer">报告详情</a>
+                        <a class="preview-open" href="./app.html#report/report-001" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#metrics/report-001" title="全部指标"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#metrics/report-001" target="_blank" rel="noopener noreferrer">全部指标</a>
+                        <a class="preview-open" href="./app.html#metrics/report-001" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#finding?reportId=report-001&amp;indicatorKey=Collinsella" title="发现详情"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#finding?reportId=report-001&amp;indicatorKey=Collinsella" target="_blank" rel="noopener noreferrer">发现详情</a>
+                        <a class="preview-open" href="./app.html#finding?reportId=report-001&amp;indicatorKey=Collinsella" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <section class="gallery-section" aria-labelledby="section-recs">
+            <h2 class="gallery-section-title" id="section-recs">建议与商品</h2>
+            <div class="gallery-grid">
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#recommendations/report-001" title="建议列表"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#recommendations/report-001" target="_blank" rel="noopener noreferrer">建议列表</a>
+                        <a class="preview-open" href="./app.html#recommendations/report-001" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#recommendation-target/rec-001" title="推荐详情"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#recommendation-target/rec-001" target="_blank" rel="noopener noreferrer">推荐详情</a>
+                        <a class="preview-open" href="./app.html#recommendation-target/rec-001" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+                <article class="preview-card">
+                    <div class="preview-viewport">
+                        <iframe src="./app.html#spu-detail/prod-001" title="商品详情"></iframe>
+                    </div>
+                    <div class="preview-meta">
+                        <a class="preview-name" href="./app.html#spu-detail/prod-001" target="_blank" rel="noopener noreferrer">商品详情</a>
+                        <a class="preview-open" href="./app.html#spu-detail/prod-001" target="_blank" rel="noopener noreferrer">单独打开</a>
+                    </div>
+                </article>
+            </div>
+        </section>
     </div>
 
-    <script src="../shared/mock-store.js"></script>
-    <script src="./js/helpers.js"></script>
-    <script src="./js/pages.js"></script>
-    <script src="./js/script.js"></script>
+    <script>
+        (function () {
+            var PREVIEW_W = 393;
+            var PREVIEW_H = 852;
+
+            function fitPreview(viewport) {
+                var scale = Math.min(1, viewport.clientWidth / PREVIEW_W);
+                viewport.style.height = (PREVIEW_H * scale) + 'px';
+                var iframe = viewport.querySelector('iframe');
+                if (iframe) {
+                    iframe.style.transform = 'scale(' + scale + ')';
+                }
+            }
+
+            function fitAll() {
+                document.querySelectorAll('.preview-viewport').forEach(fitPreview);
+            }
+
+            if (typeof ResizeObserver !== 'undefined') {
+                var observer = new ResizeObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        fitPreview(entry.target);
+                    });
+                });
+                document.querySelectorAll('.preview-viewport').forEach(function (el) {
+                    observer.observe(el);
+                });
+            }
+
+            window.addEventListener('load', fitAll);
+            window.addEventListener('resize', fitAll);
+        })();
+    </script>
 </body>
 </html>

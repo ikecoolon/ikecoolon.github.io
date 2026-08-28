@@ -49,9 +49,16 @@ function main() {
     mainTasks: ['一', '二']
   });
   assertEqual(stripped.sceneCopy, '活跃的采集者', 'normalizeTaxonEdu migrates sceneCopy from narrativeRole');
-  assertEqual(stripped.knowledgeText, '中性说明', 'normalizeTaxonEdu prefers knowledgeText over legacy fields');
+  assertEqual(stripped.functionText, '中性说明', 'normalizeTaxonEdu keeps functionText');
   assert(stripped.narrativeRole === undefined, 'normalizeTaxonEdu strips narrativeRole');
-  assert(stripped.mainTasks === undefined, 'normalizeTaxonEdu strips mainTasks');
+  assert(stripped.mainTasks && stripped.mainTasks.length === 2, 'normalizeTaxonEdu keeps mainTasks up to 3');
+  assertEqual(stripped.lowHint, '旧偏低提示', 'normalizeTaxonEdu migrates lowHint from tooLowHint');
+  assertEqual(stripped.highHint, '旧偏高提示', 'normalizeTaxonEdu migrates highHint from tooHighHint');
+  assert(bacteroidetes.edu.introText, '拟杆菌门 has edu.introText after V11');
+  assert(bacteroidetes.edu.mainTasks && bacteroidetes.edu.mainTasks.length >= 1, '拟杆菌门 has mainTasks after V11');
+  var bacteroides = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Bacteroides'; });
+  assert(bacteroides && bacteroides.edu && bacteroides.edu.appearanceText, 'Bacteroides has appearanceText');
+  assert(bacteroides.edu.functionText, 'Bacteroides has functionText');
   assert(store.peekState() === store.peekState(), 'peekState returns live state without cloning');
   assert(store.getState() !== store.peekState(), 'getState still returns a clone');
   var collinsella = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; });
@@ -311,6 +318,9 @@ function main() {
   assert(correction && correction.reportId === 'report-003', 'ownership correction recorded');
   assertEqual(store.getState().reports.find(function (r) { return r.id === 'report-003'; }).userId, 'user-002', 'ownership correction updates report userId');
 
+  assertEqual(store.getUserReportStatus('report-002', 'user-001'), null, 'pending review report hidden from user');
+  assertEqual(store.getUserReportStatus('report-004', 'user-001'), null, 'unlinked pet report hidden before association');
+
   var claim = store.bindClaimCode({ code: 'CLAIM-PUBLISHED-2025', userId: 'user-001' });
   assert(claim.petId === 'pet-004', 'claim binds ops prebuilt pet only');
   assertEqual(store.getUserReportStatus('report-004', 'user-001'), 'published', 'claimed published report visible');
@@ -318,6 +328,22 @@ function main() {
   var visible = store.getUserVisibleReports('user-001');
   assert(visible.some(function (item) { return item.report.id === 'report-004'; }), 'user visible reports includes claimed published report');
   assert(!visible.some(function (item) { return item.report.id === 'report-006'; }), 'voided report excluded from user visible reports');
+
+  var petPublished = store.getPetPublishedReports('pet-001');
+  assert(petPublished.length >= 1, 'getPetPublishedReports returns published reports for pet');
+
+  var archivedPet = store.createOpsPet({ name: 'Smoke Archive Pet', species: 'dog', breed: '测试犬' });
+  var archivedTr = store.simulateExcelImportSuccess({
+    externalReportNumber: 'EXT-SMOKE-ARCHIVE-001',
+    sampleNumber: 'SAMPLE-SMOKE-ARCHIVE-001'
+  });
+  store.assignReportOwnership({ testRecordId: archivedTr.testRecordId, petId: archivedPet.id });
+  var archivedReport = store.generateReport({ testRecordId: archivedTr.testRecordId });
+  store.submitReport(archivedReport.id);
+  store.publishReport(archivedReport.id);
+  assertEqual(store.getUserReportStatus(archivedReport.id, 'user-001'), null, 'published report hidden when pet has no user');
+  store.updateOpsPet(archivedPet.id, { userId: 'user-001', reason: 'smoke bind user', actor: 'smoke' });
+  assertEqual(store.getUserReportStatus(archivedReport.id, 'user-001'), 'published', 'visibility follows pet user association');
 
   assert(store.normalizeDataStatus('VALID') === 'PRESENT', 'VALID migrates to PRESENT');
 

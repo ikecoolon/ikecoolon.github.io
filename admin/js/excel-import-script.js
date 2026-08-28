@@ -24,6 +24,9 @@ function initExcelImport() {
   document.getElementById('btn-go-unassigned').onclick = function () {
     C.navigate('report-center', { view: 'unassigned' });
   };
+  document.getElementById('btn-go-report-center').onclick = function () {
+    C.navigate('report-center');
+  };
 
   document.querySelectorAll('.wizard-back').forEach(function (btn) {
     btn.onclick = function () { goStep(parseInt(btn.dataset.to, 10)); };
