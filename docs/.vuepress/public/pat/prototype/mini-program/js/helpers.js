@@ -140,30 +140,17 @@
   function getUserVisibleCards(userId, options) {
     options = options || {};
     var store = getStore();
-    var state = getState();
     var cards = [];
-    var coveredTestRecordIds = {};
 
     store.getUserVisibleReports(userId).forEach(function (item) {
       var testRecord = findTestRecord(item.report.testRecordId);
       if (shouldExcludeUserCard(item.report, testRecord)) return;
+      if (item.userStatus !== 'published') return;
       cards.push(buildCardFromReport(item));
-      coveredTestRecordIds[item.report.testRecordId] = true;
-    });
-
-    state.testRecords.forEach(function (tr) {
-      if (tr.userId !== userId) return;
-      if (coveredTestRecordIds[tr.id]) return;
-      if (tr.status !== 'pending_result') return;
-      if (shouldExcludeUserCard(null, tr)) return;
-      cards.push(buildCardFromTestRecord(tr, 'in_progress'));
     });
 
     if (options.petId) {
       cards = cards.filter(function (card) { return card.petId === options.petId; });
-    }
-    if (options.userStatus) {
-      cards = cards.filter(function (card) { return card.userStatus === options.userStatus; });
     }
 
     cards.sort(function (a, b) {
@@ -846,6 +833,13 @@
   function localEmptyTaxonEdu() {
     return {
       sceneCopy: '',
+      introText: '',
+      mainTasks: [],
+      appearanceText: '',
+      functionText: '',
+      lowHint: '',
+      normalHint: '',
+      highHint: '',
       knowledgeText: ''
     };
   }
@@ -873,13 +867,32 @@
       return '';
     }
     out.sceneCopy = pick(edu.sceneCopy, edu.narrativeRole, edu.metaphor, edu.sceneRole);
-    out.knowledgeText = pick(edu.knowledgeText, edu.functionText, edu.appearance);
-    if (!out.knowledgeText && Array.isArray(edu.mainTasks) && edu.mainTasks.length) {
-      out.knowledgeText = edu.mainTasks.map(function (task) {
-        return String(task == null ? '' : task).trim();
-      }).filter(Boolean).join('；');
+    out.introText = pick(edu.introText);
+    out.appearanceText = pick(edu.appearanceText, edu.appearance);
+    out.functionText = pick(edu.functionText);
+    out.lowHint = pick(edu.lowHint, edu.tooLowHint);
+    out.normalHint = pick(edu.normalHint);
+    out.highHint = pick(edu.highHint, edu.tooHighHint);
+    out.knowledgeText = pick(edu.knowledgeText);
+    if (Array.isArray(edu.mainTasks)) {
+      edu.mainTasks.forEach(function (task) {
+        if (out.mainTasks.length >= 3) return;
+        var line = String(task == null ? '' : task).trim();
+        if (line) out.mainTasks.push(line);
+      });
     }
     return out;
+  }
+
+  function resolveTaxonNodeHint(edu, statusClass) {
+    if (!edu || !statusClass) return '';
+    var key = statusClass === 'status-low' ? 'lowHint'
+      : statusClass === 'status-normal' ? 'normalHint'
+      : statusClass === 'status-high' ? 'highHint'
+      : null;
+    if (!key) return '';
+    var hint = edu[key];
+    return hint ? String(hint).trim() : '';
   }
 
   function getTaxonEdu(key) {
@@ -984,7 +997,11 @@
     var packed = getTaxonEdu(key);
     if (!packed) return null;
     var edu = packed.edu || emptyTaxonEdu();
-    return edu.knowledgeText || null;
+    var taxon = packed.taxon || {};
+    if (taxon.level === 'phylum') {
+      return edu.introText || edu.knowledgeText || null;
+    }
+    return edu.functionText || edu.knowledgeText || null;
   }
 
   function findFindingByIndicator(reportId, version, indicatorKey) {
@@ -1097,13 +1114,11 @@
   function countUserStats() {
     var pets = getUserPets();
     var cards = getUserVisibleCards(CURRENT_USER_ID);
-    var published = cards.filter(function (c) { return c.userStatus === 'published'; });
-    var inProgress = cards.filter(function (c) { return c.userStatus === 'in_progress'; });
     return {
       petCount: pets.length,
       reportCount: cards.length,
-      publishedCount: published.length,
-      inProgressCount: inProgress.length
+      publishedCount: cards.length,
+      inProgressCount: 0
     };
   }
 
@@ -1171,6 +1186,7 @@
     escapeHtml: escapeHtml,
     emptyTaxonEdu: emptyTaxonEdu,
     normalizeTaxonEdu: normalizeTaxonEdu,
+    resolveTaxonNodeHint: resolveTaxonNodeHint,
     getTaxonEdu: getTaxonEdu,
     getMicrobiotaPresentation: getMicrobiotaPresentation,
     resolveMicrobiotaSceneStatusWord: resolveMicrobiotaSceneStatusWord,

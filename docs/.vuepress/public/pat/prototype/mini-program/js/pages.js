@@ -54,31 +54,46 @@
 
   function renderHome() {
     var stats = H.countUserStats();
+    var pets = H.getUserPets();
     var html = '<div class="page-shell">';
 
     html += '<section class="hero-card">';
-    html += '<div class="hero-text"><h2>宠物肠道健康</h2><p>线下检测 · 线上查看报告</p></div>';
-    html += '<button type="button" class="btn-primary compact" data-nav="claim"><i class="fas fa-qrcode"></i>领取</button>';
+    html += '<div class="hero-text"><h2>我的宠物</h2><p>查看关联宠物与已发布检测报告</p></div>';
+    html += '<button type="button" class="btn-primary compact" data-nav="pets"><i class="fas fa-paw"></i>全部宠物</button>';
     html += '</section>';
 
     html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>快捷入口</h3></div>';
-    html += '<div class="entry-grid">';
-    html += '<button type="button" class="entry-card" data-nav="pets"><i class="fas fa-paw"></i><span>宠物</span><em>' + stats.petCount + ' 只</em></button>';
-    html += '<button type="button" class="entry-card" data-nav="reports"><i class="fas fa-file-medical"></i><span>报告</span><em>' + stats.reportCount + ' 份</em></button>';
-    html += '<button type="button" class="entry-card" data-nav="claim"><i class="fas fa-gift"></i><span>领取</span><em>认领码</em></button>';
-    html += '</div></section>';
+    html += '<div class="section-head"><h3>宠物列表</h3><span class="hint-text">' + stats.petCount + ' 只</span></div>';
 
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>最近报告</h3>';
-    html += '<button type="button" class="text-link" data-nav="reports">查看全部</button></div>';
-    var recent = H.getUserVisibleCards(H.CURRENT_USER_ID).slice(0, 3);
-    if (!recent.length) {
-      html += '<div class="empty-inline">暂无可见报告，领取检测后可在此查看</div>';
+    if (!pets.length) {
+      html += '<div class="empty-hint"><i class="fas fa-paw"></i><p>暂无关联宠物</p></div>';
     } else {
-      recent.forEach(function (card) { html += renderReportCard(card); });
+      pets.forEach(function (pet) {
+        var count = H.countVisibleReportsForPet(pet.id, H.CURRENT_USER_ID);
+        html += '<button type="button" class="list-card actionable" data-nav="pet-reports" data-pet-id="' + esc(pet.id) + '">';
+        html += '<div class="pet-avatar sm"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
+        html += '<div class="list-card-main">';
+        html += '<div class="list-title">' + esc(H.stripDemo(pet.name)) + '</div>';
+        html += '<div class="list-sub">' + esc(pet.breed) + ' · ' + count + ' 份已发布报告</div>';
+        html += '</div>';
+        html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
+      });
     }
-    html += '</section></div>';
+    html += '</section>';
+
+    if (pets.length) {
+      html += '<section class="section-block">';
+      html += '<div class="section-head"><h3>最近报告</h3></div>';
+      var recent = H.getUserVisibleCards(H.CURRENT_USER_ID).slice(0, 3);
+      if (!recent.length) {
+        html += '<div class="empty-inline">暂无已发布报告</div>';
+      } else {
+        recent.forEach(function (card) { html += renderReportCard(card); });
+      }
+      html += '</section>';
+    }
+
+    html += '</div>';
     return html;
   }
 
@@ -112,7 +127,7 @@
     html += '<div class="section-head"><h3>我的宠物</h3></div>';
 
     if (!pets.length) {
-      html += '<div class="empty-hint"><i class="fas fa-paw"></i><p>暂无宠物，领取检测后可查看</p></div>';
+      html += '<div class="empty-hint"><i class="fas fa-paw"></i><p>暂无关联宠物</p></div>';
     }
 
     pets.forEach(function (pet) {
@@ -121,7 +136,7 @@
       html += '<div class="pet-avatar sm"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
       html += '<div class="list-card-main">';
       html += '<div class="list-title">' + esc(H.stripDemo(pet.name)) + '</div>';
-      html += '<div class="list-sub">' + esc(pet.breed) + ' · ' + count + ' 份可见报告</div>';
+      html += '<div class="list-sub">' + esc(pet.breed) + ' · ' + count + ' 份已发布报告</div>';
       html += '</div>';
       html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
     });
@@ -139,18 +154,19 @@
     var cards = H.getUserVisibleCards(H.CURRENT_USER_ID, { petId: pet.id });
     var html = '<div class="page-shell">';
     html += '<section class="section-block">';
-    html += '<button type="button" class="pet-profile-link" data-nav="pet-detail" data-pet-id="' + esc(pet.id) + '">';
-    html += '<div class="pet-avatar"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
-    html += '<div class="info-main">';
-    html += '<div class="info-title">' + esc(H.stripDemo(pet.name)) + '</div>';
-    html += '<div class="info-sub">' + esc(pet.breed) + ' · 查看宠物资料</div>';
-    html += '</div><i class="fas fa-chevron-right list-chevron"></i></button>';
+    html += '<div class="section-head"><h3>' + esc(H.stripDemo(pet.name)) + '</h3><span class="readonly-tag">只读</span></div>';
+    html += '<dl class="detail-list pet-detail-inline">';
+    html += '<div><dt>物种</dt><dd>' + esc(pet.species === 'cat' ? '猫' : '犬') + '</dd></div>';
+    html += '<div><dt>品种</dt><dd>' + esc(pet.breed || '—') + '</dd></div>';
+    html += '<div><dt>性别</dt><dd>' + esc(H.genderLabel(pet.gender)) + '</dd></div>';
+    html += '<div><dt>年龄</dt><dd>' + esc(pet.age != null ? String(pet.age) + ' 岁' : '—') + '</dd></div>';
+    html += '</dl>';
     html += '</section>';
 
     html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>检测报告</h3><span class="hint-text">' + cards.length + ' 份</span></div>';
+    html += '<div class="section-head"><h3>已发布报告</h3><span class="hint-text">' + cards.length + ' 份</span></div>';
     if (!cards.length) {
-      html += '<div class="empty-inline">该宠物暂无可查看报告</div>';
+      html += '<div class="empty-inline">该宠物暂无已发布报告</div>';
     } else {
       cards.forEach(function (card) { html += renderReportCard(card); });
     }
@@ -159,31 +175,15 @@
   }
 
   function renderPetDetail(params) {
-    var pet = params.petId ? H.findPet(params.petId) : null;
-    if (!pet || pet.userId !== H.CURRENT_USER_ID) {
-      return '<div class="page-shell"><div class="empty-hint"><p>未找到宠物或无权查看</p></div></div>';
+    if (params && params.petId) {
+      return renderPetReports({ petId: params.petId });
     }
-
-    var store = H.findStore(pet.storeId);
-    var html = '<div class="page-shell">';
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>宠物资料</h3><span class="readonly-tag">只读</span></div>';
-    html += '<div class="info-row">';
-    html += '<div class="pet-avatar lg"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
-    html += '<div class="info-main">';
-    html += '<div class="info-title">' + esc(H.stripDemo(pet.name)) + '</div>';
-    html += '<div class="info-sub">' + esc(pet.breed) + '</div>';
-    html += '</div></div>';
-    html += '<dl class="detail-list">';
-    html += '<div><dt>性别</dt><dd>' + esc(H.genderLabel(pet.gender)) + '</dd></div>';
-    html += '<div><dt>年龄</dt><dd>' + esc(pet.age != null ? String(pet.age) + ' 岁' : '—') + '</dd></div>';
-  if (store) html += '<div><dt>登记门店</dt><dd>' + esc(H.stripDemo(store.name)) + '</dd></div>';
-    html += '</dl></section></div>';
-    return html;
+    return '<div class="page-shell"><div class="empty-hint"><p>未找到宠物</p></div></div>';
   }
 
   function renderProfile() {
     var user = H.getCurrentUser();
+    var stats = H.countUserStats();
     var html = '<div class="page-shell">';
     html += '<section class="profile-header">';
     html += '<div class="profile-avatar"><i class="fas fa-user"></i></div>';
@@ -193,11 +193,9 @@
     html += '</div></section>';
 
     html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>我的服务</h3></div>';
+    html += '<div class="section-head"><h3>我的宠物</h3><span class="hint-text">' + stats.petCount + ' 只 · ' + stats.publishedCount + ' 份报告</span></div>';
     html += '<div class="menu-list">';
-    html += '<button type="button" class="menu-item" data-nav="pets"><i class="fas fa-paw"></i><span>宠物</span><i class="fas fa-chevron-right"></i></button>';
-    html += '<button type="button" class="menu-item" data-nav="reports"><i class="fas fa-file-medical"></i><span>报告</span><i class="fas fa-chevron-right"></i></button>';
-    html += '<button type="button" class="menu-item" data-nav="claim"><i class="fas fa-gift"></i><span>领取</span><i class="fas fa-chevron-right"></i></button>';
+    html += '<button type="button" class="menu-item" data-nav="pets"><i class="fas fa-paw"></i><span>宠物列表</span><i class="fas fa-chevron-right"></i></button>';
     html += '</div></section>';
 
     html += '</div>';
@@ -517,7 +515,7 @@
         genera.forEach(function (g, gi) {
           var gPacked = H.getTaxonEdu(g.taxon.key);
           var gEdu = gPacked ? gPacked.edu : H.emptyTaxonEdu();
-          var gKnowledge = String(gEdu.knowledgeText || '').trim();
+          var gKnowledge = String(gEdu.functionText || gEdu.knowledgeText || '').trim();
           html += '<div class="genus-card" data-genus-panel="' + esc(g.taxon.key) + '"' + (gi === 0 ? '' : ' hidden') + '>';
           html += '<div class="genus-value-row">';
           html += '<span>检测值: <strong>' + esc(prettyNum(g.indicator && g.indicator.value)) + '%</strong></span>';

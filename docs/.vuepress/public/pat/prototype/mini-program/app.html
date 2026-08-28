@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PET 小程序原型</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="./css/app.css">
+</head>
+<body class="app-body">
+    <div class="iphone-frame">
+        <div class="status-bar" aria-hidden="true">
+            <span>9:41</span>
+            <div class="status-icons">
+                <i class="fas fa-signal"></i>
+                <span>WIFI</span>
+                <i class="fas fa-battery-full"></i>
+            </div>
+        </div>
+
+        <header class="nav-bar">
+            <button type="button" id="back-button" class="nav-back hidden" aria-label="返回">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <h1 id="nav-title" class="nav-title">首页</h1>
+            <div class="nav-spacer" aria-hidden="true"></div>
+        </header>
+
+        <main id="page-content-container" class="content-area" role="main"></main>
+
+        <nav class="tab-bar" id="tab-bar" aria-label="主导航">
+            <button type="button" class="tab-item active" data-page="home">
+                <i class="fas fa-house"></i>
+                <span>首页</span>
+            </button>
+            <button type="button" class="tab-item" data-page="pets">
+                <i class="fas fa-paw"></i>
+                <span>宠物</span>
+            </button>
+            <button type="button" class="tab-item" data-page="profile">
+                <i class="fas fa-user"></i>
+                <span>我的</span>
+            </button>
+        </nav>
+    </div>
+
+    <script src="../shared/mock-store.js"></script>
+    <script src="./js/helpers.js"></script>
+    <script src="./js/pages.js"></script>
+    <script src="./js/script.js"></script>
+</body>
+</html>

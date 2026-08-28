@@ -4,8 +4,10 @@ function loadAdminScript(src) {
       resolve();
       return;
     }
+    var version = window.__PET_ADMIN_ASSET_VERSION || '';
+    var url = './js/' + src + (version ? '?v=' + encodeURIComponent(version) : '');
     var s = document.createElement('script');
-    s.src = './js/' + src;
+    s.src = url;
     s.dataset.src = src;
     s.onload = resolve;
     s.onerror = reject;
@@ -14,9 +16,11 @@ function loadAdminScript(src) {
 }
 
 function initNormalRangeConfig() {
-  loadAdminScript('range-matcher-util.js').then(function () {
+  return loadAdminScript('range-matcher-util.js').then(function () {
+    if (!document.getElementById('normal-range-config')) return;
     initNormalRangeConfigCore();
   }).catch(function () {
+    if (!document.getElementById('normal-range-config')) return;
     initNormalRangeConfigCore();
   });
 }

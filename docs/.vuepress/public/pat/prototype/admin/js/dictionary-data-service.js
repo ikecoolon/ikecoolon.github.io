@@ -24,6 +24,61 @@
     return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
   }
 
+  function sortOrderHelpers() {
+    var st = storeApi();
+    if (st && typeof st.parseCatalogSortOrder === 'function') {
+      return {
+        parse: st.parseCatalogSortOrder,
+        parentGroupKey: st.catalogParentGroupKey,
+        backfill: st.backfillMissingCatalogSortOrders,
+        reorder: st.reorderCatalogCollectionBySortOrder,
+        validate: st.validateCatalogSiblingSortOrders
+      };
+    }
+    function catalogParentGroupKey(item) {
+      if (!item || item.parentKey == null || item.parentKey === '') return '';
+      return String(item.parentKey);
+    }
+    function parseCatalogSortOrder(val) {
+      var n = typeof val === 'number' ? val : parseInt(String(val == null ? '' : val).trim(), 10);
+      return Number.isInteger(n) && n > 0 ? n : null;
+    }
+    return {
+      parse: parseCatalogSortOrder,
+      parentGroupKey: catalogParentGroupKey,
+      backfill: function () {},
+      reorder: function (items) { return items; },
+      validate: function () { return []; }
+    };
+  }
+
+  function nextSortOrderForSibling(list, parentKey) {
+    var helpers = sortOrderHelpers();
+    var pk = parentKey == null || parentKey === '' ? '' : String(parentKey);
+    var max = 0;
+    (list || []).forEach(function (row) {
+      if (helpers.parentGroupKey(row) !== pk) return;
+      var so = helpers.parse(row.sortOrder);
+      if (so != null && so > max) max = so;
+    });
+    return max + 10;
+  }
+
+  function assertUniqueSiblingSortOrder(list, item, idField) {
+    var helpers = sortOrderHelpers();
+    if (item.sortOrder == null || item.sortOrder === '') return null;
+    var so = helpers.parse(item.sortOrder);
+    if (so == null) return '序号须为正整数';
+    var pk = helpers.parentGroupKey(item);
+    for (var i = 0; i < list.length; i++) {
+      var row = list[i];
+      if (String(row[idField]) === String(item[idField])) continue;
+      if (helpers.parentGroupKey(row) !== pk) continue;
+      if (helpers.parse(row.sortOrder) === so) return '同级序号不能重复（' + so + '）';
+    }
+    return null;
+  }
+
   function defaultBreeds() {
     return [
       { id: 1, key: 'pet', label: '宠物类别', value: '宠物类别根节点', parentKey: null },
@@ -102,6 +157,16 @@
     };
   }
 
+  function normalizeMainTasks(tasks) {
+    if (!Array.isArray(tasks)) return [];
+    var out = [];
+    for (var i = 0; i < tasks.length; i++) {
+      var task = String(tasks[i] == null ? '' : tasks[i]).trim();
+      if (task) out.push(task);
+    }
+    return out;
+  }
+
   function normalizeTaxonEdu(edu) {
     var st = storeApi();
     if (st && typeof st.normalizeTaxonEdu === 'function') return st.normalizeTaxonEdu(edu);
@@ -113,14 +178,22 @@
       }
       return '';
     }
-    var sceneCopy = pick(src.sceneCopy, src.narrativeRole, src.metaphor, src.sceneRole);
-    var knowledgeText = pick(src.knowledgeText, src.functionText, src.appearance);
-    if (!knowledgeText && Array.isArray(src.mainTasks) && src.mainTasks.length) {
-      knowledgeText = src.mainTasks.map(function (task) {
-        return String(task == null ? '' : task).trim();
-      }).filter(Boolean).join('；');
+    var mainTasks = normalizeMainTasks(src.mainTasks);
+    var knowledgeText = pick(src.knowledgeText);
+    if (!knowledgeText && mainTasks.length) {
+      knowledgeText = mainTasks.join('；');
     }
-    return { sceneCopy: sceneCopy, knowledgeText: knowledgeText };
+    return {
+      sceneCopy: pick(src.sceneCopy, src.narrativeRole, src.metaphor, src.sceneRole),
+      introText: pick(src.introText),
+      mainTasks: mainTasks,
+      appearanceText: pick(src.appearanceText, src.appearance),
+      functionText: pick(src.functionText),
+      lowHint: pick(src.lowHint, src.tooLowHint),
+      normalHint: pick(src.normalHint),
+      highHint: pick(src.highHint, src.tooHighHint),
+      knowledgeText: knowledgeText
+    };
   }
 
   function defaultMicrobiotaTaxa() {
@@ -623,21 +696,60 @@
 
   function saveCatalogItem(collection, item, idField) {
     idField = idField || 'id';
+    var helpers = sortOrderHelpers();
     return commitCatalog(function (catalog) {
       var list = catalog[collection];
+      if (item.sortOrder != null && item.sortOrder !== '') {
+        var parsed = helpers.parse(item.sortOrder);
+        if (parsed == null) throw new Error('序号须为正整数');
+        item.sortOrder = parsed;
+      }
       if (item[idField]) {
         var idx = list.findIndex(function (row) {
           return String(row[idField]) === String(item[idField]);
         });
         if (idx >= 0) {
+          if (item.sortOrder == null || item.sortOrder === '') {
+            item.sortOrder = helpers.parse(list[idx].sortOrder) || list[idx].sortOrder;
+          }
+          var uniqueErr = assertUniqueSiblingSortOrder(list, item, idField);
+          if (uniqueErr) throw new Error(uniqueErr);
           list[idx] = Object.assign({}, list[idx], item);
+          catalog[collection] = helpers.reorder(list);
           return list[idx];
         }
       }
       var row = Object.assign({}, item);
       if (!row[idField]) row[idField] = uid(collection.slice(0, 2));
+      if (row.sortOrder == null || row.sortOrder === '') {
+        row.sortOrder = nextSortOrderForSibling(list, row.parentKey);
+      }
+      var newUniqueErr = assertUniqueSiblingSortOrder(list, row, idField);
+      if (newUniqueErr) throw new Error(newUniqueErr);
       list.push(row);
+      catalog[collection] = helpers.reorder(list);
       return row;
+    });
+  }
+
+  function saveCatalogOrder(collection, items) {
+    var helpers = sortOrderHelpers();
+    var draft = clone(items || []);
+    var errors = helpers.validate(draft);
+    if (errors.length) throw new Error(errors[0]);
+    return commitCatalog(function (catalog) {
+      var list = catalog[collection];
+      var byId = {};
+      draft.forEach(function (item) {
+        byId[String(item.id)] = helpers.parse(item.sortOrder);
+      });
+      list.forEach(function (row) {
+        if (byId[String(row.id)] != null) row.sortOrder = byId[String(row.id)];
+      });
+      catalog[collection] = helpers.reorder(list);
+      catalog.meta = catalog.meta || {};
+      catalog.meta.version = Math.max(catalog.meta.version || 0, 13);
+      return catalog[collection];
     });
   }
 
@@ -1008,6 +1120,7 @@
     savePlatformReferenceRange: savePlatformReferenceRange,
     deletePlatformReferenceRange: deletePlatformReferenceRange,
     saveCatalogItem: saveCatalogItem,
+    saveCatalogOrder: saveCatalogOrder,
     saveTaxonEdu: saveTaxonEdu,
     getMicrobiotaPresentation: getMicrobiotaPresentation,
     saveMicrobiotaPresentation: saveMicrobiotaPresentation,

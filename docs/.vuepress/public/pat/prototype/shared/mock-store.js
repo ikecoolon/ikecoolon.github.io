@@ -166,6 +166,13 @@
   function emptyTaxonEdu() {
     return {
       sceneCopy: '',
+      introText: '',
+      mainTasks: [],
+      appearanceText: '',
+      functionText: '',
+      lowHint: '',
+      normalHint: '',
+      highHint: '',
       knowledgeText: ''
     };
   }
@@ -221,33 +228,44 @@
     return '';
   }
 
-  function migrateLegacyEduFields(edu) {
-    var src = edu && typeof edu === 'object' ? edu : {};
-    var sceneCopy = pickFirstNonEmpty(src.sceneCopy, src.narrativeRole, src.metaphor, src.sceneRole);
-    var knowledgeText = pickFirstNonEmpty(src.knowledgeText);
-    if (!knowledgeText) {
-      knowledgeText = pickFirstNonEmpty(src.functionText, src.appearance);
-      if (!knowledgeText && Array.isArray(src.mainTasks) && src.mainTasks.length) {
-        knowledgeText = src.mainTasks.map(function (task) {
-          return String(task == null ? '' : task).trim();
-        }).filter(Boolean).join('；');
-      }
+  function normalizeMainTasks(tasks) {
+    if (!Array.isArray(tasks)) return [];
+    var out = [];
+    for (var i = 0; i < tasks.length; i++) {
+      var task = String(tasks[i] == null ? '' : tasks[i]).trim();
+      if (task) out.push(task);
     }
-    return {
-      sceneCopy: sceneCopy,
-      knowledgeText: knowledgeText
-    };
+    return out;
   }
 
   function normalizeTaxonEdu(edu) {
-    var migrated = migrateLegacyEduFields(edu);
+    var src = edu && typeof edu === 'object' ? edu : {};
     return {
-      sceneCopy: migrated.sceneCopy,
-      knowledgeText: migrated.knowledgeText
+      sceneCopy: pickFirstNonEmpty(src.sceneCopy, src.narrativeRole, src.metaphor, src.sceneRole),
+      introText: pickFirstNonEmpty(src.introText),
+      mainTasks: normalizeMainTasks(src.mainTasks),
+      appearanceText: pickFirstNonEmpty(src.appearanceText, src.appearance),
+      functionText: pickFirstNonEmpty(src.functionText),
+      lowHint: pickFirstNonEmpty(src.lowHint, src.tooLowHint),
+      normalHint: pickFirstNonEmpty(src.normalHint),
+      highHint: pickFirstNonEmpty(src.highHint, src.tooHighHint),
+      knowledgeText: pickFirstNonEmpty(src.knowledgeText)
     };
   }
 
+  function migrateLegacyEduFields(edu, level) {
+    var out = normalizeTaxonEdu(edu);
+    if (level === 'phylum' && !out.introText && out.knowledgeText) {
+      out.introText = out.knowledgeText;
+    }
+    if (level !== 'phylum' && !out.functionText && out.knowledgeText) {
+      out.functionText = out.knowledgeText;
+    }
+    return out;
+  }
+
   function isEmptyEduField(key, value) {
+    if (key === 'mainTasks') return !Array.isArray(value) || !value.length;
     return value == null || value === '';
   }
 
@@ -276,6 +294,13 @@
         parentKey: null,
         edu: normalizeTaxonEdu({
           sceneCopy: '活跃的采集者',
+          introText: '拟杆菌门（Bacteroidetes）就像是灵活的杂食动物——比如浣熊或野猪。',
+          mainTasks: [
+            '吃各种食物（脂肪、肉类、纤维都吃）',
+            '分解复杂的营养物质，制造营养',
+            '维持肠道的多样性和平衡。'
+          ],
+          lowHint: '如果这些「杂食动物」太少，可能说明饮食单一，肠道吸收不佳。',
           knowledgeText: '处理脂肪和蛋白类食物，分解复杂多糖，参与营养物质的分解与转化。'
         })
       },
@@ -406,6 +431,8 @@
         parentKey: '拟杆菌门',
         edu: normalizeTaxonEdu({
           sceneCopy: '野猪',
+          appearanceText: '迅速繁殖的小团体，偶尔会惹麻烦。',
+          functionText: '擅长处理蛋白质、脂肪与多糖，是代谢核心成员。',
           knowledgeText: '迅速增殖的小团体，偶尔会惹麻烦。擅长处理蛋白质、脂肪和多糖，是核心代谢成员。'
         })
       },
@@ -645,6 +672,112 @@
     return item && item.key != null ? String(item.key) : '';
   }
 
+  function catalogParentGroupKey(item) {
+    if (!item || item.parentKey == null || item.parentKey === '') return '';
+    return String(item.parentKey);
+  }
+
+  function parseCatalogSortOrder(val) {
+    var n = typeof val === 'number' ? val : parseInt(String(val == null ? '' : val).trim(), 10);
+    return Number.isInteger(n) && n > 0 ? n : null;
+  }
+
+  function backfillMissingCatalogSortOrders(list) {
+    if (!list || !list.length) return;
+    var groupOrder = [];
+    var groupMap = {};
+    list.forEach(function (item, index) {
+      var gk = catalogParentGroupKey(item);
+      if (!groupMap[gk]) {
+        groupMap[gk] = [];
+        groupOrder.push(gk);
+      }
+      groupMap[gk].push({ item: item, index: index });
+    });
+    groupOrder.forEach(function (gk) {
+      var siblings = groupMap[gk];
+      var used = {};
+      siblings.forEach(function (entry) {
+        var so = parseCatalogSortOrder(entry.item.sortOrder);
+        if (so != null) used[so] = true;
+      });
+      var next = 10;
+      siblings.forEach(function (entry) {
+        if (parseCatalogSortOrder(entry.item.sortOrder) != null) return;
+        while (used[next]) next += 10;
+        entry.item.sortOrder = next;
+        used[next] = true;
+        next += 10;
+      });
+    });
+  }
+
+  function compareCatalogItemsBySortOrder(a, b) {
+    var aSo = parseCatalogSortOrder(a.sortOrder);
+    var bSo = parseCatalogSortOrder(b.sortOrder);
+    if (aSo == null && bSo == null) return String(a.key).localeCompare(String(b.key));
+    if (aSo == null) return 1;
+    if (bSo == null) return -1;
+    if (aSo !== bSo) return aSo - bSo;
+    return String(a.key).localeCompare(String(b.key));
+  }
+
+  function reorderCatalogCollectionBySortOrder(items) {
+    if (!items || !items.length) return items || [];
+    var itemMap = {};
+    items.forEach(function (item) {
+      itemMap[item.key] = Object.assign({}, item, { children: [] });
+    });
+    var roots = [];
+    items.forEach(function (item) {
+      var node = itemMap[item.key];
+      if (item.parentKey && itemMap[item.parentKey]) {
+        itemMap[item.parentKey].children.push(node);
+      } else {
+        roots.push(node);
+      }
+    });
+    function flatten(nodes, flat) {
+      flat = flat || [];
+      nodes.sort(compareCatalogItemsBySortOrder);
+      nodes.forEach(function (node) {
+        var copy = Object.assign({}, node);
+        delete copy.children;
+        flat.push(copy);
+        if (node.children && node.children.length) flatten(node.children, flat);
+      });
+      return flat;
+    }
+    return flatten(roots);
+  }
+
+  function validateCatalogSiblingSortOrders(list) {
+    if (!list || !list.length) return [];
+    var groups = {};
+    var errors = [];
+    list.forEach(function (item) {
+      var gk = catalogParentGroupKey(item);
+      if (!groups[gk]) groups[gk] = [];
+      groups[gk].push(item);
+    });
+    Object.keys(groups).forEach(function (gk) {
+      var seen = {};
+      groups[gk].forEach(function (item) {
+        var so = parseCatalogSortOrder(item.sortOrder);
+        if (so == null) {
+          errors.push('序号须为正整数：' + (item.key || item.id));
+          return;
+        }
+        if (seen[so]) {
+          errors.push('同级序号重复：' + so);
+          return;
+        }
+        seen[so] = true;
+      });
+    });
+    return errors;
+  }
+
   function platformRangeMergeKey(range) {
     return [
       range.species || '',
@@ -754,6 +887,86 @@
     });
     catalog.meta = catalog.meta || {};
     catalog.meta.version = Math.max(catalog.meta.version || 0, 7);
+  }
+
+  function migrateTaxonEduV11(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
+    var seedByKey = {};
+    defaultMicrobiotaTaxa().forEach(function (item) {
+      seedByKey[item.key] = item;
+    });
+    catalog.microbiotaTaxa.forEach(function (taxon) {
+      var edu = normalizeTaxonEdu(taxon.edu);
+      if (taxon.level === 'phylum' && !edu.introText && edu.knowledgeText) {
+        edu.introText = edu.knowledgeText;
+      }
+      if (taxon.level !== 'phylum' && !edu.functionText && edu.knowledgeText) {
+        edu.functionText = edu.knowledgeText;
+      }
+      var seed = seedByKey[taxon.key];
+      if (seed && seed.edu) {
+        var seedEdu = normalizeTaxonEdu(seed.edu);
+        Object.keys(seedEdu).forEach(function (key) {
+          if (key === 'mainTasks') {
+            if ((!edu.mainTasks || !edu.mainTasks.length) && seedEdu.mainTasks && seedEdu.mainTasks.length) {
+              edu.mainTasks = seedEdu.mainTasks.slice();
+            }
+          } else if (isEmptyEduField(key, edu[key]) && !isEmptyEduField(key, seedEdu[key])) {
+            edu[key] = seedEdu[key];
+          }
+        });
+      }
+      taxon.edu = edu;
+    });
+    catalog.meta = catalog.meta || {};
+    catalog.meta.version = Math.max(catalog.meta.version || 0, 11);
+  }
+
+  function migrateCatalogSortOrderV13(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (!catalog) return;
+    if (catalog.breeds) backfillMissingCatalogSortOrders(catalog.breeds);
+    if (catalog.testIndicators) backfillMissingCatalogSortOrders(catalog.testIndicators);
+    if (catalog.microbiotaTaxa) backfillMissingCatalogSortOrders(catalog.microbiotaTaxa);
+    if (catalog.breeds) catalog.breeds = reorderCatalogCollectionBySortOrder(catalog.breeds);
+    if (catalog.testIndicators) catalog.testIndicators = reorderCatalogCollectionBySortOrder(catalog.testIndicators);
+    if (catalog.microbiotaTaxa) catalog.microbiotaTaxa = reorderCatalogCollectionBySortOrder(catalog.microbiotaTaxa);
+    catalog.meta = catalog.meta || {};
+    catalog.meta.version = Math.max(catalog.meta.version || 0, 13);
+  }
+
+  function migrateTaxonEduV12(state) {
+    ensureDomainState(state);
+    var catalog = state.professionalCatalog;
+    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
+    var staleHintsByKey = {
+      '拟杆菌门': {
+        normalHint: '数量适中时，说明饮食结构较均衡，营养分解能力稳定。',
+        highHint: '若占比偏高，可能提示高脂高蛋白饮食偏多，需关注整体菌群平衡。'
+      },
+      'Bacteroides': {
+        lowHint: '若该属偏少，可能提示蛋白/脂肪类食物分解能力不足。',
+        normalHint: '数量适中时，说明复杂营养物质的分解与转化较稳定。',
+        highHint: '若该属偏高，可能提示高脂高蛋白摄入偏多，需结合整体菌群观察。'
+      }
+    };
+    catalog.microbiotaTaxa.forEach(function (taxon) {
+      var stale = staleHintsByKey[taxon.key];
+      var edu = normalizeTaxonEdu(taxon.edu);
+      if (stale) {
+        Object.keys(stale).forEach(function (field) {
+          if (edu[field] === stale[field]) {
+            edu[field] = '';
+          }
+        });
+      }
+      taxon.edu = edu;
+    });
+    catalog.meta = catalog.meta || {};
+    catalog.meta.version = Math.max(catalog.meta.version || 0, 12);
   }
 
   function migrateMicrobiotaPresentationV9(state) {
@@ -978,6 +1191,7 @@
     if (!state.healthTags) state.healthTags = [];
     if (!state.healthTagProducts) state.healthTagProducts = [];
     if (!state.ownershipCorrections) state.ownershipCorrections = [];
+    if (!state.petUserAssociationChanges) state.petUserAssociationChanges = [];
     if (!state.operationRecords) state.operationRecords = [];
 
     (state.products || []).forEach(function (product) {
@@ -1035,6 +1249,15 @@
     if (!state.meta.version || state.meta.version < 10) {
       migratePresentationCopyV10(state);
     }
+    if (!state.meta.version || state.meta.version < 11) {
+      migrateTaxonEduV11(state);
+    }
+    if (!state.meta.version || state.meta.version < 12) {
+      migrateTaxonEduV12(state);
+    }
+    if (!state.meta.version || state.meta.version < 13) {
+      migrateCatalogSortOrderV13(state);
+    }
 
     (state.reports || []).forEach(function (report) {
       syncReportVersionFields(report);
@@ -1058,9 +1281,15 @@
       if (state.meta.version < 8) state.meta.version = 8;
       if (state.meta.version < 9) state.meta.version = 9;
       if (state.meta.version < 10) state.meta.version = 10;
+      if (state.meta.version < 11) state.meta.version = 11;
+      if (state.meta.version < 12) state.meta.version = 12;
+      if (state.meta.version < 13) state.meta.version = 13;
       if (state.professionalCatalog && state.professionalCatalog.meta) {
         if (state.professionalCatalog.meta.version < 7) state.professionalCatalog.meta.version = 7;
         if (state.professionalCatalog.meta.version < 9) state.professionalCatalog.meta.version = 9;
+        if (state.professionalCatalog.meta.version < 11) state.professionalCatalog.meta.version = 11;
+        if (state.professionalCatalog.meta.version < 12) state.professionalCatalog.meta.version = 12;
+        if (state.professionalCatalog.meta.version < 13) state.professionalCatalog.meta.version = 13;
       }
     }
 
@@ -1202,7 +1431,7 @@
       {
         id: 'pet-004',
         userId: null,
-        name: ' 待认领旺仔',
+        name: ' 旺仔',
         breed: '柯基',
         age: 4,
         gender: 'male',
@@ -1215,7 +1444,7 @@
       {
         id: 'pet-005',
         userId: null,
-        name: ' 待认领豆豆',
+        name: ' 豆豆',
         breed: '中华田园猫',
         age: 1,
         gender: 'female',
@@ -2160,6 +2389,7 @@
       healthTags: healthTags,
       healthTagProducts: healthTagProducts,
       ownershipCorrections: ownershipCorrections,
+      petUserAssociationChanges: [],
       operationRecords: [],
       professionalCatalog: defaultCatalog(),
       analysisRuleCatalog: buildDefaultAnalysisRuleCatalog(),
@@ -2538,12 +2768,46 @@
   function getUserReportStatus(reportOrId, userId) {
     var state = loadState();
     var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
-    if (!report || report.userId !== userId) return null;
+    if (!report || !userId) return null;
+    var pet = findPet(state, report.petId);
+    if (!pet || pet.userId !== userId) return null;
     var workflow = getWorkflowStatus(report, findTestRecord(state, report.testRecordId));
     if (workflow === 'voided' || report.status === 'voided') return null;
     if (workflow === 'published' || report.status === 'published' || report.status === 'corrected') return 'published';
-    if (workflow === 'incomplete' || workflow === 'pending_review') return 'in_progress';
     return null;
+  }
+
+  function getPetPublishedReports(petId) {
+    var state = loadState();
+    return (state.reports || []).filter(function (report) {
+      if (report.petId !== petId) return false;
+      if (report.status === 'voided' || report.status === 'cancelled') return false;
+      var workflow = getWorkflowStatus(report, findTestRecord(state, report.testRecordId));
+      return workflow === 'published' || report.status === 'published' || report.status === 'corrected';
+    }).sort(function (a, b) {
+      var trA = findTestRecord(state, a.testRecordId);
+      var trB = findTestRecord(state, b.testRecordId);
+      var dateA = (trA && trA.testDate) || a.updatedAt || a.createdAt || '';
+      var dateB = (trB && trB.testDate) || b.updatedAt || b.createdAt || '';
+      return String(dateB).localeCompare(String(dateA));
+    });
+  }
+
+  function syncPetLinkedEntities(state, petId, userId) {
+    (state.reports || []).forEach(function (report) {
+      if (report.petId !== petId) return;
+      report.userId = userId || null;
+      report.ownershipStatus = userId ? 'bound' : 'unassigned';
+      report.updatedAt = nowIso();
+      var tr = findTestRecord(state, report.testRecordId);
+      if (tr) syncReportWorkflow(report, tr);
+    });
+    (state.testRecords || []).forEach(function (tr) {
+      if (tr.petId !== petId) return;
+      tr.userId = userId || null;
+      tr.claimStatus = userId ? 'bound' : 'unassigned';
+      tr.updatedAt = nowIso();
+    });
   }
 
   function getUserVisibleReports(userId) {
@@ -3273,7 +3537,7 @@
     });
   }
 
-  /** 运营归属：直接绑定或待认领归档 */
+  /** 运营归档：报告关联宠物，可选关联平台用户 */
   function assignReportOwnership(params) {
     params = params || {};
     if (!params.reportId && !params.testRecordId) {
@@ -3291,15 +3555,32 @@
       var pet = params.petId ? findPet(state, params.petId) : null;
       if (!pet) throw new Error('pet not found: ' + params.petId);
 
+      var userId = params.userId || null;
+      if (userId && !findUser(state, userId)) throw new Error('user not found: ' + userId);
+
       tr.petId = pet.id;
       tr.storeId = params.storeId || pet.storeId || tr.storeId;
-      if (params.directBind && params.userId) {
-        tr.userId = params.userId;
-        tr.claimStatus = 'bound';
-        tr.status = tr.status === 'unassigned' ? 'pending_review' : tr.status;
-      } else {
-        tr.claimStatus = 'pending_claim';
-        tr.status = tr.status === 'unassigned' ? 'pending_claim' : tr.status;
+      if (userId && userId !== pet.userId) {
+        if (!state.petUserAssociationChanges) state.petUserAssociationChanges = [];
+        state.petUserAssociationChanges.push({
+          id: bumpIds(state, 'petUserAssociationChanges', 'petuser'),
+          petId: pet.id,
+          fromUserId: pet.userId || null,
+          toUserId: userId,
+          actor: params.actor || '运营专员',
+          reason: params.reason || '报告归档时关联用户',
+          createdAt: nowIso()
+        });
+        pet.userId = userId;
+        pet.claimStatus = 'bound';
+      } else if (userId) {
+        pet.userId = userId;
+        pet.claimStatus = 'bound';
+      }
+      tr.userId = pet.userId || null;
+      tr.claimStatus = pet.userId ? 'bound' : 'unassigned';
+      if (tr.status === 'unassigned' || tr.status === 'pending_claim') {
+        tr.status = 'pending_review';
       }
       tr.updatedAt = nowIso();
 
@@ -3307,13 +3588,13 @@
         report = generateReportInternal(state, tr, params);
       } else {
         report.petId = pet.id;
-        report.userId = params.directBind ? params.userId : null;
-        report.ownershipStatus = params.directBind ? 'bound' : 'pending_claim';
-        report.workflowStatus = params.directBind ? 'incomplete' : 'unassigned';
+        report.userId = pet.userId || null;
+        report.ownershipStatus = pet.userId ? 'bound' : 'unassigned';
+        report.workflowStatus = pet.userId ? 'incomplete' : 'unassigned';
         report.updatedAt = nowIso();
       }
       syncReportWorkflow(report, tr);
-      return { report: report, testRecord: tr };
+      return { report: report, testRecord: tr, pet: pet };
     });
   }
 
@@ -3367,7 +3648,7 @@
         gender: params.gender || 'unknown',
         species: params.species || 'dog',
         storeId: params.storeId || null,
-        claimStatus: params.userId ? 'bound' : 'pending_claim',
+        claimStatus: params.userId ? 'bound' : 'unassigned',
         opsCreated: true,
         createdAt: nowIso()
       };
@@ -3747,10 +4028,25 @@
       if (params.age != null) pet.age = params.age;
       if (params.gender != null) pet.gender = params.gender;
       if (params.species != null) pet.species = params.species;
+      if (params.birthDate != null) pet.birthDate = params.birthDate;
       if (params.storeId !== undefined) pet.storeId = params.storeId;
-      if (params.userId !== undefined) {
-        pet.userId = params.userId;
-        pet.claimStatus = params.userId ? 'bound' : 'pending_claim';
+      if (params.userId !== undefined && params.userId !== pet.userId) {
+        if (!params.reason || !String(params.reason).trim()) {
+          throw new Error('变更关联用户时必须填写原因');
+        }
+        if (!state.petUserAssociationChanges) state.petUserAssociationChanges = [];
+        state.petUserAssociationChanges.push({
+          id: bumpIds(state, 'petUserAssociationChanges', 'petuser'),
+          petId: petId,
+          fromUserId: pet.userId || null,
+          toUserId: params.userId || null,
+          actor: params.actor || '运营专员',
+          reason: String(params.reason).trim(),
+          createdAt: nowIso()
+        });
+        pet.userId = params.userId || null;
+        pet.claimStatus = pet.userId ? 'bound' : 'unassigned';
+        syncPetLinkedEntities(state, petId, pet.userId);
       }
       return pet;
     });
@@ -3988,6 +4284,7 @@
     getUserReportStatus: getUserReportStatus,
     getUserVisibleReports: getUserVisibleReports,
     getUserPublishedReportProjection: getUserPublishedReportProjection,
+    getPetPublishedReports: getPetPublishedReports,
     resolveHealthTagCandidates: resolveHealthTagCandidates,
     updateReportContent: updateReportContent,
     updateFinding: updateFinding,
@@ -4003,6 +4300,11 @@
     emptyTaxonEdu: emptyTaxonEdu,
     normalizeTaxonEdu: normalizeTaxonEdu,
     migrateLegacyEduFields: migrateLegacyEduFields,
+    catalogParentGroupKey: catalogParentGroupKey,
+    parseCatalogSortOrder: parseCatalogSortOrder,
+    backfillMissingCatalogSortOrders: backfillMissingCatalogSortOrders,
+    reorderCatalogCollectionBySortOrder: reorderCatalogCollectionBySortOrder,
+    validateCatalogSiblingSortOrders: validateCatalogSiblingSortOrders,
     saveTaxonEdu: saveTaxonEdu,
     defaultMicrobiotaPresentation: defaultMicrobiotaPresentation,
     normalizeMicrobiotaPresentation: normalizeMicrobiotaPresentation,

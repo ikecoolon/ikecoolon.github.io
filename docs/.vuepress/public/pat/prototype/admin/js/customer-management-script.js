@@ -23,7 +23,6 @@ function initCustomerManagement() {
   var formWechatName = document.getElementById('form-wechat-name');
   var formEmail = document.getElementById('form-email');
   var formPreferredContact = document.getElementById('form-preferred-contact');
-  var formServiceLevel = document.getElementById('form-service-level');
   var formNotes = document.getElementById('form-notes');
   var formAddress = document.getElementById('form-address');
 
@@ -33,10 +32,8 @@ function initCustomerManagement() {
   var customerInfoCard = document.getElementById('customer-info-card');
   var customerPetsGrid = document.getElementById('customer-pets-grid');
   var noPetsMessage = document.getElementById('no-pets-message');
-  var addPetForCustomerBtn = document.getElementById('add-pet-for-customer');
   var totalReportsEl = document.getElementById('total-reports');
   var lastServiceEl = document.getElementById('last-service');
-  var serviceLevelDisplayEl = document.getElementById('service-level-display');
   var customerReportsList = document.getElementById('customer-reports-list');
 
   var currentEditUserId = null;
@@ -59,15 +56,6 @@ function initCustomerManagement() {
 
   function getAllUserReports(state, userId) {
     return (state.reports || []).filter(function (r) { return r.userId === userId; });
-  }
-
-  function getServiceLevelDisplay(level) {
-    var levelMap = {
-      standard: { text: '标准', color: 'bg-gray-100 text-gray-800' },
-      premium: { text: '优质', color: 'bg-blue-100 text-blue-800' },
-      vip: { text: 'VIP', color: 'bg-purple-100 text-purple-800' }
-    };
-    return levelMap[level] || levelMap.standard;
   }
 
   function calculatePetAge(pet) {
@@ -176,13 +164,11 @@ function initCustomerManagement() {
     filtered.forEach(function (user) {
       var pets = getCustomerPets(state, user.id);
       var reportCount = C.countUserReports(state, user.id);
-      var serviceLevel = getServiceLevelDisplay('standard');
       var row = document.createElement('tr');
       row.className = 'hover:bg-gray-50';
       row.innerHTML =
         '<td class="px-6 py-4 whitespace-nowrap">' +
-        '<div class="flex items-center"><div class="text-sm font-medium text-gray-900">' + C.escapeHtml(user.name) + '</div>' +
-        '<span class="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ' + serviceLevel.color + '">' + serviceLevel.text + '</span></div>' +
+        '<div class="text-sm font-medium text-gray-900">' + C.escapeHtml(user.name) + '</div>' +
         '<div class="text-sm text-gray-500">' + C.escapeHtml(user.id) + '</div></td>' +
         '<td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-medium text-gray-900">' + C.escapeHtml(user.phone || '—') + '</div></td>' +
         '<td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-900">' +
@@ -222,7 +208,6 @@ function initCustomerManagement() {
     } else {
       formTitle.textContent = '登记平台用户';
       customerForm.reset();
-      if (formServiceLevel) formServiceLevel.value = 'standard';
       currentEditUserId = null;
     }
   }
@@ -265,7 +250,7 @@ function initCustomerManagement() {
     noPetsMessage.classList.add('hidden');
     customerPetsGrid.innerHTML = '';
     pets.forEach(function (pet) {
-      var reportCount = C.countPetReports(state, pet.id);
+      var reportCount = store.getPetPublishedReports(pet.id).length;
       var genderIcon = pet.gender === 'male' ? '♂' : pet.gender === 'female' ? '♀' : '?';
       var genderColor = pet.gender === 'male' ? 'text-blue-500' : pet.gender === 'female' ? 'text-pink-500' : 'text-gray-500';
       var card = document.createElement('div');
@@ -276,7 +261,7 @@ function initCustomerManagement() {
         '<p class="text-sm text-gray-600">' + C.escapeHtml(C.speciesToMajorBreed(pet.species)) + ' • ' + C.escapeHtml(pet.breed || '未知品种') + '</p>' +
         '<p class="text-sm text-gray-500">' + calculatePetAge(pet) + ' · ' + reportCount + ' 份报告</p>' +
         '<div class="mt-3 flex space-x-2">' +
-        '<button type="button" class="flex-1 text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 view-pet-reports" data-pet-id="' + C.escapeHtml(pet.id) + '">归属管理</button></div>';
+        '<button type="button" class="flex-1 text-xs px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 view-pet-profile" data-pet-id="' + C.escapeHtml(pet.id) + '">查看档案</button></div>';
       customerPetsGrid.appendChild(card);
     });
   }
@@ -291,7 +276,6 @@ function initCustomerManagement() {
     } else {
       lastServiceEl.textContent = '无记录';
     }
-    if (serviceLevelDisplayEl) serviceLevelDisplayEl.textContent = '标准';
   }
 
   function renderCustomerReports(state, userId) {
@@ -389,22 +373,11 @@ function initCustomerManagement() {
     else if (button.classList.contains('edit-customer')) showFormView(true, id);
   });
 
-  addPetForCustomerBtn.addEventListener('click', function () {
-    if (!currentCustomerId) return;
-    C.navigate('pet-information', { userId: currentCustomerId, action: 'new-pet' });
-  });
-
   customerPetsGrid.addEventListener('click', function (e) {
     var button = e.target.closest('button');
     if (!button) return;
-    if (button.classList.contains('view-pet-reports')) {
-      C.navigate('pet-information', { petId: button.dataset.petId, action: 'manage' });
-    }
-  });
-
-  noPetsMessage.addEventListener('click', function (e) {
-    if (e.target.tagName === 'BUTTON' && currentCustomerId) {
-      C.navigate('pet-information', { userId: currentCustomerId, action: 'new-pet' });
+    if (button.classList.contains('view-pet-profile')) {
+      C.navigate('pet-information', { petId: button.dataset.petId, action: 'detail' });
     }
   });
 

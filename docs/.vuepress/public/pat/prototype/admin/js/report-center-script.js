@@ -4,6 +4,7 @@ function initReportCenter() {
 
   var VIEW_LABELS = {
     all: '全部',
+    pending_result: '待出结果',
     unassigned: '待归属',
     incomplete: '待完善',
     pending_review: '待审核',
@@ -12,6 +13,7 @@ function initReportCenter() {
   };
 
   var WORKFLOW_BADGE = {
+    pending_result: 'bg-sky-100 text-sky-800',
     unassigned: 'bg-purple-100 text-purple-800',
     incomplete: 'bg-blue-100 text-blue-800',
     pending_review: 'bg-amber-100 text-amber-800',
@@ -48,6 +50,8 @@ function initReportCenter() {
 
   function normalizeWorkflowStatus(raw) {
     var map = {
+      pending_result: 'pending_result',
+      待出结果: 'pending_result',
       unassigned: 'unassigned',
       pending_assignment: 'unassigned',
       待归属: 'unassigned',
@@ -73,6 +77,8 @@ function initReportCenter() {
   }
 
   function resolveWorkflowStatus(report, testRecord) {
+    if (testRecord && testRecord.status === 'pending_result') return 'pending_result';
+
     var explicit = pickFirst(report, ['workflowStatus', 'mainStatus', 'lifecycleStatus']);
     if (explicit) return normalizeWorkflowStatus(explicit);
 
@@ -89,7 +95,7 @@ function initReportCenter() {
     if (reportStatus === 'draft' || reportStatus === 'rejected') return 'incomplete';
 
     if (testRecord) {
-      if (testRecord.status === 'pending_claim' || testRecord.status === 'pending_result') return 'unassigned';
+      if (testRecord.status === 'pending_claim') return 'unassigned';
       if (testRecord.status === 'import_failed') return 'incomplete';
       if (testRecord.status === 'pending_review') return 'pending_review';
       if (testRecord.status === 'published') return 'published';
@@ -149,7 +155,6 @@ function initReportCenter() {
 
     (state.testRecords || []).forEach(function (testRecord) {
       if (reportByTestId[testRecord.id]) return;
-      if (testRecord.status === 'pending_result') return;
       rows.push(assembleRow(state, null, testRecord));
     });
 
@@ -237,11 +242,14 @@ function initReportCenter() {
 
   function buildActions(row) {
     var actions = [];
-    if (row.workflow === 'unassigned') {
-      actions.push('<button type="button" class="text-teal-600 hover:underline mr-2 rc-action" data-action="records">检测记录</button>');
-      actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="import">导入</button>');
+    if (row.workflow === 'pending_result') {
+      actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="import">导入结果</button>');
+    } else if (row.workflow === 'unassigned') {
+      actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="assign">处理归属</button>');
     } else if (row.workflow === 'incomplete') {
-      actions.push('<button type="button" class="text-teal-600 hover:underline mr-2 rc-action" data-action="records">检测记录</button>');
+      if (row.rawTestStatus === 'import_failed') {
+        actions.push('<button type="button" class="text-teal-600 hover:underline mr-2 rc-action" data-action="import">重新导入</button>');
+      }
       if (row.reportId) {
         actions.push('<button type="button" class="text-teal-600 hover:underline rc-action" data-action="review">完善</button>');
       }
@@ -300,6 +308,10 @@ function initReportCenter() {
     }
     if (action === 'published' && row.reportId) {
       C.navigate('published-reports', { reportId: row.reportId });
+      return;
+    }
+    if (action === 'assign') {
+      C.navigate('pet-information', { action: 'assign', testRecordId: row.testRecordId });
       return;
     }
     if (action === 'import') {
@@ -375,6 +387,20 @@ function initReportCenter() {
       filterState = readFiltersFromForm();
       render(store.getState());
     });
+  });
+
+  document.getElementById('btn-go-import').addEventListener('click', function () {
+    C.navigate('excel-import');
+  });
+
+  document.getElementById('btn-register-test').addEventListener('click', function () {
+    var state = store.getState();
+    var pet = state.pets.find(function (p) { return p.claimStatus === 'bound'; });
+    store.registerTest({ petId: pet ? pet.id : null });
+    C.toast('已登记新检测，归入待出结果', 'success');
+    setActiveView('pending_result');
+    updateRouteView('pending_result');
+    render(store.getState());
   });
 
   function onHashChange() {

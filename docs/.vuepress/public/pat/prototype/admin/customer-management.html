@@ -127,29 +127,17 @@
             <!-- 客户偏好 -->
             <div class="bg-gray-50 p-4 rounded-lg">
                 <h4 class="text-lg font-medium mb-4 text-gray-800">客户偏好</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-preferred-contact">
-                            首选联系方式
-                        </label>
-                        <select id="form-preferred-contact" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                            <option value="">请选择</option>
-                            <option value="phone">电话</option>
-                            <option value="wechat">微信</option>
-                            <option value="email">邮箱</option>
-                            <option value="sms">短信</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-gray-700 text-sm font-bold mb-2" for="form-service-level">
-                            服务等级
-                        </label>
-                        <select id="form-service-level" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                            <option value="standard">标准服务</option>
-                            <option value="premium">优质服务</option>
-                            <option value="vip">VIP服务</option>
-                        </select>
-                    </div>
+                <div>
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="form-preferred-contact">
+                        首选联系方式
+                    </label>
+                    <select id="form-preferred-contact" class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <option value="">请选择</option>
+                        <option value="phone">电话</option>
+                        <option value="wechat">微信</option>
+                        <option value="email">邮箱</option>
+                        <option value="sms">短信</option>
+                    </select>
                 </div>
             </div>
 
@@ -189,13 +177,10 @@
             <!-- 客户信息将在这里动态显示 -->
         </div>
         
-        <!-- 名下宠物管理 -->
+        <!-- 名下宠物 -->
         <div class="bg-white">
             <div class="flex justify-between items-center mb-4">
                 <h4 class="text-lg font-medium text-gray-800">名下宠物</h4>
-                <button id="add-pet-for-customer" class="px-3 py-1 bg-green-500 text-white text-sm rounded hover:bg-green-600">
-                    <i class="fas fa-plus mr-1"></i>添加宠物
-                </button>
             </div>
             
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="customer-pets-grid">
@@ -204,10 +189,7 @@
             
             <div id="no-pets-message" class="text-center py-8 text-gray-500 hidden">
                 <i class="fas fa-paw text-4xl mb-4 text-gray-400"></i>
-                <p>该客户暂未录入宠物信息</p>
-                <button class="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600">
-                    <i class="fas fa-plus mr-2"></i>添加第一只宠物
-                </button>
+                <p>该客户暂未关联宠物</p>
             </div>
         </div>
         
@@ -221,7 +203,7 @@
         <div class="mt-8">
             <h4 class="text-lg font-medium text-gray-800 mb-4">服务历史</h4>
             <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
                     <div class="bg-white p-4 rounded border">
                         <div class="text-2xl font-bold text-blue-600" id="total-reports">0</div>
                         <div class="text-sm text-gray-600">总检测次数</div>
@@ -229,10 +211,6 @@
                     <div class="bg-white p-4 rounded border">
                         <div class="text-2xl font-bold text-green-600" id="last-service">-</div>
                         <div class="text-sm text-gray-600">最后服务时间</div>
-                    </div>
-                    <div class="bg-white p-4 rounded border">
-                        <div class="text-2xl font-bold text-purple-600" id="service-level-display">标准</div>
-                        <div class="text-sm text-gray-600">服务等级</div>
                     </div>
                 </div>
             </div>

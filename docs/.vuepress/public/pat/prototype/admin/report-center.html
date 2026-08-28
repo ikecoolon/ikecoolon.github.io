@@ -1,7 +1,18 @@
 <div id="report-center" class="page space-y-4">
     <div class="bg-white rounded-lg border border-slate-200 p-4">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div class="flex flex-wrap gap-2">
+                <button type="button" id="btn-register-test" class="btn-primary px-4 py-1.5 rounded-md text-sm">
+                    <i class="fas fa-plus mr-1"></i>登记检测
+                </button>
+                <button type="button" id="btn-go-import" class="btn-secondary px-4 py-1.5 rounded-md text-sm">
+                    <i class="fas fa-file-excel mr-1"></i>Excel 导入
+                </button>
+            </div>
+        </div>
         <div class="flex flex-wrap gap-2 mb-4" id="rc-view-tabs" role="tablist" aria-label="报告状态视图">
             <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="all">全部</button>
+            <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="pending_result">待出结果</button>
             <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="unassigned">待归属</button>
             <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="incomplete">待完善</button>
             <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="pending_review">待审核</button>
@@ -46,6 +57,7 @@
                 <span class="text-slate-600">状态</span>
                 <select id="rc-q-status" class="border border-slate-300 rounded-md py-1.5 px-2 bg-white">
                     <option value="">全部状态</option>
+                    <option value="pending_result">待出结果</option>
                     <option value="unassigned">待归属</option>
                     <option value="incomplete">待完善</option>
                     <option value="pending_review">待审核</option>
