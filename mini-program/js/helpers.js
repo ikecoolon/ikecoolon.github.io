@@ -324,15 +324,36 @@
     };
   }
 
+  function mapLiveRecommendation(rec) {
+    var primaryProductId = rec.primaryProductId || rec.productId || null;
+    var relatedProductIds = (rec.relatedProductIds || []).slice();
+    return {
+      id: rec.id,
+      findingId: rec.findingId,
+      reportId: rec.reportId,
+      targetType: rec.targetType || 'PRODUCT',
+      primaryProductId: primaryProductId,
+      productId: primaryProductId,
+      relatedProductIds: relatedProductIds,
+      healthTagIds: (rec.healthTagIds || []).slice(),
+      label: rec.label,
+      reason: rec.reason,
+      relation: {
+        targetType: rec.targetType || 'PRODUCT',
+        primaryProductId: primaryProductId,
+        relatedProductIds: relatedProductIds,
+        healthTagIds: (rec.healthTagIds || []).slice(),
+        label: rec.label,
+        reason: rec.reason
+      }
+    };
+  }
+
   function getReportRecommendations(reportId) {
     if (!canUserAccessPublishedReport(reportId)) return [];
-    var ctx = getPublishedReportContext(reportId);
-    if (ctx && ctx.snapshot && ctx.snapshot.recommendations) {
-      return ctx.snapshot.recommendations.map(function (frozen) {
-        return mapFrozenRecommendation(frozen, reportId);
-      });
-    }
-    return getState().recommendations.filter(function (r) { return r.reportId === reportId; });
+    return getState().recommendations
+      .filter(function (r) { return r.reportId === reportId; })
+      .map(mapLiveRecommendation);
   }
 
   function getFrozenRecommendation(rec) {
@@ -1040,59 +1061,81 @@
     };
   }
 
+  function isProductOnSale(product) {
+    if (!product) return false;
+    if (!product.available) return false;
+    var stock = product.stock != null ? product.stock : 1;
+    return stock > 0;
+  }
+
+  function resolveRelatedProducts(rec) {
+    var ids = (rec.relatedProductIds || []).slice();
+    if (!ids.length && rec.relation && rec.relation.relatedProductIds) {
+      ids = (rec.relation.relatedProductIds || []).slice();
+    }
+    return ids.map(function (productId) {
+      return {
+        productId: productId,
+        product: getProductById(productId)
+      };
+    });
+  }
+
   function resolveRecDisplay(rec) {
     var store = getStore();
-    var reportId = rec.reportId;
-    var ctx = getPublishedReportContext(reportId);
-    var species = ctx && ctx.snapshot
-      ? (ctx.snapshot.reportSpecies || getReportSpecies(reportId))
-      : getReportSpecies(reportId);
-    var relation = getFrozenRecommendationRelation(rec) || {
-      targetType: rec.targetType,
-      primaryProductId: rec.primaryProductId || rec.productId,
-      healthTagIds: rec.healthTagIds || [],
-      label: rec.label,
-      reason: rec.reason
-    };
+    var primaryProductId = rec.primaryProductId || rec.productId || null;
+    if (!primaryProductId && rec.relation) {
+      primaryProductId = rec.relation.primaryProductId || rec.relation.productId || null;
+    }
+
+    var relatedProductIds = (rec.relatedProductIds || []).slice();
+    if (!relatedProductIds.length && rec.relation && rec.relation.relatedProductIds) {
+      relatedProductIds = (rec.relation.relatedProductIds || []).slice();
+    }
+
+    var primaryProduct = primaryProductId ? getProductById(primaryProductId) : null;
+    var relatedProducts = resolveRelatedProducts(rec);
 
     var resolved = store.resolveRecommendationTarget({
       targetType: 'PRODUCT',
-      primaryProductId: relation.primaryProductId,
-      productId: relation.primaryProductId,
-      healthTagIds: relation.healthTagIds || [],
-      species: species
+      primaryProductId: primaryProductId,
+      productId: primaryProductId,
+      relatedProductIds: relatedProductIds,
+      healthTagIds: rec.healthTagIds || (rec.relation && rec.relation.healthTagIds) || []
     });
 
-    var product = resolved.resolvedProductId
-      ? getProductById(resolved.resolvedProductId)
-      : null;
-    var candidates = (resolved.candidates || []).map(function (c) {
-      return {
-        productId: c.productId,
-        product: c.product || getProductById(c.productId),
-        sortOrder: c.sortOrder,
-        healthTagId: c.healthTagId
-      };
-    });
+    var adviceText = stripDemo(rec.label || (rec.relation && rec.relation.label) || '');
+    var reasonText = stripDemo(rec.reason || (rec.relation && rec.relation.reason) || '');
+    if (!adviceText && reasonText) adviceText = reasonText;
 
-    var adviceText = stripDemo(relation.label || rec.label || '');
-    if (!adviceText && relation.reason) adviceText = stripDemo(relation.reason);
+    var availability = 'NO_CANDIDATES';
+    if (primaryProduct) {
+      if (isProductOnSale(primaryProduct)) {
+        availability = 'AVAILABLE';
+      } else if (!primaryProduct.available) {
+        availability = 'UNAVAILABLE';
+      } else {
+        availability = 'ZERO_STOCK';
+      }
+    } else if (primaryProductId) {
+      availability = resolved.availability || 'UNAVAILABLE';
+    }
 
     return {
-      resolvedType: resolved.resolvedType,
-      availability: resolved.availability,
-      product: product,
-      candidates: candidates,
-      candidateProductIds: resolved.candidateProductIds || [],
+      primaryProductId: primaryProductId,
+      primaryProduct: primaryProduct,
+      relatedProductIds: relatedProductIds,
+      relatedProducts: relatedProducts,
+      isPrimaryOnSale: isProductOnSale(primaryProduct),
+      availability: availability,
       label: adviceText || stripDemo(resolved.label),
-      reason: stripDemo(relation.reason || ''),
-      downgradePath: resolved.downgradePath
+      reason: reasonText
     };
   }
 
   function hasProductRecommendation(rec) {
     var display = resolveRecDisplay(rec);
-    return display.resolvedType === 'PRODUCT' && display.product;
+    return !!(display.primaryProductId || display.primaryProduct);
   }
 
   function productStatusLabel(product) {
@@ -1163,6 +1206,8 @@
     formatIndicatorValue: formatIndicatorValue,
     indicatorDisplayStatus: indicatorDisplayStatus,
     resolveRecDisplay: resolveRecDisplay,
+    resolveRelatedProducts: resolveRelatedProducts,
+    isProductOnSale: isProductOnSale,
     getFrozenRecommendationRelation: getFrozenRecommendationRelation,
     getFrozenRecommendation: getFrozenRecommendation,
     findReportFinding: findReportFinding,

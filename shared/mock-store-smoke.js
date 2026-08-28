@@ -172,41 +172,68 @@ function main() {
   });
   assert(notDetected && notDetected.dataStatus === 'NOT_DETECTED' && notDetected.value == null, 'NOT_DETECTED is not zero or missing');
 
+  assert(state.meta.version >= 14, 'meta.version migrated to >= 14');
+
   var available = store.resolveRecommendationTarget({
-    targetType: 'PRODUCT',
-    productId: 'prod-001',
-    healthTagIds: ['htag-001']
+    primaryProductId: 'prod-001',
+    relatedProductIds: ['prod-003']
   });
-  assertEqual(available.resolvedType, 'PRODUCT', 'normal product recommendation');
+  assertEqual(available.resolvedType, 'PRODUCT', 'manual recommendation primary PRODUCT when available');
   assertEqual(available.availability, 'AVAILABLE', 'normal product availability');
+  assertEqual(available.relatedProductIds.join(','), 'prod-003', 'relatedProductIds order preserved');
 
   var zeroStock = store.resolveRecommendationTarget({
-    targetType: 'PRODUCT',
-    productId: 'prod-004',
-    healthTagIds: ['htag-001']
+    primaryProductId: 'prod-004',
+    relatedProductIds: []
   });
+  assertEqual(zeroStock.resolvedType, 'PRODUCT', 'zero stock primary kept as PRODUCT');
   assertEqual(zeroStock.availability, 'ZERO_STOCK', 'zero stock availability');
-  assert(zeroStock.candidateProductIds.length > 0, 'zero stock yields tag candidates');
+  assertEqual(zeroStock.resolvedProductId, 'prod-004', 'zero stock keeps primary');
 
   var delisted = store.resolveRecommendationTarget({
-    targetType: 'PRODUCT',
-    productId: 'prod-002',
-    healthTagIds: ['htag-001']
+    primaryProductId: 'prod-002',
+    relatedProductIds: ['prod-001', 'prod-003']
   });
-  assert(delisted.resolvedType === 'TAG_CANDIDATE' || delisted.candidateProductIds.length > 0, 'delisted product falls back to tag candidates');
+  assertEqual(delisted.resolvedType, 'PRODUCT', 'delisted primary still PRODUCT not auto-substituted');
+  assertEqual(delisted.resolvedProductId, 'prod-002', 'delisted keeps primary');
+  assertEqual(delisted.availability, 'UNAVAILABLE', 'delisted availability');
+  assertEqual(delisted.relatedProductIds.join(','), 'prod-001,prod-003', 'relatedProductIds order preserved');
 
-  var noCandidates = store.resolveRecommendationTarget({
-    targetType: 'PRODUCT',
-    productId: 'prod-004',
-    healthTagIds: ['htag-003']
+  var maxRelated = store.resolveRecommendationTarget({
+    primaryProductId: 'prod-001',
+    relatedProductIds: ['prod-003', 'prod-001', 'prod-004', 'prod-002']
   });
-  assertEqual(noCandidates.availability, 'NO_CANDIDATES', 'no tag candidates');
-  assertEqual(noCandidates.resolvedType, 'NONE', 'no candidates resolves to NONE not CATEGORY');
+  assert(maxRelated.relatedProductIds.length <= 3, 'relatedProductIds max 3');
+  assert(maxRelated.relatedProductIds.indexOf('prod-001') < 0, 'related excludes primary');
+
+  var snapRec001 = snap001.contentSnapshot.recommendations.find(function (r) { return r.id === 'rec-001'; });
+  assert(snapRec001 && snapRec001.resolution && snapRec001.resolution.liveRead, 'publish snapshot notes live product read');
+  assert(!snapRec001.resolution.resolvedProductId, 'product config not frozen in publish snapshot');
+
+  store.updateRecommendation({
+    recommendationId: 'rec-001',
+    relatedProductIds: ['prod-004'],
+    actor: 'smoke'
+  });
+  var updatedRec = store.getState().recommendations.find(function (r) { return r.id === 'rec-001'; });
+  assertEqual(updatedRec.relatedProductIds.join(','), 'prod-004', 'updateRecommendation after publish updates live store');
+  var snapAfterUpdate = store.getPublishedVersionSnapshot('report-001');
+  var frozenRecAfter = snapAfterUpdate.contentSnapshot.recommendations.find(function (r) { return r.id === 'rec-001'; });
+  assertEqual(frozenRecAfter.relation.relatedProductIds.join(','), 'prod-003', 'publish snapshot relation unchanged until republish');
+
+  var pickerOnSale = store.searchProductsForPicker(state, { status: 'on_sale' });
+  assert(pickerOnSale.items.length >= 2, 'searchProductsForPicker filters on_sale');
+  var pickerRecycled = store.searchProductsForPicker(state, { status: 'recycled' });
+  assert(pickerRecycled.items.length === 0, 'searchProductsForPicker excludes recycled by default');
+  var pickerIncludeMissing = store.searchProductsForPicker(state, {
+    status: 'recycled',
+    includeProductIds: ['prod-missing']
+  });
+  assert(pickerIncludeMissing.items.some(function (p) { return p.id === 'prod-missing'; }), 'searchProductsForPicker includes recycled when in relationship');
 
   var legacyCategory = store.resolveRecommendationTarget({
     targetType: 'CATEGORY',
-    categoryId: 'cat-001',
-    healthTagIds: ['htag-001']
+    categoryId: 'cat-001'
   });
   assert(legacyCategory.resolvedType !== 'CATEGORY', 'legacy CATEGORY input never returns CATEGORY');
 

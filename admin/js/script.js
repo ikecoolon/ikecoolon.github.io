@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  window.__PET_ADMIN_ASSET_VERSION = '20250827';
+  window.__PET_ADMIN_ASSET_VERSION = '20250828';
   var C = window.PetAdminCommon;
   var navItems = document.querySelectorAll('#main-nav .nav-item');
   var pageContentContainer = document.getElementById('page-content-container');
@@ -68,7 +68,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var DEFAULT_PAGE = 'report-center';
 
   var DEPRECATED_PAGES = {
-    'pet-report-management': 'report-center'
+    'pet-report-management': 'report-center',
+    'recommendation-mapping': 'report-center'
   };
 
   var PAGE_CONFIG = {
@@ -76,9 +77,8 @@ document.addEventListener('DOMContentLoaded', function () {
     dashboard: { title: '工作台', script: 'dashboard-script.js', init: 'initDashboard' },
     'detection-records': { title: '检测记录', script: 'detection-records-script.js', init: 'initDetectionRecords' },
     'excel-import': { title: 'Excel 导入', script: 'excel-import-script.js', init: 'initExcelImport' },
-    'report-review': { title: '报告审核', script: 'report-review-script.js', init: 'initReportReview' },
+    'report-review': { title: '报告工作台', script: 'report-review-script.js', init: 'initReportReview' },
     'published-reports': { title: '已发布报告', script: 'published-reports-script.js', init: 'initPublishedReports' },
-    'recommendation-mapping': { title: '推荐映射', script: 'recommendation-mapping-script.js', init: 'initRecommendationMapping' },
     'customer-management': { title: '客户管理', script: 'customer-management-script.js', init: 'initCustomerManagement' },
     'pet-information': { title: '宠物档案', script: 'pet-information-script.js', init: 'initPetInformation' },
     'pet-report-management': { title: '萌宠报告', script: 'pet-report-management-script.js', init: 'initPetReportManagement' },
