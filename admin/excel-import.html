@@ -1,7 +1,7 @@
 <div id="excel-import" class="page space-y-4">
     <div class="mb-3">
         <button type="button" id="btn-go-report-center" class="btn-secondary text-sm px-3 py-1.5 rounded-md">
-            <i class="fas fa-arrow-left mr-1"></i>返回报告中心
+            <i class="fas fa-arrow-left mr-1"></i>返回送检管理
         </button>
     </div>
     <div class="bg-white rounded-lg border border-slate-200 p-5">
@@ -17,8 +17,9 @@
         </div>
 
         <div id="step-1" class="wizard-panel">
-            <p class="text-sm text-slate-600 mb-4">
-                每个 Excel 文件对应一只宠物的一次检测。系统仅解析已知模板，逐文件独立处理；成功或局部异常将立即进入报告中心「待归属」视图。
+            <div id="directed-target-banner" class="hidden mb-4 border border-teal-200 bg-teal-50 rounded-md p-4 text-sm text-teal-900"></div>
+            <p class="text-sm text-slate-600 mb-4" id="import-intro-text">
+                每个 Excel 文件对应一只宠物的一次检测。系统仅解析已知模板，逐文件独立处理；成功或局部异常将生成报告草稿并进入报告中心处理流程。
             </p>
 
             <div class="border-2 border-dashed border-slate-200 rounded-lg p-6 text-center mb-4" id="drop-zone">
@@ -50,7 +51,7 @@
                             <th class="px-3 py-2 text-left">外部报告号 / 样本号</th>
                             <th class="px-3 py-2 text-left">状态</th>
                             <th class="px-3 py-2 text-left">说明</th>
-                            <th class="px-3 py-2 text-left">检测记录</th>
+                            <th class="px-3 py-2 text-left">送检记录</th>
                         </tr>
                     </thead>
                     <tbody id="result-tbody" class="divide-y divide-slate-100"></tbody>

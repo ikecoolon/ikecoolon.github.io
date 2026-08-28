@@ -1,33 +1,52 @@
 <div id="detection-records" class="page">
+    <div id="btn-go-report-center-wrap" class="mb-3 hidden">
+        <button type="button" id="btn-go-report-center" class="btn-secondary text-sm px-3 py-1.5 rounded-md">
+            <i class="fas fa-arrow-left mr-1"></i>返回报告中心
+        </button>
+    </div>
     <div class="bg-white rounded-lg border border-slate-200 p-5">
-        <div class="flex flex-wrap gap-3 mb-4 items-end justify-between">
-            <div class="flex flex-wrap gap-2 items-center">
-                <label class="text-sm text-slate-600">状态筛选</label>
-                <select id="filter-status" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm">
-                    <option value="">全部</option>
-                    <option value="pending_result">待结果</option>
-                    <option value="pending_claim">待认领</option>
-                    <option value="import_failed">导入异常</option>
-                    <option value="pending_review">待审核</option>
-                    <option value="published">已发布</option>
-                </select>
-                <input type="search" id="search-records" placeholder="搜索 ID / 标签" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm w-48">
+        <div id="dr-linked-context" class="hidden mb-4 rounded-md border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-900">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                    <p class="font-medium">当前仅显示该报告唯一关联的送检记录</p>
+                    <p id="dr-linked-detail" class="mt-1 text-teal-800/90 break-words"></p>
+                </div>
+                <button type="button" id="dr-view-all" class="btn-secondary shrink-0 px-3 py-1.5 rounded-md text-sm whitespace-nowrap">查看全部送检记录</button>
             </div>
-            <div class="flex gap-2">
-                <button type="button" id="btn-register-test" class="btn-secondary px-3 py-2 rounded-md text-sm"><i class="fas fa-plus mr-1"></i>登记检测</button>
-                <button type="button" id="btn-go-import" class="btn-primary px-3 py-2 rounded-md text-sm"><i class="fas fa-file-excel mr-1"></i>Excel 导入</button>
+        </div>
+        <div id="dr-not-found" class="hidden mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                    <p class="font-medium">未找到关联的送检记录</p>
+                    <p id="dr-not-found-detail" class="mt-1 text-amber-800/90 break-words"></p>
+                </div>
+                <button type="button" id="dr-view-all-not-found" class="btn-secondary shrink-0 px-3 py-1.5 rounded-md text-sm whitespace-nowrap">查看全部送检记录</button>
+            </div>
+        </div>
+        <div id="dr-filter-bar" class="space-y-3 mb-4">
+            <div class="flex flex-wrap gap-2" id="dr-view-tabs" role="tablist" aria-label="送检阶段视图">
+                <button type="button" class="dr-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="pending_result" aria-selected="true">待导入结果 <span class="dr-tab-count" data-count-for="pending_result"></span></button>
+                <button type="button" class="dr-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="import_failed">导入异常 <span class="dr-tab-count" data-count-for="import_failed"></span></button>
+                <button type="button" class="dr-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="all">全部送检 <span class="dr-tab-count" data-count-for="all"></span></button>
+            </div>
+            <div class="flex flex-wrap gap-3 items-end justify-between">
+            <input type="search" id="search-records" placeholder="搜索 ID / 样本编号" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm w-full sm:w-48">
+            <div class="flex flex-wrap gap-2 shrink-0">
+                <button type="button" id="btn-register-test" class="btn-secondary px-3 py-2 rounded-md text-sm"><i class="fas fa-plus mr-1"></i>登记送检</button>
+                <button type="button" id="btn-go-import" class="btn-primary px-3 py-2 rounded-md text-sm"><i class="fas fa-file-excel mr-1"></i>Excel 导入结果</button>
+            </div>
             </div>
         </div>
         <div class="overflow-x-auto">
             <table class="min-w-full text-sm">
                 <thead class="bg-slate-50 text-slate-600">
                     <tr>
-                        <th class="px-3 py-2 text-left font-medium">检测 ID</th>
+                        <th class="px-3 py-2 text-left font-medium">送检 ID</th>
                         <th class="px-3 py-2 text-left font-medium">用户</th>
                         <th class="px-3 py-2 text-left font-medium">宠物</th>
                         <th class="px-3 py-2 text-left font-medium">机构</th>
-                        <th class="px-3 py-2 text-left font-medium">样本</th>
-                        <th class="px-3 py-2 text-left font-medium">检测日</th>
+                        <th class="px-3 py-2 text-left font-medium">样本编号</th>
+                        <th class="px-3 py-2 text-left font-medium">送检日</th>
                         <th class="px-3 py-2 text-left font-medium">绑定来源</th>
                         <th class="px-3 py-2 text-left font-medium">状态</th>
                         <th class="px-3 py-2 text-left font-medium">操作</th>
@@ -36,6 +55,36 @@
                 <tbody id="records-tbody" class="divide-y divide-slate-100"></tbody>
             </table>
         </div>
-        <p id="records-empty" class="hidden text-center text-slate-500 py-8">无匹配记录</p>
+        <p id="records-empty" class="hidden text-center text-slate-500 py-8">无匹配送检记录</p>
+    </div>
+
+    <div id="register-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <h4 class="text-lg font-medium mb-1">登记送检</h4>
+            <p class="text-sm text-slate-500 mb-4">仅登记待导入结果的送检记录，不创建报告。需先确认平台用户并创建已关联宠物。</p>
+            <form id="register-form" class="space-y-4 text-sm">
+                <div>
+                    <label class="block font-medium mb-1" for="reg-pet-id">已关联用户的宠物 <span class="text-red-500">*</span></label>
+                    <select id="reg-pet-id" class="w-full border rounded px-3 py-2" required></select>
+                    <p id="reg-pet-hint" class="text-xs text-amber-600 mt-1 hidden"></p>
+                </div>
+                <div>
+                    <label class="block font-medium mb-1" for="reg-sample-number">样本编号 <span class="text-red-500">*</span></label>
+                    <input type="text" id="reg-sample-number" class="w-full border rounded px-3 py-2" required placeholder="线下样本标签编号">
+                </div>
+                <div>
+                    <label class="block font-medium mb-1" for="reg-test-date">送检日期 <span class="text-red-500">*</span></label>
+                    <input type="date" id="reg-test-date" class="w-full border rounded px-3 py-2" required>
+                </div>
+                <div>
+                    <label class="block font-medium mb-1" for="reg-store-id">检测机构 / 来源 <span class="text-red-500">*</span></label>
+                    <select id="reg-store-id" class="w-full border rounded px-3 py-2" required></select>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" id="reg-cancel" class="px-4 py-2 bg-gray-500 text-white rounded">取消</button>
+                    <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded">确认登记</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>

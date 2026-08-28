@@ -938,6 +938,14 @@
     catalog.meta.version = Math.max(catalog.meta.version || 0, 13);
   }
 
+  function migrateSpecimenFlowV15(state) {
+    (state.testRecords || []).forEach(function (tr) {
+      if (tr.status === 'pending_result' && tr.label) {
+        tr.label = tr.label.replace(/待结果/g, '待导入结果').replace(/新登记检测/g, '登记送检');
+      }
+    });
+  }
+
   function migrateRecommendationManualRelatedV14(state) {
     (state.recommendations || []).forEach(function (rec) {
       if (!rec.relatedProductIds) {
@@ -1276,6 +1284,9 @@
     if (!state.meta.version || state.meta.version < 14) {
       migrateRecommendationManualRelatedV14(state);
     }
+    if (!state.meta.version || state.meta.version < 15) {
+      migrateSpecimenFlowV15(state);
+    }
 
     (state.reports || []).forEach(function (report) {
       syncReportVersionFields(report);
@@ -1303,6 +1314,7 @@
       if (state.meta.version < 12) state.meta.version = 12;
       if (state.meta.version < 13) state.meta.version = 13;
       if (state.meta.version < 14) state.meta.version = 14;
+      if (state.meta.version < 15) state.meta.version = 15;
       if (state.professionalCatalog && state.professionalCatalog.meta) {
         if (state.professionalCatalog.meta.version < 7) state.professionalCatalog.meta.version = 7;
         if (state.professionalCatalog.meta.version < 9) state.professionalCatalog.meta.version = 9;
@@ -1699,7 +1711,7 @@
         status: 'pending_result',
         importBatchId: 'batch-003',
         claimStatus: 'bound',
-        label: ' 待结果',
+        label: 'SAMPLE-PARTIAL-001',
         createdAt: '2025-08-22T09:15:00.000Z',
         updatedAt: '2025-08-22T09:15:00.000Z'
       },
@@ -2977,26 +2989,102 @@
     return result !== undefined ? clone(result) : clone(state);
   }
 
-  /** 检测登记 */
+  function appendIndicatorsForTestRecord(state, testRecordId, indicators, source) {
+    source = source || {};
+    var rows = indicators || [
+      { key: '放线菌门', value: 22.5, unit: '%', dataStatus: 'PRESENT' },
+      { key: '拟杆菌门', value: 33.1, unit: '%', dataStatus: 'PRESENT' },
+      { key: '厚壁菌门', value: 41.0, unit: '%', dataStatus: 'PRESENT' }
+    ];
+    rows.forEach(function (ind) {
+      state.indicators.push({
+        id: uid('ind'),
+        testRecordId: testRecordId,
+        reportId: null,
+        key: ind.key,
+        value: ind.value,
+        unit: ind.unit || '%',
+        dataStatus: ind.dataStatus || 'PRESENT',
+        importedRange: ind.importedRange ? clone(ind.importedRange) : null,
+        sourceTemplateId: ind.sourceTemplateId || source.sourceTemplateId || source.templateId || null,
+        version: 1,
+        isCurrent: true,
+        correctedFrom: null,
+        createdAt: nowIso()
+      });
+    });
+  }
+
+  function updateTestRecordAfterImport(tr, file, batchId) {
+    tr.importBatchId = batchId;
+    tr.sourceOrgId = file.sourceOrgId || tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
+    if (file.externalReportNumber) tr.externalReportNumber = file.externalReportNumber;
+    if (file.sampleNumber || file.sampleNo) tr.sampleNumber = file.sampleNumber || file.sampleNo;
+    if (file.sampleNumber || file.sampleNo) tr.label = String(file.sampleNumber || file.sampleNo).trim();
+    if (tr.petId && tr.userId) {
+      tr.status = 'pending_review';
+      tr.claimStatus = 'bound';
+    } else if (tr.petId || tr.userId) {
+      tr.status = 'pending_review';
+      tr.claimStatus = tr.userId ? 'bound' : 'unassigned';
+    } else {
+      tr.status = 'unassigned';
+      tr.claimStatus = 'unassigned';
+    }
+    tr.updatedAt = nowIso();
+  }
+
+  function ensureReportForImport(state, tr, params) {
+    params = params || {};
+    var report = findReportByTestRecord(state, tr.id);
+    if (!report) {
+      report = generateReportInternal(state, tr, params);
+    } else {
+      report.petId = tr.petId;
+      report.userId = tr.userId;
+      report.externalReportNumber = tr.externalReportNumber;
+      report.sampleNumber = tr.sampleNumber;
+      report.sourceOrgId = tr.sourceOrgId || report.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
+      report.updatedAt = nowIso();
+    }
+    state.indicators.forEach(function (ind) {
+      if (ind.testRecordId === tr.id && ind.isCurrent) ind.reportId = report.id;
+    });
+    syncReportWorkflow(report, tr, state);
+    return report;
+  }
+
+  /** 登记送检：仅创建待导入结果送检记录 */
   function registerTest(params) {
     params = params || {};
     return commit(function (state) {
+      if (!params.petId) throw new Error('请选择已关联用户的宠物');
+      var pet = findPet(state, params.petId);
+      if (!pet) throw new Error('宠物不存在');
+      if (!pet.userId) {
+        throw new Error('该宠物尚未关联平台用户，请先在客户管理或宠物档案完成关联');
+      }
+      var sampleNumber = params.sampleNumber != null ? String(params.sampleNumber).trim() : '';
+      if (!sampleNumber) throw new Error('请填写样本编号');
+      if (!params.testDate) throw new Error('请选择送检日期');
+      if (!params.storeId && !params.sourceOrgId) {
+        throw new Error('请选择检测机构或来源');
+      }
       var id = bumpIds(state, 'testRecords', 'tr');
-      var pet = params.petId ? findPet(state, params.petId) : null;
       var record = {
         id: id,
-        petId: params.petId || null,
-        userId: pet ? pet.userId : (params.userId || null),
-        storeId: params.storeId || (pet ? pet.storeId : null),
+        petId: pet.id,
+        userId: pet.userId,
+        storeId: params.storeId || pet.storeId || null,
         sourceOrgId: params.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
         externalReportNumber: params.externalReportNumber || null,
-        sampleNumber: params.sampleNumber || null,
+        sampleNumber: sampleNumber,
         sampleType: params.sampleType || 'feces',
-        testDate: params.testDate || new Date().toISOString().slice(0, 10),
+        testDate: params.testDate,
         status: 'pending_result',
         importBatchId: null,
-        claimStatus: pet ? 'bound' : 'unassigned',
-        label: ' 新登记检测',
+        claimStatus: 'bound',
+        label: sampleNumber,
         createdAt: nowIso(),
         updatedAt: nowIso()
       };
@@ -3031,24 +3119,19 @@
           externalReportNumber: params.externalReportNumber || null,
           sampleNumber: params.sampleNumber || params.sampleNo || null,
           sampleType: 'feces',
-          testDate: new Date().toISOString().slice(0, 10),
-          status: params.petId ? 'pending_review' : 'unassigned',
+          testDate: params.testDate || new Date().toISOString().slice(0, 10),
+          status: 'pending_result',
           importBatchId: batchId,
-          claimStatus: params.petId ? 'bound' : (params.userId ? 'bound' : 'unassigned'),
-          label: ' 导入成功',
+          claimStatus: params.petId && params.userId ? 'bound' : (params.petId || params.userId ? 'bound' : 'unassigned'),
+          label: params.sampleNumber || params.sampleNo || ' 导入成功',
           createdAt: nowIso(),
           updatedAt: nowIso()
         };
         state.testRecords.push(record);
         testRecordId = newTrId;
-      } else {
-        record.status = record.petId || record.userId ? 'pending_review' : 'unassigned';
-        record.importBatchId = batchId;
-        record.sourceOrgId = params.sourceOrgId || record.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
-        if (params.externalReportNumber) record.externalReportNumber = params.externalReportNumber;
-        if (params.sampleNumber || params.sampleNo) record.sampleNumber = params.sampleNumber || params.sampleNo;
-        record.updatedAt = nowIso();
       }
+
+      updateTestRecordAfterImport(record, params, batchId);
 
       var rows = params.rows || 10;
       var batch = {
@@ -3064,28 +3147,8 @@
       };
       state.importBatches.push(batch);
 
-      var indicators = params.indicators || [
-        { key: '放线菌门', value: 22.5, unit: '%', dataStatus: 'PRESENT' },
-        { key: '拟杆菌门', value: 33.1, unit: '%', dataStatus: 'PRESENT' },
-        { key: '厚壁菌门', value: 41.0, unit: '%', dataStatus: 'PRESENT' }
-      ];
-      indicators.forEach(function (ind, idx) {
-        state.indicators.push({
-          id: uid('ind'),
-          testRecordId: testRecordId,
-          reportId: null,
-          key: ind.key,
-          value: ind.value,
-          unit: ind.unit || '%',
-          dataStatus: ind.dataStatus || 'PRESENT',
-          importedRange: ind.importedRange ? clone(ind.importedRange) : null,
-          sourceTemplateId: ind.sourceTemplateId || params.sourceTemplateId || params.templateId || null,
-          version: 1,
-          isCurrent: true,
-          correctedFrom: null,
-          createdAt: nowIso()
-        });
-      });
+      appendIndicatorsForTestRecord(state, testRecordId, params.indicators, params);
+      ensureReportForImport(state, record, params);
 
       return { batchId: batchId, testRecordId: testRecordId, batchStatus: batchStatus };
     });
@@ -3095,9 +3158,14 @@
   function simulateBatchImport(params) {
     params = params || {};
     var files = params.files || [];
+    var directedTestRecordId = params.testRecordId || null;
     return commit(function (state) {
       var batchId = bumpIds(state, 'importBatches', 'batch');
       var fileResults = [];
+      var directedRecord = directedTestRecordId ? findTestRecord(state, directedTestRecordId) : null;
+      if (directedTestRecordId && !directedRecord) {
+        throw new Error('目标送检记录不存在: ' + directedTestRecordId);
+      }
 
       files.forEach(function (file) {
         file = file || {};
@@ -3118,31 +3186,16 @@
         }
 
         if (scenario === 'failure') {
-          var failTrId = bumpIds(state, 'testRecords', 'tr');
-          var failRecord = {
-            id: failTrId,
-            petId: null,
-            userId: null,
-            storeId: file.storeId || null,
-            sourceOrgId: file.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-            externalReportNumber: file.externalReportNumber || null,
-            sampleNumber: file.sampleNumber || null,
-            sampleType: 'feces',
-            testDate: new Date().toISOString().slice(0, 10),
-            status: 'import_failed',
-            importBatchId: batchId,
-            claimStatus: 'unassigned',
-            label: ' 批量导入失败',
-            createdAt: nowIso(),
-            updatedAt: nowIso()
-          };
-          state.testRecords.push(failRecord);
           fileResults.push({
             fileName: fileName,
             status: 'failed',
-            testRecordId: failTrId,
+            testRecordId: directedRecord ? directedRecord.id : null,
             errorCode: file.errorCode || 'MISSING_COLUMN'
           });
+          if (directedRecord) {
+            directedRecord.importBatchId = batchId;
+            directedRecord.updatedAt = nowIso();
+          }
           return;
         }
 
@@ -3151,59 +3204,56 @@
             fileName: fileName,
             status: 'duplicate',
             error: { duplicate: true, reason: 'forced demo duplicate' },
-            testRecordId: file.existingTestRecordId || null
+            testRecordId: null
           });
           return;
         }
 
         var partial = scenario === 'partial';
-        var trId = bumpIds(state, 'testRecords', 'tr');
-        var tr = {
-          id: trId,
-          petId: file.petId || null,
-          userId: file.userId || null,
-          storeId: file.storeId || null,
-          sourceOrgId: file.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-          externalReportNumber: file.externalReportNumber || ('EXT-BATCH-' + trId),
-          sampleNumber: file.sampleNumber || ('SAMPLE-BATCH-' + trId),
-          sampleType: 'feces',
-          testDate: new Date().toISOString().slice(0, 10),
-          status: file.petId || file.userId ? 'pending_review' : 'unassigned',
-          importBatchId: batchId,
-          claimStatus: file.petId || file.userId ? 'bound' : 'unassigned',
-          label: ' 批量导入' + (partial ? '（局部异常）' : '成功'),
-          createdAt: nowIso(),
-          updatedAt: nowIso()
-        };
-        state.testRecords.push(tr);
+        var tr = null;
+        var trId = null;
+
+        if (directedRecord) {
+          tr = directedRecord;
+          trId = tr.id;
+        } else {
+          trId = bumpIds(state, 'testRecords', 'tr');
+          tr = {
+            id: trId,
+            petId: file.petId || null,
+            userId: file.userId || null,
+            storeId: file.storeId || null,
+            sourceOrgId: file.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
+            externalReportNumber: file.externalReportNumber || ('EXT-BATCH-' + trId),
+            sampleNumber: file.sampleNumber || ('SAMPLE-BATCH-' + trId),
+            sampleType: 'feces',
+            testDate: file.testDate || new Date().toISOString().slice(0, 10),
+            status: 'pending_result',
+            importBatchId: batchId,
+            claimStatus: file.petId || file.userId ? 'bound' : 'unassigned',
+            label: file.sampleNumber || ('SAMPLE-BATCH-' + trId),
+            createdAt: nowIso(),
+            updatedAt: nowIso()
+          };
+          state.testRecords.push(tr);
+        }
+
+        updateTestRecordAfterImport(tr, file, batchId);
 
         var indicators = file.indicators || [
           { key: '放线菌门', value: 20.1, unit: '%', dataStatus: 'PRESENT' },
           { key: '厚壁菌门', value: null, unit: '%', dataStatus: partial ? 'NOT_DETECTED' : 'PRESENT' }
         ];
-        indicators.forEach(function (ind) {
-          state.indicators.push({
-            id: uid('ind'),
-            testRecordId: trId,
-            reportId: null,
-            key: ind.key,
-            value: ind.value,
-            unit: ind.unit || '%',
-            dataStatus: ind.dataStatus || 'PRESENT',
-            importedRange: ind.importedRange ? clone(ind.importedRange) : null,
-            sourceTemplateId: ind.sourceTemplateId || file.sourceTemplateId || file.templateId || null,
-            version: 1,
-            isCurrent: true,
-            correctedFrom: null,
-            createdAt: nowIso()
-          });
-        });
+        appendIndicatorsForTestRecord(state, trId, indicators, file);
+        ensureReportForImport(state, tr, file);
 
         fileResults.push({
           fileName: fileName,
           status: partial ? 'partial' : 'success',
           testRecordId: trId
         });
+
+        if (directedRecord) directedRecord = null;
       });
 
       var successCount = fileResults.filter(function (r) { return r.status === 'success' || r.status === 'partial'; }).length;
@@ -3235,28 +3285,19 @@
       var testRecordId = params.testRecordId;
       var record = testRecordId ? findTestRecord(state, testRecordId) : null;
 
-      if (!record) {
-        var newTrId = bumpIds(state, 'testRecords', 'tr');
-        record = {
-          id: newTrId,
-          petId: params.petId || null,
-          userId: params.userId || null,
-          storeId: params.storeId || null,
-          sampleType: 'feces',
-          testDate: new Date().toISOString().slice(0, 10),
-          status: 'import_failed',
-          importBatchId: batchId,
-          claimStatus: params.petId ? 'bound' : 'unclaimed',
-          label: ' 导入失败',
-          createdAt: nowIso(),
-          updatedAt: nowIso()
-        };
-        state.testRecords.push(record);
-        testRecordId = newTrId;
-      } else {
-        record.status = 'import_failed';
+      if (!record && testRecordId) {
+        throw new Error('testRecord not found: ' + testRecordId);
+      }
+
+      if (record) {
         record.importBatchId = batchId;
+        if (record.status !== 'pending_result') {
+          record.status = 'import_failed';
+        }
         record.updatedAt = nowIso();
+        testRecordId = record.id;
+      } else {
+        testRecordId = null;
       }
 
       var errorCode = params.errorCode || 'MISSING_COLUMN';
@@ -3275,7 +3316,7 @@
             message: ' 导入失败: ' + errorCode
           }
         ],
-        testRecordIds: [testRecordId],
+        testRecordIds: testRecordId ? [testRecordId] : [],
         createdAt: nowIso()
       };
       state.importBatches.push(batch);

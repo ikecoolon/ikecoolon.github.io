@@ -3,6 +3,9 @@
     <div id="main-view" class="bg-white p-6 rounded-lg shadow-md">
         <div class="flex justify-between items-center mb-4">
             <h3 class="text-xl font-semibold">宠物档案管理</h3>
+            <button type="button" id="btn-create-pet" class="px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 text-sm">
+                <i class="fas fa-plus mr-1"></i>新建宠物
+            </button>
         </div>
 
         <div class="flex flex-col md:flex-row gap-4 mb-4">
@@ -62,6 +65,13 @@
         </div>
 
         <form id="pet-form" class="space-y-4 max-w-2xl">
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="form-user-id">关联平台用户 <span class="text-red-500" id="form-user-required">*</span></label>
+                <select id="form-user-id" class="shadow border rounded w-full py-2 px-3 text-gray-700">
+                    <option value="">请选择用户</option>
+                </select>
+                <p id="form-user-hint" class="text-xs text-gray-500 mt-1">新建宠物必须选择已注册平台用户，以满足送检登记先决条件。</p>
+            </div>
             <div>
                 <label class="block text-gray-700 text-sm font-bold mb-2" for="form-pet-name">宠物名称 <span class="text-red-500">*</span></label>
                 <input type="text" id="form-pet-name" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>

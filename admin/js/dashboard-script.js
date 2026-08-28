@@ -6,11 +6,23 @@ function initDashboard() {
 
   render(store.getState());
 
+  function lookupLinkedReport(state, testRecordId) {
+    return (state.reports || []).find(function (r) { return r.testRecordId === testRecordId; }) || null;
+  }
+
+  function deriveStage(tr, state) {
+    if (lookupLinkedReport(state, tr.id)) return 'report_generated';
+    if (tr.status === 'import_failed') return 'import_failed';
+    return 'pending_result';
+  }
+
   function render(state) {
     var pendingImport = state.testRecords.filter(function (t) {
-      return t.status === 'pending_result' || t.status === 'pending_claim';
+      return deriveStage(t, state) === 'pending_result';
     }).length;
-    var importErrors = state.testRecords.filter(function (t) { return t.status === 'import_failed'; }).length;
+    var importErrors = state.testRecords.filter(function (t) {
+      return deriveStage(t, state) === 'import_failed';
+    }).length;
     var pendingReview = state.reports.filter(function (r) {
       return r.status === 'pending_review' || r.status === 'draft';
     }).length;
@@ -19,14 +31,14 @@ function initDashboard() {
     }).length;
 
     var cards = [
-      { label: '待导入/待结果', count: pendingImport, icon: 'fa-upload', color: 'text-blue-600', page: 'detection-records', filter: 'pending_result' },
-      { label: '导入异常', count: importErrors, icon: 'fa-triangle-exclamation', color: 'text-red-600', page: 'detection-records', filter: 'import_failed' },
+      { label: '待导入结果', count: pendingImport, icon: 'fa-upload', color: 'text-blue-600', page: 'detection-records', view: 'pending_result' },
+      { label: '导入异常', count: importErrors, icon: 'fa-triangle-exclamation', color: 'text-red-600', page: 'detection-records', view: 'import_failed' },
       { label: '待审核', count: pendingReview, icon: 'fa-clipboard-check', color: 'text-amber-600', page: 'report-review' },
       { label: '已发布', count: published, icon: 'fa-file-medical', color: 'text-emerald-600', page: 'published-reports' }
     ];
 
     document.getElementById('stat-cards').innerHTML = cards.map(function (c) {
-      return '<button type="button" class="stat-card bg-white rounded-lg border border-slate-200 p-4 text-left hover:border-teal-400 transition-colors" data-page="' + c.page + '" data-filter="' + (c.filter || '') + '">' +
+      return '<button type="button" class="stat-card bg-white rounded-lg border border-slate-200 p-4 text-left hover:border-teal-400 transition-colors" data-page="' + c.page + '" data-view="' + (c.view || '') + '">' +
         '<div class="flex items-center justify-between">' +
         '<span class="text-sm text-slate-500">' + C.escapeHtml(c.label) + '</span>' +
         '<i class="fas ' + c.icon + ' ' + c.color + '"></i></div>' +
@@ -36,21 +48,24 @@ function initDashboard() {
     document.querySelectorAll('.stat-card').forEach(function (btn) {
       btn.onclick = function () {
         var page = btn.dataset.page;
-        var filter = btn.dataset.filter;
-        if (filter) {
-          sessionStorage.setItem('pet-admin-detection-filter', filter);
+        var view = btn.dataset.view;
+        if (view) {
+          sessionStorage.setItem('pet-admin-detection-filter', view);
+          C.navigate(page, view === 'pending_result' ? {} : { view: view });
+        } else {
+          C.navigate(page);
         }
-        C.navigate(page);
       };
     });
 
     var todos = [];
     state.testRecords.forEach(function (tr) {
-      if (tr.status === 'pending_result') {
-        todos.push({ text: '检测 ' + tr.id + ' 待导入结果', action: function () { sessionStorage.setItem('pet-admin-excel-tr', tr.id); C.navigate('excel-import'); } });
+      var stage = deriveStage(tr, state);
+      if (stage === 'pending_result') {
+        todos.push({ text: '送检 ' + tr.id + ' 待导入结果', action: function () { sessionStorage.setItem('pet-admin-excel-tr', tr.id); C.navigate('excel-import'); } });
       }
-      if (tr.status === 'import_failed') {
-        todos.push({ text: '检测 ' + tr.id + ' 导入异常需处理', action: function () { C.navigate('detection-records'); } });
+      if (stage === 'import_failed') {
+        todos.push({ text: '送检 ' + tr.id + ' 导入异常需处理', action: function () { C.navigate('detection-records', { view: 'import_failed' }); } });
       }
     });
     state.reports.forEach(function (r) {
@@ -91,8 +106,8 @@ function initDashboard() {
     }).join('') || '<p class="text-slate-500">暂无动态</p>';
 
     var links = [
-      { label: '检测记录', page: 'detection-records' },
-      { label: 'Excel 导入', page: 'excel-import' },
+      { label: '送检管理', page: 'detection-records' },
+      { label: 'Excel 导入结果', page: 'excel-import' },
       { label: '审核 report-002', page: 'report-review', params: { reportId: 'report-002' } },
       { label: '已发布与更正', page: 'published-reports' }
     ];

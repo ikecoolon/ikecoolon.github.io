@@ -220,11 +220,13 @@
   }
 
   var TEST_STATUS_LABELS = {
-    pending_result: '待结果',
+    pending_result: '待导入结果',
     pending_claim: '待认领',
     import_failed: '导入异常',
     pending_review: '待审核',
-    published: '已发布'
+    published: '已发布',
+    unassigned: '待归属',
+    voided: '已作废'
   };
 
   var REPORT_STATUS_LABELS = {

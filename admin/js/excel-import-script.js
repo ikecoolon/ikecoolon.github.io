@@ -9,7 +9,19 @@ function initExcelImport() {
     duplicate: '重复阻断'
   };
 
-  var wizard = { step: 1, files: [], batchResult: null };
+  var directedTestRecordId = sessionStorage.getItem('pet-admin-excel-tr') || null;
+  var directedRecord = null;
+  if (directedTestRecordId) {
+    directedRecord = (store.getState().testRecords || []).find(function (tr) {
+      return tr.id === directedTestRecordId;
+    }) || null;
+    if (!directedRecord) {
+      sessionStorage.removeItem('pet-admin-excel-tr');
+      directedTestRecordId = null;
+    }
+  }
+
+  var wizard = { step: 1, files: [], batchResult: null, directedTestRecordId: directedTestRecordId };
 
   var fileInput = document.getElementById('file-input');
   var dropZone = document.getElementById('drop-zone');
@@ -17,6 +29,52 @@ function initExcelImport() {
   var fileQueue = document.getElementById('file-queue');
   var fileQueueCount = document.getElementById('file-queue-count');
   var btnStartImport = document.getElementById('btn-start-import');
+  var directedBanner = document.getElementById('directed-target-banner');
+  var importIntro = document.getElementById('import-intro-text');
+
+  function renderDirectedBanner() {
+    if (!directedRecord) {
+      directedBanner.classList.add('hidden');
+      directedBanner.innerHTML = '';
+      fileInput.multiple = true;
+      btnStartImport.innerHTML = '<i class="fas fa-play mr-1"></i>开始批量导入';
+      importIntro.textContent = '每个 Excel 文件对应一只宠物的一次检测。系统仅解析已知模板，逐文件独立处理；成功或局部异常将生成报告草稿并进入报告中心处理流程。';
+      return;
+    }
+
+    var state = store.getState();
+    var user = C.lookupUser(state, directedRecord.userId);
+    var pet = C.lookupPet(state, directedRecord.petId);
+    var st = C.lookupStore(state, directedRecord.storeId);
+    var isRetry = directedRecord.status === 'import_failed';
+    directedBanner.classList.remove('hidden');
+    directedBanner.innerHTML =
+      '<p class="font-medium"><i class="fas fa-bullseye mr-1"></i>定向导入目标送检记录：' + C.escapeHtml(directedRecord.id) + '</p>' +
+      '<p class="mt-1">用户 ' + C.escapeHtml(user ? user.name : '—') + ' · 宠物 ' + C.escapeHtml(pet ? pet.name : '—') +
+      ' · 样本 ' + C.escapeHtml(directedRecord.sampleNumber || '—') + ' · 送检日 ' + C.escapeHtml(directedRecord.testDate || '—') +
+      (st ? ' · ' + C.escapeHtml(st.name) : '') + '</p>' +
+      '<p class="mt-1 text-teal-800">成功导入后将复用该送检记录并生成唯一报告草稿，不会产生重复记录。</p>' +
+      '<button type="button" id="btn-clear-directed" class="mt-2 text-xs text-teal-700 underline">取消定向，改为批量导入</button>';
+
+    fileInput.multiple = false;
+    btnStartImport.innerHTML = '<i class="fas fa-play mr-1"></i>' + (isRetry ? '重新导入' : '导入结果');
+    importIntro.textContent = isRetry
+      ? '针对上方送检记录重新导入 Excel 结果；关键失败时记录保持待导入结果。'
+      : '针对上方待导入结果送检记录导入 Excel；仅允许选择一个文件。';
+
+    var clearBtn = document.getElementById('btn-clear-directed');
+    if (clearBtn) {
+      clearBtn.onclick = function () {
+        sessionStorage.removeItem('pet-admin-excel-tr');
+        directedTestRecordId = null;
+        directedRecord = null;
+        wizard.directedTestRecordId = null;
+        wizard.files = [];
+        renderQueue();
+        renderDirectedBanner();
+      };
+    }
+  }
 
   document.getElementById('btn-download-template').onclick = downloadTemplate;
   document.getElementById('btn-clear-queue').onclick = clearQueue;
@@ -25,7 +83,7 @@ function initExcelImport() {
     C.navigate('report-center', { view: 'unassigned' });
   };
   document.getElementById('btn-go-report-center').onclick = function () {
-    C.navigate('report-center');
+    C.navigate('detection-records');
   };
 
   document.querySelectorAll('.wizard-back').forEach(function (btn) {
@@ -65,7 +123,7 @@ function initExcelImport() {
       scenario: scenario,
       fileName: file.name,
       externalReportNumber: 'EXT-UP-' + seq,
-      sampleNumber: 'SAMPLE-UP-' + seq,
+      sampleNumber: directedRecord && directedRecord.sampleNumber ? directedRecord.sampleNumber : ('SAMPLE-UP-' + seq),
       _upload: file
     };
     if (scenario === 'duplicate') {
@@ -79,9 +137,13 @@ function initExcelImport() {
 
   function addUploadedFiles(fileList) {
     if (!fileList || !fileList.length) return;
-    Array.prototype.forEach.call(fileList, function (file, idx) {
-      wizard.files.push(makeUploadMeta(file, wizard.files.length + idx));
-    });
+    if (wizard.directedTestRecordId) {
+      wizard.files = [makeUploadMeta(fileList[0], 0)];
+    } else {
+      Array.prototype.forEach.call(fileList, function (file, idx) {
+        wizard.files.push(makeUploadMeta(file, wizard.files.length + idx));
+      });
+    }
     renderQueue();
   }
 
@@ -113,7 +175,7 @@ function initExcelImport() {
         '<p class="truncate text-slate-800"><i class="fas fa-file-excel text-emerald-600 mr-1"></i>' + C.escapeHtml(f.fileName) + '</p>' +
         '<p class="text-xs text-slate-500 mt-0.5">待解析</p>' +
         '</div>' +
-        '<button type="button" class="remove-file shrink-0" data-index="' + idx + '" title="移除"><i class="fas fa-times"></i></button>' +
+        (wizard.directedTestRecordId ? '' : '<button type="button" class="remove-file shrink-0" data-index="' + idx + '" title="移除"><i class="fas fa-times"></i></button>') +
         '</li>';
     }).join('');
 
@@ -136,25 +198,42 @@ function initExcelImport() {
         externalReportNumber: f.externalReportNumber,
         sampleNumber: f.sampleNumber,
         errorCode: f.errorCode,
-        storeId: f.storeId || null
+        storeId: f.storeId || (directedRecord ? directedRecord.storeId : null)
       };
     });
 
+    var importParams = {
+      fileName: wizard.directedTestRecordId
+        ? ('定向导入_' + wizard.directedTestRecordId + '.xlsx')
+        : ('批量导入批次_' + new Date().toISOString().slice(0, 10) + '.zip'),
+      files: payload
+    };
+    if (wizard.directedTestRecordId) {
+      importParams.testRecordId = wizard.directedTestRecordId;
+    }
+
     try {
-      wizard.batchResult = store.simulateBatchImport({
-        fileName: '批量导入批次_' + new Date().toISOString().slice(0, 10) + '.zip',
-        files: payload
-      });
+      var beforeCount = store.getState().testRecords.length;
+      wizard.batchResult = store.simulateBatchImport(importParams);
       renderResults();
       goStep(2);
 
       var okCount = wizard.batchResult.fileResults.filter(function (r) {
         return r.status === 'success' || r.status === 'partial';
       }).length;
-      if (okCount) {
-        C.toast('导入完成：' + okCount + ' 个文件已进入待归属', 'success');
+      var afterCount = store.getState().testRecords.length;
+      if (wizard.directedTestRecordId && okCount) {
+        sessionStorage.removeItem('pet-admin-excel-tr');
+        C.toast('导入完成：已写入检测结果并生成报告草稿', 'success');
+      } else if (okCount) {
+        C.toast('导入完成：' + okCount + ' 个文件已生成送检记录与报告草稿', 'success');
+      } else if (wizard.directedTestRecordId) {
+        C.toast('导入失败，送检记录仍为待导入结果', 'warning');
       } else {
         C.toast('导入完成，无成功文件', 'warning');
+      }
+      if (wizard.directedTestRecordId && okCount && afterCount === beforeCount) {
+        // directed reuse confirmed silently
       }
     } catch (e) {
       C.toast(e.message || '导入失败', 'error');
@@ -167,16 +246,16 @@ function initExcelImport() {
       var ref = dup.existingTestRecordId ? ('已有记录 ' + dup.existingTestRecordId) : '已有记录';
       if (dup.externalReportNumber) return '来源机构 + 外部报告号 ' + dup.externalReportNumber + ' 重复（' + ref + '）';
       if (dup.sampleNumber) return '来源机构 + 样本号 ' + dup.sampleNumber + ' 重复（' + ref + '）';
-      return '重复导入已阻断';
+      return '重复导入已阻断，未新建送检记录或报告';
     }
     if (row.status === 'failed') {
-      return '关键异常：' + (row.errorCode || 'MISSING_COLUMN') + '，整份文件失败';
+      return '关键异常：' + (row.errorCode || 'MISSING_COLUMN') + '，整份文件失败，未新建送检记录或报告';
     }
     if (row.status === 'partial') {
-      return '局部异常已保留（如 NOT_DETECTED），形成待办，可进入待归属继续处理';
+      return '局部异常已保留，已复用送检记录并生成唯一报告草稿';
     }
-    if (testRecord && testRecord.label) return testRecord.label;
-    return '解析成功，已进入待归属';
+    if (testRecord && testRecord.label) return '解析成功，已生成报告草稿';
+    return '解析成功，已生成送检记录与报告草稿';
   }
 
   function renderResults() {
@@ -202,8 +281,16 @@ function initExcelImport() {
       var testRecord = row.testRecordId
         ? (state.testRecords || []).find(function (tr) { return tr.id === row.testRecordId; })
         : null;
+      var report = testRecord
+        ? (state.reports || []).find(function (r) { return r.testRecordId === testRecord.id; })
+        : null;
       var extNo = testRecord ? (testRecord.externalReportNumber || '—') : (row.error && row.error.externalReportNumber) || '—';
       var sampleNo = testRecord ? (testRecord.sampleNumber || '—') : (row.error && row.error.sampleNumber) || '—';
+      var reportCell = '—';
+      if (testRecord) {
+        reportCell = C.escapeHtml(testRecord.id);
+        if (report) reportCell += '<br><span class="text-slate-500">' + C.escapeHtml(report.reportNumber || report.id) + '</span>';
+      }
       return '<tr class="hover:bg-slate-50">' +
         '<td class="px-3 py-2">' +
         '<p class="font-medium text-slate-800">' + C.escapeHtml(row.fileName) + '</p>' +
@@ -212,7 +299,7 @@ function initExcelImport() {
         '<td class="px-3 py-2 font-mono text-xs">' + C.escapeHtml(extNo) + '<br>' + C.escapeHtml(sampleNo) + '</td>' +
         '<td class="px-3 py-2">' + C.statusBadge(row.status, STATUS_LABELS) + '</td>' +
         '<td class="px-3 py-2 text-slate-600">' + C.escapeHtml(describeResult(row, testRecord)) + '</td>' +
-        '<td class="px-3 py-2 font-mono text-xs">' + (row.testRecordId ? C.escapeHtml(row.testRecordId) : '—') + '</td>' +
+        '<td class="px-3 py-2 font-mono text-xs">' + reportCell + '</td>' +
         '</tr>';
     }).join('');
   }
@@ -237,4 +324,6 @@ function initExcelImport() {
       pill.classList.toggle('active', parseInt(pill.dataset.step, 10) === n);
     });
   }
+
+  renderDirectedBanner();
 }

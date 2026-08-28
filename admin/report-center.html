@@ -1,13 +1,5 @@
 <div id="report-center" class="page space-y-4">
     <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-            <div class="flex flex-wrap gap-2">
-                <button type="button" id="btn-go-import" class="btn-secondary px-4 py-1.5 rounded-md text-sm">
-                    <i class="fas fa-file-excel mr-1"></i>Excel 导入
-                </button>
-            </div>
-        </div>
-
         <div class="flex flex-wrap gap-2 mb-4" id="rc-view-tabs" role="tablist" aria-label="报告状态视图">
             <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="pending" aria-selected="true">待处理 <span class="rc-tab-count" data-count-for="pending"></span></button>
             <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="all">全部 <span class="rc-tab-count" data-count-for="all"></span></button>
@@ -19,33 +11,15 @@
         </div>
 
         <form id="rc-filter-form" class="space-y-3 text-sm">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                <label class="flex flex-col gap-1 sm:col-span-2">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                <label class="flex flex-col gap-1 lg:col-span-2">
                     <span class="text-slate-600">关键词</span>
                     <input type="search" id="rc-q-search" class="border border-slate-300 rounded-md py-1.5 px-2" placeholder="报告号 / 样本号 / 手机号 / 宠物名">
-                </label>
-                <label class="flex flex-col gap-1">
-                    <span class="text-slate-600">状态</span>
-                    <select id="rc-q-status" class="border border-slate-300 rounded-md py-1.5 px-2 bg-white">
-                        <option value="">全部状态</option>
-                        <option value="unassigned">待归属</option>
-                        <option value="incomplete">待完善</option>
-                        <option value="pending_review">待审核</option>
-                        <option value="published">已发布</option>
-                        <option value="voided">已作废</option>
-                    </select>
                 </label>
                 <label class="flex flex-col gap-1">
                     <span class="text-slate-600">来源机构</span>
                     <input type="search" id="rc-q-store" class="border border-slate-300 rounded-md py-1.5 px-2" placeholder="机构名称">
                 </label>
-            </div>
-
-            <div>
-                <button type="button" id="rc-advanced-toggle" class="text-teal-600 hover:text-teal-700 text-sm inline-flex items-center gap-1" aria-expanded="false" aria-controls="rc-advanced-filters">
-                    <i class="fas fa-chevron-right text-xs rc-advanced-chevron transition-transform" aria-hidden="true"></i>
-                    高级筛选
-                </button>
             </div>
 
             <div id="rc-advanced-filters" class="hidden border-t border-slate-100 pt-3">
@@ -69,9 +43,15 @@
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
-                <button type="submit" class="btn-primary px-4 py-1.5 rounded-md text-sm">查询</button>
-                <button type="button" id="rc-btn-reset" class="btn-secondary px-4 py-1.5 rounded-md text-sm">重置</button>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <button type="button" id="rc-advanced-toggle" class="text-teal-600 hover:text-teal-700 text-sm inline-flex items-center gap-1" aria-expanded="false" aria-controls="rc-advanced-filters">
+                    <i class="fas fa-chevron-right text-xs rc-advanced-chevron transition-transform" aria-hidden="true"></i>
+                    高级筛选
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="submit" class="btn-primary px-4 py-1.5 rounded-md text-sm">查询</button>
+                    <button type="button" id="rc-btn-reset" class="btn-secondary px-4 py-1.5 rounded-md text-sm">重置</button>
+                </div>
             </div>
         </form>
     </div>

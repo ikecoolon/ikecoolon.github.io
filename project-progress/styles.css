@@ -18,8 +18,8 @@
     --amber-strong: #7d5208;
     --amber-soft: #f6ecd9;
     --row-h: 28px;
-    --left-w: 292px;
-    --week-w: 86px;
+    --left-w: 360px;
+    --week-w: 100px;
 }
 
 * {
@@ -98,10 +98,122 @@ a:hover {
     max-width: 1360px;
     margin: 0 auto;
     padding: 20px 32px 18px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: start;
+    gap: 20px 24px;
+}
+
+.date-block {
+    justify-self: center;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.date-control-row {
     display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 32px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
+}
+
+.date-workdays-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 12px;
+    margin-top: 4px;
+}
+
+.workdays-label {
+    font-size: 11px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.workdays-option {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--ink-2);
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.workdays-option input[type="radio"] {
+    margin: 0;
+    accent-color: var(--green);
+    cursor: pointer;
+}
+
+.workdays-option input[type="radio"]:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 2px;
+}
+
+.date-label {
+    font-size: 12px;
+    color: var(--ink-3);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.date-input {
+    font: inherit;
+    font-size: 13px;
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line-strong);
+    border-radius: 0;
+    padding: 4px 8px;
+    min-height: 30px;
+    font-variant-numeric: tabular-nums;
+}
+
+.date-input:focus-visible {
+    outline: 2px solid var(--green);
+    outline-offset: 1px;
+}
+
+.date-derived {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    font-size: 12px;
+    color: var(--ink-2);
+}
+
+.date-derived-item {
+    white-space: nowrap;
+}
+
+.date-derived-item .derived-label {
+    color: var(--ink-3);
+}
+
+.date-derived-item .derived-value {
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.date-derived-item .derived-value.is-pending {
+    font-weight: 400;
+    color: var(--ink-3);
+}
+
+.date-hint,
+.date-weekend-note {
+    margin: 4px 0 0;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--ink-3);
+    max-width: 520px;
+}
+
+.date-weekend-note {
+    color: var(--ink-2);
 }
 
 .title-block h1 {
@@ -120,6 +232,12 @@ a:hover {
 .meta-block {
     text-align: right;
     flex-shrink: 0;
+    justify-self: end;
+}
+
+.title-block {
+    justify-self: start;
+    min-width: 0;
 }
 
 .last-updated {
@@ -170,11 +288,15 @@ a:hover {
     line-height: 1.2;
 }
 
+.overview-value-wrap {
+    line-height: 1.2;
+}
+
 .overview-unit {
     font-size: 13px;
     font-weight: 400;
     color: var(--ink-2);
-    margin-left: 4px;
+    margin-left: 3px;
 }
 
 .overview-sub {
@@ -241,6 +363,22 @@ a:hover {
     margin: 0 10px;
     vertical-align: -0.1em;
     opacity: 0.55;
+}
+
+.amber-strip .strip-sep::before {
+    content: "";
+    display: inline-block;
+    width: 1px;
+    height: 0.9em;
+    background: var(--amber);
+    margin: 0 10px;
+    vertical-align: -0.1em;
+    opacity: 0.55;
+}
+
+.amber-strip .strip-conditional {
+    color: var(--ink-2);
+    font-weight: 400;
 }
 
 .amber-strip.is-clear {
@@ -331,6 +469,17 @@ a:hover {
     transform: rotate(45deg);
 }
 
+.legend-pin.is-conditional {
+    background: var(--panel);
+    border: 2px dashed var(--ink-3);
+}
+
+.schedule-scroll-hint {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: var(--ink-3);
+}
+
 .schedule-scroll {
     overflow-x: auto;
     border: 1px solid var(--line-strong);
@@ -350,16 +499,19 @@ a:hover {
 .sch-left {
     position: sticky;
     left: 0;
-    z-index: 2;
+    z-index: 3;
     flex: 0 0 var(--left-w);
     width: var(--left-w);
+    min-width: var(--left-w);
     padding: 0 12px;
     background: var(--panel);
     border-right: 1px solid var(--line-strong);
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: stretch;
     min-height: var(--row-h);
+    overflow: hidden;
 }
 
 .sch-track {
@@ -411,10 +563,30 @@ a:hover {
     color: var(--ink);
 }
 
+.ruler-cell .week-range {
+    display: block;
+    font-size: 10px;
+    color: var(--ink-3);
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
 .ruler-cell .week-tag {
     display: block;
     font-size: 11px;
     color: var(--ink-3);
+}
+
+.ruler-cells.has-dates {
+    min-height: 52px;
+}
+
+.prereq-week-deadline,
+.week-deadline {
+    display: block;
+    font-size: 12px;
+    color: var(--ink-3);
+    margin-top: 2px;
 }
 
 .ruler-cell.is-buffer {
@@ -432,9 +604,9 @@ a:hover {
 
 .lane-head .sch-left {
     background: #eceef0;
-    flex-direction: row;
-    align-items: baseline;
-    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2px;
     padding-top: 5px;
     padding-bottom: 5px;
     min-height: 0;
@@ -443,11 +615,18 @@ a:hover {
 .lane-name {
     font-weight: 700;
     font-size: 13px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 .lane-meta {
     font-size: 12px;
     color: var(--ink-2);
+    min-width: 0;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+    line-height: 1.35;
 }
 
 .lane-head .sch-track {
@@ -467,26 +646,41 @@ a:hover {
 .task-name {
     font-size: 13px;
     font-weight: 600;
+    flex-shrink: 0;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    word-break: keep-all;
 }
 
 .task-meta {
     font-size: 11px;
     color: var(--ink-3);
-    white-space: nowrap;
+    display: flex;
+    align-items: baseline;
+    gap: 0;
+    min-width: 0;
     overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 .task-meta .group-tag {
     display: inline-block;
+    flex-shrink: 0;
     border: 1px solid var(--line);
     padding: 0 5px;
     margin-right: 6px;
     color: var(--ink-2);
     background: var(--wall);
+    white-space: nowrap;
+}
+
+.task-meta-detail {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    word-break: keep-all;
 }
 
 .bar {
@@ -556,6 +750,11 @@ a:hover {
     border-color: var(--green);
 }
 
+.pin.is-conditional {
+    background: var(--panel);
+    border: 2px dashed var(--ink-3);
+}
+
 .pin-label {
     position: absolute;
     top: 50%;
@@ -571,11 +770,61 @@ a:hover {
     font-weight: 400;
 }
 
+.pin-label.is-conditional {
+    color: var(--ink-2);
+    font-weight: 400;
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 1px;
+}
+
+.ext-left {
+    overflow-x: hidden;
+    overflow-y: visible;
+    min-height: var(--row-h);
+    padding-top: 4px;
+    padding-bottom: 4px;
+    gap: 1px;
+}
+
+.prereq-owner-role {
+    font-size: 11px;
+    color: var(--ink-2);
+    line-height: 1.35;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+.prereq-week-status {
+    font-size: 11px;
+    color: var(--ink-3);
+    line-height: 1.35;
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: break-word;
+    word-break: normal;
+}
+
+.prereq-week-status.is-done {
+    color: var(--green);
+}
+
+.prereq-week-status.is-conditional {
+    color: var(--ink-2);
+    border-bottom: 1px dashed var(--line);
+    padding-bottom: 1px;
+}
+
 .ext-left .task-name {
     color: var(--amber-strong);
 }
 
 .ext-left.is-done .task-name {
+    color: var(--ink-2);
+}
+
+.ext-left.is-conditional .task-name {
     color: var(--ink-2);
 }
 
@@ -680,7 +929,8 @@ a:hover {
 }
 
 .detail-table .col-days {
-    width: 110px;
+    width: 132px;
+    white-space: nowrap;
 }
 
 .detail-table .col-progress {
@@ -767,8 +1017,55 @@ a:hover {
     color: var(--amber-strong);
 }
 
+.pre-name.is-complete {
+    color: var(--green);
+}
+
+.pre-name.is-conditional {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.pre-meta {
+    margin-top: 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+}
+
+.pre-tag {
+    display: inline-block;
+    font-size: 11px;
+    color: var(--ink-2);
+    border: 1px solid var(--line);
+    padding: 0 5px;
+    background: var(--wall);
+    line-height: 1.5;
+}
+
+.pre-tag.is-condition {
+    border-style: dashed;
+    color: var(--ink-3);
+}
+
+.pre-criteria {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--ink-2);
+    line-height: 1.45;
+}
+
+.pre-source {
+    margin-top: 4px;
+    font-size: 12px;
+}
+
 tr.is-complete .pre-name {
     color: var(--green);
+}
+
+tr.is-conditional .pre-name {
+    color: var(--ink);
 }
 
 .state-chip {
@@ -788,6 +1085,12 @@ tr.is-complete .pre-name {
     color: var(--green);
     border: 1px solid var(--green);
     background: var(--green-soft);
+}
+
+.state-chip.is-conditional {
+    color: var(--ink-2);
+    border: 1px dashed var(--ink-3);
+    background: var(--panel);
 }
 
 .affected {

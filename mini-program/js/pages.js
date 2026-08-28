@@ -40,7 +40,7 @@
     var filters = [
       { key: 'all', label: '全部' },
       { key: 'published', label: '已发布' },
-      { key: 'in_progress', label: '进行中' }
+      { key: 'in_progress', label: '报告处理中' }
     ];
     var html = '<div class="filter-chips" role="tablist" aria-label="报告筛选">';
     filters.forEach(function (f) {
@@ -58,7 +58,7 @@
     var html = '<div class="page-shell">';
 
     html += '<section class="hero-card">';
-    html += '<div class="hero-text"><h2>我的宠物</h2><p>查看关联宠物与已发布检测报告</p></div>';
+    html += '<div class="hero-text"><h2>我的宠物</h2><p>查看关联宠物、报告处理中与已发布报告</p></div>';
     html += '<button type="button" class="btn-primary compact" data-nav="pets"><i class="fas fa-paw"></i>全部宠物</button>';
     html += '</section>';
 
@@ -74,7 +74,7 @@
         html += '<div class="pet-avatar sm"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
         html += '<div class="list-card-main">';
         html += '<div class="list-title">' + esc(H.stripDemo(pet.name)) + '</div>';
-        html += '<div class="list-sub">' + esc(pet.breed) + ' · ' + count + ' 份已发布报告</div>';
+        html += '<div class="list-sub">' + esc(pet.breed) + ' · ' + count + ' 份报告</div>';
         html += '</div>';
         html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
       });
@@ -83,10 +83,10 @@
 
     if (pets.length) {
       html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>最近报告</h3></div>';
+      html += '<div class="section-head"><h3>最近报告</h3><span class="hint-text">含处理中与已发布</span></div>';
       var recent = H.getUserVisibleCards(H.CURRENT_USER_ID).slice(0, 3);
       if (!recent.length) {
-        html += '<div class="empty-inline">暂无已发布报告</div>';
+        html += '<div class="empty-inline">暂无报告记录</div>';
       } else {
         recent.forEach(function (card) { html += renderReportCard(card); });
       }
@@ -164,9 +164,9 @@
     html += '</section>';
 
     html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>已发布报告</h3><span class="hint-text">' + cards.length + ' 份</span></div>';
+    html += '<div class="section-head"><h3>检测报告</h3><span class="hint-text">' + cards.length + ' 份</span></div>';
     if (!cards.length) {
-      html += '<div class="empty-inline">该宠物暂无已发布报告</div>';
+      html += '<div class="empty-inline">该宠物暂无报告记录</div>';
     } else {
       cards.forEach(function (card) { html += renderReportCard(card); });
     }

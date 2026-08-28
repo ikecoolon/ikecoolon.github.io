@@ -173,6 +173,7 @@ function main() {
   assert(notDetected && notDetected.dataStatus === 'NOT_DETECTED' && notDetected.value == null, 'NOT_DETECTED is not zero or missing');
 
   assert(state.meta.version >= 14, 'meta.version migrated to >= 14');
+  assert(state.meta.version >= 15, 'meta.version migrated to >= 15');
 
   var available = store.resolveRecommendationTarget({
     primaryProductId: 'prod-001',
@@ -249,6 +250,44 @@ function main() {
   assert(batch.fileResults.some(function (r) { return r.status === 'duplicate'; }), 'batch duplicate result');
   assert(batch.fileResults.some(function (r) { return r.status === 'partial'; }), 'batch partial result');
   assert(batch.fileResults.some(function (r) { return r.status === 'failed'; }), 'batch failure result');
+  var failedRow = batch.fileResults.find(function (r) { return r.status === 'failed'; });
+  assertEqual(failedRow.testRecordId, null, 'batch failure does not create testRecord');
+
+  var regPet = state.pets.find(function (p) { return p.userId === 'user-001' && p.claimStatus === 'bound'; });
+  assert(regPet, 'seed has bound pet for registration');
+  var registered = store.registerTest({
+    petId: regPet.id,
+    sampleNumber: 'SAMPLE-REG-SMOKE-001',
+    testDate: '2025-08-28',
+    storeId: regPet.storeId || 'store-001'
+  });
+  assertEqual(registered.status, 'pending_result', 'registerTest creates pending_result only');
+  assert(!store.getState().reports.some(function (r) { return r.testRecordId === registered.id; }), 'registerTest does not create report');
+
+  var beforeDirectedCount = store.getState().testRecords.length;
+  var directed = store.simulateBatchImport({
+    testRecordId: registered.id,
+    files: [{ scenario: 'success', fileName: 'directed-ok.xlsx', externalReportNumber: 'EXT-DIR-001', sampleNumber: 'SAMPLE-REG-SMOKE-001' }]
+  });
+  var afterDirected = store.getState();
+  assertEqual(afterDirected.testRecords.length, beforeDirectedCount, 'directed import reuses testRecord');
+  assert(afterDirected.reports.filter(function (r) { return r.testRecordId === registered.id; }).length === 1, 'directed import creates single report');
+  assert(directed.fileResults[0].status === 'success', 'directed import success');
+
+  var directedFailBefore = store.getState().testRecords.length;
+  var regForFail = store.registerTest({
+    petId: regPet.id,
+    sampleNumber: 'SAMPLE-REG-FAIL-001',
+    testDate: '2025-08-28',
+    storeId: regPet.storeId || 'store-001'
+  });
+  store.simulateBatchImport({
+    testRecordId: regForFail.id,
+    files: [{ scenario: 'failure', fileName: 'directed-fail.xlsx', errorCode: 'MISSING_COLUMN' }]
+  });
+  var regAfterFail = store.getState().testRecords.find(function (tr) { return tr.id === regForFail.id; });
+  assertEqual(regAfterFail.status, 'pending_result', 'directed failure keeps pending_result');
+  assertEqual(store.getState().testRecords.length, directedFailBefore + 1, 'directed failure does not add extra testRecord');
 
   var imported = store.simulateExcelImportSuccess({
     externalReportNumber: 'EXT-SMOKE-LIFE-001',

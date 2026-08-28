@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  window.__PET_ADMIN_ASSET_VERSION = '20250828';
+  window.__PET_ADMIN_ASSET_VERSION = '202508287';
   var C = window.PetAdminCommon;
   var navItems = document.querySelectorAll('#main-nav .nav-item');
   var pageContentContainer = document.getElementById('page-content-container');
@@ -75,8 +75,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var PAGE_CONFIG = {
     'report-center': { title: '报告中心', script: 'report-center-script.js', init: 'initReportCenter' },
     dashboard: { title: '工作台', script: 'dashboard-script.js', init: 'initDashboard' },
-    'detection-records': { title: '检测记录', script: 'detection-records-script.js', init: 'initDetectionRecords' },
-    'excel-import': { title: 'Excel 导入', script: 'excel-import-script.js', init: 'initExcelImport' },
+    'detection-records': { title: '送检管理', script: 'detection-records-script.js', init: 'initDetectionRecords' },
+    'excel-import': { title: 'Excel 导入结果', script: 'excel-import-script.js', init: 'initExcelImport' },
     'report-review': { title: '报告工作台', script: 'report-review-script.js', init: 'initReportReview' },
     'published-reports': { title: '已发布报告', script: 'published-reports-script.js', init: 'initPublishedReports' },
     'customer-management': { title: '客户管理', script: 'customer-management-script.js', init: 'initCustomerManagement' },
