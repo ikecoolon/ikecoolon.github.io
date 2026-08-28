@@ -17,6 +17,8 @@ function initPetInformation() {
   var cancelFormButton = document.getElementById('cancel-form');
 
   var formPetName = document.getElementById('form-pet-name');
+  var formUserId = document.getElementById('form-user-id');
+  var formUserRequired = document.getElementById('form-user-required');
   var formPetSpecies = document.getElementById('form-pet-species');
   var formPetBreed = document.getElementById('form-pet-breed');
   var formBirthDate = document.getElementById('form-birth-date');
@@ -55,6 +57,7 @@ function initPetInformation() {
 
   var currentEditPetId = null;
   var currentDetailPetId = null;
+  var isCreateMode = false;
 
   var unsub = C.subscribeDemo(function (state) { renderAll(state); });
   window.__petAdminPageTeardown = function () { unsub(); };
@@ -229,18 +232,39 @@ function initPetInformation() {
   }
 
   function showFormView(petId) {
-    var pet = C.lookupPet(store.getState(), petId);
-    if (!pet) return;
-    currentEditPetId = petId;
+    var state = store.getState();
+    isCreateMode = !petId;
+    currentEditPetId = petId || null;
     mainView.classList.add('hidden');
     formView.classList.remove('hidden');
     detailView.classList.add('hidden');
+
+    populateUserSelect(formUserId, state, '', true);
+
+    if (isCreateMode) {
+      formTitle.textContent = '新建宠物';
+      formPetName.value = '';
+      formPetSpecies.value = 'dog';
+      formPetBreed.value = '';
+      formGender.value = 'unknown';
+      formBirthDate.value = '';
+      formUserId.value = '';
+      formUserId.disabled = false;
+      if (formUserRequired) formUserRequired.classList.remove('hidden');
+      return;
+    }
+
+    var pet = C.lookupPet(state, petId);
+    if (!pet) return;
     formTitle.textContent = '编辑宠物资料 · ' + pet.name;
     formPetName.value = pet.name;
     formPetSpecies.value = pet.species || 'dog';
     formPetBreed.value = pet.breed || '';
     formGender.value = pet.gender || 'unknown';
     formBirthDate.value = pet.birthDate || birthDateFromAge(pet.age);
+    formUserId.value = pet.userId || '';
+    formUserId.disabled = false;
+    if (formUserRequired) formUserRequired.classList.add('hidden');
   }
 
   function showDetailView(petId) {
@@ -359,6 +383,8 @@ function initPetInformation() {
       showDetailView(route.params.petId);
     } else if (route.params.petId && route.params.action === 'edit') {
       showFormView(route.params.petId);
+    } else if (route.params.action === 'create') {
+      showFormView(null);
     }
   }
 
@@ -384,7 +410,6 @@ function initPetInformation() {
 
   petForm.addEventListener('submit', function (e) {
     e.preventDefault();
-    if (!currentEditPetId) return;
     var petName = formPetName.value.trim();
     var breed = formPetBreed.value.trim();
     if (!petName || !breed) {
@@ -392,13 +417,33 @@ function initPetInformation() {
       return;
     }
     try {
+      if (isCreateMode) {
+        if (!formUserId.value) {
+          C.toast('新建宠物必须选择关联平台用户', 'warning');
+          return;
+        }
+        var created = store.createOpsPet({
+          name: petName,
+          breed: breed,
+          species: formPetSpecies.value,
+          gender: formGender.value || 'unknown',
+          birthDate: formBirthDate.value || null,
+          age: ageFromBirthDate(formBirthDate.value),
+          userId: formUserId.value
+        });
+        C.toast('宠物已创建并关联用户', 'success');
+        showDetailView(created.id);
+        return;
+      }
+      if (!currentEditPetId) return;
       C.updateOpsPet(currentEditPetId, {
         name: petName,
         breed: breed,
         species: formPetSpecies.value,
         gender: formGender.value || 'unknown',
         birthDate: formBirthDate.value || null,
-        age: ageFromBirthDate(formBirthDate.value)
+        age: ageFromBirthDate(formBirthDate.value),
+        userId: formUserId.value || null
       });
       C.toast('宠物资料已更新', 'success');
       if (currentDetailPetId === currentEditPetId) showDetailView(currentEditPetId);
@@ -406,6 +451,10 @@ function initPetInformation() {
     } catch (err) {
       C.toast(err.message || '保存失败', 'error');
     }
+  });
+
+  document.getElementById('btn-create-pet').addEventListener('click', function () {
+    showFormView(null);
   });
 
   tableBody.addEventListener('click', function (e) {

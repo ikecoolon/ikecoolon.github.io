@@ -111,7 +111,6 @@ function initReportCenter() {
   function readFiltersFromForm() {
     return {
       search: (document.getElementById('rc-q-search').value || '').trim().toLowerCase(),
-      status: document.getElementById('rc-q-status').value,
       storeName: (document.getElementById('rc-q-store').value || '').trim().toLowerCase(),
       species: document.getElementById('rc-q-species').value,
       dateFrom: document.getElementById('rc-q-date-from').value,
@@ -132,7 +131,6 @@ function initReportCenter() {
 
   function applyCommonFilters(rows) {
     return rows.filter(function (row) {
-      if (filterState.status && row.workflow !== filterState.status) return false;
       if (!matchesSearch(row, filterState.search)) return false;
       if (filterState.storeName && row.sourceName.toLowerCase().indexOf(filterState.storeName) < 0) return false;
       if (filterState.species && row.species !== filterState.species) return false;
@@ -212,9 +210,6 @@ function initReportCenter() {
     if (row.workflow === 'published' && row.reportId) {
       items.push({ action: 'published', label: '已发布列表' });
     }
-    if (row.testRecordId) {
-      items.push({ action: 'records', label: '检测记录' });
-    }
     return items;
   }
 
@@ -234,6 +229,17 @@ function initReportCenter() {
 
   function buildActions(row) {
     return '<div class="flex items-center justify-end gap-2">' + primaryAction(row) + buildMoreMenu(row) + '</div>';
+  }
+
+  function testRecordLink(row) {
+    if (!row.testRecordId) return '';
+    return '<div class="mt-1"><button type="button" class="text-teal-600 hover:underline text-xs rc-action" data-action="records">查看送检信息</button></div>';
+  }
+
+  function withReturnView(params) {
+    var next = Object.assign({}, params || {});
+    next.returnView = currentView;
+    return next;
   }
 
   function reportIdentity(row) {
@@ -283,7 +289,7 @@ function initReportCenter() {
 
   function handleAction(action, row) {
     if (action === 'review' && row.reportId) {
-      C.navigate('report-review', { reportId: row.reportId });
+      C.navigate('report-review', withReturnView({ reportId: row.reportId }));
       return;
     }
     if (action === 'published' && row.reportId) {
@@ -299,9 +305,8 @@ function initReportCenter() {
       C.navigate('excel-import');
       return;
     }
-    if (action === 'records') {
-      if (row.rawTestStatus) sessionStorage.setItem('pet-admin-detection-filter', row.rawTestStatus);
-      C.navigate('detection-records');
+    if (action === 'records' && row.testRecordId) {
+      C.navigate('detection-records', withReturnView({ testRecordId: row.testRecordId }));
     }
   }
 
@@ -352,7 +357,7 @@ function initReportCenter() {
         '<div class="rc-card-grid grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-center text-sm">' +
         '<div class="sm:col-span-3">' + reportIdentity(row) + '</div>' +
         '<div class="sm:col-span-2"><div class="text-slate-800">' + C.escapeHtml(row.userName) + '</div><div class="text-xs text-slate-500">' + C.escapeHtml(row.petName) + '</div></div>' +
-        '<div class="sm:col-span-2 text-slate-700">' + C.escapeHtml(row.sourceName) + '</div>' +
+        '<div class="sm:col-span-2 text-slate-700">' + C.escapeHtml(row.sourceName) + testRecordLink(row) + '</div>' +
         '<div class="sm:col-span-1">' + workflowBadge(row.workflow) + '</div>' +
         '<div class="sm:col-span-2 text-slate-600 text-xs">' + C.escapeHtml(C.formatDate(row.updatedAt)) + '</div>' +
         '<div class="sm:col-span-2">' + buildActions(row) + '</div>' +
@@ -392,10 +397,6 @@ function initReportCenter() {
       openMoreMenuId = null;
       render(store.getState());
     });
-  });
-
-  document.getElementById('btn-go-import').addEventListener('click', function () {
-    C.navigate('excel-import');
   });
 
   advancedToggle.addEventListener('click', function () {

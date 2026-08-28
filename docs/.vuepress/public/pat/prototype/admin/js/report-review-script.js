@@ -17,6 +17,25 @@ function initReportReview() {
   var pickerState = { recId: null, slot: 'primary', page: 1, relatedIndex: -1 };
   var lastRenderedReportId = null;
 
+  var RETURN_VIEWS = ['all', 'unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
+
+  function returnToReportCenter() {
+    var route = C.parseRoute();
+    var view = route.params.returnView;
+    if (view && view !== 'pending' && RETURN_VIEWS.indexOf(view) >= 0) {
+      C.navigate('report-center', { view: view });
+    } else {
+      C.navigate('report-center');
+    }
+  }
+
+  function reviewNavParams(reportId) {
+    var route = C.parseRoute();
+    var params = { reportId: reportId };
+    if (route.params.returnView) params.returnView = route.params.returnView;
+    return params;
+  }
+
   var MODULES = [
     { id: 'source', label: '来源与归属', icon: 'fa-link' },
     { id: 'results', label: '检测结果', icon: 'fa-vial' },
@@ -58,14 +77,36 @@ function initReportReview() {
     NO_CANDIDATES: '无候选'
   };
 
+  var resizing = false;
+  var resizer = null;
+
+  function onResizeMove(e) {
+    if (!resizing) return;
+    var workbench = document.getElementById('rw-workbench');
+    var rect = workbench.getBoundingClientRect();
+    var previewWidth = Math.min(520, Math.max(280, rect.right - e.clientX));
+    workbench.style.setProperty('--rw-preview-width', previewWidth + 'px');
+  }
+
+  function onResizeEnd() {
+    if (!resizing) return;
+    resizing = false;
+    if (resizer) resizer.classList.remove('is-dragging');
+  }
+
   var unsub = C.subscribeDemo(function () {
     if (!formInteracting) render(store.getState());
     else partialUpdate(store.getState());
   });
   window.__petAdminPageTeardown = function () {
-    unsub();
+    if (typeof unsub === 'function') {
+      unsub();
+      unsub = null;
+    }
     document.removeEventListener('mousemove', onResizeMove);
     document.removeEventListener('mouseup', onResizeEnd);
+    resizing = false;
+    if (resizer) resizer.classList.remove('is-dragging');
   };
 
   bindStaticEvents();
@@ -76,11 +117,13 @@ function initReportReview() {
   }
 
   function bindStaticEvents() {
+    document.getElementById('btn-go-report-center').addEventListener('click', returnToReportCenter);
+
     document.getElementById('select-report').addEventListener('change', function () {
       formInteracting = false;
       currentReportId = this.value;
       selectedIndicatorId = null;
-      C.navigate('report-review', { reportId: currentReportId });
+      C.navigate('report-review', reviewNavParams(currentReportId));
       var state = store.getState();
       activeModule = defaultModuleForReport(C.lookupReport(state, currentReportId));
       render(state);
@@ -169,25 +212,12 @@ function initReportReview() {
       document.getElementById('rw-preview-pane').classList.remove('is-drawer-open');
     });
 
-    var resizer = document.getElementById('rw-preview-resizer');
-    var resizing = false;
+    resizer = document.getElementById('rw-preview-resizer');
     resizer.addEventListener('mousedown', function (e) {
       resizing = true;
       resizer.classList.add('is-dragging');
       e.preventDefault();
     });
-    function onResizeMove(e) {
-      if (!resizing) return;
-      var workbench = document.getElementById('rw-workbench');
-      var rect = workbench.getBoundingClientRect();
-      var previewWidth = Math.min(520, Math.max(280, rect.right - e.clientX));
-      workbench.style.setProperty('--rw-preview-width', previewWidth + 'px');
-    }
-    function onResizeEnd() {
-      if (!resizing) return;
-      resizing = false;
-      resizer.classList.remove('is-dragging');
-    }
     document.addEventListener('mousemove', onResizeMove);
     document.addEventListener('mouseup', onResizeEnd);
 
@@ -697,14 +727,33 @@ function initReportReview() {
     var pet = C.lookupPet(state, report.petId);
     var st = tr ? C.lookupStore(state, tr.storeId) : null;
     var batch = tr && tr.importBatchId ? state.importBatches.find(function (b) { return b.id === tr.importBatchId; }) : null;
+    var externalReportNumber = tr
+      ? (tr.externalReportNumber || report.externalReportNumber || '—')
+      : (report.externalReportNumber || '—');
+    var sampleNumber = tr
+      ? (tr.sampleNumber || report.sampleNumber || '—')
+      : (report.sampleNumber || '—');
+    var testingOrg = '—';
+    if (st && st.name) {
+      testingOrg = String(st.name).trim();
+    } else {
+      var orgName = report.sourceOrgName || (tr && tr.sourceOrgName);
+      if (orgName) {
+        testingOrg = String(orgName).trim();
+      } else {
+        var orgId = report.sourceOrgId || (tr && tr.sourceOrgId);
+        if (orgId) testingOrg = String(orgId);
+      }
+    }
 
     document.getElementById('source-panel').innerHTML =
       '<p><span class="text-slate-500">报告号</span><br>' + C.escapeHtml(report.reportNumber) + '</p>' +
-      '<p><span class="text-slate-500">检测记录</span><br><code class="text-xs">' + C.escapeHtml(report.testRecordId) + '</code></p>' +
-      '<p><span class="text-slate-500">来源</span><br>' + C.escapeHtml(tr ? (tr.externalReportNumber || '—') + ' / ' + (tr.sampleNumber || '—') : '—') + '</p>' +
+      '<p><span class="text-slate-500">送检 ID</span><br><code class="text-xs">' + C.escapeHtml(report.testRecordId) + '</code></p>' +
+      '<p><span class="text-slate-500">外部报告号</span><br>' + C.escapeHtml(externalReportNumber) + '</p>' +
+      '<p><span class="text-slate-500">样本编号</span><br>' + C.escapeHtml(sampleNumber) + '</p>' +
       '<p><span class="text-slate-500">用户</span><br>' + C.escapeHtml(user ? user.name : '—（未领取不阻断）') + '</p>' +
       '<p><span class="text-slate-500">宠物</span><br>' + C.escapeHtml(pet ? pet.name + ' / ' + pet.breed : '—') + '</p>' +
-      '<p><span class="text-slate-500">机构</span><br>' + C.escapeHtml(st ? st.name : '—') + '</p>' +
+      '<p><span class="text-slate-500">检测机构</span><br>' + C.escapeHtml(testingOrg) + '</p>' +
       '<p><span class="text-slate-500">归属</span><br>' + C.escapeHtml(C.OWNERSHIP_STATUS_LABELS[report.ownershipStatus] || report.ownershipStatus || '—') + '</p>' +
       (batch ? '<p><span class="text-slate-500">导入批次</span><br>' + C.escapeHtml(batch.fileName) + '</p>' : '');
   }

@@ -140,17 +140,61 @@
   function getUserVisibleCards(userId, options) {
     options = options || {};
     var store = getStore();
+    var state = getState();
     var cards = [];
+    var seenTestRecords = {};
+    var userPetIds = state.pets.filter(function (p) { return p.userId === userId; }).map(function (p) { return p.id; });
 
     store.getUserVisibleReports(userId).forEach(function (item) {
       var testRecord = findTestRecord(item.report.testRecordId);
       if (shouldExcludeUserCard(item.report, testRecord)) return;
       if (item.userStatus !== 'published') return;
+      seenTestRecords[item.report.testRecordId] = true;
       cards.push(buildCardFromReport(item));
+    });
+
+    (state.reports || []).forEach(function (report) {
+      if (!report.petId || userPetIds.indexOf(report.petId) < 0) return;
+      if (seenTestRecords[report.testRecordId]) return;
+      var pet = findPet(report.petId);
+      if (!pet || pet.userId !== userId) return;
+      var testRecord = findTestRecord(report.testRecordId);
+      if (shouldExcludeUserCard(report, testRecord)) return;
+      var workflow = store.getWorkflowStatus(report, testRecord);
+      if (workflow === 'published' || workflow === 'voided' || report.status === 'voided') return;
+      seenTestRecords[report.testRecordId] = true;
+      cards.push({
+        id: report.id,
+        reportId: report.id,
+        testRecordId: report.testRecordId,
+        petId: report.petId,
+        userStatus: 'in_progress',
+        clickable: false,
+        title: getCardTitle(report, testRecord),
+        testDate: getCardTestDate(report, testRecord),
+        report: report,
+        testRecord: testRecord,
+        publishedVersion: null
+      });
+    });
+
+    (state.testRecords || []).forEach(function (tr) {
+      if (seenTestRecords[tr.id]) return;
+      if (tr.status !== 'pending_result') return;
+      if (!tr.petId || userPetIds.indexOf(tr.petId) < 0) return;
+      var pet = findPet(tr.petId);
+      if (!pet || pet.userId !== userId) return;
+      seenTestRecords[tr.id] = true;
+      cards.push(buildCardFromTestRecord(tr, 'in_progress'));
     });
 
     if (options.petId) {
       cards = cards.filter(function (card) { return card.petId === options.petId; });
+    }
+    if (options.userStatus === 'published') {
+      cards = cards.filter(function (card) { return card.userStatus === 'published'; });
+    } else if (options.userStatus === 'in_progress') {
+      cards = cards.filter(function (card) { return card.userStatus === 'in_progress'; });
     }
 
     cards.sort(function (a, b) {
@@ -465,7 +509,7 @@
 
   function userStatusLabel(status) {
     if (status === 'published') return '已发布';
-    if (status === 'in_progress') return '进行中';
+    if (status === 'in_progress') return '报告处理中';
     return status || '—';
   }
 
@@ -1157,11 +1201,13 @@
   function countUserStats() {
     var pets = getUserPets();
     var cards = getUserVisibleCards(CURRENT_USER_ID);
+    var publishedCount = cards.filter(function (c) { return c.userStatus === 'published'; }).length;
+    var inProgressCount = cards.filter(function (c) { return c.userStatus === 'in_progress'; }).length;
     return {
       petCount: pets.length,
       reportCount: cards.length,
-      publishedCount: cards.length,
-      inProgressCount: 0
+      publishedCount: publishedCount,
+      inProgressCount: inProgressCount
     };
   }
 
