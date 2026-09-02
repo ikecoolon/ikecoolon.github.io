@@ -467,10 +467,10 @@
         var conditionalCount = countConditionalPending();
 
         var band = document.getElementById('overview-band');
-        band.appendChild(overviewCell('基础工作量', null, null, '29 条研发任务合计', null, null, base));
+        band.appendChild(overviewCell('基础工作量', null, null, DATA.tasks.length + ' 条研发任务合计', null, null, base));
         band.appendChild(overviewCell('人力缓冲', null, null, '按基础工作量 ' + Math.round(META.bufferRate * 100) + '% 单独计算', null, null, buffer));
         band.appendChild(overviewCell('合计工作量', null, null, '基础 + 缓冲，缓冲不摊入任务', null, null, total));
-        band.appendChild(overviewCell('总体进度', formatPct(overall), '', '29 条研发任务人工进度简单平均', 'is-green', overall));
+        band.appendChild(overviewCell('总体进度', formatPct(overall), '', DATA.tasks.length + ' 条研发任务人工进度简单平均', 'is-green', overall));
         band.appendChild(overviewCell('进行中任务', inProgress, '项', '人工进度实时汇总'));
         band.appendChild(overviewCell(
             '待甲方预备',
