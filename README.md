@@ -1,45 +1,38 @@
-# ikecoolon产品文档库
+# 宠物健康报告文档工程
 
-## 开始使用
+本地分支 `product/pet-eden` 固定服务宠物健康报告（Pet Eden），用于维护产品设计、PRD、架构决策、通用文档规范和静态交互原型；内容使用不含日期层级的稳定目录。
 
-这是ikecoolon产品团队的文档库，用于存储和管理产品需求文档(PRD)。
+## 目录
 
-## 文档结构
+- `CONTEXT.md`：领域语言与关键术语
+- `PRODUCT.md`：产品边界、能力与原则
+- `docs/product-design/`：业务设计、研究材料与待确认事项
+- `docs/prd/`：管理端和小程序 PRD
+- `docs/adr/`：架构决策记录
+- `docs/rules/`：保留的通用产品文档规范
+- `docs/.vuepress/public/prototype/`：可直接访问的静态交互原型
+- `.scratch/`：本地规格与实施票据
 
-- **docs/products/** - 按年份组织的产品文档
-  - 年份/月份+端+需求简述/prd/
-    - first.md - 产品文档一稿
-    - fifth.md - 产品文档五稿
-    - ninth.md - 产品文档九稿
-- **docs/rules/** - 文档编写规范和标准
-- **docs/resources/** - 产品相关资源文件
+## 本地开发
 
-## 文档规范
+```sh
+npm install
+npm run docs:dev
+```
 
-- 所有PRD必须遵循"1-5-9"结构：1页背景/目标，5页核心功能，9页完整详情
-- 文档必须包含：需求背景、产品目标、用户场景、功能描述、业务规则、交互流程、非功能性需求和上线标准
-- 复杂业务流程必须使用标准流程图表示
-- 原型与PRD描述必须保持一致
+构建站点：
 
-## 协作流程
+```sh
+npm run docs:build
+```
 
-1. 创建分支并按照规定路径添加文档
-2. 提交合并请求进行文档评审
-3. 获得批准后合并到主分支
+## 发布
 
-## 版本控制
+- `npm run deploy`：构建完整 VuePress 站点，并强制推送构建产物到 GitHub Pages 的 `main`。
+- `npm run deploy-prototype`：直接发布 `docs/.vuepress/public/prototype/`，同样覆盖 Pages `main`。
 
-- 所有文档必须使用版本控制，格式为"主版本.次版本.修订版本"
-- 每次重大变更必须更新版本号并记录修订历史
+发布脚本会在产物目录建立独立 Git 仓库。运行前应确认工作区变更、远程地址和待发布内容；日常文档分支不会由脚本自动提交或推送。
 
-## 贡献指南
+## Wiki
 
-1. Fork项目仓库
-2. 创建您的特性分支
-3. 提交您的更改
-4. 推送到您的分支
-5. 创建新的合并请求
-
-## 支持
-
-如有问题，请联系产品团队负责人。
+本仓库不是 Wiki VAULT。执行 `inspool`、`query-wiki` 或 `lint-wiki` 前，先阅读 `docs/agents/wiki.md`，再进入固定的 Pet Eden Wiki 仓库并遵守其 `AGENTS.md` 与 `wiki/index.md`。

@@ -1,7 +1,7 @@
 # 宠物微生物组报告原型 · 数据模型改造 Spec
 
 **日期：** 2026-09-02　**依据：** 产品负责人决议 D1–D11 + 《pet-report-prototype-audit》审计
-**范围：** `docs/.vuepress/public/pat/prototype/`（纯静态 HTML + 原生 JS，IIFE / 全局对象，无构建）
+**范围：** `docs/.vuepress/public/prototype/`（纯静态 HTML + 原生 JS，IIFE / 全局对象，无构建）
 **约束：** 不 git commit；不碰 `docs/.vuepress/dist`；临时脚本放 `/tmp`；UI 文案中文；沿用现有代码风格。
 
 ---

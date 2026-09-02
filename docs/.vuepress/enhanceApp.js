@@ -1,5 +1,4 @@
 import moment from 'moment'
-import ProductList from './components/ProductList.vue'
 
 export default ({ 
   Vue,  // VuePress 正在使用的 Vue 构造函数
@@ -10,9 +9,6 @@ export default ({
 }) => {
   // 设置moment区域
   moment.locale('zh-CN')
-  
-  // 注册全局组件
-  Vue.component('ProductList', ProductList)
   
   // 仅在客户端添加路由导航守卫
   if (!isServer) {

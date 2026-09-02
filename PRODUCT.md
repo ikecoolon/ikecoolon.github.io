@@ -71,7 +71,7 @@ web
 - 完整业务设计：`docs/product-design/pet-health-report-business-design.md`
 - 待确认事项：`docs/product-design/open-questions.md`
 - 领域语言：`CONTEXT.md`
-- 可交互静态原型：`docs/.vuepress/public/pat/prototype/`
+- 可交互静态原型：`docs/.vuepress/public/prototype/`
 
 没有真实机构 Excel、生产接口、真实微信用户数据或专业规则验收证据；未来设计不得把 Mock 演示推断为生产事实。
 

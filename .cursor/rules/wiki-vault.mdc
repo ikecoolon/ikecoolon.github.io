@@ -1,0 +1,15 @@
+---
+description: 固定宠物健康报告分支使用唯一的 Pet Eden Wiki VAULT
+alwaysApply: true
+---
+
+# Pet Eden Wiki VAULT
+
+本分支只服务宠物健康报告，唯一 Wiki VAULT 为：
+
+- 本地：`/Users/zhaoyanlong/Documents/personal/pet-eden-wiki`
+- GitHub：`https://github.com/ikecoolon/pet-eden-wiki`
+
+执行 `inspool`、`query-wiki` 或 `lint-wiki` 前，先读 `docs/agents/wiki.md`，再进入该 VAULT 阅读 `AGENTS.md` 与 `wiki/index.md`。
+
+本仓库与 Wiki 仓库的 `commit`、`push` 相互独立。推送 Wiki 前，必须在 Wiki 工作目录核对 `origin` 与上述 GitHub 地址一致。

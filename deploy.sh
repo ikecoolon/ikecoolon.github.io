@@ -22,7 +22,7 @@ if git diff --staged --quiet; then
   exit 0
 fi
 
-git commit -m 'deploy docs'
+git commit -m '发布宠物健康报告文档'
 
 echo "推送到 GitHub Pages..."
 git push -f https://github.com/ikecoolon/ikecoolon.github.io.git main

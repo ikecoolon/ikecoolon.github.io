@@ -1,111 +1,99 @@
-const { config } = require("vuepress-theme-hope");
+const { config } = require('vuepress-theme-hope')
 
 module.exports = config({
-  base: '/docs/',
+  base: '/',
   lang: 'zh-CN',
-  title: 'ikecoolon文档',
-  description: '产品文档',
-  
+  title: '宠物健康报告',
+  description: '宠物健康报告的产品设计、需求文档、架构决策与交互原型',
+  shouldPrefetch: false,
+
   locales: {
     '/': {
       lang: 'zh-CN',
-      title: 'ikecoolon文档',
-      description: '产品文档'
+      title: '宠物健康报告',
+      description: '宠物健康报告的产品设计、需求文档、架构决策与交互原型'
     }
   },
-  
+
   theme: 'hope',
   host: 'localhost',
   port: 8080,
+
   themeConfig: {
-    hostname: 'http://localhost:8080',
-    
+    hostname: 'https://ikecoolon.github.io',
     locales: {
       '/': {
         lang: 'zh-CN',
         selectText: '选择语言',
         label: '简体中文',
-    nav: [
-      { text: '首页', link: '/' },
-      { 
-        text: '规范', 
-        items: [
-          { text: '规范介绍', link: '/rules/' },
-          { text: '需求分析', link: '/rules/requirement-analysis' },
-          { text: '产品设计', link: '/rules/product-design' },
-          { text: '文档结构', link: '/rules/document-structure' },
-          { text: '业务逻辑', link: '/rules/business-logic' },
-          { text: '原型', link: '/rules/prototype' },
-          { text: '迭代', link: '/rules/iteration' },
-          { text: '上线', link: '/rules/launch' },
-          { text: '协作', link: '/rules/collaboration' },
-          { text: '内容', link: '/rules/content' },
-          { text: '知识管理', link: '/rules/knowledge' }
-        ]
-      },
-      { 
-        text: '产品', 
-        items: [
-          { text: '产品目录', link: '/products/' },
-          { 
-            text: '按年份浏览',
-            items: [
-              { text: '2025年', link: '/products/2025/' },
-              { text: '2024年', link: '/products/2024/' }
-            ]
-          }
-        ]
-      }
-    ],
-    sidebar: {
-      '/rules/': [
-        {
-          title: '规范',
-          collapsable: false,
-          children: [
-            '',
-            'requirement-analysis',
-            'product-design',
-            'document-structure',
-            'business-logic',
-            'prototype',
-            'iteration',
-            'launch',
-            'collaboration',
-            'content',
-            'knowledge'
-          ]
-        }
-      ],
-      '/products/': [
-        {
-          title: '产品文档',
-          collapsable: false,
-          children: [
-            '',
-          ]
+        nav: [
+          { text: '首页', link: '/' },
+          { text: '产品设计', link: '/product-design/' },
+          { text: 'PRD', link: '/prd/' },
+          { text: 'ADR', link: '/adr/' },
+          { text: '规范', link: '/rules/' },
+          { text: '原型', link: '/prototype/' }
+        ],
+        sidebar: {
+          '/product-design/': [
+            {
+              title: '产品设计',
+              collapsable: false,
+              children: [
+                '',
+                'pet-health-report-business-design',
+                'open-questions',
+                'pet-microbiome-reference-and-content-configuration-research',
+                'wechat-mini-program-client-preparation-research'
+              ]
+            }
+          ],
+          '/prd/': [
+            {
+              title: 'PRD',
+              collapsable: false,
+              children: ['', 'admin', 'mini-program']
+            }
+          ],
+          '/adr/': [
+            {
+              title: '架构决策记录',
+              collapsable: false,
+              children: ['']
+            }
+          ],
+          '/rules/': [
+            {
+              title: '规范',
+              collapsable: false,
+              children: [
+                '',
+                'requirement-analysis',
+                'product-design',
+                'document-structure',
+                'business-logic',
+                'prototype',
+                'iteration',
+                'launch',
+                'collaboration',
+                'content',
+                'knowledge'
+              ]
+            }
+          ],
+          '/': []
         },
-        {
-          title: '按年份',
-          collapsable: true,
-          children: [
-            '2025/',
-            '2024/'
-          ]
-        }
-      ]
-    },
-    lastUpdated: '上次更新',
+        lastUpdated: '上次更新',
         editLinkText: '编辑此页'
       }
     },
-    
+
     repo: '',
     editLinks: false,
     blog: false,
     breadcrumb: true,
-    author: "ikecoolon Product Team",
-    darkmode: "switch",
+    author: 'Pet Eden',
+    darkmode: 'switch',
     fullscreen: true,
     mdEnhance: {
       enableAll: false,
@@ -124,16 +112,18 @@ module.exports = config({
       chart: true,
       demo: true,
       mermaid: false
-    },
+    }
   },
+
   markdown: {
     tasklist: true,
     hint: true,
     lineNumbers: true,
-    extractHeaders: ['h2', 'h3', 'h4'],
+    extractHeaders: ['h2', 'h3', 'h4']
   },
+
   plugins: [
     '@vuepress/back-to-top',
     '@vuepress/medium-zoom'
-  ],
-}); 
+  ]
+})

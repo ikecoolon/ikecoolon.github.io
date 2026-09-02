@@ -1,8 +1,8 @@
 {
-  "name": "XHPRD",
+  "name": "pet-eden-health-report-docs",
   "version": "1.0.0",
   "author": "ikecoolon@hotmail.com",
-  "description": "ikecoolon 产品文档",
+  "description": "宠物健康报告产品文档与静态原型工程",
   "scripts": {
     "docs:dev": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096 --openssl-legacy-provider\" vuepress dev docs --host 0.0.0.0",
     "docs:build": "cross-env NODE_OPTIONS=\"--max-old-space-size=4096 --openssl-legacy-provider\" vuepress build docs",

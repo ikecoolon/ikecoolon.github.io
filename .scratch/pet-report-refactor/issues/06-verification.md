@@ -8,11 +8,11 @@
 
 ## 范围
 
-1. 语法：`for f in shared/*.js admin/js/*.js mini-program/js/*.js; do node --check "$f"; done`（在 `docs/.vuepress/public/pat/prototype` 下执行）。
+1. 语法：`for f in shared/*.js admin/js/*.js mini-program/js/*.js; do node --check "$f"; done`（在 `docs/.vuepress/public/prototype` 下执行）。
 2. Smoke：`node shared/mock-store-smoke.js` 全绿；若 02–05 新增了 store API，补断言。
 3. 无头加载（本机若有 Chrome / Chromium）：
    ```bash
-   cd docs/.vuepress/public/pat/prototype && python3 -m http.server 8765 &
+   cd docs/.vuepress/public/prototype && python3 -m http.server 8765 &
    for hash in report-center 'report-review?reportId=report-002' analysis-rules detection-records customer-management pet-information dictionary-management normal-range-config microbiota-knowledge; do
      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu --virtual-time-budget=4000 --enable-logging=stderr --v=0 "http://localhost:8765/admin/index.html#$hash" 2>&1 | rg -i "uncaught|TypeError|ReferenceError|404" || echo "OK $hash"
    done
@@ -103,7 +103,7 @@
 ## 验证命令
 
 ```
-cd docs/.vuepress/public/pat/prototype
+cd docs/.vuepress/public/prototype
 for f in shared/*.js admin/js/*.js mini-program/js/*.js; do node --check "$f"; done
 node shared/mock-store-smoke.js          # 130 passed
 node /tmp/issue06-walkthrough.js         # 79 passed
