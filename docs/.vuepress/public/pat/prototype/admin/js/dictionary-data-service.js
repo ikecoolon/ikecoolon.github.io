@@ -6,7 +6,6 @@
   'use strict';
 
   var CATALOG_KEY = 'professionalCatalog';
-  var DEMO_COMPLETION_FLAG = 'demoCompletionSeeded';
 
   function storeApi() {
     return global.PetReportMockStore;
@@ -122,6 +121,11 @@
     if (st && typeof st.emptyTaxonEdu === 'function') return st.emptyTaxonEdu();
     return {
       sceneCopy: '',
+      introText: '',
+      mainTasks: [],
+      appearanceText: '',
+      functionText: '',
+      hint: '',
       knowledgeText: ''
     };
   }
@@ -189,9 +193,8 @@
       mainTasks: mainTasks,
       appearanceText: pick(src.appearanceText, src.appearance),
       functionText: pick(src.functionText),
-      lowHint: pick(src.lowHint, src.tooLowHint),
-      normalHint: pick(src.normalHint),
-      highHint: pick(src.highHint, src.tooHighHint),
+      // 迁移：旧 lowHint/normalHint/highHint 合并为单一 hint
+      hint: pick(src.hint, src.normalHint, src.lowHint, src.highHint, src.tooLowHint, src.tooHighHint),
       knowledgeText: knowledgeText
     };
   }
@@ -489,8 +492,8 @@
 
   function commitState(mutator) {
     var st = storeApi();
-    if (!st || !st.updateAnalysisState) return null;
-    return st.updateAnalysisState(mutator);
+    if (!st || typeof st.commit !== 'function') return null;
+    return st.commit(mutator);
   }
 
   function readState() {
@@ -815,54 +818,29 @@
     };
   }
 
-  function freezeEffectiveRange(indicator, range, reportVersion) {
-    if (!range) return null;
-    return {
-      min: range.min,
-      max: range.max,
-      unit: range.unit,
-      source: range.source,
-      frozenAtVersion: reportVersion || null,
-      frozenAt: new Date().toISOString()
-    };
-  }
-
-  function resolveEffectiveRangeForIndicator(indicator, species, options) {
+  function resolveEffectiveRangeForIndicator(indicator, species) {
     var st = storeApi();
     if (st && typeof st.resolveEffectiveRangeForIndicator === 'function') {
-      return st.resolveEffectiveRangeForIndicator(indicator, species, options);
-    }
-    options = options || {};
-    if (indicator.effectiveRange && options.respectFrozen !== false) {
-      return clone(indicator.effectiveRange);
-    }
-    if (indicator.manualRange) {
-      return {
-        min: indicator.manualRange.min,
-        max: indicator.manualRange.max,
-        unit: indicator.manualRange.unit,
-        source: 'manual'
-      };
-    }
-    if (indicator.importedRange && indicator.importedRange.min != null && indicator.importedRange.max != null) {
-      return {
-        min: indicator.importedRange.min,
-        max: indicator.importedRange.max,
-        unit: indicator.importedRange.unit || indicator.unit,
-        source: 'imported'
-      };
-    }
-    if (st && typeof st.resolveSchemeRangeForIndicator === 'function') {
-      var schemeRange = st.resolveSchemeRangeForIndicator(indicator, species);
-      if (schemeRange) return schemeRange;
+      return st.resolveEffectiveRangeForIndicator(indicator, species);
     }
     return null;
   }
 
   function evaluateIndicatorResult(indicator, species) {
     var st = storeApi();
-    var dataStatus = st ? st.normalizeDataStatus(indicator.dataStatus) : indicator.dataStatus;
     var labels = adminCommon() ? adminCommon().DATA_STATUS_LABELS : {};
+    var rangeLabels = (st && st.RANGE_STATUS_LABELS) || {
+      low: '偏低',
+      normal: '正常',
+      high: '偏高',
+      no_range: '暂无参考范围'
+    };
+    var decorated = (st && typeof st.evaluateResult === 'function')
+      ? st.evaluateResult(indicator)
+      : (indicator || {});
+    var dataStatus = st && typeof st.normalizeDataStatus === 'function'
+      ? st.normalizeDataStatus(decorated.dataStatus)
+      : decorated.dataStatus;
 
     if (dataStatus === 'MISSING_COLUMN' || dataStatus === 'EMPTY') {
       return { status: 'missing', label: labels[dataStatus] || '缺失', canJudge: false, message: '缺失不参与正常性判定' };
@@ -873,38 +851,37 @@
     if (dataStatus === 'NOT_APPLICABLE' || dataStatus === 'INVALID') {
       return { status: dataStatus.toLowerCase(), label: labels[dataStatus] || dataStatus, canJudge: false, message: '当前状态不参与正常性判定' };
     }
-    if (indicator.value == null || indicator.value === '') {
+    var value = decorated.effectiveValue !== undefined && decorated.effectiveValue !== null
+      ? decorated.effectiveValue
+      : decorated.value;
+    if (value == null || value === '') {
       return { status: 'no_value', label: '无有效值', canJudge: false, message: '无检测值' };
     }
-    var range = resolveEffectiveRangeForIndicator(indicator, species);
-    if (!range) {
+    var range = resolveEffectiveRangeForIndicator(decorated, species);
+    if (!range || range.source === 'none') {
       return {
         status: 'no_range',
-        label: '暂无参考范围',
+        label: rangeLabels.no_range || '暂无参考范围',
         canJudge: false,
-        value: indicator.value,
+        value: value,
         message: '有值无范围时不判断正常、偏高或偏低'
       };
     }
-    var value = Number(indicator.value);
-    if (value === 0) {
-      var inRange = value >= range.min && value <= range.max;
-      return {
-        status: inRange ? 'normal' : (value < range.min ? 'low' : 'high'),
-        label: inRange ? '正常' : (value < range.min ? '偏低' : '偏高'),
-        canJudge: true,
-        value: value,
-        range: range,
-        message: '0 是正常数值'
-      };
+    var num = Number(value);
+    var status = 'normal';
+    if (isFinite(num)) {
+      if (num < range.min) status = 'low';
+      else if (num > range.max) status = 'high';
     }
-    if (value < range.min) {
-      return { status: 'low', label: '偏低', canJudge: true, value: value, range: range, message: '低于有效参考范围' };
-    }
-    if (value > range.max) {
-      return { status: 'high', label: '偏高', canJudge: true, value: value, range: range, message: '高于有效参考范围' };
-    }
-    return { status: 'normal', label: '正常', canJudge: true, value: value, range: range, message: '在有效参考范围内' };
+    var messages = { low: '低于有效参考范围', high: '高于有效参考范围', normal: '在有效参考范围内' };
+    return {
+      status: status,
+      label: rangeLabels[status] || status,
+      canJudge: true,
+      value: value,
+      range: range,
+      message: messages[status] || ''
+    };
   }
 
   function getCurrentIndicatorsForReport(state, reportId) {
@@ -919,59 +896,6 @@
     if (report.reportSpecies) return report.reportSpecies;
     var pet = report.petId ? (state.pets || []).find(function (p) { return p.id === report.petId; }) : null;
     return pet ? pet.species : 'cat';
-  }
-
-  function ensureDemoCompletionScenario() {
-    var st = storeApi();
-    if (!st || !st.updateAnalysisState) return;
-    st.updateAnalysisState(function (state) {
-      ensureCatalog(state);
-      if (state.meta && state.meta[DEMO_COMPLETION_FLAG]) return;
-      var report = (state.reports || []).find(function (r) { return r.id === 'report-002'; });
-      if (!report) return;
-
-      (state.indicators || []).forEach(function (ind) {
-        if (ind.reportId !== 'report-002' || !ind.isCurrent) return;
-        if (ind.originalValue === undefined) ind.originalValue = ind.value;
-        if (!ind.originalDataStatus) ind.originalDataStatus = ind.dataStatus;
-        if (!ind.valueSource) ind.valueSource = 'import';
-
-        if (ind.key === '放线菌门') {
-          ind.importedRange = ind.importedRange || { min: 20, max: 35, unit: '%' };
-        }
-        if (ind.key === '厚壁菌门') {
-          ind.importedRange = ind.importedRange || null;
-        }
-      });
-
-      var unknown = (state.indicators || []).find(function (ind) {
-        return ind.reportId === 'report-002' && ind.isCurrent && ind.rawImportName === 'Novibacillus_sp';
-      });
-      if (!unknown) {
-        state.indicators.push({
-          id: uid('ind'),
-          testRecordId: report.testRecordId,
-          reportId: 'report-002',
-          key: 'Novibacillus_sp',
-          rawImportName: 'Novibacillus_sp',
-          pendingConfirm: true,
-          value: 2.4,
-          unit: '%',
-          dataStatus: 'PRESENT',
-          importedRange: { min: 1, max: 4, unit: '%' },
-          valueSource: 'import',
-          originalValue: 2.4,
-          originalDataStatus: 'PRESENT',
-          version: 1,
-          isCurrent: true,
-          correctedFrom: null,
-          createdAt: new Date().toISOString()
-        });
-      }
-
-      state.meta = state.meta || {};
-      state.meta[DEMO_COMPLETION_FLAG] = true;
-    });
   }
 
   function confirmPendingIndicator(params) {
@@ -989,49 +913,15 @@
           label: params.newLabel || ind.rawImportName || ind.key,
           value: params.newDescription || '',
           level: params.newLevel || 'genus',
-          parentKey: params.newParentKey || '厚壁菌门'
+          parentKey: params.newParentKey || 'Firmicutes'
         };
         catalog.microbiotaTaxa.push(taxon);
         linkedKey = taxon.key;
       }
       if (!linkedKey) throw new Error('must link or create catalog entry');
       ind.key = linkedKey;
-      ind.linkedCatalogKey = linkedKey;
       ind.pendingConfirm = false;
-      ind.valueSource = ind.valueSource || 'import';
       return ind;
-    });
-  }
-
-  function setIndicatorManualRange(indicatorId, range, reportVersion) {
-    return commitState(function (state) {
-      var ind = (state.indicators || []).find(function (i) { return i.id === indicatorId; });
-      if (!ind) throw new Error('indicator not found');
-      ind.manualRange = range;
-      ind.effectiveRange = freezeEffectiveRange(ind, {
-        min: range.min,
-        max: range.max,
-        unit: range.unit,
-        source: 'manual'
-      }, reportVersion);
-      return ind;
-    });
-  }
-
-  function freezeReportEffectiveRanges(reportId) {
-    return commitState(function (state) {
-      var report = (state.reports || []).find(function (r) { return r.id === reportId; });
-      if (!report) throw new Error('report not found');
-      var species = getReportSpecies(state, report);
-      var version = report.workingVersion || report.currentVersion || 1;
-      (state.indicators || []).forEach(function (ind) {
-        if (ind.reportId !== reportId || !ind.isCurrent || ind.effectiveRange) return;
-        var resolved = resolveEffectiveRangeForIndicator(ind, species, { respectFrozen: false });
-        if (resolved) {
-          ind.effectiveRange = freezeEffectiveRange(ind, resolved, version);
-        }
-      });
-      return report;
     });
   }
 
@@ -1039,42 +929,28 @@
     params = params || {};
     var st = storeApi();
     if (!st) return null;
-    if (params.indicatorId) {
-      return st.correctIndicator({
-        indicatorId: params.indicatorId,
+    var reason = params.reason || params.note || '人工补录/修订';
+    if (params.indicatorId || params.resultId) {
+      if (typeof st.modifyResultValue !== 'function') throw new Error('modifyResultValue unavailable');
+      return st.modifyResultValue({
+        reportId: params.reportId,
+        resultId: params.resultId || params.indicatorId,
         value: params.value,
-        dataStatus: params.dataStatus || 'PRESENT',
-        correctionNote: params.note || '人工补录/修订'
+        dataStatus: params.dataStatus,
+        labNotice: params.labNotice,
+        reason: reason,
+        actor: params.actor
       });
     }
-    return commitState(function (state) {
-      var row = {
-        id: uid('ind'),
-        testRecordId: params.testRecordId,
-        reportId: params.reportId,
-        key: params.key,
-        value: params.value,
-        unit: params.unit || '%',
-        dataStatus: params.dataStatus || 'PRESENT',
-        valueSource: 'manual',
-        originalValue: null,
-        originalDataStatus: 'MISSING_COLUMN',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: new Date().toISOString()
-      };
-      if (params.manualRange) {
-        row.manualRange = params.manualRange;
-        row.effectiveRange = freezeEffectiveRange(row, {
-          min: params.manualRange.min,
-          max: params.manualRange.max,
-          unit: params.manualRange.unit,
-          source: 'manual'
-        }, params.reportVersion);
-      }
-      state.indicators.push(row);
-      return row;
+    if (typeof st.supplementResult !== 'function') throw new Error('supplementResult unavailable');
+    return st.supplementResult({
+      reportId: params.reportId,
+      key: params.key,
+      value: params.value,
+      unit: params.unit,
+      labNotice: params.labNotice,
+      dataStatus: params.dataStatus,
+      reason: reason
     });
   }
 
@@ -1129,13 +1005,9 @@
     resolveStandardUnit: resolveStandardUnit,
     resolveEffectiveRangeForIndicator: resolveEffectiveRangeForIndicator,
     evaluateIndicatorResult: evaluateIndicatorResult,
-    freezeEffectiveRange: freezeEffectiveRange,
     getCurrentIndicatorsForReport: getCurrentIndicatorsForReport,
     getReportSpecies: getReportSpecies,
-    ensureDemoCompletionScenario: ensureDemoCompletionScenario,
     confirmPendingIndicator: confirmPendingIndicator,
-    setIndicatorManualRange: setIndicatorManualRange,
-    freezeReportEffectiveRanges: freezeReportEffectiveRanges,
     manualSupplementIndicator: manualSupplementIndicator,
     notifyCatalogUpdated: notifyCatalogUpdated,
     levelToLabel: levelToLabel,

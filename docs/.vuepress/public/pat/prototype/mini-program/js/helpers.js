@@ -4,7 +4,6 @@
 
   var CURRENT_USER_ID = 'user-001';
   var SELECTED_PET_KEY = 'pet-mini-selected-pet';
-  var CLAIM_INVALID_MSG = '该领取码已失效，请联系检测门店或运营人员';
 
   function stripDemo(text) {
     if (!text) return '';
@@ -58,14 +57,6 @@
 
   function findReport(id) {
     return getState().reports.find(function (r) { return r.id === id; }) || null;
-  }
-
-  function findFinding(id) {
-    return getState().findings.find(function (f) { return f.id === id; }) || null;
-  }
-
-  function findRecommendation(id) {
-    return getState().recommendations.find(function (r) { return r.id === id; }) || null;
   }
 
   function getProductById(productId) {
@@ -226,255 +217,71 @@
     return getPublishedReportContext(reportId) != null;
   }
 
-  function evaluateSnapshotIndicatorConclusion(ind) {
-    var status = ind.dataStatus === 'VALID' ? 'PRESENT' : ind.dataStatus;
-    if (status === 'NOT_DETECTED') {
-      return { dataStatus: 'NOT_DETECTED', conclusion: null };
-    }
-    if (isInvalidDataStatus(ind.dataStatus)) {
-      return { dataStatus: ind.dataStatus, conclusion: null };
-    }
-    if (!ind.effectiveRange || ind.value == null || ind.value === '') {
-      return { dataStatus: 'PRESENT', conclusion: null };
-    }
-    var num = Number(ind.value);
-    if (num < ind.effectiveRange.min) {
-      return { dataStatus: 'PRESENT', conclusion: 'LOW' };
-    }
-    if (num > ind.effectiveRange.max) {
-      return { dataStatus: 'PRESENT', conclusion: 'HIGH' };
-    }
-    return { dataStatus: 'PRESENT', conclusion: 'NORMAL' };
-  }
-
-  function buildFindingsFromSnapshot(snapshot, reportId, verNum) {
-    if (snapshot.findings && snapshot.findings.length) {
-      return snapshot.findings.map(function (f) {
-        return Object.assign({}, f);
-      });
-    }
-
-    var findings = [];
-    var recs = snapshot.recommendations || [];
-    var analysis = snapshot.analysis && snapshot.analysis.finalContent || {};
-    var liveById = {};
-    getState().findings.forEach(function (f) {
-      if (f.reportId === reportId && f.reportVersion === verNum) liveById[f.id] = f;
-    });
-
-    recs.forEach(function (frec) {
-      if (!frec.findingId) return;
-      var live = liveById[frec.findingId];
-      if (live) {
-        findings.push(Object.assign({}, live));
-        return;
-      }
-      var rel = frec.relation || {};
-      findings.push({
-        id: frec.findingId,
-        reportId: reportId,
-        reportVersion: verNum,
-        indicatorKey: rel.indicatorKey || '综合',
-        conclusion: null,
-        dataStatus: 'PRESENT',
-        description: rel.reason || rel.label || '',
-        professional: rel.reason || '',
-        consumer: rel.label || ''
-      });
-    });
-
-    (snapshot.indicators || []).forEach(function (ind) {
-      if (findings.some(function (f) { return f.indicatorKey === ind.key; })) return;
-      var evalResult = evaluateSnapshotIndicatorConclusion(ind);
-      if (evalResult.dataStatus !== 'NOT_DETECTED' &&
-          evalResult.conclusion !== 'LOW' &&
-          evalResult.conclusion !== 'HIGH' &&
-          evalResult.conclusion !== 'ABNORMAL') {
-        return;
-      }
-      findings.push({
-        id: 'snap-' + ind.key,
-        reportId: reportId,
-        reportVersion: verNum,
-        indicatorKey: ind.key,
-        conclusion: evalResult.conclusion,
-        dataStatus: evalResult.dataStatus,
-        description: analysis.professional || '',
-        professional: analysis.professional || '',
-        consumer: analysis.consumer || ''
-      });
-    });
-
-    return findings;
-  }
-
-  function getReportIndicators(reportId, version) {
+  function publishedSnapshot(reportId) {
     var ctx = getPublishedReportContext(reportId);
-    if (ctx && ctx.snapshot && ctx.snapshot.indicators) {
-      return ctx.snapshot.indicators.map(function (ind) {
-        return Object.assign({ reportId: reportId }, ind);
+    return ctx && ctx.snapshot ? ctx.snapshot : null;
+  }
+
+  function getReportResults(reportId) {
+    var snap = publishedSnapshot(reportId);
+    if (snap && Array.isArray(snap.results)) {
+      return snap.results.map(function (row) {
+        return Object.assign({ reportId: reportId }, row);
       });
     }
-
-    var state = getState();
-    var report = findReport(reportId);
-    if (!report) return [];
-    var ver = version;
-    if (ver == null) {
-      ver = ctx ? ctx.verNum : report.currentVersion;
+    var store = getStore();
+    if (store && typeof store.getEffectiveResults === 'function') {
+      return store.getEffectiveResults(reportId) || [];
     }
-    var relevant = state.indicators.filter(function (ind) {
-      return ind.reportId === reportId && ind.version <= ver;
-    });
-    var byKey = {};
-    relevant.forEach(function (ind) {
-      if (!byKey[ind.key] || byKey[ind.key].version < ind.version) {
-        byKey[ind.key] = ind;
-      }
-    });
-    return Object.keys(byKey).map(function (k) { return byKey[k]; });
+    return [];
   }
 
-  function getReportFindings(reportId, version) {
-    var ctx = getPublishedReportContext(reportId);
-    if (ctx && ctx.snapshot) {
-      return buildFindingsFromSnapshot(ctx.snapshot, reportId, ctx.verNum);
+  function getPhylumUnitsForReport(reportId) {
+    var snap = publishedSnapshot(reportId);
+    if (snap && Array.isArray(snap.phylumUnits)) {
+      return snap.phylumUnits.slice();
     }
-
-    var ver = version;
-    if (ver == null && ctx) ver = ctx.verNum;
-    return getState().findings.filter(function (f) {
-      if (f.reportId !== reportId) return false;
-      if (ver != null && f.reportVersion !== ver) return false;
-      return true;
-    });
-  }
-
-  function mapFrozenRecommendation(frozen, reportId) {
-    var rel = frozen.relation || {};
-    return {
-      id: frozen.id,
-      findingId: frozen.findingId,
-      reportId: reportId,
-      targetType: rel.targetType,
-      primaryProductId: rel.primaryProductId,
-      productId: rel.primaryProductId,
-      healthTagIds: (rel.healthTagIds || []).slice(),
-      label: rel.label,
-      reason: rel.reason,
-      relation: rel,
-      resolution: frozen.resolution || null,
-      frozen: frozen
-    };
-  }
-
-  function mapLiveRecommendation(rec) {
-    var primaryProductId = rec.primaryProductId || rec.productId || null;
-    var relatedProductIds = (rec.relatedProductIds || []).slice();
-    return {
-      id: rec.id,
-      findingId: rec.findingId,
-      reportId: rec.reportId,
-      targetType: rec.targetType || 'PRODUCT',
-      primaryProductId: primaryProductId,
-      productId: primaryProductId,
-      relatedProductIds: relatedProductIds,
-      healthTagIds: (rec.healthTagIds || []).slice(),
-      label: rec.label,
-      reason: rec.reason,
-      relation: {
-        targetType: rec.targetType || 'PRODUCT',
-        primaryProductId: primaryProductId,
-        relatedProductIds: relatedProductIds,
-        healthTagIds: (rec.healthTagIds || []).slice(),
-        label: rec.label,
-        reason: rec.reason
-      }
-    };
-  }
-
-  function getReportRecommendations(reportId) {
-    if (!canUserAccessPublishedReport(reportId)) return [];
-    return getState().recommendations
-      .filter(function (r) { return r.reportId === reportId; })
-      .map(mapLiveRecommendation);
-  }
-
-  function getFrozenRecommendation(rec) {
-    if (!rec) return null;
-    var reportId = rec.reportId || (rec.frozen && rec.reportId);
-    if (!reportId && rec.id) {
-      var live = findRecommendation(rec.id);
-      reportId = live ? live.reportId : null;
+    var store = getStore();
+    if (store && typeof store.getPhylumUnits === 'function') {
+      return store.getPhylumUnits(reportId) || [];
     }
-    if (!reportId) return null;
-    var ctx = getPublishedReportContext(reportId);
-    if (!ctx || !ctx.snapshot) return null;
-    var id = rec.id || rec;
-    return (ctx.snapshot.recommendations || []).find(function (r) { return r.id === id; }) || null;
+    return [];
   }
 
-  function getFrozenRecommendationRelation(rec) {
-    var frozen = getFrozenRecommendation(rec);
-    return frozen && frozen.relation ? frozen.relation : null;
+  function getPhylumUnit(reportId, phylumKey) {
+    if (!phylumKey) return null;
+    return getPhylumUnitsForReport(reportId).find(function (unit) {
+      return unit.phylumKey === phylumKey;
+    }) || null;
   }
 
-  function findReportFinding(reportId, findingId) {
-    return getReportFindings(reportId).find(function (f) { return f.id === findingId; }) || null;
-  }
-
-  function getFindingRecommendation(findingId) {
-    var live = findFinding(findingId);
-    var reportId = live ? live.reportId : null;
-    if (!reportId) {
-      getState().reports.forEach(function (report) {
-        if (!reportId && canUserAccessPublishedReport(report.id)) {
-          var match = getReportRecommendations(report.id).find(function (r) { return r.findingId === findingId; });
-          if (match) reportId = report.id;
-        }
-      });
+  function hasAnyEffectiveRange(reportId) {
+    var snap = publishedSnapshot(reportId);
+    if (snap && snap.hasAnyEffectiveRange != null) {
+      return !!snap.hasAnyEffectiveRange;
     }
-    if (!reportId) return null;
-    return getReportRecommendations(reportId).find(function (r) { return r.findingId === findingId; }) || null;
-  }
-
-  function getPendingClaimCodes() {
-    return getState().claimCodes.filter(function (c) { return c.status === 'pending'; });
-  }
-
-  function previewClaimCode(code) {
-    if (!code) return null;
-    var state = getState();
-    var claim = state.claimCodes.find(function (c) {
-      return String(c.code).toUpperCase() === String(code).trim().toUpperCase() && c.status === 'pending';
-    });
-    if (!claim) return null;
-    var pet = claim.petId ? findPet(claim.petId) : null;
-    var testRecord = claim.testRecordId ? findTestRecord(claim.testRecordId) : null;
-    var report = testRecord
-      ? state.reports.find(function (r) { return r.testRecordId === testRecord.id; })
-      : null;
-    return {
-      code: claim.code,
-      claim: claim,
-      pet: pet,
-      testRecord: testRecord,
-      report: report,
-      petName: pet ? stripDemo(pet.name) : '—',
-      title: getCardTitle(report, testRecord),
-      testDate: getCardTestDate(report, testRecord)
-    };
-  }
-
-  function bindClaimCodeForUser(code) {
-    try {
-      return getStore().bindClaimCode({
-        code: code,
-        userId: CURRENT_USER_ID
-      });
-    } catch (err) {
-      throw new Error(CLAIM_INVALID_MSG);
+    var store = getStore();
+    if (store && typeof store.hasAnyEffectiveRange === 'function') {
+      return !!store.hasAnyEffectiveRange(reportId);
     }
+    return false;
+  }
+
+  function resultNumericValue(result) {
+    if (!result) return null;
+    if (result.effectiveValue != null && result.effectiveValue !== '') return result.effectiveValue;
+    if (result.value != null && result.value !== '') return result.value;
+    return null;
+  }
+
+  function unitPublishedAnalysis(unit) {
+    if (!unit || unit.confirmStatus !== 'confirmed') return '';
+    return stripDemo(unit.analysis || unit.analysisDraft || '');
+  }
+
+  function unitPublishedAdvice(unit) {
+    if (!unit) return '';
+    return stripDemo(unit.advice || unit.adviceDraft || '');
   }
 
   function formatDate(isoOrDate) {
@@ -530,23 +337,6 @@
     return map[normalized] || normalized;
   }
 
-  function canRecommend(status) {
-    var normalized = status === 'VALID' ? 'PRESENT' : status;
-    return normalized === 'PRESENT';
-  }
-
-  function conclusionLabel(conclusion) {
-    var map = { LOW: '偏低', HIGH: '偏高', NORMAL: '正常', ABNORMAL: '异常' };
-    return map[conclusion] || conclusion || '—';
-  }
-
-  function conclusionClass(conclusion) {
-    if (conclusion === 'LOW') return 'status-low';
-    if (conclusion === 'HIGH') return 'status-high';
-    if (conclusion === 'NORMAL') return 'status-normal';
-    return 'status-muted';
-  }
-
   var THEME_CONFIG = {
     A: { key: 'rainforest', name: '雨林', sceneClass: 'theme-A', icon: 'fa-cloud-rain' },
     B: { key: 'forest', name: '森林', sceneClass: 'theme-B', icon: 'fa-tree' },
@@ -585,6 +375,8 @@
   }
 
   function getReportSpecies(reportId) {
+    var ctx = getPublishedReportContext(reportId);
+    if (ctx && ctx.snapshot && ctx.snapshot.reportSpecies) return ctx.snapshot.reportSpecies;
     var report = findReport(reportId);
     if (!report) return 'cat';
     if (report.reportSpecies) return report.reportSpecies;
@@ -607,34 +399,14 @@
     return null;
   }
 
-  function resolveIndicatorRange(indicator, species) {
-    if (!indicator) return null;
-    var store = getStore();
-    if (store && typeof store.resolveEffectiveRangeForIndicator === 'function') {
-      return store.resolveEffectiveRangeForIndicator(indicator, species);
-    }
-    if (indicator.effectiveRange) {
+  function resolveIndicatorRange(result) {
+    if (!result) return null;
+    if (result.range && result.range.min != null && result.range.max != null) {
       return {
-        min: indicator.effectiveRange.min,
-        max: indicator.effectiveRange.max,
-        unit: indicator.effectiveRange.unit,
-        source: indicator.effectiveRange.source || 'frozen'
-      };
-    }
-    if (indicator.manualRange) {
-      return {
-        min: indicator.manualRange.min,
-        max: indicator.manualRange.max,
-        unit: indicator.manualRange.unit,
-        source: 'manual'
-      };
-    }
-    if (indicator.importedRange && indicator.importedRange.min != null && indicator.importedRange.max != null) {
-      return {
-        min: indicator.importedRange.min,
-        max: indicator.importedRange.max,
-        unit: indicator.importedRange.unit || indicator.unit,
-        source: 'imported'
+        min: result.range.min,
+        max: result.range.max,
+        unit: result.range.unit || result.unit || '',
+        source: result.rangeSource || 'none'
       };
     }
     return null;
@@ -645,19 +417,22 @@
     return range.min + '–' + range.max + (range.unit || '');
   }
 
-  function formatIndicatorValue(indicator) {
-    if (!indicator) return null;
-    var status = indicator.dataStatus === 'VALID' ? 'PRESENT' : indicator.dataStatus;
-    if (status === 'NOT_DETECTED') return '未检出';
-    if (isInvalidDataStatus(indicator.dataStatus)) return null;
-    if (indicator.value == null || indicator.value === '') return null;
-    return String(indicator.value) + (indicator.unit || '');
+  function labNoticeLabel(notice) {
+    var store = getStore();
+    var labels = store && store.LAB_NOTICE_LABELS
+      ? store.LAB_NOTICE_LABELS
+      : { high: '实验室标注偏高', low: '实验室标注偏低', unmarked: '未标注' };
+    if (!notice) return labels.unmarked || '未标注';
+    return labels[notice] || notice;
   }
 
-  function evaluateIndicatorPresentation(indicator, finding, species) {
-    var status = indicator.dataStatus === 'VALID' ? 'PRESENT' : indicator.dataStatus;
-    var range = resolveIndicatorRange(indicator, species);
-    var rangeText = formatRangeText(range);
+  function evaluateIndicatorPresentation(result) {
+    result = result || {};
+    var status = result.dataStatus === 'VALID' ? 'PRESENT' : result.dataStatus;
+    var range = resolveIndicatorRange(result);
+    var rangeStatus = result.rangeStatus;
+    var rangeText = rangeStatus === 'no_range' ? null : formatRangeText(range);
+    var raw = resultNumericValue(result);
 
     if (status === 'NOT_DETECTED') {
       return {
@@ -669,17 +444,17 @@
         showValue: true
       };
     }
-    if (isInvalidDataStatus(indicator.dataStatus)) {
+    if (isInvalidDataStatus(result.dataStatus)) {
       return {
         valueText: null,
         rangeText: rangeText,
-        statusText: dataStatusLabel(indicator.dataStatus),
+        statusText: dataStatusLabel(result.dataStatus),
         statusClass: 'status-invalid',
         canJudge: false,
         showValue: false
       };
     }
-    if (indicator.value == null || indicator.value === '') {
+    if (raw == null || raw === '') {
       return {
         valueText: null,
         rangeText: rangeText,
@@ -690,8 +465,8 @@
       };
     }
 
-    var valueText = String(indicator.value) + (indicator.unit || '');
-    if (!range) {
+    var valueText = String(raw) + (result.unit || '');
+    if (rangeStatus === 'no_range' || (rangeStatus == null && !range)) {
       return {
         valueText: valueText,
         rangeText: null,
@@ -701,20 +476,7 @@
         showValue: true
       };
     }
-
-    if (finding && finding.conclusion && finding.dataStatus !== 'NOT_DETECTED') {
-      return {
-        valueText: valueText,
-        rangeText: rangeText,
-        statusText: conclusionLabel(finding.conclusion),
-        statusClass: conclusionClass(finding.conclusion),
-        canJudge: true,
-        showValue: true
-      };
-    }
-
-    var num = Number(indicator.value);
-    if (num < range.min) {
+    if (rangeStatus === 'low') {
       return {
         valueText: valueText,
         rangeText: rangeText,
@@ -724,7 +486,7 @@
         showValue: true
       };
     }
-    if (num > range.max) {
+    if (rangeStatus === 'high') {
       return {
         valueText: valueText,
         rangeText: rangeText,
@@ -734,71 +496,72 @@
         showValue: true
       };
     }
+    if (rangeStatus === 'normal') {
+      return {
+        valueText: valueText,
+        rangeText: rangeText,
+        statusText: '正常',
+        statusClass: 'status-normal',
+        canJudge: true,
+        showValue: true
+      };
+    }
     return {
       valueText: valueText,
       rangeText: rangeText,
-      statusText: '正常',
-      statusClass: 'status-normal',
-      canJudge: true,
+      statusText: '无有效值',
+      statusClass: 'status-muted',
+      canJudge: false,
       showValue: true
     };
   }
 
-  function indicatorDisplayStatus(indicator, finding, species) {
-    var pres = evaluateIndicatorPresentation(indicator, finding, species || 'cat');
-    return { text: pres.statusText, className: pres.statusClass };
-  }
-
-  function isMicrobiotaIndicator(indicator) {
-    var entry = findCatalogEntryByKey(indicator.key);
+  function isMicrobiotaIndicator(result) {
+    var entry = findCatalogEntryByKey(result.key);
     return entry && entry.type === 'microbiota';
   }
 
-  function partitionReportIndicators(reportId, version) {
-    var indicators = getReportIndicators(reportId, version);
+  function partitionReportIndicators(reportId) {
+    var results = getReportResults(reportId);
     var regular = [];
     var microbiota = [];
-    indicators.forEach(function (ind) {
-      if (isMicrobiotaIndicator(ind)) microbiota.push(ind);
-      else regular.push(ind);
+    results.forEach(function (row) {
+      if (isMicrobiotaIndicator(row)) microbiota.push(row);
+      else regular.push(row);
     });
     return { regular: regular, microbiota: microbiota };
   }
 
-  function buildMicrobiotaTree(reportId, version) {
+  function buildMicrobiotaTree(reportId) {
     var catalog = getProfessionalCatalog();
-    var indicators = getReportIndicators(reportId, version);
-    var findings = getReportFindings(reportId, version);
-    var species = getReportSpecies(reportId);
-    var indicatorByKey = {};
-    indicators.forEach(function (ind) { indicatorByKey[ind.key] = ind; });
+    var results = getReportResults(reportId);
+    var resultByKey = {};
+    results.forEach(function (row) { resultByKey[row.key] = row; });
 
     var phyla = (catalog.microbiotaTaxa || []).filter(function (t) { return t.level === 'phylum'; });
     var genera = (catalog.microbiotaTaxa || []).filter(function (t) { return t.level === 'genus'; });
 
     return phyla.map(function (phylum) {
-      var ind = indicatorByKey[phylum.key];
-      var finding = findings.find(function (f) { return f.indicatorKey === phylum.key; });
+      var ind = resultByKey[phylum.key];
+      var unit = getPhylumUnit(reportId, phylum.key);
       var hasResult = !!ind && (ind.dataStatus === 'NOT_DETECTED' || !isInvalidDataStatus(ind.dataStatus));
       var children = genera.filter(function (g) { return g.parentKey === phylum.key; }).map(function (genus) {
-        var gInd = indicatorByKey[genus.key];
-        var gFinding = findings.find(function (f) { return f.indicatorKey === genus.key; });
+        var gInd = resultByKey[genus.key];
         var gHasResult = !!gInd && (gInd.dataStatus === 'NOT_DETECTED' || !isInvalidDataStatus(gInd.dataStatus));
         return {
           taxon: genus,
           indicator: gInd || null,
-          finding: gFinding || null,
           hasResult: gHasResult,
-          presentation: gInd ? evaluateIndicatorPresentation(gInd, gFinding, species) : null
+          presentation: gInd ? evaluateIndicatorPresentation(gInd) : null
         };
       });
       var genusResults = children.filter(function (c) { return c.hasResult; });
       return {
         taxon: phylum,
         indicator: ind || null,
-        finding: finding || null,
+        unit: unit || null,
         hasResult: hasResult,
-        presentation: ind ? evaluateIndicatorPresentation(ind, finding, species) : null,
+        presentation: ind ? evaluateIndicatorPresentation(ind) : null,
         children: children,
         genusResults: genusResults,
         knowledgeOnly: genusResults.length === 0 && children.length > 0
@@ -902,9 +665,7 @@
       mainTasks: [],
       appearanceText: '',
       functionText: '',
-      lowHint: '',
-      normalHint: '',
-      highHint: '',
+      hint: '',
       knowledgeText: ''
     };
   }
@@ -917,7 +678,7 @@
     return localEmptyTaxonEdu();
   }
 
-  function normalizeTaxonEdu(edu) {
+  function normalizeEduForDisplay(edu) {
     var store = getStore();
     if (store && typeof store.normalizeTaxonEdu === 'function') {
       return store.normalizeTaxonEdu(edu);
@@ -935,9 +696,7 @@
     out.introText = pick(edu.introText);
     out.appearanceText = pick(edu.appearanceText, edu.appearance);
     out.functionText = pick(edu.functionText);
-    out.lowHint = pick(edu.lowHint, edu.tooLowHint);
-    out.normalHint = pick(edu.normalHint);
-    out.highHint = pick(edu.highHint, edu.tooHighHint);
+    out.hint = pick(edu.hint);
     out.knowledgeText = pick(edu.knowledgeText);
     if (Array.isArray(edu.mainTasks)) {
       edu.mainTasks.forEach(function (task) {
@@ -949,14 +708,13 @@
     return out;
   }
 
-  function resolveTaxonNodeHint(edu, statusClass) {
-    if (!edu || !statusClass) return '';
-    var key = statusClass === 'status-low' ? 'lowHint'
-      : statusClass === 'status-normal' ? 'normalHint'
-      : statusClass === 'status-high' ? 'highHint'
-      : null;
-    if (!key) return '';
-    var hint = edu[key];
+  function normalizeTaxonEdu(edu) {
+    return normalizeEduForDisplay(edu);
+  }
+
+  function resolveTaxonNodeHint(edu) {
+    if (!edu) return '';
+    var hint = edu.hint;
     return hint ? String(hint).trim() : '';
   }
 
@@ -968,7 +726,7 @@
     return {
       taxon: taxon,
       latinName: taxon.latinName ? String(taxon.latinName) : '',
-      edu: normalizeTaxonEdu(taxon.edu)
+      edu: normalizeEduForDisplay(taxon.edu)
     };
   }
 
@@ -1069,121 +827,79 @@
     return edu.functionText || edu.knowledgeText || null;
   }
 
-  function findFindingByIndicator(reportId, version, indicatorKey) {
-    return getReportFindings(reportId, version).find(function (f) {
-      return f.indicatorKey === indicatorKey;
-    }) || null;
-  }
-
-  function shouldShowIndicator(indicator) {
-    if (!indicator) return false;
-    var status = indicator.dataStatus === 'VALID' ? 'PRESENT' : indicator.dataStatus;
+  function shouldShowIndicator(result) {
+    if (!result) return false;
+    var status = result.dataStatus === 'VALID' ? 'PRESENT' : result.dataStatus;
     if (status === 'NOT_DETECTED') return true;
-    if (isInvalidDataStatus(indicator.dataStatus)) return false;
+    if (isInvalidDataStatus(result.dataStatus)) return false;
     return true;
   }
 
   function getIndicatorDetailContext(reportId, indicatorKey) {
     var ctx = getPublishedReportContext(reportId);
     if (!ctx) return null;
-    var indicators = getReportIndicators(reportId, ctx.verNum);
-    var indicator = indicators.find(function (i) { return i.key === indicatorKey; });
-    if (!indicator) return null;
-    var finding = findFindingByIndicator(reportId, ctx.verNum, indicatorKey);
-    var species = getReportSpecies(reportId);
+    var results = getReportResults(reportId);
+    var result = results.find(function (row) { return row.key === indicatorKey; });
+    if (!result) return null;
     return {
       report: ctx.report,
       version: ctx.version,
       verNum: ctx.verNum,
-      indicator: indicator,
-      finding: finding,
-      species: species,
-      presentation: evaluateIndicatorPresentation(indicator, finding, species),
+      indicator: result,
+      species: getReportSpecies(reportId),
+      presentation: evaluateIndicatorPresentation(result),
       knowledge: getTaxonKnowledge(indicatorKey),
       label: getIndicatorLabel(indicatorKey),
       entry: findCatalogEntryByKey(indicatorKey)
     };
   }
 
-  function isProductOnSale(product) {
-    if (!product) return false;
-    if (!product.available) return false;
-    var stock = product.stock != null ? product.stock : 1;
-    return stock > 0;
+  function availabilityStatusClass(status) {
+    if (status === 'on_sale') return 'status-normal';
+    if (status === 'off_shelf') return 'badge-danger';
+    if (status === 'zero_stock') return 'badge-warn';
+    return 'badge-muted';
   }
 
-  function resolveRelatedProducts(rec) {
-    var ids = (rec.relatedProductIds || []).slice();
-    if (!ids.length && rec.relation && rec.relation.relatedProductIds) {
-      ids = (rec.relation.relatedProductIds || []).slice();
-    }
-    return ids.map(function (productId) {
+  function resolveUnitProductDisplay(unit) {
+    if (!unit || !unit.primaryProductId) {
       return {
-        productId: productId,
-        product: getProductById(productId)
+        primaryProductId: null,
+        primaryProduct: null,
+        isPrimaryOnSale: false,
+        availability: null,
+        label: '',
+        statusClass: 'badge-muted'
       };
-    });
-  }
-
-  function resolveRecDisplay(rec) {
+    }
     var store = getStore();
-    var primaryProductId = rec.primaryProductId || rec.productId || null;
-    if (!primaryProductId && rec.relation) {
-      primaryProductId = rec.relation.primaryProductId || rec.relation.productId || null;
-    }
-
-    var relatedProductIds = (rec.relatedProductIds || []).slice();
-    if (!relatedProductIds.length && rec.relation && rec.relation.relatedProductIds) {
-      relatedProductIds = (rec.relation.relatedProductIds || []).slice();
-    }
-
-    var primaryProduct = primaryProductId ? getProductById(primaryProductId) : null;
-    var relatedProducts = resolveRelatedProducts(rec);
-
-    var resolved = store.resolveRecommendationTarget({
-      targetType: 'PRODUCT',
-      primaryProductId: primaryProductId,
-      productId: primaryProductId,
-      relatedProductIds: relatedProductIds,
-      healthTagIds: rec.healthTagIds || (rec.relation && rec.relation.healthTagIds) || []
-    });
-
-    var adviceText = stripDemo(rec.label || (rec.relation && rec.relation.label) || '');
-    var reasonText = stripDemo(rec.reason || (rec.relation && rec.relation.reason) || '');
-    if (!adviceText && reasonText) adviceText = reasonText;
-
-    var availability = 'NO_CANDIDATES';
-    if (primaryProduct) {
-      if (isProductOnSale(primaryProduct)) {
-        availability = 'AVAILABLE';
-      } else if (!primaryProduct.available) {
-        availability = 'UNAVAILABLE';
-      } else {
-        availability = 'ZERO_STOCK';
-      }
-    } else if (primaryProductId) {
-      availability = resolved.availability || 'UNAVAILABLE';
-    }
-
+    var resolved = store && typeof store.resolveProductAvailability === 'function'
+      ? store.resolveProductAvailability(unit.primaryProductId)
+      : {
+        productId: unit.primaryProductId,
+        product: getProductById(unit.primaryProductId),
+        status: null,
+        available: false,
+        label: ''
+      };
+    var product = resolved.product || getProductById(unit.primaryProductId);
     return {
-      primaryProductId: primaryProductId,
-      primaryProduct: primaryProduct,
-      relatedProductIds: relatedProductIds,
-      relatedProducts: relatedProducts,
-      isPrimaryOnSale: isProductOnSale(primaryProduct),
-      availability: availability,
-      label: adviceText || stripDemo(resolved.label),
-      reason: reasonText
+      primaryProductId: unit.primaryProductId,
+      primaryProduct: product || null,
+      isPrimaryOnSale: !!resolved.available,
+      availability: resolved.status || null,
+      label: resolved.label || '',
+      statusClass: availabilityStatusClass(resolved.status)
     };
-  }
-
-  function hasProductRecommendation(rec) {
-    var display = resolveRecDisplay(rec);
-    return !!(display.primaryProductId || display.primaryProduct);
   }
 
   function productStatusLabel(product) {
     if (!product) return '—';
+    var store = getStore();
+    if (store && typeof store.resolveProductAvailability === 'function') {
+      var resolved = store.resolveProductAvailability(product.id);
+      if (resolved && resolved.label) return resolved.label;
+    }
     if (!product.available) return '已下架';
     var stock = product.stock != null ? product.stock : 1;
     if (stock <= 0) return '零库存';
@@ -1192,6 +908,10 @@
 
   function productStatusClass(product) {
     if (!product) return 'badge-muted';
+    var store = getStore();
+    if (store && typeof store.resolveProductAvailability === 'function') {
+      return availabilityStatusClass(store.resolveProductAvailability(product.id).status);
+    }
     if (!product.available) return 'badge-danger';
     var stock = product.stock != null ? product.stock : 1;
     if (stock <= 0) return 'badge-warn';
@@ -1213,7 +933,6 @@
 
   root.PetMiniHelpers = {
     CURRENT_USER_ID: CURRENT_USER_ID,
-    CLAIM_INVALID_MSG: CLAIM_INVALID_MSG,
     stripDemo: stripDemo,
     getStore: getStore,
     getState: getState,
@@ -1225,41 +944,28 @@
     findStore: findStore,
     findTestRecord: findTestRecord,
     findReport: findReport,
-    findFinding: findFinding,
-    findRecommendation: findRecommendation,
     getProductById: getProductById,
     getUserVisibleCards: getUserVisibleCards,
     countVisibleReportsForPet: countVisibleReportsForPet,
     getPublishedReportContext: getPublishedReportContext,
     canUserAccessPublishedReport: canUserAccessPublishedReport,
-    getReportIndicators: getReportIndicators,
-    getReportFindings: getReportFindings,
-    getReportRecommendations: getReportRecommendations,
-    getFindingRecommendation: getFindingRecommendation,
-    getPendingClaimCodes: getPendingClaimCodes,
-    previewClaimCode: previewClaimCode,
-    bindClaimCodeForUser: bindClaimCodeForUser,
+    getReportResults: getReportResults,
+    getPhylumUnit: getPhylumUnit,
+    getPhylumUnitsForReport: getPhylumUnitsForReport,
+    hasAnyEffectiveRange: hasAnyEffectiveRange,
+    resultNumericValue: resultNumericValue,
+    unitPublishedAnalysis: unitPublishedAnalysis,
+    unitPublishedAdvice: unitPublishedAdvice,
     formatDate: formatDate,
     formatDateTime: formatDateTime,
     petSpeciesIcon: petSpeciesIcon,
     genderLabel: genderLabel,
     userStatusLabel: userStatusLabel,
     isInvalidDataStatus: isInvalidDataStatus,
-    canRecommend: canRecommend,
     dataStatusLabel: dataStatusLabel,
-    conclusionLabel: conclusionLabel,
-    conclusionClass: conclusionClass,
-    formatIndicatorValue: formatIndicatorValue,
-    indicatorDisplayStatus: indicatorDisplayStatus,
-    resolveRecDisplay: resolveRecDisplay,
-    resolveRelatedProducts: resolveRelatedProducts,
-    isProductOnSale: isProductOnSale,
-    getFrozenRecommendationRelation: getFrozenRecommendationRelation,
-    getFrozenRecommendation: getFrozenRecommendation,
-    findReportFinding: findReportFinding,
+    labNoticeLabel: labNoticeLabel,
     productStatusLabel: productStatusLabel,
     productStatusClass: productStatusClass,
-    hasProductRecommendation: hasProductRecommendation,
     countUserStats: countUserStats,
     getProfessionalCatalog: getProfessionalCatalog,
     getThemeConfig: getThemeConfig,
@@ -1277,6 +983,7 @@
     escapeHtml: escapeHtml,
     emptyTaxonEdu: emptyTaxonEdu,
     normalizeTaxonEdu: normalizeTaxonEdu,
+    normalizeEduForDisplay: normalizeEduForDisplay,
     resolveTaxonNodeHint: resolveTaxonNodeHint,
     getTaxonEdu: getTaxonEdu,
     getMicrobiotaPresentation: getMicrobiotaPresentation,
@@ -1285,8 +992,8 @@
     listChildGenera: listChildGenera,
     fillEduTokens: fillEduTokens,
     getTaxonKnowledge: getTaxonKnowledge,
-    findFindingByIndicator: findFindingByIndicator,
     shouldShowIndicator: shouldShowIndicator,
-    getIndicatorDetailContext: getIndicatorDetailContext
+    getIndicatorDetailContext: getIndicatorDetailContext,
+    resolveUnitProductDisplay: resolveUnitProductDisplay
   };
 })(window);

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  window.__PET_ADMIN_ASSET_VERSION = '202508287';
+  window.__PET_ADMIN_ASSET_VERSION = '202609021';
   var C = window.PetAdminCommon;
   var navItems = document.querySelectorAll('#main-nav .nav-item');
   var pageContentContainer = document.getElementById('page-content-container');
@@ -68,20 +68,19 @@ document.addEventListener('DOMContentLoaded', function () {
   var DEFAULT_PAGE = 'report-center';
 
   var DEPRECATED_PAGES = {
+    dashboard: 'report-center',
+    'excel-import': 'detection-records',
+    'published-reports': 'report-center',
     'pet-report-management': 'report-center',
     'recommendation-mapping': 'report-center'
   };
 
   var PAGE_CONFIG = {
     'report-center': { title: '报告中心', script: 'report-center-script.js', init: 'initReportCenter' },
-    dashboard: { title: '工作台', script: 'dashboard-script.js', init: 'initDashboard' },
     'detection-records': { title: '送检管理', script: 'detection-records-script.js', init: 'initDetectionRecords' },
-    'excel-import': { title: 'Excel 导入结果', script: 'excel-import-script.js', init: 'initExcelImport' },
     'report-review': { title: '报告工作台', script: 'report-review-script.js', init: 'initReportReview' },
-    'published-reports': { title: '已发布报告', script: 'published-reports-script.js', init: 'initPublishedReports' },
     'customer-management': { title: '客户管理', script: 'customer-management-script.js', init: 'initCustomerManagement' },
     'pet-information': { title: '宠物档案', script: 'pet-information-script.js', init: 'initPetInformation' },
-    'pet-report-management': { title: '萌宠报告', script: 'pet-report-management-script.js', init: 'initPetReportManagement' },
     'analysis-rules': { title: '分析规则', script: 'analysis-rules-script.js', init: 'initAnalysisRules' },
     'dictionary-management': { title: '字典管理', script: 'dictionary-management-script.js', init: 'initDictionaryManagement' },
     'normal-range-config': { title: '指标/参考范围', script: 'normal-range-config-script.js', init: 'initNormalRangeConfig' },
@@ -136,7 +135,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function resolvePageId(pageId) {
-    if (!pageId || pageId === 'dashboard') return DEFAULT_PAGE;
+    if (!pageId) return DEFAULT_PAGE;
     if (DEPRECATED_PAGES[pageId]) return DEPRECATED_PAGES[pageId];
     return PAGE_CONFIG[pageId] ? pageId : DEFAULT_PAGE;
   }
@@ -226,7 +225,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var raw = rawHash() || DEFAULT_PAGE;
     if (raw === lastLoadedHash) return;
     var route = C.parseRoute();
-    loadPage(resolvePageId(route.pageId), false);
+    var resolved = resolvePageId(route.pageId);
+    loadPage(resolved, resolved !== route.pageId);
   }
 
   window.addEventListener('hashchange', handleRoute);

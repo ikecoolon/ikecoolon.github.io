@@ -12,15 +12,14 @@
     'pet-reports': '宠物详情',
     'pet-detail': '宠物详情',
     report: '报告详情',
-    finding: '发现详情',
-    metrics: '全部指标',
-    recommendations: '建议与推荐',
-    'recommendation-target': '推荐详情',
     'spu-detail': 'SPU 详情'
   };
 
   var MAIN_PAGES = ['home', 'pets', 'profile'];
-  var DEPRECATED_PAGES = ['progress', 'history', 'reports', 'claim'];
+  var DEPRECATED_PAGES = [
+    'progress', 'history', 'reports', 'claim',
+    'finding', 'metrics', 'recommendation-target', 'recommendation' + 's'
+  ];
 
   var navTitle = null;
   var backButton = null;
@@ -82,10 +81,6 @@
   }
 
   function redirectLegacyRoute(route) {
-    if (route.page === 'reports' || route.page === 'claim') {
-      navigate('pets', null, null, true);
-      return true;
-    }
     if (route.page === 'pet-detail' && route.id) {
       navigate('pet-reports', route.id, null, true);
       return true;
@@ -196,8 +191,9 @@
         ? H.getIndicatorDetailContext(route.id, packed.taxon.key)
         : null;
       var value = '';
-      if (detail && detail.indicator && detail.indicator.value != null && detail.indicator.value !== '') {
-        value = String(detail.indicator.value);
+      if (detail && detail.indicator) {
+        var raw = H.resultNumericValue(detail.indicator);
+        if (raw != null && raw !== '') value = String(raw);
       }
       return {
         pet: themeCtx.pet,
@@ -212,20 +208,14 @@
       return H.escapeHtml(text == null ? '' : String(text));
     }
 
-    function statusClassForTaxon(key) {
-      if (!route.id || !key) return '';
-      var detail = H.getIndicatorDetailContext(route.id, key);
-      return detail && detail.presentation ? detail.presentation.statusClass : '';
-    }
-
-    function renderStatusHint(edu, statusClass) {
-      var hint = H.resolveTaxonNodeHint(edu, statusClass);
+    function renderHintBar(edu) {
+      var hint = H.resolveTaxonNodeHint(edu);
       if (!hint) return '';
-      return '<div class="know-section know-alert"><h4>当前状态提示</h4><p class="know-body-text">' +
+      return '<div class="know-section know-alert"><h4>提示</h4><p class="know-body-text">' +
         escText(hint) + '</p></div>';
     }
 
-    function renderPhylumIntroBody(packed, statusClass) {
+    function renderPhylumIntroBody(packed) {
       var edu = packed.edu || H.emptyTaxonEdu();
       var html = '';
       var intro = String(edu.introText || edu.knowledgeText || '').trim();
@@ -242,11 +232,11 @@
         });
         html += '</ul></div>';
       }
-      html += renderStatusHint(edu, statusClass);
+      html += renderHintBar(edu);
       return html;
     }
 
-    function renderGenusBody(packed, statusClass) {
+    function renderGenusBody(packed) {
       var edu = packed.edu || H.emptyTaxonEdu();
       var html = '';
       var role = String(edu.sceneCopy || '').trim();
@@ -264,7 +254,7 @@
         html += '<div class="know-section"><h4>功能</h4><p class="know-body-text">' +
           escText(func) + '</p></div>';
       }
-      html += renderStatusHint(edu, statusClass);
+      html += renderHintBar(edu);
       return html;
     }
 
@@ -276,14 +266,13 @@
       return label;
     }
 
-    function renderGeneraSlide(items, index, phylumVars) {
+    function renderGeneraSlide(items, index) {
       var taxon = items[index];
       var packed = H.getTaxonEdu(taxon.key) || {
         taxon: taxon,
         latinName: taxon.latinName || '',
         edu: H.emptyTaxonEdu()
       };
-      var statusClass = statusClassForTaxon(taxon.key);
       var html = '<div class="know-carousel">';
       html += '<div class="know-slide">';
       html += '<div class="know-slide-name">' + H.escapeHtml(taxon.label || taxon.key || '');
@@ -291,7 +280,7 @@
         html += ' <span class="know-latin">(' + H.escapeHtml(packed.latinName) + ')</span>';
       }
       html += '</div>';
-      html += renderGenusBody(packed, statusClass);
+      html += renderGenusBody(packed);
       html += '</div>';
       if (items.length > 1) {
         html += '<div class="know-pager">';
@@ -319,13 +308,8 @@
         if (!children.length) {
           if (knowBody) knowBody.innerHTML = '';
         } else {
-          var phylumVars = packed ? knowFillVars(packed) : knowFillVars({
-            taxon: { key: key, label: key },
-            latinName: '',
-            edu: H.emptyTaxonEdu()
-          });
-          knowCarousel = { items: children, index: 0, vars: phylumVars };
-          if (knowBody) knowBody.innerHTML = renderGeneraSlide(children, 0, phylumVars);
+          knowCarousel = { items: children, index: 0, vars: packed ? knowFillVars(packed) : null };
+          if (knowBody) knowBody.innerHTML = renderGeneraSlide(children, 0);
         }
         know.hidden = false;
         return;
@@ -338,10 +322,10 @@
       }
       if (mode === 'genus') {
         if (knowTitle) knowTitle.textContent = genusHeading(packed);
-        if (knowBody) knowBody.innerHTML = renderGenusBody(packed, statusClassForTaxon(key));
+        if (knowBody) knowBody.innerHTML = renderGenusBody(packed);
       } else {
         if (knowTitle) knowTitle.textContent = '什么是' + (packed.taxon.label || packed.taxon.key || '') + '？';
-        if (knowBody) knowBody.innerHTML = renderPhylumIntroBody(packed, statusClassForTaxon(key));
+        if (knowBody) knowBody.innerHTML = renderPhylumIntroBody(packed);
       }
       know.hidden = false;
     }
@@ -377,7 +361,7 @@
         else if (next) idx = (idx + 1) % len;
         else idx = Number(dot.getAttribute('data-know-dot')) || 0;
         knowCarousel.index = idx;
-        if (knowBody) knowBody.innerHTML = renderGeneraSlide(knowCarousel.items, idx, knowCarousel.vars);
+        if (knowBody) knowBody.innerHTML = renderGeneraSlide(knowCarousel.items, idx);
       });
     }
 
@@ -403,100 +387,6 @@
     });
   }
 
-  function showClaimMessage(text, type) {
-    var el = document.getElementById('claim-message');
-    if (!el) return;
-    el.hidden = !text;
-    el.textContent = text || '';
-    el.className = 'form-message' + (type ? ' ' + type : '');
-  }
-
-  function goClaimConfirm(code) {
-    navigate('claim', null, { step: 'confirm', code: code });
-  }
-
-  function handleClaimPreview() {
-    var codeInput = document.getElementById('claim-code');
-    var code = codeInput ? codeInput.value.trim() : '';
-    showClaimMessage('', '');
-    if (!code) {
-      showClaimMessage('请输入认领码', 'error');
-      return;
-    }
-    if (!H.previewClaimCode(code)) {
-      showClaimMessage(H.CLAIM_INVALID_MSG, 'error');
-      return;
-    }
-    goClaimConfirm(code);
-  }
-
-  function handleClaimConfirm(code) {
-    showClaimMessage('', '');
-    try {
-      var result = H.bindClaimCodeForUser(code);
-      var tr = result && result.claimCode && result.claimCode.testRecordId
-        ? H.findTestRecord(result.claimCode.testRecordId)
-        : null;
-      var report = tr
-        ? H.getState().reports.find(function (r) { return r.testRecordId === tr.id; })
-        : null;
-
-      if (report && H.canUserAccessPublishedReport(report.id)) {
-        navigate('report', report.id);
-        return;
-      }
-      navigate('reports');
-    } catch (err) {
-      showClaimMessage(err.message || H.CLAIM_INVALID_MSG, 'error');
-    }
-  }
-
-  function bindClaimPage(route) {
-    var previewBtn = document.getElementById('claim-preview-btn');
-    if (previewBtn) previewBtn.addEventListener('click', handleClaimPreview);
-
-    var confirmBtn = document.getElementById('claim-confirm-btn');
-    if (confirmBtn) {
-      confirmBtn.addEventListener('click', function () {
-        handleClaimConfirm(confirmBtn.getAttribute('data-code'));
-      });
-    }
-
-    var backBtn = document.getElementById('claim-back-btn');
-    if (backBtn) {
-      backBtn.addEventListener('click', function () {
-        var code = route.params.code || '';
-        navigate('claim', null, code ? { code: code } : null);
-      });
-    }
-
-    document.querySelectorAll('.claim-scan-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var code = btn.getAttribute('data-claim-code');
-        if (!code) {
-          var pending = H.getPendingClaimCodes();
-          if (!pending.length) {
-            showClaimMessage('暂无可识别的待领取检测', 'error');
-            return;
-          }
-          code = pending[0].code;
-        }
-        if (!H.previewClaimCode(code)) {
-          showClaimMessage(H.CLAIM_INVALID_MSG, 'error');
-          return;
-        }
-        goClaimConfirm(code);
-      });
-    });
-
-    var codeInput = document.getElementById('claim-code');
-    if (codeInput) {
-      codeInput.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') handleClaimPreview();
-      });
-    }
-  }
-
   function bindPageEvents(route) {
     pageContainer.querySelectorAll('[data-nav]').forEach(function (el) {
       el.addEventListener('click', function (e) {
@@ -512,19 +402,6 @@
           return navigate('pets');
         }
         if (target === 'report') return navigate('report', el.getAttribute('data-report-id'));
-        if (target === 'finding') {
-          var findingId = el.getAttribute('data-finding-id');
-          if (findingId) return navigate('finding', findingId);
-          var reportId = el.getAttribute('data-report-id');
-          var indicatorKey = el.getAttribute('data-indicator-key');
-          if (reportId && indicatorKey) {
-            return navigate('finding', null, { reportId: reportId, indicatorKey: indicatorKey });
-          }
-          return;
-        }
-        if (target === 'metrics') return navigate('metrics', el.getAttribute('data-report-id'));
-        if (target === 'recommendations') return navigate('recommendations', el.getAttribute('data-report-id'));
-        if (target === 'recommendation-target') return navigate('recommendation-target', el.getAttribute('data-rec-id'));
         if (target === 'spu-detail') return navigate('spu-detail', el.getAttribute('data-product-id'));
       });
     });
@@ -575,22 +452,6 @@
           break;
         case 'report':
           html = P.renderReport({ reportId: route.id });
-          break;
-        case 'finding':
-          html = P.renderFinding({
-            findingId: route.id,
-            reportId: route.params.reportId,
-            indicatorKey: route.params.indicatorKey
-          });
-          break;
-        case 'metrics':
-          html = P.renderMetrics({ reportId: route.id });
-          break;
-        case 'recommendations':
-          html = P.renderRecommendations({ reportId: route.id });
-          break;
-        case 'recommendation-target':
-          html = P.renderRecommendationTarget({ recId: route.id });
           break;
         case 'spu-detail':
           html = P.renderSpuDetail({ productId: route.id });

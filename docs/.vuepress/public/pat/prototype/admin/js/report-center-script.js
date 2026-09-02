@@ -12,17 +12,8 @@ function initReportCenter() {
     voided: '已作废'
   };
 
-  var WORKFLOW_BADGE = {
-    unassigned: 'bg-purple-100 text-purple-800',
-    incomplete: 'bg-blue-100 text-blue-800',
-    pending_review: 'bg-amber-100 text-amber-800',
-    published: 'bg-emerald-100 text-emerald-800',
-    voided: 'bg-gray-200 text-gray-600'
-  };
-
-  var PENDING_WORKFLOWS = ['unassigned', 'incomplete', 'pending_review'];
-  var COUNT_VIEWS = ['pending', 'all', 'unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
-
+  var PENDING_STATUSES = ['unassigned', 'incomplete', 'pending_review'];
+  var QUEUE_SORT_VIEWS = ['pending', 'unassigned', 'incomplete', 'pending_review'];
   var SPECIES_LABEL = { cat: '猫', dog: '狗', 猫: '猫', 狗: '狗' };
 
   var currentView = 'pending';
@@ -50,13 +41,6 @@ function initReportCenter() {
     return '';
   }
 
-  function resolveWorkflow(report, testRecord) {
-    if (typeof store.getWorkflowStatus === 'function') {
-      return store.getWorkflowStatus(report, testRecord);
-    }
-    return report.workflowStatus || 'incomplete';
-  }
-
   function speciesLabel(report, pet) {
     var raw = pickFirst(report, ['reportSpecies']) || (pet ? pickFirst(pet, ['species', 'type']) : '');
     return SPECIES_LABEL[raw] || raw || '';
@@ -69,8 +53,9 @@ function initReportCenter() {
     return orgId ? String(orgId) : '—';
   }
 
-  function statusEnteredAt(report) {
-    return pickFirst(report, ['statusChangedAt', 'statusEnteredAt']) || report.updatedAt || report.createdAt || '';
+  function lookupBatch(state, testRecord) {
+    if (!testRecord || !testRecord.importBatchId) return null;
+    return (state.importBatches || []).find(function (b) { return b.id === testRecord.importBatchId; }) || null;
   }
 
   function buildRows(state) {
@@ -78,13 +63,17 @@ function initReportCenter() {
       var testRecord = C.lookupTestRecord(state, report.testRecordId);
       var user = C.lookupUser(state, report.userId) || C.lookupUser(state, testRecord ? testRecord.userId : null);
       var pet = C.lookupPet(state, report.petId) || C.lookupPet(state, testRecord ? testRecord.petId : null);
-      var workflow = resolveWorkflow(report, testRecord);
+      var batch = lookupBatch(state, testRecord);
       var reportNumber = String(pickFirst(report, ['reportNumber', 'platformReportNumber']) || '—').trim();
       var sampleNumber = String(
         pickFirst(report, ['sampleNumber']) ||
         pickFirst(testRecord, ['sampleNumber', 'sampleNo', 'label']) ||
         ''
       ).trim();
+      var todoFlags = report.todoFlags || [];
+      var correctionStage = typeof store.getCorrectionDraftStage === 'function'
+        ? store.getCorrectionDraftStage(report)
+        : null;
 
       return {
         id: report.id,
@@ -93,17 +82,20 @@ function initReportCenter() {
         reportNumber: reportNumber,
         externalReportNumber: String(pickFirst(report, ['externalReportNumber', 'externalNumber', 'labReportNumber']) || '').trim(),
         sampleNumber: sampleNumber,
+        batchFileName: batch && batch.fileName ? String(batch.fileName).trim() : '',
         userName: user ? user.name : '—',
         userPhone: user ? String(pickFirst(user, ['phone', 'mobile']) || '') : '',
         petName: pet ? pet.name : '—',
         species: speciesLabel(report, pet),
         sourceName: resolveSourceName(state, report, testRecord),
         testDate: testRecord ? (testRecord.testDate || '') : '',
-        workflow: workflow,
-        statusEnteredAt: statusEnteredAt(report),
-        updatedAt: report.updatedAt || report.createdAt || '',
-        rawReportStatus: report.status || '',
-        rawTestStatus: testRecord ? testRecord.status : ''
+        status: report.status || '',
+        correctionDraftActive: !!report.correctionDraftActive,
+        correctionStage: correctionStage,
+        rejectReason: report.rejectReason || null,
+        todoFlagCount: todoFlags.length,
+        statusChangedAt: report.statusChangedAt || report.updatedAt || report.createdAt || '',
+        updatedAt: report.updatedAt || report.createdAt || ''
       };
     });
   }
@@ -122,6 +114,7 @@ function initReportCenter() {
     if (!search) return true;
     var haystack = [
       row.reportNumber,
+      row.externalReportNumber,
       row.sampleNumber,
       row.userPhone,
       row.petName
@@ -142,19 +135,21 @@ function initReportCenter() {
 
   function matchesView(row, view) {
     if (view === 'all') return true;
-    if (view === 'pending') return PENDING_WORKFLOWS.indexOf(row.workflow) >= 0;
-    return row.workflow === view;
+    if (view === 'pending') {
+      return PENDING_STATUSES.indexOf(row.status) >= 0 || row.correctionDraftActive;
+    }
+    return row.status === view;
   }
 
   function isPendingSortView(view) {
-    return view === 'pending' || PENDING_WORKFLOWS.indexOf(view) >= 0;
+    return QUEUE_SORT_VIEWS.indexOf(view) >= 0;
   }
 
   function sortRows(rows, view) {
     var sorted = rows.slice();
     if (isPendingSortView(view)) {
       sorted.sort(function (a, b) {
-        return String(a.statusEnteredAt).localeCompare(String(b.statusEnteredAt));
+        return String(a.statusChangedAt).localeCompare(String(b.statusChangedAt));
       });
       return sorted;
     }
@@ -180,35 +175,65 @@ function initReportCenter() {
     });
   }
 
-  function workflowBadge(workflow) {
-    var label = VIEW_LABELS[workflow] || workflow;
-    var cls = WORKFLOW_BADGE[workflow] || 'bg-gray-100 text-gray-700';
-    return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' + cls + '">' + C.escapeHtml(label) + '</span>';
+  function statusCell(row) {
+    var html = C.statusBadge(row.status, C.REPORT_STATUS_LABELS);
+    if (row.correctionDraftActive) {
+      var sub = row.correctionStage === 'pending_review' ? '更正中·待审核' : '更正中·待完善';
+      html += ' <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-800">' +
+        C.escapeHtml(sub) + '</span>';
+    }
+    if (row.rejectReason && row.status === 'incomplete') {
+      html += ' <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">已退回</span>';
+    }
+    if (row.todoFlagCount) {
+      html += ' <span class="inline-flex items-center justify-center ml-0.5 min-w-[1rem] h-4 px-0.5 rounded-full bg-amber-500 text-white text-[10px] leading-none" title="待办 ' +
+        row.todoFlagCount + '">' + row.todoFlagCount + '</span>';
+    }
+    return html;
+  }
+
+  function userPetCell(row) {
+    if (row.status === 'unassigned') {
+      var parts = ['未归属'];
+      if (row.batchFileName) parts.push(row.batchFileName);
+      if (row.sampleNumber) parts.push(row.sampleNumber);
+      return '<div class="text-slate-600 text-xs leading-5">' + C.escapeHtml(parts.join(' · ')) + '</div>';
+    }
+    return '<div class="text-slate-800">' + C.escapeHtml(row.userName) + '</div>' +
+      '<div class="text-xs text-slate-500">' + C.escapeHtml(row.petName) + '</div>';
   }
 
   function primaryAction(row) {
-    var map = {
-      unassigned: { action: 'review', label: '处理归属' },
-      incomplete: { action: 'review', label: '完善' },
-      pending_review: { action: 'review', label: '审核' },
-      published: { action: 'review', label: '查看' },
-      voided: { action: 'review', label: '追溯' }
-    };
-    var cfg = map[row.workflow];
-    if (!cfg || !row.reportId) return '';
-    return '<button type="button" class="btn-primary px-3 py-1 rounded text-xs rc-action" data-action="' + cfg.action + '" data-report-id="' + C.escapeHtml(row.reportId) + '">' + cfg.label + '</button>';
+    var label = '查看';
+    if (row.correctionDraftActive) {
+      label = row.correctionStage === 'pending_review' ? '审核更正' : '处理更正';
+    } else if (row.status === 'unassigned') {
+      label = '处理归属';
+    } else if (row.status === 'incomplete') {
+      label = '完善';
+    } else if (row.status === 'pending_review') {
+      label = '审核';
+    } else if (row.status === 'voided') {
+      label = '追溯';
+    }
+    if (!row.reportId) return '';
+    return '<button type="button" class="btn-primary px-3 py-1 rounded text-xs rc-action" data-action="review" data-report-id="' +
+      C.escapeHtml(row.reportId) + '">' + label + '</button>';
   }
 
   function moreMenuItems(row) {
     var items = [];
-    if (row.workflow === 'unassigned' && row.testRecordId) {
-      items.push({ action: 'assign', label: '宠物档案归属' });
+    if (row.testRecordId) {
+      items.push({ action: 'records', label: '查看送检记录' });
     }
-    if (row.workflow === 'incomplete' && row.testRecordId) {
-      items.push({ action: 'import', label: '重新导入' });
+    if (row.reportId) {
+      items.push({ action: 'versions', label: '版本' });
     }
-    if (row.workflow === 'published' && row.reportId) {
-      items.push({ action: 'published', label: '已发布列表' });
+    if (row.status !== 'voided' && row.reportId) {
+      items.push({ action: 'void', label: '作废' });
+    }
+    if (row.status === 'published' && !row.correctionDraftActive && row.reportId) {
+      items.push({ action: 'correction', label: '创建更正草稿' });
     }
     return items;
   }
@@ -220,9 +245,11 @@ function initReportCenter() {
     var open = openMoreMenuId === menuId;
     return '<div class="relative inline-block rc-more-wrap" data-menu-id="' + C.escapeHtml(menuId) + '">' +
       '<button type="button" class="btn-secondary px-2 py-1 rounded text-xs rc-more-toggle" data-menu-id="' + C.escapeHtml(menuId) + '">更多 <i class="fas fa-chevron-down text-[10px]"></i></button>' +
-      '<div class="rc-more-menu absolute right-0 mt-1 min-w-[8rem] bg-white border border-slate-200 rounded-md shadow-lg z-10 text-xs' + (open ? '' : ' hidden') + '" data-menu-id="' + C.escapeHtml(menuId) + '">' +
+      '<div class="rc-more-menu absolute right-0 mt-1 min-w-[10rem] bg-white border border-slate-200 rounded-md shadow-lg z-10 text-xs' + (open ? '' : ' hidden') + '" data-menu-id="' + C.escapeHtml(menuId) + '">' +
       items.map(function (item) {
-        return '<button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-50 rc-action" data-action="' + item.action + '" data-report-id="' + C.escapeHtml(row.reportId) + '" data-test-record-id="' + C.escapeHtml(row.testRecordId || '') + '">' + C.escapeHtml(item.label) + '</button>';
+        return '<button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-50 rc-action" data-action="' + item.action +
+          '" data-report-id="' + C.escapeHtml(row.reportId) +
+          '" data-test-record-id="' + C.escapeHtml(row.testRecordId || '') + '">' + C.escapeHtml(item.label) + '</button>';
       }).join('') +
       '</div></div>';
   }
@@ -292,21 +319,34 @@ function initReportCenter() {
       C.navigate('report-review', withReturnView({ reportId: row.reportId }));
       return;
     }
-    if (action === 'published' && row.reportId) {
-      C.navigate('published-reports', { reportId: row.reportId });
-      return;
-    }
-    if (action === 'assign' && row.testRecordId) {
-      C.navigate('pet-information', { action: 'assign', testRecordId: row.testRecordId });
-      return;
-    }
-    if (action === 'import' && row.testRecordId) {
-      sessionStorage.setItem('pet-admin-excel-tr', row.testRecordId);
-      C.navigate('excel-import');
+    if (action === 'versions' && row.reportId) {
+      C.navigate('report-review', withReturnView({ reportId: row.reportId, module: 'versions' }));
       return;
     }
     if (action === 'records' && row.testRecordId) {
       C.navigate('detection-records', withReturnView({ testRecordId: row.testRecordId }));
+      return;
+    }
+    if (action === 'void' && row.reportId) {
+      C.promptDialog('作废报告', '请填写作废原因', function (reason) {
+        try {
+          store.voidReport(row.reportId, reason);
+          C.toast('报告已作废', 'success');
+        } catch (err) {
+          C.toast(err.message || '作废失败', 'error');
+        }
+      });
+      return;
+    }
+    if (action === 'correction' && row.reportId) {
+      C.promptDialog('创建更正草稿', '请填写更正说明', function (note) {
+        try {
+          store.createCorrectionDraft(row.reportId, { correctionNote: note });
+          C.toast('已创建更正草稿', 'success');
+        } catch (err) {
+          C.toast(err.message || '创建更正草稿失败', 'error');
+        }
+      });
     }
   }
 
@@ -356,10 +396,10 @@ function initReportCenter() {
       return '<article class="rc-card border border-slate-200 rounded-lg px-3 py-2.5 hover:border-slate-300 hover:bg-slate-50/50" data-row-index="' + index + '">' +
         '<div class="rc-card-grid grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-center text-sm">' +
         '<div class="sm:col-span-3">' + reportIdentity(row) + '</div>' +
-        '<div class="sm:col-span-2"><div class="text-slate-800">' + C.escapeHtml(row.userName) + '</div><div class="text-xs text-slate-500">' + C.escapeHtml(row.petName) + '</div></div>' +
+        '<div class="sm:col-span-2">' + userPetCell(row) + '</div>' +
         '<div class="sm:col-span-2 text-slate-700">' + C.escapeHtml(row.sourceName) + testRecordLink(row) + '</div>' +
-        '<div class="sm:col-span-1">' + workflowBadge(row.workflow) + '</div>' +
-        '<div class="sm:col-span-2 text-slate-600 text-xs">' + C.escapeHtml(C.formatDate(row.updatedAt)) + '</div>' +
+        '<div class="sm:col-span-2">' + statusCell(row) + '</div>' +
+        '<div class="sm:col-span-1 text-slate-600 text-xs">' + C.escapeHtml(C.formatDate(row.updatedAt)) + '</div>' +
         '<div class="sm:col-span-2">' + buildActions(row) + '</div>' +
         '</div></article>';
     }).join('');

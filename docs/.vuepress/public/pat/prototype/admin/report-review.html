@@ -4,7 +4,7 @@
             <button type="button" id="btn-go-report-center" class="btn-secondary text-sm px-3 py-1.5 rounded-md shrink-0">
                 <i class="fas fa-arrow-left mr-1"></i>返回报告中心
             </button>
-            <label class="text-sm text-slate-600">审核队列</label>
+            <label class="text-sm text-slate-600">报告</label>
             <select id="select-report" class="border border-slate-300 rounded-md py-1.5 px-2 text-sm min-w-[240px]"></select>
             <span id="report-status-badge"></span>
             <span id="version-badges" class="text-xs text-slate-500"></span>
@@ -12,8 +12,12 @@
         <div class="flex flex-wrap gap-2" id="action-bar"></div>
     </div>
 
+    <div id="reject-banner" class="hidden bg-amber-50 border border-amber-200 text-amber-900 px-4 py-2 rounded-md text-sm mt-3">
+        <i class="fas fa-undo mr-1"></i>退回原因：<span id="reject-reason-text"></span>
+    </div>
+
     <div id="correction-banner" class="hidden bg-indigo-50 border border-indigo-200 text-indigo-900 px-4 py-2 rounded-md text-sm mt-3">
-        <i class="fas fa-pen-ruler mr-1"></i>更正草稿审核中：用户仍读取已发布版本 v<span id="correction-pub-ver"></span>，工作版本独立编辑。
+        <i class="fas fa-pen-ruler mr-1"></i>更正草稿进行中：用户仍读取已发布版本 v<span id="correction-pub-ver"></span>，工作版本独立编辑。
     </div>
 
     <div id="rw-workbench" class="rw-workbench mt-3">
@@ -29,14 +33,14 @@
                 <section id="module-results" class="rw-module-panel hidden" data-module="results">
                     <h3 class="rw-panel-title"><i class="fas fa-vial text-teal-600 mr-1"></i>检测结果</h3>
                     <div class="rw-results-toolbar flex flex-wrap gap-2 items-center mb-3">
-                        <input type="search" id="results-search" class="border rounded px-2 py-1 text-sm flex-1 min-w-[140px]" placeholder="搜索指标名称…">
+                        <input type="search" id="results-search" class="border rounded px-2 py-1 text-sm flex-1 min-w-[140px]" placeholder="搜索名称…">
                         <div class="flex flex-wrap gap-1 text-xs" id="results-filters">
-                            <button type="button" class="rw-filter-btn active" data-filter="abnormal">异常</button>
-                            <button type="button" class="rw-filter-btn active" data-filter="missing">缺失</button>
-                            <button type="button" class="rw-filter-btn active" data-filter="modified">已修改</button>
+                            <button type="button" class="rw-filter-btn" data-filter="abnormal">异常</button>
+                            <button type="button" class="rw-filter-btn" data-filter="missing">缺失</button>
+                            <button type="button" class="rw-filter-btn" data-filter="modified">已修改</button>
                         </div>
-                        <button type="button" id="btn-reanalysis-data" class="btn-secondary px-2 py-1 rounded text-xs">
-                            <i class="fas fa-rotate mr-1"></i>数据变更重分析
+                        <button type="button" id="btn-supplement-result" class="btn-secondary px-2 py-1 rounded text-xs">
+                            <i class="fas fa-plus mr-1"></i>补录
                         </button>
                     </div>
                     <div class="rw-results-layout">
@@ -47,24 +51,24 @@
 
                 <section id="module-assessment" class="rw-module-panel hidden" data-module="assessment">
                     <h3 class="rw-panel-title"><i class="fas fa-sliders text-teal-600 mr-1"></i>综合评定</h3>
-                    <p class="text-xs text-slate-500 mb-3">等级、综合分、百分位、平台维度互相独立，不做自动推导。</p>
+                    <p class="text-xs text-slate-500 mb-3">物种、等级、综合分、百分位、情绪、免疫互相独立，不做自动推导。备注为可选项，不阻断发布。</p>
                     <form id="assessment-form" class="space-y-3 text-sm"></form>
                 </section>
 
                 <section id="module-analysis" class="rw-module-panel hidden" data-module="analysis">
-                    <h3 class="rw-panel-title"><i class="fas fa-microscope text-teal-600 mr-1"></i>分析解释</h3>
+                    <h3 class="rw-panel-title"><i class="fas fa-microscope text-teal-600 mr-1"></i>分析与建议</h3>
                     <div id="analysis-panel" class="text-sm space-y-3"></div>
                 </section>
 
                 <section id="module-recommendations" class="rw-module-panel hidden" data-module="recommendations">
-                    <h3 class="rw-panel-title"><i class="fas fa-lightbulb text-teal-600 mr-1"></i>健康建议与推荐</h3>
-                    <p class="text-xs text-slate-500 mb-3">为每条健康建议配置主推商品（0–1）与关联商品（0–3，有序）。</p>
+                    <h3 class="rw-panel-title"><i class="fas fa-box-open text-teal-600 mr-1"></i>商品推荐</h3>
+                    <p class="text-xs text-slate-500 mb-3">按菌门分析单元配置主推商品（0–1）与关联商品（0–3，有序）。仅提示或建议为空的菌门不配置商品。</p>
                     <div id="recommendations-panel" class="text-sm space-y-3"></div>
                 </section>
 
                 <section id="module-checks" class="rw-module-panel hidden" data-module="checks">
                     <h3 class="rw-panel-title"><i class="fas fa-clipboard-check text-teal-600 mr-1"></i>发布检查</h3>
-                    <p class="text-xs text-amber-700 mb-2">正式发布条件：综合概览（摘要+等级+分数）、专业检测结果（至少一项有效结果）</p>
+                    <p class="text-xs text-slate-500 mb-2">阻断为 0 才允许提交审核 / 审核通过并发布。警告可确认后继续。</p>
                     <div id="checks-summary" class="text-sm mb-3 p-3 rounded border border-slate-100 bg-slate-50"></div>
                     <div id="checks-panel" class="text-sm space-y-2"></div>
                 </section>
@@ -74,7 +78,7 @@
                     <div id="versions-toggle-wrap" class="hidden mb-3">
                         <div class="rw-version-toggle inline-flex rounded-md border border-slate-200 overflow-hidden text-sm">
                             <button type="button" id="ver-toggle-working" class="rw-ver-toggle-btn active px-3 py-1.5">工作版</button>
-                            <button type="button" id="ver-toggle-published" class="rw-ver-toggle-btn px-3 py-1.5">用户可见发布版</button>
+                            <button type="button" id="ver-toggle-published" class="rw-ver-toggle-btn px-3 py-1.5">发布版</button>
                         </div>
                     </div>
                     <div id="versions-content" class="text-sm space-y-3 mb-4"></div>
@@ -100,8 +104,8 @@
             </div>
             <div class="rw-preview-tabs">
                 <button type="button" class="rw-preview-tab active" data-preview-tab="overview">概览</button>
-                <button type="button" class="rw-preview-tab" data-preview-tab="results">检测结果</button>
-                <button type="button" class="rw-preview-tab" data-preview-tab="advice">分析建议</button>
+                <button type="button" class="rw-preview-tab" data-preview-tab="compare">对比</button>
+                <button type="button" class="rw-preview-tab" data-preview-tab="phylum">菌门</button>
             </div>
             <div id="rw-preview-frame" class="rw-preview-frame">
                 <div id="preview-content" class="rw-mini-app"></div>
@@ -135,6 +139,56 @@
             </div>
             <div id="picker-list" class="flex-1 overflow-y-auto px-4 py-2 text-sm"></div>
             <div id="picker-pagination" class="px-4 py-2 border-t flex justify-between items-center text-xs text-slate-500"></div>
+        </div>
+    </div>
+
+    <div id="supplement-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="flex items-center justify-between px-4 py-3 border-b">
+                <h4 class="font-medium text-slate-800">补录检测结果</h4>
+                <button type="button" id="supplement-close" class="text-slate-400 hover:text-slate-600"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="supplement-form" class="px-4 py-3 space-y-3 text-sm">
+                <div>
+                    <label class="text-xs text-slate-500">分类单元</label>
+                    <select id="supplement-key" class="w-full border rounded px-2 py-1 mt-0.5" required></select>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs text-slate-500">数据状态</label>
+                        <select id="supplement-datastatus" class="w-full border rounded px-2 py-1 mt-0.5">
+                            <option value="PRESENT">有效</option>
+                            <option value="NOT_DETECTED">未检出</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500">有效值</label>
+                        <input id="supplement-value" type="number" step="any" class="w-full border rounded px-2 py-1 mt-0.5">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs text-slate-500">单位</label>
+                        <input id="supplement-unit" class="w-full border rounded px-2 py-1 mt-0.5" value="%">
+                    </div>
+                    <div>
+                        <label class="text-xs text-slate-500">实验室标注</label>
+                        <select id="supplement-labnotice" class="w-full border rounded px-2 py-1 mt-0.5">
+                            <option value="unmarked">未标注</option>
+                            <option value="high">实验室标注偏高</option>
+                            <option value="low">实验室标注偏低</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">原因（必填）</label>
+                    <textarea id="supplement-reason" rows="2" class="w-full border rounded px-2 py-1 mt-0.5" required></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-1">
+                    <button type="button" id="supplement-cancel" class="btn-secondary px-3 py-1.5 rounded text-sm">取消</button>
+                    <button type="submit" class="btn-primary px-3 py-1.5 rounded text-sm">保存补录</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
