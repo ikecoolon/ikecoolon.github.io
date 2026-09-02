@@ -1112,28 +1112,6 @@ body.mk-drawer-open {
   color: var(--ant-primary-hover);
 }
 
-/* Health level selector cards */
-.health-level-btn.ant-btn {
-  height: auto;
-  flex-direction: column;
-  padding: 12px;
-  border-width: 2px;
-}
-
-.health-level-btn.ant-tabs-tab-active,
-.health-level-btn.is-selected {
-  border-color: var(--ant-primary) !important;
-  background: #e6f4ff !important;
-  color: var(--ant-primary) !important;
-}
-
-/* Rating gradient button → primary */
-.rating-btn-gradient {
-  background: var(--ant-primary) !important;
-  border-color: var(--ant-primary) !important;
-  color: #fff !important;
-}
-
 /* ── Dictionary catalog batch sort ── */
 .catalog-table-wrap {
   -webkit-overflow-scrolling: touch;
@@ -1369,7 +1347,7 @@ body.mk-drawer-open {
 
 .rw-results-layout {
   display: grid;
-  grid-template-columns: 200px 1fr;
+  grid-template-columns: 240px 1fr;
   gap: 12px;
   min-height: 280px;
 }
@@ -1384,7 +1362,7 @@ body.mk-drawer-open {
 .rw-indicator-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   width: 100%;
   padding: 8px 10px;
   border: none;
@@ -1683,6 +1661,113 @@ body.mk-drawer-open {
   background: #e6f4ff;
   color: var(--ant-primary);
   font-weight: 500;
+}
+
+.rw-source-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.rw-source-grid p {
+  margin: 0;
+}
+
+.rw-source-grid .rw-mismatch {
+  grid-column: 1 / -1;
+}
+
+.rw-mismatch {
+  background: #fff7e6;
+  border: 1px solid #ffd591;
+  color: #ad6800;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.rw-value-changed {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.rw-phylum-card {
+  border: 1px solid #e8e4df;
+  border-radius: 10px;
+  padding: 12px;
+  background: #fff;
+}
+
+.rw-phylum-card.is-invalidated {
+  border-color: #ffa39e;
+  background: #fff2f0;
+}
+
+.rw-phylum-card.is-disabled-row {
+  opacity: 0.72;
+  background: #fafafa;
+}
+
+.rw-hit-row {
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 8px;
+  margin-top: 6px;
+  background: #fafafa;
+}
+
+.rw-hit-row.is-superseded {
+  opacity: 0.75;
+}
+
+.rw-hit-row.is-excluded {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.rw-compare-bar {
+  position: relative;
+  height: 18px;
+  background: #f5f3f0;
+  border-radius: 9px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.rw-compare-range {
+  position: absolute;
+  top: 4px;
+  height: 10px;
+  background: #c6f0e4;
+  border-radius: 5px;
+}
+
+.rw-compare-marker {
+  position: absolute;
+  top: 1px;
+  width: 6px;
+  height: 16px;
+  margin-left: -3px;
+  background: #1a6b5c;
+  border-radius: 2px;
+}
+
+.rw-compare-placeholder {
+  padding: 24px 12px;
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 13px;
+}
+
+.rw-product-unavail {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: #fff2f0;
+  color: #cf1322;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .rw-related-chip {

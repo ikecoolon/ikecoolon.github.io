@@ -106,29 +106,12 @@
                             </div>
                         </div>
 
-                        <fieldset class="border border-slate-200 rounded-md p-3">
-                            <legend class="text-xs font-medium text-slate-600 px-1">状态提示（按报告判定展示对应一条）</legend>
-                            <div class="grid grid-cols-1 gap-3 mt-1">
-                                <div>
-                                    <label class="text-xs text-slate-500" for="mk-low-hint">偏低提示</label>
-                                    <textarea id="mk-low-hint" rows="2"
-                                        class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
-                                        placeholder="仅在检测值偏低时展示"></textarea>
-                                </div>
-                                <div>
-                                    <label class="text-xs text-slate-500" for="mk-normal-hint">正常提示</label>
-                                    <textarea id="mk-normal-hint" rows="2"
-                                        class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
-                                        placeholder="仅在检测值正常时展示"></textarea>
-                                </div>
-                                <div>
-                                    <label class="text-xs text-slate-500" for="mk-high-hint">偏高提示</label>
-                                    <textarea id="mk-high-hint" rows="2"
-                                        class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
-                                        placeholder="仅在检测值偏高时展示"></textarea>
-                                </div>
-                            </div>
-                        </fieldset>
+                        <div>
+                            <label class="text-xs text-slate-500" for="mk-hint">提示条（不随状态变化）</label>
+                            <textarea id="mk-hint" rows="2"
+                                class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
+                                placeholder="用户端弹窗固定展示，不随偏低 / 正常 / 偏高切换"></textarea>
+                        </div>
                     </div>
                 </section>
 

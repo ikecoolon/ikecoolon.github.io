@@ -203,13 +203,13 @@ function initMicrobiotaKnowledge() {
   function isComplete(taxon) {
     if (!taxon) return false;
     var edu = eduOf(taxon);
-    var hints = hasText(edu.lowHint) || hasText(edu.normalHint) || hasText(edu.highHint);
+    var hint = hasText(edu.hint);
     if (taxon.level === 'phylum') {
       return hasText(edu.sceneCopy) || hasText(edu.introText) ||
-        (Array.isArray(edu.mainTasks) && edu.mainTasks.length) || hints;
+        (Array.isArray(edu.mainTasks) && edu.mainTasks.length) || hint;
     }
     return hasText(edu.sceneCopy) || hasText(edu.appearanceText) ||
-      hasText(edu.functionText) || hints;
+      hasText(edu.functionText) || hint;
   }
 
   function completenessBadge(taxon) {
@@ -369,9 +369,7 @@ function initMicrobiotaKnowledge() {
     renderMainTasksList(tasks);
     el('mk-appearance-text').value = edu.appearanceText || '';
     el('mk-function-text').value = edu.functionText || '';
-    el('mk-low-hint').value = edu.lowHint || '';
-    el('mk-normal-hint').value = edu.normalHint || '';
-    el('mk-high-hint').value = edu.highHint || '';
+    el('mk-hint').value = edu.hint || '';
     updatePreview(taxon);
   }
 
@@ -519,9 +517,7 @@ function initMicrobiotaKnowledge() {
   function readFormEdu(isPhylum) {
     var edu = {
       sceneCopy: el('mk-scene-copy').value.trim(),
-      lowHint: el('mk-low-hint').value.trim(),
-      normalHint: el('mk-normal-hint').value.trim(),
-      highHint: el('mk-high-hint').value.trim()
+      hint: el('mk-hint').value.trim()
     };
     if (isPhylum) {
       edu.introText = el('mk-intro-text').value.trim();
@@ -678,13 +674,8 @@ function initMicrobiotaKnowledge() {
     return sentence;
   }
 
-  function previewStatusHint(edu, statusKey) {
-    var key = statusKey === 'low' ? 'lowHint'
-      : statusKey === 'normal' ? 'normalHint'
-      : statusKey === 'high' ? 'highHint'
-      : null;
-    if (!key) return '';
-    return String(edu[key] || '').trim();
+  function previewHint(edu) {
+    return String((edu && edu.hint) || '').trim();
   }
 
   function previewStatusLabel(statusKey) {
@@ -741,10 +732,10 @@ function initMicrobiotaKnowledge() {
       }
     }
 
-    var hint = previewStatusHint(edu, PREVIEW_STATUS_KEY);
+    var hint = previewHint(edu);
     if (hint) {
       html += '<div class="mt-3 rounded-md bg-amber-50 border border-amber-100 px-3 py-2">' +
-        '<p class="text-[11px] text-amber-700 mb-1">当前状态提示（' + previewStatusLabel(PREVIEW_STATUS_KEY) + '）</p>' +
+        '<p class="text-[11px] text-amber-700 mb-1">提示条（不随状态变化）</p>' +
         '<p class="leading-relaxed text-amber-900">' + C.escapeHtml(hint) + '</p></div>';
     }
 

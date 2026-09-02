@@ -1,101 +1,82 @@
 /**
- * PET 报告原型 — 跨端可重置 Mock 数据服务
- * 浏览器: window.PetReportMockStore
- * Node smoke: require('./mock-store.js')
+ * PET 报告原型 — 跨端可重置 Mock 数据服务（v2）
+ * 浏览器: window.PetReportMockStore（须先加载 analysis-engine.js）
+ * Node:   require('./mock-store.js') → 内部 require('./analysis-engine.js')
  * 全部为演示 Mock 数据，非真实业务数据。
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory();
+    var Engine = require('./analysis-engine.js');
+    module.exports = factory(Engine);
   } else {
-    root.PetReportMockStore = factory();
+    if (!root.PetReportAnalysisEngine) {
+      throw new Error('PetReportAnalysisEngine 未加载：请先引入 analysis-engine.js');
+    }
+    root.PetReportMockStore = factory(root.PetReportAnalysisEngine);
   }
-})(typeof self !== 'undefined' ? self : this, function () {
+})(typeof self !== 'undefined' ? self : this, function (Engine) {
   'use strict';
 
-  var STORAGE_KEY = 'pet-report-mock-store-v1';
-  var DEMO_LABEL = '[演示 Mock]';
-
-  function stripDemoPrefix(text) {
-    if (text == null || typeof text !== 'string') return text;
-    return text
-      .replace(/\[演示 Mock\]\s*/g, '')
-      .replace(/全部为演示 Mock 数据[^。]*。?/g, '')
-      .replace(/本条为演示呈现[，,]?解读口径待确认。?/g, '')
-      .replace(/演示呈现[，,]?最终位置与样式待甲方确认/g, '')
-      .replace(/\s{2,}/g, ' ')
-      .trim();
+  if (!Engine || typeof Engine.evaluate !== 'function') {
+    throw new Error('PetReportAnalysisEngine 不可用');
   }
 
-  function migratePresentationCopyV10(state) {
-    function walk(node) {
-      if (node == null) return;
-      if (Array.isArray(node)) {
-        node.forEach(walk);
-        return;
-      }
-      if (typeof node !== 'object') return;
-      Object.keys(node).forEach(function (key) {
-        var val = node[key];
-        if (typeof val === 'string') {
-          node[key] = stripDemoPrefix(val);
-        } else if (val && typeof val === 'object') {
-          walk(val);
-        }
-      });
-    }
-    walk(state);
-    if (state.meta) {
-      var disclaimer = state.meta.disclaimer;
-      if (!disclaimer || /Mock|演示|待甲方|非真实|非最终/.test(disclaimer)) {
-        state.meta.disclaimer = '';
-      } else {
-        state.meta.disclaimer = stripDemoPrefix(disclaimer);
-      }
-    }
-    var schemes = state.professionalCatalog && state.professionalCatalog.referenceRangeSchemes;
-    if (schemes) {
-      schemes.forEach(function (scheme) {
-        if (scheme.evidenceType === 'demo') scheme.evidenceType = 'internal';
-        if (!scheme.evidenceRef || /演示|待专业确认|Mock/.test(scheme.evidenceRef)) {
-          scheme.evidenceRef = '检测机构内部参考范围';
-        }
-        if (scheme.name) {
-          scheme.name = scheme.name.replace(/（演示）/g, '').replace(/\(演示\)/g, '').trim();
-        }
-      });
-    }
-  }
-
+  var STORAGE_KEY = 'pet-report-mock-store-v2';
   var DATA_STATUSES = ['PRESENT', 'MISSING_COLUMN', 'EMPTY', 'NOT_DETECTED', 'INVALID', 'NOT_APPLICABLE'];
-  var CONCLUSION_LEVELS = ['VERY_LOW', 'LOW', 'NORMAL', 'HIGH', 'VERY_HIGH'];
-  var REPORT_STATUSES = ['draft', 'pending_review', 'rejected', 'approved', 'published', 'corrected', 'voided'];
-  var RECOMMEND_TYPES = ['PRODUCT', 'TAG_CANDIDATE', 'NONE'];
+  var REPORT_STATUSES = ['unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
+  /** @deprecated 指向 REPORT_STATUSES */
+  var WORKFLOW_STATUSES = REPORT_STATUSES;
+  var OWNERSHIP_STATUSES = ['unassigned', 'bound'];
   var HEALTH_LEVELS = ['A', 'B', 'C', 'D', 'E'];
-  var WORKFLOW_STATUSES = ['unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
   var USER_REPORT_STATUSES = ['in_progress', 'published'];
-  var OWNERSHIP_STATUSES = ['unassigned', 'pending_claim', 'bound', 'claimed'];
   var DEFAULT_SOURCE_ORG_ID = 'ORG-LAB-GUT-001';
-  var TODO_FLAG_LABELS = {
-    import_error: '导入异常',
+  var SECOND_SOURCE_ORG_ID = 'ORG-LAB-GUT-002';
+  var VERSION_STATUSES = ['draft', 'pending_review', 'published', 'superseded'];
+  var UNIT_CONFIRM_STATUSES = ['unconfirmed', 'confirmed', 'invalidated'];
+  var RANGE_SOURCES = ['imported', 'platform', 'none'];
+  var VALUE_SOURCES = ['import', 'manual'];
+  var MISSING_DATA_STATUSES = ['MISSING_COLUMN', 'EMPTY', 'INVALID', 'NOT_APPLICABLE'];
+
+  var REPORT_STATUS_LABELS = {
     unassigned: '待归属',
-    rejected: '审核驳回',
-    partial_import: '局部导入异常',
-    pending_reanalysis: '待重新分析',
-    recommendation_invalid: '推荐商品失效',
-    zero_stock: '主推零库存',
-    no_candidates: '无候选商品',
-    correction_draft: '更正草稿进行中'
+    incomplete: '待完善',
+    pending_review: '待审核',
+    published: '已发布',
+    voided: '已作废'
   };
+  var OWNERSHIP_STATUS_LABELS = { unassigned: '待归属', bound: '已绑定' };
+  var TODO_FLAG_LABELS = {
+    pending_reanalysis: '待重新分析',
+    missing_unresolved: '缺失未处理',
+    product_unavailable: '商品失效',
+    user_unlinked: '未关联用户'
+  };
+  var LAB_NOTICE_LABELS = Engine.LAB_NOTICE_LABELS || { high: '实验室标注偏高', low: '实验室标注偏低', unmarked: '未标注' };
+  var RANGE_STATUS_LABELS = Engine.RANGE_STATUS_LABELS || {
+    low: '低于参考范围', normal: '参考范围内', high: '高于参考范围', no_range: '无有效参考范围'
+  };
+  var RANGE_SOURCE_LABELS = { imported: '报告导入', platform: '平台配置', none: '无范围' };
+  var RISK_LEVEL_LABELS = { low: '低', medium: '中', high: '高', notice: '仅提示' };
+  var CONDITION_TYPE_LABELS = {
+    LAB_NOTICE: '实验室标注',
+    RANGE_STATUS: '相对有效参考范围',
+    NOT_DETECTED: '未检出',
+    SPECIES: '报告物种',
+    OTHER_TAXON_STATUS: '其他分类单元状态'
+  };
+  var UNIT_CONFIRM_LABELS = { unconfirmed: '未确认', confirmed: '已确认', invalidated: '依据变化失效' };
+  var VERSION_STATUS_LABELS = { draft: '草稿', pending_review: '待审核', published: '已发布', superseded: '已替代' };
+  var PRODUCT_STATUS_LABELS = { on_sale: '在售', off_shelf: '已下架', zero_stock: '零库存', recycled: '已回收' };
 
   var listeners = [];
   var memoryState = null;
   var localStorageAvailable = detectLocalStorage();
+  var frozenNow = null;
 
   function detectLocalStorage() {
     try {
       if (typeof localStorage === 'undefined') return false;
-      var probe = '__pet_mock_probe__';
+      var probe = '__pet_mock_probe_v2__';
       localStorage.setItem(probe, '1');
       localStorage.removeItem(probe);
       return true;
@@ -105,7 +86,13 @@
   }
 
   function nowIso() {
-    return new Date().toISOString();
+    return frozenNow || new Date().toISOString();
+  }
+
+  function withTime(iso, fn) {
+    var prev = frozenNow;
+    frozenNow = iso;
+    try { return fn(); } finally { frozenNow = prev; }
   }
 
   function uid(prefix) {
@@ -123,6 +110,65 @@
 
   function isPresentDataStatus(status) {
     return normalizeDataStatus(status) === 'PRESENT';
+  }
+
+  function pickFirstNonEmpty() {
+    for (var i = 0; i < arguments.length; i++) {
+      var value = arguments[i];
+      if (value != null && String(value).trim()) return String(value).trim();
+    }
+    return '';
+  }
+
+  function normalizeMainTasks(tasks) {
+    if (!Array.isArray(tasks)) return [];
+    var out = [];
+    for (var i = 0; i < tasks.length; i++) {
+      var task = String(tasks[i] == null ? '' : tasks[i]).trim();
+      if (task) out.push(task);
+    }
+    return out.slice(0, 3);
+  }
+
+  function emptyTaxonEdu() {
+    return {
+      sceneCopy: '',
+      introText: '',
+      mainTasks: [],
+      appearanceText: '',
+      functionText: '',
+      hint: '',
+      knowledgeText: ''
+    };
+  }
+
+  function normalizeTaxonEdu(edu) {
+    var src = edu && typeof edu === 'object' ? edu : {};
+    return {
+      sceneCopy: pickFirstNonEmpty(src.sceneCopy, src.narrativeRole, src.metaphor, src.sceneRole),
+      introText: pickFirstNonEmpty(src.introText),
+      mainTasks: normalizeMainTasks(src.mainTasks),
+      appearanceText: pickFirstNonEmpty(src.appearanceText, src.appearance),
+      functionText: pickFirstNonEmpty(src.functionText),
+      hint: pickFirstNonEmpty(src.hint, src.normalHint, src.lowHint, src.highHint, src.tooLowHint, src.tooHighHint),
+      knowledgeText: pickFirstNonEmpty(src.knowledgeText)
+    };
+  }
+
+  function migrateLegacyEduFields(edu, level) {
+    var out = normalizeTaxonEdu(edu);
+    if (level === 'phylum' && !out.introText && out.knowledgeText) out.introText = out.knowledgeText;
+    if (level !== 'phylum' && !out.functionText && out.knowledgeText) out.functionText = out.knowledgeText;
+    return out;
+  }
+
+  function taxonEduForLevel(taxon, eduPatch) {
+    return migrateLegacyEduFields(eduPatch || (taxon && taxon.edu) || {}, taxon && taxon.level);
+  }
+
+  function isEmptyEduField(key, value) {
+    if (key === 'mainTasks') return !Array.isArray(value) || !value.length;
+    return value == null || value === '';
   }
 
   function defaultBreeds() {
@@ -153,36 +199,18 @@
     ];
   }
 
-  function defaultTestIndicators() {
+  function defaultIndicators() {
     return [
       { id: 'ti-alpha', key: 'alpha-diversity', label: 'Alpha多样性', value: '菌群 Alpha 多样性指数', standardUnit: 'index', parentKey: null },
       { id: 'ti-evenness', key: 'evenness', label: '均匀度', value: '菌群均匀度指标', standardUnit: 'index', parentKey: null },
       { id: 'ti-richness', key: 'richness', label: '丰富度', value: '菌群丰富度指标', standardUnit: 'count', parentKey: null },
-      { id: 'ti-shannon', key: 'Shannon指数', label: 'Shannon指数', value: 'Shannon 多样性指数', standardUnit: 'index', parentKey: null },
-      { id: 'ti-harmful', key: '有害菌比例', label: '有害菌比例', value: '有害菌占比', standardUnit: '%', parentKey: null }
+      { id: 'ti-shannon', key: 'Shannon指数', label: 'Shannon指数', value: 'Shannon 多样性指数', standardUnit: 'index', parentKey: null }
     ];
   }
-
-  function emptyTaxonEdu() {
-    return {
-      sceneCopy: '',
-      introText: '',
-      mainTasks: [],
-      appearanceText: '',
-      functionText: '',
-      lowHint: '',
-      normalHint: '',
-      highHint: '',
-      knowledgeText: ''
-    };
-  }
+  var defaultTestIndicators = defaultIndicators;
 
   function defaultMicrobiotaPresentation() {
-    return {
-      low: '略显稀疏',
-      normal: '生机适宜',
-      high: '略显繁茂'
-    };
+    return { low: '略显稀疏', normal: '生机适宜', high: '略显繁茂' };
   }
 
   function normalizeMicrobiotaPresentation(pres, fillDefaults) {
@@ -193,11 +221,7 @@
       if (src[key] == null) return '';
       return String(src[key]).trim();
     }
-    return {
-      low: val('low'),
-      normal: val('normal'),
-      high: val('high')
-    };
+    return { low: val('low'), normal: val('normal'), high: val('high') };
   }
 
   function presentationKeyFromStatusClass(statusClass) {
@@ -216,269 +240,136 @@
       pres = state.professionalCatalog && state.professionalCatalog.microbiotaPresentation;
     }
     pres = normalizeMicrobiotaPresentation(pres, true);
-    if (!pres[key]) return '';
-    return String(pres[key]).trim();
+    return pres[key] ? String(pres[key]).trim() : '';
   }
 
-  function pickFirstNonEmpty() {
-    for (var i = 0; i < arguments.length; i++) {
-      var value = arguments[i];
-      if (value != null && String(value).trim()) return String(value).trim();
-    }
-    return '';
-  }
-
-  function normalizeMainTasks(tasks) {
-    if (!Array.isArray(tasks)) return [];
-    var out = [];
-    for (var i = 0; i < tasks.length; i++) {
-      var task = String(tasks[i] == null ? '' : tasks[i]).trim();
-      if (task) out.push(task);
-    }
-    return out;
-  }
-
-  function normalizeTaxonEdu(edu) {
-    var src = edu && typeof edu === 'object' ? edu : {};
+  function taxon(spec) {
     return {
-      sceneCopy: pickFirstNonEmpty(src.sceneCopy, src.narrativeRole, src.metaphor, src.sceneRole),
-      introText: pickFirstNonEmpty(src.introText),
-      mainTasks: normalizeMainTasks(src.mainTasks),
-      appearanceText: pickFirstNonEmpty(src.appearanceText, src.appearance),
-      functionText: pickFirstNonEmpty(src.functionText),
-      lowHint: pickFirstNonEmpty(src.lowHint, src.tooLowHint),
-      normalHint: pickFirstNonEmpty(src.normalHint),
-      highHint: pickFirstNonEmpty(src.highHint, src.tooHighHint),
-      knowledgeText: pickFirstNonEmpty(src.knowledgeText)
+      id: spec.id,
+      key: spec.key,
+      label: spec.label,
+      latinName: spec.latinName || spec.key,
+      value: spec.value || '',
+      level: spec.level,
+      parentKey: spec.parentKey || null,
+      edu: normalizeTaxonEdu(spec.edu || {})
     };
-  }
-
-  function migrateLegacyEduFields(edu, level) {
-    var out = normalizeTaxonEdu(edu);
-    if (level === 'phylum' && !out.introText && out.knowledgeText) {
-      out.introText = out.knowledgeText;
-    }
-    if (level !== 'phylum' && !out.functionText && out.knowledgeText) {
-      out.functionText = out.knowledgeText;
-    }
-    return out;
-  }
-
-  function isEmptyEduField(key, value) {
-    if (key === 'mainTasks') return !Array.isArray(value) || !value.length;
-    return value == null || value === '';
   }
 
   function defaultMicrobiotaTaxa() {
     return [
-      {
-        id: 'tax-actino',
-        key: '放线菌门',
-        label: '放线菌门',
-        latinName: 'Actinobacteria',
-        value: '主要包含有益菌群，对肠道健康至关重要',
-        level: 'phylum',
-        parentKey: null,
-        edu: normalizeTaxonEdu({
-          sceneCopy: '药草与苔藓',
-          knowledgeText: '分解复杂有机物，参与有机酸代谢，维持菌群多样性。'
-        })
-      },
-      {
-        id: 'tax-bactero',
-        key: '拟杆菌门',
-        label: '拟杆菌门',
-        latinName: 'Bacteroidetes',
+      taxon({ id: 'tax-firmi', key: 'Firmicutes', label: '厚壁菌门', latinName: 'Firmicutes', level: 'phylum',
+        value: '包含多种重要菌属，需保持适当比例',
+        edu: { sceneCopy: '强壮的食草者', knowledgeText: '发酵植物纤维，产生短链脂肪酸，参与能量代谢相关过程。' } }),
+      taxon({ id: 'tax-bactero', key: 'Bacteroidetes', label: '拟杆菌门', latinName: 'Bacteroidetes', level: 'phylum',
         value: '肠道内重要菌群，参与营养物质消化吸收',
-        level: 'phylum',
-        parentKey: null,
-        edu: normalizeTaxonEdu({
+        edu: {
           sceneCopy: '活跃的采集者',
           introText: '拟杆菌门（Bacteroidetes）就像是灵活的杂食动物——比如浣熊或野猪。',
-          mainTasks: [
-            '吃各种食物（脂肪、肉类、纤维都吃）',
-            '分解复杂的营养物质，制造营养',
-            '维持肠道的多样性和平衡。'
-          ],
-          lowHint: '如果这些「杂食动物」太少，可能说明饮食单一，肠道吸收不佳。',
+          mainTasks: ['吃各种食物（脂肪、肉类、纤维都吃）', '分解复杂的营养物质，制造营养', '维持肠道的多样性和平衡。'],
+          hint: '如果这些「杂食动物」太少，可能说明饮食单一，肠道吸收不佳。',
           knowledgeText: '处理脂肪和蛋白类食物，分解复杂多糖，参与营养物质的分解与转化。'
-        })
-      },
-      {
-        id: 'tax-firmi',
-        key: '厚壁菌门',
-        label: '厚壁菌门',
-        latinName: 'Firmicutes',
-        value: '包含多种重要菌属，需保持适当比例',
-        level: 'phylum',
-        parentKey: null,
-        edu: normalizeTaxonEdu({
-          sceneCopy: '强壮的食草者',
-          knowledgeText: '发酵植物纤维，产生短链脂肪酸，参与能量代谢相关过程。'
-        })
-      },
-      {
-        id: 'tax-proteo',
-        key: '变形菌门',
-        label: '变形菌门',
-        latinName: 'Proteobacteria',
+        } }),
+      taxon({ id: 'tax-proteo', key: 'Proteobacteria', label: '变形菌门', latinName: 'Proteobacteria', level: 'phylum',
         value: '包含潜在有害菌，应控制在较低水平',
-        level: 'phylum',
-        parentKey: null,
-        edu: normalizeTaxonEdu({
-          sceneCopy: '需要留意的过客',
-          knowledgeText: '在肠道中数量通常较少，参与部分代谢产物处理。'
-        })
-      },
-      {
-        id: 'tax-fuso',
-        key: '梭杆菌门',
-        label: '梭杆菌门',
-        latinName: 'Fusobacteria',
+        edu: { sceneCopy: '需要留意的过客', hint: '数量通常应保持较低水平。', knowledgeText: '在肠道中数量通常较少，参与部分代谢产物处理。' } }),
+      taxon({ id: 'tax-actino', key: 'Actinobacteria', label: '放线菌门', latinName: 'Actinobacteria', level: 'phylum',
+        value: '主要包含有益菌群，对肠道健康至关重要',
+        edu: { sceneCopy: '药草与苔藓', hint: '放线菌门含量适宜有助于维持肠道屏障。', knowledgeText: '分解复杂有机物，参与有机酸代谢，维持菌群多样性。' } }),
+      taxon({ id: 'tax-fuso', key: 'Fusobacteria', label: '梭杆菌门', latinName: 'Fusobacteria', level: 'phylum',
         value: '含量通常较低，过高可能提示菌群失衡',
-        level: 'phylum',
-        parentKey: null,
-        edu: normalizeTaxonEdu({
-          sceneCopy: '低调的清道夫',
-          knowledgeText: '在肠道中数量通常较少，参与残留有机物分解。'
-        })
-      },
-      {
-        id: 'tax-bifi',
-        key: '双歧杆菌',
-        label: '双歧杆菌',
-        latinName: 'Bifidobacterium',
-        value: '肠道健康的关键指标，参与免疫调节',
-        level: 'genus',
-        parentKey: '放线菌门',
-        edu: normalizeTaxonEdu({
-          sceneCopy: '苔藓',
-          knowledgeText: '体型较小的常见菌属，常出现在肠道菌群结构中。参与糖类发酵与有机酸代谢。'
-        })
-      },
-      {
-        id: 'tax-lacto',
-        key: '乳酸菌',
-        label: '乳酸菌',
-        latinName: 'Lactobacillus',
-        value: '产生乳酸，维持肠道酸性环境',
-        level: 'genus',
-        parentKey: '厚壁菌门',
-        edu: normalizeTaxonEdu({
-          sceneCopy: '食草者',
-          knowledgeText: '产生乳酸的小型发酵者，帮助维持酸性环境。产生乳酸，参与碳水化合物发酵。'
-        })
-      },
-      {
-        id: 'tax-ecoli',
-        key: '大肠杆菌',
-        label: '大肠杆菌',
-        latinName: 'Escherichia',
-        value: '条件致病菌，正常情况下含量很少',
-        level: 'genus',
-        parentKey: '变形菌门',
-        edu: normalizeTaxonEdu({
-          sceneCopy: '过客',
-          knowledgeText: '肠道中数量通常很少的常见菌属。参与肠道内部分代谢过程。'
-        })
-      },
-      {
-        id: 'tax-pept',
-        key: 'Peptacetobacter',
-        label: 'Peptacetobacter属',
-        latinName: 'Peptacetobacter',
-        value: '善于发酵碳水，产生短链脂肪酸',
-        level: 'genus',
-        parentKey: '厚壁菌门',
-        edu: normalizeTaxonEdu({
-          sceneCopy: '大象',
-          knowledgeText: '厚壁菌门中的纤维发酵者，产出短链脂肪酸。善于发酵碳水，产生短链脂肪酸。'
-        })
-      },
-      {
-        id: 'tax-lach',
-        key: 'Lachnoclostridium',
-        label: 'Lachnoclostridium属',
-        latinName: 'Lachnoclostridium',
-        value: '厚壁菌门常见属',
-        level: 'genus',
-        parentKey: '厚壁菌门',
-        edu: normalizeTaxonEdu({
-          sceneCopy: '大猩猩',
-          knowledgeText: '厚壁菌门常见属，参与纤维发酵。参与植物纤维发酵，协助能量代谢相关过程。'
-        })
-      },
-      {
-        id: 'tax-coll',
-        key: 'Collinsella',
-        label: 'Collinsella属',
-        latinName: 'Collinsella',
+        edu: { sceneCopy: '低调的清道夫', hint: '含量通常较低。', knowledgeText: '在肠道中数量通常较少，参与残留有机物分解。' } }),
+      taxon({ id: 'tax-bact', key: 'Bacteroides', label: 'Bacteroides属', latinName: 'Bacteroides', level: 'genus', parentKey: 'Bacteroidetes',
+        value: '拟杆菌门常见属',
+        edu: { sceneCopy: '野猪', appearanceText: '迅速繁殖的小团体，偶尔会惹麻烦。', functionText: '擅长处理蛋白质、脂肪与多糖，是代谢核心成员。', hint: '核心代谢成员，数量需保持适中。', knowledgeText: '迅速增殖的小团体。擅长处理蛋白质、脂肪和多糖。' } }),
+      taxon({ id: 'tax-fuso-g', key: 'Fusobacterium', label: 'Fusobacterium属', latinName: 'Fusobacterium', level: 'genus', parentKey: 'Fusobacteria',
+        value: '梭杆菌门常见属',
+        edu: { sceneCopy: '清道夫', hint: '未检出或过低时需结合其他指标判断。', knowledgeText: '梭杆菌门常见成员，参与残留有机物分解。' } }),
+      taxon({ id: 'tax-esh', key: 'Escherichia-Shigella', label: 'Escherichia-Shigella属', latinName: 'Escherichia-Shigella', level: 'genus', parentKey: 'Proteobacteria',
+        value: '变形菌门常见属',
+        edu: { sceneCopy: '过客', hint: '正常情况下含量很少。', knowledgeText: '肠道中数量通常很少的常见菌属。' } }),
+      taxon({ id: 'tax-coll', key: 'Collinsella', label: 'Collinsella属', latinName: 'Collinsella', level: 'genus', parentKey: 'Actinobacteria',
         value: '放线菌门常见属',
-        level: 'genus',
-        parentKey: '放线菌门',
-        edu: normalizeTaxonEdu({
-          sceneCopy: '药草',
-          knowledgeText: '放线菌门中常见的小型成员。参与碳水分解与胆汁酸相关代谢。'
-        })
-      },
-      {
-        id: 'tax-bact',
-        key: 'Bacteroides',
-        label: 'Bacteroides属',
-        latinName: 'Bacteroides',
-        value: '拟杆菌门常见属',
-        level: 'genus',
-        parentKey: '拟杆菌门',
-        edu: normalizeTaxonEdu({
-          sceneCopy: '野猪',
-          appearanceText: '迅速繁殖的小团体，偶尔会惹麻烦。',
-          functionText: '擅长处理蛋白质、脂肪与多糖，是代谢核心成员。',
-          knowledgeText: '迅速增殖的小团体，偶尔会惹麻烦。擅长处理蛋白质、脂肪和多糖，是核心代谢成员。'
-        })
-      },
-      {
-        id: 'tax-phoc',
-        key: 'Phocaeicola',
-        label: 'Phocaeicola属',
-        latinName: 'Phocaeicola',
-        value: '拟杆菌门常见属',
-        level: 'genus',
-        parentKey: '拟杆菌门',
-        edu: normalizeTaxonEdu({
-          sceneCopy: '浣熊',
-          knowledgeText: '灵活的小型分解者，常与拟杆菌属共事。协助分解复杂多糖，扩展拟杆菌门的生态功能。'
-        })
-      }
+        edu: { sceneCopy: '药草', hint: '放线菌门中常见的小型成员。', knowledgeText: '参与碳水分解与胆汁酸相关代谢。' } }),
+      taxon({ id: 'tax-strep', key: 'Streptococcus', label: 'Streptococcus属', latinName: 'Streptococcus', level: 'genus', parentKey: 'Firmicutes',
+        value: '厚壁菌门常见属',
+        edu: { sceneCopy: '小型发酵者', hint: '常见于口腔与肠道。', knowledgeText: '厚壁菌门常见属，参与糖类发酵。' } }),
+      taxon({ id: 'tax-pept', key: 'Peptacetobacter', label: 'Peptacetobacter属', latinName: 'Peptacetobacter', level: 'genus', parentKey: 'Firmicutes',
+        value: '善于发酵碳水，产生短链脂肪酸',
+        edu: { sceneCopy: '大象', hint: '纤维发酵者，产出短链脂肪酸。', knowledgeText: '厚壁菌门中的纤维发酵者。' } }),
+      taxon({ id: 'tax-proteus', key: 'Proteus', label: 'Proteus属', latinName: 'Proteus', level: 'genus', parentKey: 'Proteobacteria',
+        value: '变形菌门条件致病属',
+        edu: { sceneCopy: '需留意的过客', hint: '含量偏高时需关注。', knowledgeText: '变形菌门成员，正常情况下含量很低。' } }),
+      taxon({ id: 'tax-kleb', key: 'Klebsiella', label: 'Klebsiella属', latinName: 'Klebsiella', level: 'genus', parentKey: 'Proteobacteria',
+        value: '变形菌门条件致病属',
+        edu: { sceneCopy: '需留意的过客', hint: '含量偏高时需关注。', knowledgeText: '变形菌门成员，正常情况下含量很低。' } }),
+      taxon({ id: 'tax-medi', key: 'Mediterraneibacter', label: 'Mediterraneibacter属', latinName: 'Mediterraneibacter', level: 'genus', parentKey: 'Firmicutes',
+        value: '厚壁菌门常见属',
+        edu: { sceneCopy: '食草者', hint: '参与纤维发酵。', knowledgeText: '厚壁菌门常见属。' } }),
+      taxon({ id: 'tax-pseudo', key: 'Pseudomonas', label: 'Pseudomonas属', latinName: 'Pseudomonas', level: 'genus', parentKey: 'Proteobacteria',
+        value: '变形菌门常见属',
+        edu: { sceneCopy: '过客', hint: '含量通常极低。', knowledgeText: '环境相关菌属，肠道中通常很少。' } })
+    ];
+  }
+
+  function rangeItem(targetType, targetKey, taxonomyLevel, minValue, maxValue, unit, notes) {
+    return {
+      targetType: targetType,
+      targetKey: targetKey,
+      taxonomyLevel: taxonomyLevel,
+      minValue: minValue,
+      maxValue: maxValue,
+      unit: unit,
+      notes: notes || ''
+    };
+  }
+
+  function defaultRangeItems() {
+    return [
+      rangeItem('microbiota', 'Actinobacteria', 'phylum', 25, 45, '%', '放线菌门'),
+      rangeItem('microbiota', 'Bacteroidetes', 'phylum', 15, 40, '%', '拟杆菌门'),
+      rangeItem('microbiota', 'Firmicutes', 'phylum', 25, 50, '%', '厚壁菌门'),
+      rangeItem('microbiota', 'Fusobacteria', 'phylum', 0, 8, '%', '梭杆菌门'),
+      rangeItem('microbiota', 'Proteobacteria', 'phylum', 0, 12, '%', '变形菌门'),
+      rangeItem('microbiota', 'Bacteroides', 'genus', 12, 20, '%', 'Bacteroides'),
+      rangeItem('microbiota', 'Fusobacterium', 'genus', 0, 5, '%', 'Fusobacterium'),
+      rangeItem('microbiota', 'Escherichia-Shigella', 'genus', 0, 5, '%', 'Escherichia-Shigella'),
+      rangeItem('microbiota', 'Collinsella', 'genus', 3, 8, '%', 'Collinsella'),
+      rangeItem('microbiota', 'Streptococcus', 'genus', 1, 5, '%', 'Streptococcus'),
+      rangeItem('microbiota', 'Peptacetobacter', 'genus', 3, 8, '%', 'Peptacetobacter'),
+      rangeItem('microbiota', 'Proteus', 'genus', 0, 2, '%', 'Proteus'),
+      rangeItem('microbiota', 'Klebsiella', 'genus', 0, 3, '%', 'Klebsiella'),
+      rangeItem('microbiota', 'Mediterraneibacter', 'genus', 1, 8, '%', 'Mediterraneibacter'),
+      rangeItem('microbiota', 'Pseudomonas', 'genus', 0, 1, '%', 'Pseudomonas'),
+      rangeItem('indicator', 'alpha-diversity', null, 3, 5.5, 'index', 'Alpha 多样性')
     ];
   }
 
   function defaultPlatformRanges() {
-    var demoNote = '';
-    return [
-      { id: 'pr-001', species: 'cat', targetType: 'microbiota', targetKey: '放线菌门', taxonomyLevel: 'phylum', minValue: 25, maxValue: 45, unit: '%', status: 'active', notes: demoNote + ' 猫科放线菌门', createdAt: '2025-01-15T10:30:00.000Z' },
-      { id: 'pr-002', species: 'cat', targetType: 'microbiota', targetKey: '双歧杆菌', taxonomyLevel: 'genus', minValue: 12, maxValue: 28, unit: '%', status: 'active', notes: demoNote + ' 猫科双歧杆菌', createdAt: '2025-01-15T10:35:00.000Z' },
-      { id: 'pr-003', species: 'dog', targetType: 'microbiota', targetKey: '放线菌门', taxonomyLevel: 'phylum', minValue: 30, maxValue: 50, unit: '%', status: 'active', notes: demoNote + ' 犬科放线菌门', createdAt: '2025-01-15T11:00:00.000Z' },
-      { id: 'pr-004', species: 'cat', targetType: 'microbiota', targetKey: '乳酸菌', taxonomyLevel: 'genus', minValue: 15, maxValue: 30, unit: '%', status: 'active', notes: demoNote + ' 猫科乳酸菌', createdAt: '2025-01-15T11:05:00.000Z' },
-      { id: 'pr-005', species: 'dog', targetType: 'microbiota', targetKey: '乳酸菌', taxonomyLevel: 'genus', minValue: 18, maxValue: 35, unit: '%', status: 'active', notes: demoNote + ' 犬科乳酸菌', createdAt: '2025-01-15T11:10:00.000Z' },
-      { id: 'pr-006', species: 'cat', targetType: 'indicator', targetKey: 'alpha-diversity', taxonomyLevel: null, minValue: 3, maxValue: 5.5, unit: 'index', status: 'active', notes: demoNote + ' 猫 Alpha 多样性', createdAt: '2025-01-15T11:15:00.000Z' },
-      { id: 'pr-007', species: 'cat', targetType: 'microbiota', targetKey: '拟杆菌门', taxonomyLevel: 'phylum', minValue: 15, maxValue: 40, unit: '%', status: 'active', notes: demoNote + ' 猫科拟杆菌门', createdAt: '2025-01-15T11:20:00.000Z' },
-      { id: 'pr-008', species: 'cat', targetType: 'microbiota', targetKey: '厚壁菌门', taxonomyLevel: 'phylum', minValue: 25, maxValue: 50, unit: '%', status: 'active', notes: demoNote + ' 猫科厚壁菌门', createdAt: '2025-01-15T11:21:00.000Z' },
-      { id: 'pr-009', species: 'cat', targetType: 'microbiota', targetKey: '梭杆菌门', taxonomyLevel: 'phylum', minValue: 0, maxValue: 8, unit: '%', status: 'active', notes: demoNote + ' 猫科梭杆菌门', createdAt: '2025-01-15T11:22:00.000Z' },
-      { id: 'pr-010', species: 'cat', targetType: 'microbiota', targetKey: '变形菌门', taxonomyLevel: 'phylum', minValue: 0, maxValue: 12, unit: '%', status: 'active', notes: demoNote + ' 猫科变形菌门', createdAt: '2025-01-15T11:23:00.000Z' },
-      { id: 'pr-011', species: 'cat', targetType: 'microbiota', targetKey: 'Collinsella', taxonomyLevel: 'genus', minValue: 3, maxValue: 8, unit: '%', status: 'active', notes: demoNote + ' 猫科 Collinsella', createdAt: '2025-01-15T11:24:00.000Z' },
-      { id: 'pr-012', species: 'cat', targetType: 'microbiota', targetKey: 'Bacteroides', taxonomyLevel: 'genus', minValue: 12, maxValue: 20, unit: '%', status: 'active', notes: demoNote + ' 猫科 Bacteroides', createdAt: '2025-01-15T11:25:00.000Z' },
-      { id: 'pr-013', species: 'cat', targetType: 'microbiota', targetKey: 'Phocaeicola', taxonomyLevel: 'genus', minValue: 2, maxValue: 10, unit: '%', status: 'active', notes: demoNote + ' 猫科 Phocaeicola', createdAt: '2025-01-15T11:26:00.000Z' },
-      { id: 'pr-014', species: 'cat', targetType: 'microbiota', targetKey: 'Peptacetobacter', taxonomyLevel: 'genus', minValue: 3, maxValue: 8, unit: '%', status: 'active', notes: demoNote + ' 猫科 Peptacetobacter', createdAt: '2025-01-15T11:27:00.000Z' }
-    ];
+    var items = defaultRangeItems();
+    var out = [];
+    ['cat', 'dog'].forEach(function (species) {
+      items.forEach(function (item, idx) {
+        out.push({
+          id: 'pr-' + species + '-' + String(idx + 1).padStart(3, '0'),
+          species: species,
+          targetType: item.targetType,
+          targetKey: item.targetKey,
+          taxonomyLevel: item.taxonomyLevel,
+          minValue: item.minValue,
+          maxValue: item.maxValue,
+          unit: item.unit,
+          status: 'active',
+          notes: (species === 'cat' ? '猫科 ' : '犬科 ') + (item.notes || item.targetKey),
+          createdAt: '2025-01-15T10:30:00.000Z'
+        });
+      });
+    });
+    return out;
   }
 
   function platformRangeItemKey(item) {
-    return [
-      item.targetType || '',
-      item.targetKey || '',
-      item.taxonomyLevel || '',
-      item.unit || ''
-    ].join('\0');
+    return [item.targetType || '', item.targetKey || '', item.taxonomyLevel || '', item.unit || ''].join('\0');
   }
 
   function schemeItemsFromPlatformRanges(ranges) {
@@ -502,38 +393,22 @@
   }
 
   function defaultReferenceRangeSchemes() {
-    var demoEvidence = '检测机构内部参考范围';
+    var evidence = '检测机构内部参考范围';
     var flat = defaultPlatformRanges();
     var catItems = schemeItemsFromPlatformRanges(flat.filter(function (r) { return r.species === 'cat'; }));
     var dogItems = schemeItemsFromPlatformRanges(flat.filter(function (r) { return r.species === 'dog'; }));
     return [
       {
-        id: 'rrs-cat-gut-001',
-        name: '猫科肠道菌群检测',
-        templateId: 'ORG-LAB-GUT-001',
-        methodName: '16S 肠道菌群检测',
-        applicableSpecies: ['cat'],
-        evidenceType: 'internal',
-        evidenceRef: demoEvidence,
-        status: 'active',
-        version: 1,
-        items: catItems,
-        createdAt: '2025-01-15T10:00:00.000Z',
-        updatedAt: '2025-01-15T10:00:00.000Z'
+        id: 'rrs-cat-gut-001', name: '猫科肠道菌群检测', templateId: DEFAULT_SOURCE_ORG_ID,
+        methodName: '16S 肠道菌群检测', applicableSpecies: ['cat'], evidenceType: 'internal',
+        evidenceRef: evidence, status: 'active', version: 1, items: catItems,
+        createdAt: '2025-01-15T10:00:00.000Z', updatedAt: '2025-01-15T10:00:00.000Z'
       },
       {
-        id: 'rrs-dog-gut-001',
-        name: '犬科肠道菌群检测',
-        templateId: 'ORG-LAB-GUT-001',
-        methodName: '16S 肠道菌群检测',
-        applicableSpecies: ['dog'],
-        evidenceType: 'internal',
-        evidenceRef: demoEvidence,
-        status: 'active',
-        version: 1,
-        items: dogItems,
-        createdAt: '2025-01-15T11:00:00.000Z',
-        updatedAt: '2025-01-15T11:00:00.000Z'
+        id: 'rrs-dog-gut-001', name: '犬科肠道菌群检测', templateId: DEFAULT_SOURCE_ORG_ID,
+        methodName: '16S 肠道菌群检测', applicableSpecies: ['dog'], evidenceType: 'internal',
+        evidenceRef: evidence, status: 'active', version: 1, items: dogItems,
+        createdAt: '2025-01-15T11:00:00.000Z', updatedAt: '2025-01-15T11:00:00.000Z'
       }
     ];
   }
@@ -548,19 +423,12 @@
         speciesList.forEach(function (species) {
           out.push({
             id: scheme.id + ':' + species + ':' + item.targetKey + ':' + (item.taxonomyLevel || ''),
-            schemeId: scheme.id,
-            species: species,
-            templateId: scheme.templateId,
-            targetType: item.targetType,
-            targetKey: item.targetKey,
+            schemeId: scheme.id, species: species, templateId: scheme.templateId,
+            targetType: item.targetType, targetKey: item.targetKey,
             taxonomyLevel: item.taxonomyLevel || null,
-            minValue: item.minValue,
-            maxValue: item.maxValue,
-            unit: item.unit,
-            notes: item.notes || scheme.evidenceRef || '',
-            status: scheme.status,
-            createdAt: scheme.createdAt,
-            updatedAt: scheme.updatedAt
+            minValue: item.minValue, maxValue: item.maxValue, unit: item.unit,
+            notes: item.notes || scheme.evidenceRef || '', status: scheme.status,
+            createdAt: scheme.createdAt, updatedAt: scheme.updatedAt
           });
         });
       });
@@ -578,14 +446,13 @@
   function schemeHasValidItems(scheme) {
     if (!scheme || !scheme.evidenceRef || !String(scheme.evidenceRef).trim()) return false;
     return (scheme.items || []).some(function (item) {
-      return item.minValue != null && item.maxValue != null && item.unit &&
-        item.minValue < item.maxValue;
+      return item.minValue != null && item.maxValue != null && item.unit && item.minValue < item.maxValue;
     });
   }
 
   function defaultStandardUnits() {
     return [
-      { id: 'su-001', templateId: 'ORG-LAB-GUT-001', fromUnit: '‰', toUnit: '%', factor: 0.1, note: '已知模板明确换算：千分比转百分比' }
+      { id: 'su-001', templateId: DEFAULT_SOURCE_ORG_ID, fromUnit: '‰', toUnit: '%', factor: 0.1, note: '已知模板明确换算：千分比转百分比' }
     ];
   }
 
@@ -593,79 +460,14 @@
     var schemes = defaultReferenceRangeSchemes();
     return {
       breeds: defaultBreeds(),
-      testIndicators: defaultTestIndicators(),
+      testIndicators: defaultIndicators(),
       microbiotaTaxa: defaultMicrobiotaTaxa(),
       microbiotaPresentation: defaultMicrobiotaPresentation(),
       referenceRangeSchemes: schemes,
       platformReferenceRanges: flattenSchemesToPlatformRanges(schemes),
       standardUnits: defaultStandardUnits(),
-      meta: { version: 9, initializedAt: nowIso() }
+      meta: { version: 16, initializedAt: nowIso() }
     };
-  }
-
-  function extraReport001V2Indicators() {
-    var ts = '2025-08-24T15:00:00.000Z';
-    function row(id, key, value, unit) {
-      return {
-        id: id,
-        testRecordId: 'tr-004',
-        reportId: 'report-001',
-        key: key,
-        value: value,
-        unit: unit,
-        dataStatus: 'PRESENT',
-        version: 2,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: ts
-      };
-    }
-    return [
-      row('ind-011-v2', 'alpha-diversity', 86.1, ''),
-      row('ind-012-v2', 'evenness', 65.2, ''),
-      row('ind-013-v2', 'richness', 70.1, ''),
-      row('ind-014-v2', '厚壁菌门', 32.1, '%'),
-      row('ind-015-v2', '梭杆菌门', 6.4, '%'),
-      row('ind-016-v2', '变形菌门', 7.8, '%'),
-      row('ind-017-v2', '双歧杆菌', 9.6, '%'),
-      row('ind-018-v2', 'Collinsella', 9.6, '%'),
-      row('ind-019-v2', 'Bacteroides', 20, '%'),
-      row('ind-020-v2', 'Phocaeicola', 8, '%'),
-      row('ind-021-v2', 'Peptacetobacter', 16, '%'),
-      row('ind-022-v2', 'Lachnoclostridium', 5, '%'),
-      row('ind-023-v2', '乳酸菌', 12, '%')
-    ];
-  }
-
-  function extraReport001V2Findings() {
-    return [
-      {
-        id: 'finding-006',
-        reportId: 'report-001',
-        reportVersion: 2,
-        indicatorKey: 'Collinsella',
-        conclusion: 'HIGH',
-        dataStatus: 'PRESENT',
-        description: ' Collinsella 高于参考范围（9.6% vs 3–8%）',
-        professional: ' Collinsella 属占比 9.6%，高于猫科平台参考范围 3–8%。',
-        consumer: '该菌属含量偏高。',
-        riskLevel: 'medium',
-        createdAt: '2025-08-24T15:30:00.000Z'
-      },
-      {
-        id: 'finding-007',
-        reportId: 'report-001',
-        reportVersion: 2,
-        indicatorKey: 'Peptacetobacter',
-        conclusion: 'HIGH',
-        dataStatus: 'PRESENT',
-        description: ' Peptacetobacter 高于参考范围（16% vs 3–8%）',
-        professional: ' Peptacetobacter 属占比 16%，高于猫科平台参考范围 3–8%。',
-        consumer: '该菌属含量偏高。',
-        riskLevel: 'medium',
-        createdAt: '2025-08-24T15:30:00.000Z'
-      }
-    ];
   }
 
   function catalogItemKey(item) {
@@ -688,10 +490,7 @@
     var groupMap = {};
     list.forEach(function (item, index) {
       var gk = catalogParentGroupKey(item);
-      if (!groupMap[gk]) {
-        groupMap[gk] = [];
-        groupOrder.push(gk);
-      }
+      if (!groupMap[gk]) { groupMap[gk] = []; groupOrder.push(gk); }
       groupMap[gk].push({ item: item, index: index });
     });
     groupOrder.forEach(function (gk) {
@@ -731,11 +530,8 @@
     var roots = [];
     items.forEach(function (item) {
       var node = itemMap[item.key];
-      if (item.parentKey && itemMap[item.parentKey]) {
-        itemMap[item.parentKey].children.push(node);
-      } else {
-        roots.push(node);
-      }
+      if (item.parentKey && itemMap[item.parentKey]) itemMap[item.parentKey].children.push(node);
+      else roots.push(node);
     });
     function flatten(nodes, flat) {
       flat = flat || [];
@@ -764,436 +560,12 @@
       var seen = {};
       groups[gk].forEach(function (item) {
         var so = parseCatalogSortOrder(item.sortOrder);
-        if (so == null) {
-          errors.push('序号须为正整数：' + (item.key || item.id));
-          return;
-        }
-        if (seen[so]) {
-          errors.push('同级序号重复：' + so);
-          return;
-        }
+        if (so == null) { errors.push('序号须为正整数：' + (item.key || item.id)); return; }
+        if (seen[so]) { errors.push('同级序号重复：' + so); return; }
         seen[so] = true;
       });
     });
     return errors;
-  }
-
-  function platformRangeMergeKey(range) {
-    return [
-      range.species || '',
-      range.targetType || '',
-      range.targetKey || '',
-      range.taxonomyLevel || ''
-    ].join('\0');
-  }
-
-  function mergeMissingByKey(list, defaults) {
-    if (!list) return;
-    var seen = {};
-    list.forEach(function (item) {
-      var key = catalogItemKey(item);
-      if (key) seen[key] = true;
-    });
-    defaults.forEach(function (item) {
-      var key = catalogItemKey(item);
-      if (!key || seen[key]) return;
-      list.push(clone(item));
-      seen[key] = true;
-    });
-  }
-
-  function mergeMissingPlatformRanges(list, defaults) {
-    if (!list) return;
-    var byId = {};
-    var byTarget = {};
-    list.forEach(function (range) {
-      if (range.id) byId[range.id] = true;
-      byTarget[platformRangeMergeKey(range)] = true;
-    });
-    defaults.forEach(function (range) {
-      var targetKey = platformRangeMergeKey(range);
-      if (range.id && byId[range.id]) return;
-      if (byTarget[targetKey]) return;
-      if (range.targetKey && list.some(function (existing) {
-        return existing.targetKey === range.targetKey && existing.species === range.species;
-      })) return;
-      list.push(clone(range));
-      if (range.id) byId[range.id] = true;
-      byTarget[targetKey] = true;
-    });
-  }
-
-  function mergeMissingIndicators(list, extras) {
-    if (!list) return;
-    extras.forEach(function (item) {
-      var exists = list.some(function (ind) {
-        return ind.id === item.id || (
-          ind.reportId === item.reportId &&
-          ind.key === item.key &&
-          ind.version === item.version
-        );
-      });
-      if (!exists) list.push(clone(item));
-    });
-  }
-
-  function mergeMissingFindings(list, extras) {
-    if (!list) return;
-    extras.forEach(function (item) {
-      var exists = list.some(function (finding) {
-        return finding.id === item.id;
-      });
-      if (!exists) list.push(clone(item));
-    });
-  }
-
-  function rebuildPublishedSnapshotsForReport(state, reportId) {
-    var report = (state.reports || []).find(function (row) { return row.id === reportId; });
-    if (!report) return;
-    (report.versions || []).forEach(function (ver) {
-      if (ver.status === 'published' || ver.status === 'corrected') {
-        ver.contentSnapshot = buildContentSnapshot(state, report, ver.version, ' 迁移回填');
-      }
-    });
-  }
-
-  function migrateCatalogAndReport001V4(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (catalog) {
-      if (!catalog.microbiotaTaxa) catalog.microbiotaTaxa = [];
-      if (!catalog.platformReferenceRanges) catalog.platformReferenceRanges = [];
-      mergeMissingByKey(catalog.microbiotaTaxa, defaultMicrobiotaTaxa());
-      mergeMissingPlatformRanges(catalog.platformReferenceRanges, defaultPlatformRanges());
-    }
-    if (!state.indicators) state.indicators = [];
-    if (!state.findings) state.findings = [];
-    mergeMissingIndicators(state.indicators, extraReport001V2Indicators());
-    mergeMissingFindings(state.findings, extraReport001V2Findings());
-    rebuildPublishedSnapshotsForReport(state, 'report-001');
-  }
-
-  function taxonEduForLevel(taxon, eduPatch) {
-    var src = eduPatch || (taxon && taxon.edu) || {};
-    return normalizeTaxonEdu(src);
-  }
-
-  function migrateTaxonEduV7(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
-    catalog.microbiotaTaxa.forEach(function (taxon) {
-      taxon.edu = normalizeTaxonEdu(taxon.edu);
-    });
-    catalog.meta = catalog.meta || {};
-    catalog.meta.version = Math.max(catalog.meta.version || 0, 7);
-  }
-
-  function migrateTaxonEduV11(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
-    var seedByKey = {};
-    defaultMicrobiotaTaxa().forEach(function (item) {
-      seedByKey[item.key] = item;
-    });
-    catalog.microbiotaTaxa.forEach(function (taxon) {
-      var edu = normalizeTaxonEdu(taxon.edu);
-      if (taxon.level === 'phylum' && !edu.introText && edu.knowledgeText) {
-        edu.introText = edu.knowledgeText;
-      }
-      if (taxon.level !== 'phylum' && !edu.functionText && edu.knowledgeText) {
-        edu.functionText = edu.knowledgeText;
-      }
-      var seed = seedByKey[taxon.key];
-      if (seed && seed.edu) {
-        var seedEdu = normalizeTaxonEdu(seed.edu);
-        Object.keys(seedEdu).forEach(function (key) {
-          if (key === 'mainTasks') {
-            if ((!edu.mainTasks || !edu.mainTasks.length) && seedEdu.mainTasks && seedEdu.mainTasks.length) {
-              edu.mainTasks = seedEdu.mainTasks.slice();
-            }
-          } else if (isEmptyEduField(key, edu[key]) && !isEmptyEduField(key, seedEdu[key])) {
-            edu[key] = seedEdu[key];
-          }
-        });
-      }
-      taxon.edu = edu;
-    });
-    catalog.meta = catalog.meta || {};
-    catalog.meta.version = Math.max(catalog.meta.version || 0, 11);
-  }
-
-  function migrateCatalogSortOrderV13(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (!catalog) return;
-    if (catalog.breeds) backfillMissingCatalogSortOrders(catalog.breeds);
-    if (catalog.testIndicators) backfillMissingCatalogSortOrders(catalog.testIndicators);
-    if (catalog.microbiotaTaxa) backfillMissingCatalogSortOrders(catalog.microbiotaTaxa);
-    if (catalog.breeds) catalog.breeds = reorderCatalogCollectionBySortOrder(catalog.breeds);
-    if (catalog.testIndicators) catalog.testIndicators = reorderCatalogCollectionBySortOrder(catalog.testIndicators);
-    if (catalog.microbiotaTaxa) catalog.microbiotaTaxa = reorderCatalogCollectionBySortOrder(catalog.microbiotaTaxa);
-    catalog.meta = catalog.meta || {};
-    catalog.meta.version = Math.max(catalog.meta.version || 0, 13);
-  }
-
-  function migrateSpecimenFlowV15(state) {
-    (state.testRecords || []).forEach(function (tr) {
-      if (tr.status === 'pending_result' && tr.label) {
-        tr.label = tr.label.replace(/待结果/g, '待导入结果').replace(/新登记检测/g, '登记送检');
-      }
-    });
-  }
-
-  function migrateRecommendationManualRelatedV14(state) {
-    (state.recommendations || []).forEach(function (rec) {
-      if (!rec.relatedProductIds) {
-        rec.relatedProductIds = [];
-        (rec.candidateProductIds || []).forEach(function (id) {
-          if (!id || rec.relatedProductIds.indexOf(id) >= 0) return;
-          if (rec.relatedProductIds.length < 3) rec.relatedProductIds.push(id);
-        });
-      }
-      if (!rec.candidateProductIds && rec.relatedProductIds.length) {
-        rec.candidateProductIds = rec.relatedProductIds.slice();
-      }
-    });
-  }
-
-  function migrateTaxonEduV12(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
-    var staleHintsByKey = {
-      '拟杆菌门': {
-        normalHint: '数量适中时，说明饮食结构较均衡，营养分解能力稳定。',
-        highHint: '若占比偏高，可能提示高脂高蛋白饮食偏多，需关注整体菌群平衡。'
-      },
-      'Bacteroides': {
-        lowHint: '若该属偏少，可能提示蛋白/脂肪类食物分解能力不足。',
-        normalHint: '数量适中时，说明复杂营养物质的分解与转化较稳定。',
-        highHint: '若该属偏高，可能提示高脂高蛋白摄入偏多，需结合整体菌群观察。'
-      }
-    };
-    catalog.microbiotaTaxa.forEach(function (taxon) {
-      var stale = staleHintsByKey[taxon.key];
-      var edu = normalizeTaxonEdu(taxon.edu);
-      if (stale) {
-        Object.keys(stale).forEach(function (field) {
-          if (edu[field] === stale[field]) {
-            edu[field] = '';
-          }
-        });
-      }
-      taxon.edu = edu;
-    });
-    catalog.meta = catalog.meta || {};
-    catalog.meta.version = Math.max(catalog.meta.version || 0, 12);
-  }
-
-  function migrateMicrobiotaPresentationV9(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (!catalog) return;
-    if (!catalog.microbiotaPresentation) {
-      catalog.microbiotaPresentation = defaultMicrobiotaPresentation();
-    } else {
-      catalog.microbiotaPresentation = normalizeMicrobiotaPresentation(catalog.microbiotaPresentation, true);
-    }
-    catalog.meta = catalog.meta || {};
-    catalog.meta.version = Math.max(catalog.meta.version || 0, 9);
-  }
-
-  function migrateReferenceRangeSchemesV8(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (!catalog) return;
-    if (!catalog.referenceRangeSchemes || !catalog.referenceRangeSchemes.length) {
-      var flat = catalog.platformReferenceRanges && catalog.platformReferenceRanges.length
-        ? catalog.platformReferenceRanges
-        : defaultPlatformRanges();
-      var demoEvidence = '检测机构内部参考范围';
-      var bySpecies = {};
-      flat.forEach(function (range) {
-        if (!range.species) return;
-        if (!bySpecies[range.species]) bySpecies[range.species] = [];
-        bySpecies[range.species].push(range);
-      });
-      catalog.referenceRangeSchemes = Object.keys(bySpecies).map(function (species) {
-        return {
-          id: 'rrs-migrated-' + species,
-          name: (species === 'cat' ? '猫科' : species === 'dog' ? '犬科' : species) + '参考范围（迁移）',
-          templateId: 'ORG-LAB-GUT-001',
-          methodName: '16S 肠道菌群检测',
-          applicableSpecies: [species],
-          evidenceType: 'internal',
-          evidenceRef: demoEvidence,
-          status: 'active',
-          version: 1,
-          items: schemeItemsFromPlatformRanges(bySpecies[species]),
-          createdAt: nowIso(),
-          updatedAt: nowIso()
-        };
-      });
-      if (!catalog.referenceRangeSchemes.length) {
-        catalog.referenceRangeSchemes = defaultReferenceRangeSchemes();
-      }
-    }
-    syncPlatformReferenceRangesFromSchemes(catalog);
-  }
-
-  function migrateDemoIndicatorTemplateIds(state) {
-    (state.indicators || []).forEach(function (ind) {
-      if (!ind.sourceTemplateId && ind.key) {
-        ind.sourceTemplateId = 'ORG-LAB-GUT-001';
-      }
-    });
-  }
-
-  function migrateTaxonEduV6(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
-    catalog.microbiotaTaxa.forEach(function (taxon) {
-      taxon.edu = taxonEduForLevel(taxon);
-    });
-  }
-
-  function migrateTaxonEduV5(state) {
-    ensureDomainState(state);
-    var catalog = state.professionalCatalog;
-    if (!catalog || !Array.isArray(catalog.microbiotaTaxa)) return;
-    var seedByKey = {};
-    defaultMicrobiotaTaxa().forEach(function (item) {
-      seedByKey[item.key] = item;
-    });
-    catalog.microbiotaTaxa.forEach(function (taxon) {
-      var seed = seedByKey[taxon.key];
-      if (seed && !taxon.latinName && seed.latinName) taxon.latinName = seed.latinName;
-      if (!taxon.edu) {
-        taxon.edu = seed && seed.edu ? normalizeTaxonEdu(clone(seed.edu)) : emptyTaxonEdu();
-        return;
-      }
-      taxon.edu = normalizeTaxonEdu(taxon.edu);
-      if (!seed || !seed.edu) return;
-      var seedEdu = normalizeTaxonEdu(seed.edu);
-      Object.keys(seedEdu).forEach(function (key) {
-        if (isEmptyEduField(key, taxon.edu[key]) && !isEmptyEduField(key, seedEdu[key])) {
-          taxon.edu[key] = key === 'mainTasks' ? seedEdu[key].slice() : seedEdu[key];
-        }
-      });
-    });
-  }
-
-  var DEMO_ANALYSIS_RULE_SEEDS = [
-    {
-      id: 'rule-001',
-      name: '放线菌门偏低',
-      species: '猫,狗',
-      indicatorKey: '放线菌门',
-      dataStatus: 'PRESENT',
-      riskLevel: 'medium',
-      priority: 10,
-      module: 'gut_balance',
-      professional: '放线菌门占比低于参考范围，可能影响肠道屏障与免疫调节。',
-      consumer: '肠道有益菌偏少，建议关注日常饮食与益生菌补充。',
-      suppressProduct: false,
-      isActive: true
-    },
-    {
-      id: 'rule-002',
-      name: '厚壁菌门未检出',
-      species: '猫,狗',
-      indicatorKey: '厚壁菌门',
-      dataStatus: 'NOT_DETECTED',
-      riskLevel: 'high',
-      priority: 20,
-      module: 'alert_banner',
-      professional: '厚壁菌门未检出（NOT_DETECTED），不可等同于偏低结论。',
-      consumer: '该项未检出，需结合复检与其他指标综合判断。',
-      suppressProduct: true,
-      isActive: true
-    },
-    {
-      id: 'rule-003',
-      name: '有害菌比例无效',
-      species: '猫,狗',
-      indicatorKey: '有害菌比例',
-      dataStatus: 'INVALID',
-      riskLevel: 'high',
-      priority: 30,
-      module: 'data_quality',
-      professional: '指标值为无效数据（INVALID），禁止触发商品推荐。',
-      consumer: '实验室数据异常，请联系机构复核。',
-      suppressProduct: true,
-      isActive: true
-    }
-  ];
-
-  function buildDefaultAnalysisRuleCatalog() {
-    var now = nowIso();
-    return DEMO_ANALYSIS_RULE_SEEDS.map(function (dr, idx) {
-      var lineageId = 'lineage-' + (dr.id || ('seed-' + idx));
-      var conditions = [];
-      if (dr.dataStatus && dr.dataStatus !== 'PRESENT') {
-        conditions.push({
-          id: uid('cond'),
-          type: 'DATA_STATUS',
-          indicatorKey: dr.indicatorKey,
-          dataStatus: dr.dataStatus
-        });
-      } else {
-        conditions.push({
-          id: uid('cond'),
-          type: 'NUMERIC_COMPARE',
-          indicatorKey: dr.indicatorKey,
-          operator: '<',
-          value: 20,
-          unit: '%'
-        });
-      }
-      if (dr.species) {
-        conditions.push({
-          id: uid('cond'),
-          type: 'SPECIES',
-          species: dr.species
-        });
-      }
-      var isIntegrity = dr.dataStatus === 'INVALID' || dr.dataStatus === 'MISSING_COLUMN' ||
-        dr.dataStatus === 'EMPTY' || dr.dataStatus === 'NOT_APPLICABLE';
-      return {
-        id: uid('rule'),
-        lineageId: lineageId,
-        version: 1,
-        status: dr.isActive === false ? 'inactive' : 'active',
-        name: dr.name,
-        description: ' ' + (dr.indicatorKey || '') + ' · ' + (dr.dataStatus || 'PRESENT'),
-        conditionLogic: 'ALL',
-        conditions: conditions,
-        riskLevel: dr.riskLevel || 'medium',
-        priority: dr.priority || (idx + 1) * 10,
-        conflictGroup: dr.module || 'general',
-        output: {
-          professional: dr.professional || '',
-          consumer: dr.consumer || '',
-          healthAdvice: isIntegrity ? '' : (dr.consumer || ''),
-          outputMode: 'both',
-          isDataIntegrityOnly: isIntegrity || !!dr.suppressProduct
-        },
-        createdAt: now,
-        updatedAt: now
-      };
-    });
-  }
-
-  function ensureDomainState(state) {
-    if (!state.professionalCatalog) state.professionalCatalog = defaultCatalog();
-    if (!state.analysisRuleCatalog || !state.analysisRuleCatalog.length) {
-      state.analysisRuleCatalog = buildDefaultAnalysisRuleCatalog();
-    }
-    if (!state.analysisRuns) state.analysisRuns = [];
-    if (!state.reportAnalysisAdjustments) state.reportAnalysisAdjustments = {};
   }
 
   function normalizeActorOptions(options) {
@@ -1201,1262 +573,28 @@
     return options || {};
   }
 
-  function migrateState(state) {
-    if (!state) return state;
-
-    ['indicators', 'findings'].forEach(function (collection) {
-      if (!state[collection]) return;
-      state[collection].forEach(function (item) {
-        if (item.dataStatus) item.dataStatus = normalizeDataStatus(item.dataStatus);
-      });
-    });
-
-    if (!state.healthTags) state.healthTags = [];
-    if (!state.healthTagProducts) state.healthTagProducts = [];
+  function ensureDomainState(state) {
+    if (!state.professionalCatalog) state.professionalCatalog = defaultCatalog();
+    if (!state.analysisRuleCatalog) state.analysisRuleCatalog = [];
+    if (!state.analysisRuns) state.analysisRuns = [];
+    if (!state.phylumAnalysisUnits) state.phylumAnalysisUnits = [];
+    if (!state.operationRecords) state.operationRecords = [];
     if (!state.ownershipCorrections) state.ownershipCorrections = [];
     if (!state.petUserAssociationChanges) state.petUserAssociationChanges = [];
-    if (!state.operationRecords) state.operationRecords = [];
-
-    (state.products || []).forEach(function (product) {
-      if (product.stock == null) product.stock = product.available === false ? 0 : 10;
-    });
-
-    (state.testRecords || []).forEach(function (tr) {
-      if (!tr.sourceOrgId) tr.sourceOrgId = DEFAULT_SOURCE_ORG_ID;
-      if (!tr.sampleNumber && tr.label) tr.sampleNumber = tr.label;
-    });
-
-    (state.reports || []).forEach(function (report) {
-      syncReportVersionFields(report);
-      if (!report.workflowStatus) {
-        var tr = (state.testRecords || []).find(function (t) { return t.id === report.testRecordId; });
-        report.workflowStatus = deriveWorkflowStatus(report, tr);
-      }
-      if (!report.todoFlags) report.todoFlags = deriveTodoFlags(report, findTestRecord(state, report.testRecordId));
-      if (!report.ownershipStatus) {
-        report.ownershipStatus = report.userId ? 'bound' : (report.petId ? 'pending_claim' : 'unassigned');
-      }
-      if (report.publishedVersion == null) {
-        report.publishedVersion = (report.status === 'published' || report.status === 'corrected') ? report.currentVersion : null;
-      }
-      if (report.workingVersion == null) report.workingVersion = report.currentVersion;
-    });
-
-    (state.recommendations || []).forEach(function (rec) {
-      if (!rec.healthTagIds) rec.healthTagIds = rec.healthTagId ? [rec.healthTagId] : [];
-      if (!rec.primaryProductId && rec.productId) rec.primaryProductId = rec.productId;
-    });
-
-    ensureDomainState(state);
-
-    if (!state.meta) state.meta = {};
-    if (!state.meta.version || state.meta.version < 4) {
-      migrateCatalogAndReport001V4(state);
-    }
-    if (!state.meta.version || state.meta.version < 5) {
-      migrateTaxonEduV5(state);
-    }
-    if (!state.meta.version || state.meta.version < 6) {
-      migrateTaxonEduV6(state);
-    }
-    if (!state.meta.version || state.meta.version < 7) {
-      migrateTaxonEduV7(state);
-    }
-    if (!state.meta.version || state.meta.version < 8) {
-      migrateReferenceRangeSchemesV8(state);
-      migrateDemoIndicatorTemplateIds(state);
-    }
-    if (!state.meta.version || state.meta.version < 9) {
-      migrateMicrobiotaPresentationV9(state);
-    }
-    if (!state.meta.version || state.meta.version < 10) {
-      migratePresentationCopyV10(state);
-    }
-    if (!state.meta.version || state.meta.version < 11) {
-      migrateTaxonEduV11(state);
-    }
-    if (!state.meta.version || state.meta.version < 12) {
-      migrateTaxonEduV12(state);
-    }
-    if (!state.meta.version || state.meta.version < 13) {
-      migrateCatalogSortOrderV13(state);
-    }
-    if (!state.meta.version || state.meta.version < 14) {
-      migrateRecommendationManualRelatedV14(state);
-    }
-    if (!state.meta.version || state.meta.version < 15) {
-      migrateSpecimenFlowV15(state);
-    }
-
-    (state.reports || []).forEach(function (report) {
-      syncReportVersionFields(report);
-      (report.versions || []).forEach(function (ver) {
-        if ((ver.status === 'published' || ver.status === 'corrected') && !ver.contentSnapshot) {
-          ver.contentSnapshot = buildContentSnapshot(state, report, ver.version, ' 迁移回填');
-        }
-      });
-    });
-
-    if (state.meta) {
-      state.meta.dataStatuses = DATA_STATUSES.slice();
-      state.meta.reportStatuses = REPORT_STATUSES.slice();
-      state.meta.workflowStatuses = WORKFLOW_STATUSES.slice();
-      state.meta.recommendTypes = RECOMMEND_TYPES.slice();
-      if (!state.meta.version || state.meta.version < 3) state.meta.version = 3;
-      if (state.meta.version < 4) state.meta.version = 4;
-      if (state.meta.version < 5) state.meta.version = 5;
-      if (state.meta.version < 6) state.meta.version = 6;
-      if (state.meta.version < 7) state.meta.version = 7;
-      if (state.meta.version < 8) state.meta.version = 8;
-      if (state.meta.version < 9) state.meta.version = 9;
-      if (state.meta.version < 10) state.meta.version = 10;
-      if (state.meta.version < 11) state.meta.version = 11;
-      if (state.meta.version < 12) state.meta.version = 12;
-      if (state.meta.version < 13) state.meta.version = 13;
-      if (state.meta.version < 14) state.meta.version = 14;
-      if (state.meta.version < 15) state.meta.version = 15;
-      if (state.professionalCatalog && state.professionalCatalog.meta) {
-        if (state.professionalCatalog.meta.version < 7) state.professionalCatalog.meta.version = 7;
-        if (state.professionalCatalog.meta.version < 9) state.professionalCatalog.meta.version = 9;
-        if (state.professionalCatalog.meta.version < 11) state.professionalCatalog.meta.version = 11;
-        if (state.professionalCatalog.meta.version < 12) state.professionalCatalog.meta.version = 12;
-        if (state.professionalCatalog.meta.version < 13) state.professionalCatalog.meta.version = 13;
-      }
-    }
-
-    return state;
+    if (!state.indicators) state.indicators = [];
+    backfillMissingCatalogSortOrders(state.professionalCatalog.microbiotaTaxa);
+    backfillMissingCatalogSortOrders(state.professionalCatalog.testIndicators);
+    backfillMissingCatalogSortOrders(state.professionalCatalog.breeds);
+    syncPlatformReferenceRangesFromSchemes(state.professionalCatalog);
   }
-
-  function syncReportVersionFields(report) {
-    if (!report) return;
-    if (report.workingVersion == null) report.workingVersion = report.currentVersion || 1;
-    if (report.publishedVersion == null && (report.status === 'published' || report.status === 'corrected')) {
-      report.publishedVersion = report.currentVersion || 1;
-    }
-    if (report.correctionDraftActive == null) {
-      report.correctionDraftActive = report.workingVersion > (report.publishedVersion || 0) &&
-        report.versions && report.versions.some(function (v) {
-          return v.version === report.workingVersion && v.status === 'draft';
-        });
-    }
-  }
-
-  function deriveWorkflowStatus(report, testRecord) {
-    if (!report && !testRecord) return 'incomplete';
-    if (report) {
-      if (report.workflowStatus) return report.workflowStatus;
-      if (report.status === 'voided') return 'voided';
-      if (report.status === 'published' || report.status === 'corrected') return 'published';
-      if (report.status === 'pending_review' || report.status === 'approved') return 'pending_review';
-      if (report.status === 'draft' || report.status === 'rejected') return 'incomplete';
-    }
-    if (isUnassignedOwnership(report, testRecord)) {
-      if (testRecord && testRecord.status === 'import_failed') return 'incomplete';
-      return 'unassigned';
-    }
-    if (testRecord) {
-      if (testRecord.status === 'import_failed') return 'incomplete';
-      if (testRecord.status === 'pending_review') return 'pending_review';
-      if (testRecord.status === 'published') return 'published';
-    }
-    return 'incomplete';
-  }
-
-  function isUnassignedOwnership(report, testRecord) {
-    if (report && (report.petId || report.userId)) return false;
-    if (testRecord && (testRecord.petId || testRecord.userId)) return false;
-    if (testRecord && testRecord.claimStatus === 'bound') return false;
-    return true;
-  }
-
-  function deriveTodoFlags(report, testRecord) {
-    var flags = [];
-    if (testRecord && testRecord.status === 'import_failed') flags.push('import_error');
-    if (report && report.status === 'rejected') flags.push('rejected');
-    if (isUnassignedOwnership(report, testRecord) && testRecord && testRecord.status !== 'pending_result') {
-      flags.push('unassigned');
-    }
-    if (testRecord && testRecord.importBatchId) {
-      var batch = null;
-      // batch resolved lazily in getTodoFlags when state available
-    }
-    if (report && report.correctionDraftActive) flags.push('correction_draft');
-    return flags;
-  }
-
-  // ─── Seed ───────────────────────────────────────────────────────────────
-
-  function buildSeedState() {
-    var ts = '2025-08-25T08:00:00.000Z';
-
-    var users = [
-      {
-        id: 'user-001',
-        name: ' 张女士',
-        phone: '13812345678',
-        address: ' 北京市朝阳区某某小区',
-        createdAt: ts
-      },
-      {
-        id: 'user-002',
-        name: ' 李先生',
-        phone: '13987654321',
-        address: ' 上海市浦东新区某某路',
-        createdAt: ts
-      }
-    ];
-
-    var stores = [
-      {
-        id: 'store-001',
-        name: ' 萌宠肠道健康中心（朝阳店）',
-        code: 'STORE-BJ-CY-001',
-        createdAt: ts
-      },
-      {
-        id: 'store-002',
-        name: ' 宠物医院肠道专科（浦东店）',
-        code: 'STORE-SH-PD-002',
-        createdAt: ts
-      }
-    ];
-
-    var pets = [
-      {
-        id: 'pet-001',
-        userId: 'user-001',
-        name: ' 小花',
-        breed: '英国短毛猫',
-        age: 3.5,
-        gender: 'female',
-        species: 'cat',
-        storeId: 'store-001',
-        claimStatus: 'bound',
-        createdAt: ts
-      },
-      {
-        id: 'pet-002',
-        userId: 'user-001',
-        name: ' 阿黄',
-        breed: '金毛寻回犬',
-        age: 5,
-        gender: 'male',
-        species: 'dog',
-        storeId: 'store-002',
-        claimStatus: 'bound',
-        createdAt: ts
-      },
-      {
-        id: 'pet-003',
-        userId: 'user-002',
-        name: ' 咪咪',
-        breed: '布偶猫',
-        age: 2,
-        gender: 'female',
-        species: 'cat',
-        storeId: null,
-        claimStatus: 'bound',
-        opsCreated: true,
-        createdAt: ts
-      },
-      {
-        id: 'pet-004',
-        userId: null,
-        name: ' 旺仔',
-        breed: '柯基',
-        age: 4,
-        gender: 'male',
-        species: 'dog',
-        storeId: 'store-001',
-        claimStatus: 'pending_claim',
-        opsCreated: true,
-        createdAt: ts
-      },
-      {
-        id: 'pet-005',
-        userId: null,
-        name: ' 豆豆',
-        breed: '中华田园猫',
-        age: 1,
-        gender: 'female',
-        species: 'cat',
-        storeId: 'store-001',
-        claimStatus: 'pending_claim',
-        opsCreated: true,
-        createdAt: ts
-      }
-    ];
-
-    var claimCodes = [
-      {
-        id: 'claim-001',
-        code: 'CLAIM-PUBLISHED-2025',
-        storeId: 'store-001',
-        petId: 'pet-004',
-        testRecordId: 'tr-006',
-        status: 'pending',
-        expiresAt: '2026-12-31T23:59:59.000Z',
-        createdAt: ts
-      },
-      {
-        id: 'claim-002',
-        code: 'CLAIM-PROGRESS-2025',
-        storeId: 'store-001',
-        petId: 'pet-004',
-        testRecordId: 'tr-007',
-        status: 'pending',
-        expiresAt: '2026-12-31T23:59:59.000Z',
-        createdAt: ts
-      },
-      {
-        id: 'claim-003',
-        code: 'CLAIM-NEW-2025',
-        storeId: 'store-001',
-        petId: 'pet-005',
-        testRecordId: 'tr-005',
-        status: 'pending',
-        expiresAt: '2026-12-31T23:59:59.000Z',
-        createdAt: ts
-      },
-      {
-        id: 'claim-004',
-        code: 'CLAIM-VOIDED-DEMO',
-        storeId: 'store-001',
-        petId: 'pet-005',
-        testRecordId: null,
-        status: 'voided',
-        voidedAt: '2025-08-24T12:00:00.000Z',
-        voidReason: ' 运营手动作废重发',
-        expiresAt: '2026-12-31T23:59:59.000Z',
-        createdAt: ts
-      }
-    ];
-
-    var categories = [
-      {
-        id: 'cat-001',
-        name: ' 肠道健康',
-        available: true,
-        createdAt: ts
-      },
-      {
-        id: 'cat-002',
-        name: ' 益生菌调理',
-        available: true,
-        createdAt: ts
-      },
-      {
-        id: 'cat-003',
-        name: ' 已下架分类（兜底测试）',
-        available: false,
-        createdAt: ts
-      }
-    ];
-
-    var healthTags = [
-      {
-        id: 'htag-001',
-        name: ' 肠道菌群调理',
-        species: 'cat,dog',
-        enabled: true,
-        createdAt: ts
-      },
-      {
-        id: 'htag-002',
-        name: ' 免疫支持',
-        species: 'cat,dog',
-        enabled: true,
-        createdAt: ts
-      },
-      {
-        id: 'htag-003',
-        name: ' 无候选标签',
-        species: 'cat,dog',
-        enabled: true,
-        createdAt: ts
-      }
-    ];
-
-    var healthTagProducts = [
-      { id: 'htp-001', healthTagId: 'htag-001', productId: 'prod-001', sortOrder: 1, species: 'cat,dog', enabled: true, createdAt: ts },
-      { id: 'htp-002', healthTagId: 'htag-001', productId: 'prod-003', sortOrder: 2, species: 'cat,dog', enabled: true, createdAt: ts },
-      { id: 'htp-003', healthTagId: 'htag-001', productId: 'prod-004', sortOrder: 3, species: 'cat,dog', enabled: true, createdAt: ts },
-      { id: 'htp-004', healthTagId: 'htag-002', productId: 'prod-003', sortOrder: 1, species: 'cat,dog', enabled: true, createdAt: ts }
-    ];
-
-    var products = [
-      {
-        id: 'prod-001',
-        spuId: 'prod-001',
-        name: ' 益生菌套装 A',
-        categoryId: 'cat-002',
-        status: 'on_sale',
-        available: true,
-        stock: 25,
-        price: 199,
-        createdAt: ts
-      },
-      {
-        id: 'prod-002',
-        spuId: 'prod-002',
-        name: ' 肠道调理粉（已下架）',
-        categoryId: 'cat-001',
-        status: 'off_shelf',
-        available: false,
-        stock: 0,
-        price: 159,
-        createdAt: ts
-      },
-      {
-        id: 'prod-003',
-        spuId: 'prod-003',
-        name: ' 膳食纤维补充剂',
-        categoryId: 'cat-001',
-        status: 'on_sale',
-        available: true,
-        stock: 15,
-        price: 89,
-        createdAt: ts
-      },
-      {
-        id: 'prod-004',
-        spuId: 'prod-004',
-        name: ' 益生菌套装 B（零库存）',
-        categoryId: 'cat-002',
-        status: 'zero_stock',
-        available: true,
-        stock: 0,
-        price: 179,
-        createdAt: ts
-      },
-      {
-        id: 'prod-missing',
-        spuId: 'prod-missing',
-        name: ' 已回收商品（不存在）',
-        categoryId: 'cat-001',
-        status: 'recycled',
-        deleted: true,
-        available: false,
-        stock: 0,
-        price: 0,
-        createdAt: ts
-      }
-    ];
-
-    var importBatches = [
-      {
-        id: 'batch-001',
-        fileName: ' 检测结果导入_成功.xlsx',
-        status: 'success',
-        totalRows: 12,
-        successRows: 12,
-        failedRows: 0,
-        errors: [],
-        testRecordIds: ['tr-004'],
-        createdAt: '2025-08-20T10:00:00.000Z'
-      },
-      {
-        id: 'batch-002',
-        fileName: ' 检测结果导入_失败.xlsx',
-        status: 'failed',
-        totalRows: 8,
-        successRows: 0,
-        failedRows: 8,
-        errors: [
-          { row: 2, column: '放线菌门', code: 'MISSING_COLUMN', message: ' 缺少必需列「放线菌门」' },
-          { row: 5, column: '双歧杆菌', code: 'EMPTY', message: ' 指标值为空' }
-        ],
-        testRecordIds: ['tr-002'],
-        createdAt: '2025-08-21T11:30:00.000Z'
-      },
-      {
-        id: 'batch-003',
-        fileName: ' 检测结果导入_部分成功.xlsx',
-        status: 'partial',
-        totalRows: 5,
-        successRows: 3,
-        failedRows: 2,
-        errors: [
-          { row: 4, column: '厚壁菌门', code: 'NOT_DETECTED', message: ' 未检出' }
-        ],
-        testRecordIds: ['tr-001'],
-        createdAt: '2025-08-22T09:15:00.000Z'
-      },
-      {
-        id: 'batch-004',
-        fileName: ' 批量导入_重复阻断.xlsx',
-        status: 'duplicate',
-        totalRows: 1,
-        successRows: 0,
-        failedRows: 1,
-        errors: [
-          { row: 1, column: '外部报告编号', code: 'DUPLICATE', message: ' 同机构 EXT-2025-001 已存在' }
-        ],
-        testRecordIds: [],
-        createdAt: '2025-08-19T09:00:00.000Z'
-      }
-    ];
-
-    var testRecords = [
-      {
-        id: 'tr-001',
-        petId: 'pet-001',
-        userId: 'user-001',
-        storeId: 'store-001',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-PARTIAL-001',
-        sampleNumber: 'SAMPLE-PARTIAL-001',
-        sampleType: 'feces',
-        testDate: '2025-08-22',
-        status: 'pending_result',
-        importBatchId: 'batch-003',
-        claimStatus: 'bound',
-        label: 'SAMPLE-PARTIAL-001',
-        createdAt: '2025-08-22T09:15:00.000Z',
-        updatedAt: '2025-08-22T09:15:00.000Z'
-      },
-      {
-        id: 'tr-002',
-        petId: 'pet-002',
-        userId: 'user-001',
-        storeId: 'store-002',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-FAIL-002',
-        sampleNumber: 'SAMPLE-FAIL-002',
-        sampleType: 'feces',
-        testDate: '2025-08-21',
-        status: 'import_failed',
-        importBatchId: 'batch-002',
-        claimStatus: 'bound',
-        label: ' 导入失败',
-        createdAt: '2025-08-21T11:30:00.000Z',
-        updatedAt: '2025-08-21T11:30:00.000Z'
-      },
-      {
-        id: 'tr-003',
-        petId: 'pet-003',
-        userId: 'user-002',
-        storeId: null,
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-REVIEW-003',
-        sampleNumber: 'SAMPLE-REVIEW-003',
-        sampleType: 'feces',
-        testDate: '2025-08-23',
-        status: 'pending_review',
-        importBatchId: null,
-        claimStatus: 'bound',
-        label: ' 待审核',
-        createdAt: '2025-08-23T14:00:00.000Z',
-        updatedAt: '2025-08-23T14:00:00.000Z'
-      },
-      {
-        id: 'tr-004',
-        petId: 'pet-001',
-        userId: 'user-001',
-        storeId: 'store-001',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-001',
-        sampleNumber: 'SAMPLE-BJ-001',
-        sampleType: 'feces',
-        testDate: '2025-08-20',
-        status: 'published',
-        importBatchId: 'batch-001',
-        claimStatus: 'bound',
-        label: ' 已发布',
-        createdAt: '2025-08-20T10:00:00.000Z',
-        updatedAt: '2025-08-24T16:00:00.000Z'
-      },
-      {
-        id: 'tr-005',
-        petId: 'pet-005',
-        userId: null,
-        storeId: 'store-001',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-UNASSIGNED-005',
-        sampleNumber: 'SAMPLE-UNASSIGNED-005',
-        sampleType: 'feces',
-        testDate: '2025-08-24',
-        status: 'pending_claim',
-        importBatchId: null,
-        claimStatus: 'pending_claim',
-        label: ' 待认领（新记录）',
-        createdAt: '2025-08-24T08:00:00.000Z',
-        updatedAt: '2025-08-24T08:00:00.000Z'
-      },
-      {
-        id: 'tr-006',
-        petId: 'pet-004',
-        userId: null,
-        storeId: 'store-001',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-PUB-UNCLAIMED-006',
-        sampleNumber: 'SAMPLE-PUB-UNCLAIMED-006',
-        sampleType: 'feces',
-        testDate: '2025-08-18',
-        status: 'published',
-        importBatchId: 'batch-001',
-        claimStatus: 'pending_claim',
-        label: ' 已发布待认领',
-        createdAt: '2025-08-18T09:00:00.000Z',
-        updatedAt: '2025-08-19T16:00:00.000Z'
-      },
-      {
-        id: 'tr-007',
-        petId: 'pet-004',
-        userId: null,
-        storeId: 'store-001',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-REVIEW-UNCLAIMED-007',
-        sampleNumber: 'SAMPLE-REVIEW-UNCLAIMED-007',
-        sampleType: 'feces',
-        testDate: '2025-08-23',
-        status: 'pending_review',
-        importBatchId: null,
-        claimStatus: 'pending_claim',
-        label: ' 审核中待认领',
-        createdAt: '2025-08-23T10:00:00.000Z',
-        updatedAt: '2025-08-23T14:00:00.000Z'
-      },
-      {
-        id: 'tr-008',
-        petId: 'pet-002',
-        userId: 'user-001',
-        storeId: 'store-002',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-VOID-008',
-        sampleNumber: 'SAMPLE-VOID-008',
-        sampleType: 'feces',
-        testDate: '2025-08-10',
-        status: 'voided',
-        importBatchId: 'batch-001',
-        claimStatus: 'bound',
-        label: ' 已作废',
-        createdAt: '2025-08-10T09:00:00.000Z',
-        updatedAt: '2025-08-12T10:00:00.000Z'
-      },
-      {
-        id: 'tr-009',
-        petId: null,
-        userId: null,
-        storeId: 'store-001',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: 'EXT-2025-NEW-UNASSIGNED-009',
-        sampleNumber: 'SAMPLE-NEW-UNASSIGNED-009',
-        sampleType: 'feces',
-        testDate: '2025-08-25',
-        status: 'unassigned',
-        importBatchId: 'batch-001',
-        claimStatus: 'unassigned',
-        label: ' 批量导入成功待归属',
-        createdAt: '2025-08-25T09:00:00.000Z',
-        updatedAt: '2025-08-25T09:00:00.000Z'
-      }
-    ];
-
-    var indicators = [
-      {
-        id: 'ind-001-v1',
-        testRecordId: 'tr-004',
-        reportId: 'report-001',
-        key: '放线菌门',
-        value: 12.3,
-        unit: '%',
-        dataStatus: 'PRESENT',
-        version: 1,
-        isCurrent: false,
-        correctedFrom: null,
-        createdAt: '2025-08-20T10:30:00.000Z'
-      },
-      {
-        id: 'ind-001-v2',
-        testRecordId: 'tr-004',
-        reportId: 'report-001',
-        key: '放线菌门',
-        value: 18.5,
-        unit: '%',
-        dataStatus: 'PRESENT',
-        version: 2,
-        isCurrent: true,
-        correctedFrom: 'ind-001-v1',
-        createdAt: '2025-08-24T15:00:00.000Z'
-      },
-      {
-        id: 'ind-002-v1',
-        testRecordId: 'tr-004',
-        reportId: 'report-001',
-        key: '拟杆菌门',
-        value: 35.2,
-        unit: '%',
-        dataStatus: 'PRESENT',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-20T10:30:00.000Z'
-      }
-    ].concat(extraReport001V2Indicators(), [
-      {
-        id: 'ind-003-v1',
-        testRecordId: 'tr-003',
-        reportId: 'report-002',
-        key: '厚壁菌门',
-        value: null,
-        unit: '%',
-        dataStatus: 'NOT_DETECTED',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-23T14:30:00.000Z'
-      },
-      {
-        id: 'ind-004-v1',
-        testRecordId: 'tr-002',
-        reportId: 'report-003',
-        key: '双歧杆菌',
-        value: null,
-        unit: '%',
-        dataStatus: 'MISSING_COLUMN',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-21T12:00:00.000Z'
-      },
-      {
-        id: 'ind-005-v1',
-        testRecordId: 'tr-003',
-        reportId: 'report-002',
-        key: '放线菌门',
-        value: 8.1,
-        unit: '%',
-        dataStatus: 'PRESENT',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-23T14:30:00.000Z'
-      },
-      {
-        id: 'ind-006-v1',
-        testRecordId: 'tr-001',
-        reportId: null,
-        key: 'Shannon指数',
-        value: null,
-        unit: '',
-        dataStatus: 'EMPTY',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-22T09:20:00.000Z'
-      },
-      {
-        id: 'ind-007-v1',
-        testRecordId: 'tr-003',
-        reportId: 'report-002',
-        key: '炎症指标',
-        value: null,
-        unit: '',
-        dataStatus: 'NOT_APPLICABLE',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-23T14:30:00.000Z'
-      },
-      {
-        id: 'ind-008-v1',
-        testRecordId: 'tr-002',
-        reportId: 'report-003',
-        key: '有害菌比例',
-        value: -1,
-        unit: '%',
-        dataStatus: 'INVALID',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-21T12:00:00.000Z'
-      },
-      {
-        id: 'ind-009-v1',
-        testRecordId: 'tr-006',
-        reportId: 'report-004',
-        key: '放线菌门',
-        value: 40.2,
-        unit: '%',
-        dataStatus: 'PRESENT',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-19T10:30:00.000Z'
-      },
-      {
-        id: 'ind-010-v1',
-        testRecordId: 'tr-007',
-        reportId: 'report-005',
-        key: '放线菌门',
-        value: 15.0,
-        unit: '%',
-        dataStatus: 'PRESENT',
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: '2025-08-23T11:30:00.000Z'
-      }
-    ]);
-
-    var reports = [
-      {
-        id: 'report-001',
-        reportNumber: ' RPT-2025-001',
-        externalReportNumber: 'EXT-2025-001',
-        sampleNumber: 'SAMPLE-BJ-001',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        testRecordId: 'tr-004',
-        userId: 'user-001',
-        petId: 'pet-001',
-        reportSpecies: 'cat',
-        status: 'corrected',
-        workflowStatus: 'published',
-        ownershipStatus: 'bound',
-        todoFlags: [],
-        currentVersion: 2,
-        workingVersion: 2,
-        publishedVersion: 2,
-        correctionDraftActive: false,
-        versions: [
-          {
-            version: 1,
-            status: 'published',
-            healthLevel: 'A',
-            healthScore: 92,
-            summary: ' 肠道菌群整体良好。',
-            createdAt: '2025-08-20T11:00:00.000Z',
-            publishedAt: '2025-08-20T16:00:00.000Z'
-          },
-          {
-            version: 2,
-            status: 'corrected',
-            healthLevel: 'B',
-            healthScore: 85,
-            percentile: 62,
-            platformDimensions: { emotion: 75, immunity: 80 },
-            summary: ' 放线菌门指标已更正，综合评级下调。',
-            createdAt: '2025-08-24T15:30:00.000Z',
-            publishedAt: '2025-08-24T16:00:00.000Z',
-            correctionNote: ' 原始指标放线菌门由实验室复核后更正'
-          }
-        ],
-        createdAt: '2025-08-20T11:00:00.000Z',
-        updatedAt: '2025-08-24T16:00:00.000Z'
-      },
-      {
-        id: 'report-002',
-        reportNumber: ' RPT-2025-002',
-        externalReportNumber: 'EXT-2025-REVIEW-003',
-        sampleNumber: 'SAMPLE-REVIEW-003',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        testRecordId: 'tr-003',
-        userId: 'user-002',
-        petId: 'pet-003',
-        status: 'pending_review',
-        workflowStatus: 'pending_review',
-        ownershipStatus: 'bound',
-        todoFlags: ['partial_import'],
-        currentVersion: 1,
-        workingVersion: 1,
-        publishedVersion: null,
-        correctionDraftActive: false,
-        versions: [
-          {
-            version: 1,
-            status: 'pending_review',
-            healthLevel: 'C',
-            healthScore: 68,
-            summary: ' 部分指标异常，待审核发布。',
-            createdAt: '2025-08-23T15:00:00.000Z',
-            publishedAt: null
-          }
-        ],
-        createdAt: '2025-08-23T15:00:00.000Z',
-        updatedAt: '2025-08-23T15:00:00.000Z'
-      },
-      {
-        id: 'report-003',
-        reportNumber: ' RPT-2025-003',
-        externalReportNumber: 'EXT-2025-FAIL-002',
-        sampleNumber: 'SAMPLE-FAIL-002',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        testRecordId: 'tr-002',
-        userId: 'user-001',
-        petId: 'pet-002',
-        status: 'rejected',
-        workflowStatus: 'incomplete',
-        ownershipStatus: 'bound',
-        todoFlags: ['import_error', 'rejected'],
-        currentVersion: 1,
-        workingVersion: 1,
-        publishedVersion: null,
-        correctionDraftActive: false,
-        versions: [
-          {
-            version: 1,
-            status: 'rejected',
-            healthLevel: null,
-            healthScore: null,
-            summary: ' 导入数据不完整，报告驳回。',
-            rejectReason: ' Excel 缺少必需列，无法生成有效报告',
-            createdAt: '2025-08-21T13:00:00.000Z',
-            publishedAt: null
-          }
-        ],
-        createdAt: '2025-08-21T13:00:00.000Z',
-        updatedAt: '2025-08-21T14:00:00.000Z'
-      },
-      {
-        id: 'report-004',
-        reportNumber: ' RPT-2025-004',
-        externalReportNumber: 'EXT-2025-PUB-UNCLAIMED-006',
-        sampleNumber: 'SAMPLE-PUB-UNCLAIMED-006',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        testRecordId: 'tr-006',
-        userId: null,
-        petId: 'pet-004',
-        reportSpecies: 'dog',
-        status: 'published',
-        workflowStatus: 'published',
-        ownershipStatus: 'pending_claim',
-        todoFlags: [],
-        currentVersion: 1,
-        workingVersion: 1,
-        publishedVersion: 1,
-        correctionDraftActive: false,
-        versions: [
-          {
-            version: 1,
-            status: 'published',
-            healthLevel: 'A',
-            healthScore: 90,
-            summary: ' 肠道菌群整体良好，认领后可查看完整报告。',
-            createdAt: '2025-08-19T11:00:00.000Z',
-            publishedAt: '2025-08-19T16:00:00.000Z'
-          }
-        ],
-        createdAt: '2025-08-19T11:00:00.000Z',
-        updatedAt: '2025-08-19T16:00:00.000Z'
-      },
-      {
-        id: 'report-005',
-        reportNumber: ' RPT-2025-005',
-        externalReportNumber: 'EXT-2025-REVIEW-UNCLAIMED-007',
-        sampleNumber: 'SAMPLE-REVIEW-UNCLAIMED-007',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        testRecordId: 'tr-007',
-        userId: null,
-        petId: 'pet-004',
-        status: 'pending_review',
-        workflowStatus: 'pending_review',
-        ownershipStatus: 'pending_claim',
-        todoFlags: [],
-        currentVersion: 1,
-        workingVersion: 1,
-        publishedVersion: null,
-        correctionDraftActive: false,
-        versions: [
-          {
-            version: 1,
-            status: 'pending_review',
-            healthLevel: 'B',
-            healthScore: 75,
-            summary: ' 报告审核中，认领后可查看进度。',
-            createdAt: '2025-08-23T12:00:00.000Z',
-            publishedAt: null
-          }
-        ],
-        createdAt: '2025-08-23T12:00:00.000Z',
-        updatedAt: '2025-08-23T12:00:00.000Z'
-      },
-      {
-        id: 'report-006',
-        reportNumber: ' RPT-2025-006',
-        externalReportNumber: 'EXT-2025-VOID-008',
-        sampleNumber: 'SAMPLE-VOID-008',
-        sourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        testRecordId: 'tr-008',
-        userId: 'user-001',
-        petId: 'pet-002',
-        status: 'voided',
-        workflowStatus: 'voided',
-        ownershipStatus: 'bound',
-        todoFlags: [],
-        currentVersion: 1,
-        workingVersion: 1,
-        publishedVersion: 1,
-        correctionDraftActive: false,
-        voidedAt: '2025-08-12T10:00:00.000Z',
-        voidReason: ' 客户要求作废重检',
-        versions: [
-          {
-            version: 1,
-            status: 'published',
-            healthLevel: 'B',
-            healthScore: 78,
-            summary: ' 已发布后被作废。',
-            createdAt: '2025-08-10T11:00:00.000Z',
-            publishedAt: '2025-08-10T16:00:00.000Z'
-          }
-        ],
-        createdAt: '2025-08-10T11:00:00.000Z',
-        updatedAt: '2025-08-12T10:00:00.000Z'
-      }
-    ];
-
-    var ownershipCorrections = [
-      {
-        id: 'owncorr-001',
-        reportId: 'report-003',
-        fromUserId: 'user-002',
-        toUserId: 'user-001',
-        fromPetId: 'pet-002',
-        toPetId: 'pet-002',
-        actor: ' 运营专员',
-        reason: ' 线下核对后纠正错绑用户',
-        createdAt: '2025-08-21T14:30:00.000Z'
-      }
-    ];
-
-    var findings = [
-      {
-        id: 'finding-001',
-        reportId: 'report-001',
-        reportVersion: 2,
-        indicatorKey: '放线菌门',
-        conclusion: 'LOW',
-        dataStatus: 'PRESENT',
-        description: ' 放线菌门偏低，可能影响肠道屏障功能',
-        professional: ' 放线菌门占比低于参考范围，可能影响肠道屏障与免疫调节。',
-        consumer: ' 肠道有益菌偏少，建议关注日常饮食与益生菌补充。',
-        riskLevel: 'medium',
-        createdAt: '2025-08-24T15:30:00.000Z'
-      }
-    ].concat(extraReport001V2Findings(), [
-      {
-        id: 'finding-002',
-        reportId: 'report-002',
-        reportVersion: 1,
-        indicatorKey: '厚壁菌门',
-        conclusion: 'HIGH',
-        dataStatus: 'NOT_DETECTED',
-        description: ' 厚壁菌门未检出（数据状态 NOT_DETECTED ≠ 结论 LOW）',
-        professional: ' 厚壁菌门未检出（NOT_DETECTED），不可等同于偏低结论。',
-        consumer: ' 该项未检出，需结合复检与其他指标综合判断。',
-        riskLevel: 'high',
-        createdAt: '2025-08-23T15:00:00.000Z'
-      },
-      {
-        id: 'finding-003',
-        reportId: 'report-002',
-        reportVersion: 1,
-        indicatorKey: '放线菌门',
-        conclusion: 'LOW',
-        dataStatus: 'PRESENT',
-        description: ' 放线菌门显著偏低',
-        professional: ' 放线菌门显著低于参考范围。',
-        consumer: ' 有益菌偏少，建议补充益生菌。',
-        riskLevel: 'medium',
-        createdAt: '2025-08-23T15:00:00.000Z'
-      },
-      {
-        id: 'finding-004',
-        reportId: 'report-004',
-        reportVersion: 1,
-        indicatorKey: '放线菌门',
-        conclusion: 'NORMAL',
-        dataStatus: 'PRESENT',
-        description: ' 放线菌门处于正常范围',
-        professional: ' 放线菌门占比正常。',
-        consumer: ' 该项指标良好，请继续保持。',
-        riskLevel: 'low',
-        createdAt: '2025-08-19T11:30:00.000Z'
-      },
-      {
-        id: 'finding-005',
-        reportId: 'report-005',
-        reportVersion: 1,
-        indicatorKey: '放线菌门',
-        conclusion: 'LOW',
-        dataStatus: 'PRESENT',
-        description: ' 放线菌门偏低，待审核确认',
-        professional: ' 放线菌门低于参考下限，待审核。',
-        consumer: ' 有益菌略少，报告审核中。',
-        riskLevel: 'medium',
-        createdAt: '2025-08-23T12:30:00.000Z'
-      }
-    ]);
-
-    var recommendations = [
-      {
-        id: 'rec-001',
-        findingId: 'finding-001',
-        reportId: 'report-001',
-        targetType: 'PRODUCT',
-        productId: 'prod-001',
-        primaryProductId: 'prod-001',
-        relatedProductIds: ['prod-003'],
-        healthTagIds: ['htag-001'],
-        categoryId: 'cat-002',
-        resolvedType: 'PRODUCT',
-        resolvedProductId: 'prod-001',
-        resolvedCategoryId: 'cat-002',
-        availability: 'AVAILABLE',
-        candidateProductIds: ['prod-003'],
-        reason: ' 主推在售益生菌，手动关联膳食纤维作为搭配',
-        label: ' 推荐益生菌套装 A',
-        createdAt: '2025-08-24T15:30:00.000Z'
-      },
-      {
-        id: 'rec-002',
-        findingId: 'finding-003',
-        reportId: 'report-002',
-        targetType: 'PRODUCT',
-        productId: 'prod-002',
-        primaryProductId: 'prod-002',
-        relatedProductIds: ['prod-001', 'prod-003'],
-        healthTagIds: ['htag-001'],
-        categoryId: 'cat-001',
-        resolvedType: 'PRODUCT',
-        resolvedProductId: 'prod-002',
-        resolvedCategoryId: null,
-        availability: 'UNAVAILABLE',
-        candidateProductIds: ['prod-001', 'prod-003'],
-        reason: ' 保留已下架主推品展示失效状态，手动指定替代浏览顺序',
-        label: ' 目标产品已下架，展示手动关联商品',
-        createdAt: '2025-08-23T15:00:00.000Z'
-      },
-      {
-        id: 'rec-003',
-        findingId: 'finding-002',
-        reportId: 'report-002',
-        targetType: 'PRODUCT',
-        productId: 'prod-004',
-        primaryProductId: 'prod-004',
-        relatedProductIds: [],
-        healthTagIds: ['htag-003'],
-        categoryId: null,
-        resolvedType: 'PRODUCT',
-        resolvedProductId: 'prod-004',
-        resolvedCategoryId: null,
-        availability: 'ZERO_STOCK',
-        candidateProductIds: [],
-        reason: ' 主推零库存且无手动关联，仅展示零库存主推',
-        label: ' 主推零库存，无关联商品',
-        createdAt: '2025-08-23T15:00:00.000Z'
-      },
-      {
-        id: 'rec-004',
-        findingId: 'finding-004',
-        reportId: 'report-004',
-        targetType: 'PRODUCT',
-        productId: 'prod-004',
-        primaryProductId: 'prod-004',
-        relatedProductIds: ['prod-001', 'prod-003'],
-        healthTagIds: ['htag-001'],
-        categoryId: 'cat-002',
-        resolvedType: 'PRODUCT',
-        resolvedProductId: 'prod-004',
-        resolvedCategoryId: null,
-        availability: 'ZERO_STOCK',
-        candidateProductIds: ['prod-001', 'prod-003'],
-        reason: ' 零库存主推保留，手动关联在售替代商品',
-        label: ' 主推零库存，展示手动关联商品',
-        createdAt: '2025-08-19T11:30:00.000Z'
-      }
-    ];
-
-    var analysisRuns = [
-      {
-        id: 'run-001',
-        reportId: 'report-001',
-        createdAt: '2025-08-24T15:00:00.000Z',
-        inputSnapshot: {
-          indicatorSignature: '放线菌门:PRESENT:18.5:2|拟杆菌门:PRESENT:35.2:1',
-          rulesSignature: 'lineage-rule-001:v1',
-          workingVersion: 2,
-          species: 'cat'
-        },
-        rawHits: [
-          {
-            ruleId: 'rule-seed-001',
-            ruleName: '放线菌门偏低',
-            matched: true,
-            riskLevel: 'medium',
-            output: {
-              professional: ' 放线菌门显著低于参考范围。',
-              consumer: ' 有益菌偏少，建议关注日常饮食。'
-            }
-          }
-        ],
-        combinedResult: {
-          professional: ' 放线菌门显著低于参考范围。',
-          consumer: ' 有益菌偏少，建议关注日常饮食。',
-          healthAdvice: ' 可考虑益生菌补充，3 个月后复检。'
-        },
-        adjustments: {
-          excludedHits: [],
-          manualFindings: [],
-          finalContent: {
-            professional: ' 放线菌门显著低于参考范围。',
-            consumer: ' 有益菌偏少，建议关注日常饮食。',
-            healthAdvice: ' 可考虑益生菌补充，3 个月后复检。',
-            updatedAt: '2025-08-24T15:30:00.000Z'
-          }
-        }
-      }
-    ];
-
-    var reportAnalysisAdjustments = {
-      'report-001': { latestRunId: 'run-001' }
-    };
-
-    return {
-      meta: {
-        version: 4,
-        storageKey: STORAGE_KEY,
-        disclaimer: '',
-        dataStatuses: DATA_STATUSES,
-        reportStatuses: REPORT_STATUSES,
-        workflowStatuses: WORKFLOW_STATUSES,
-        recommendTypes: RECOMMEND_TYPES,
-        defaultSourceOrgId: DEFAULT_SOURCE_ORG_ID,
-        resetAt: ts
-      },
-      users: users,
-      pets: pets,
-      stores: stores,
-      claimCodes: claimCodes,
-      testRecords: testRecords,
-      importBatches: importBatches,
-      indicators: indicators,
-      reports: reports,
-      findings: findings,
-      recommendations: recommendations,
-      products: products,
-      categories: categories,
-      healthTags: healthTags,
-      healthTagProducts: healthTagProducts,
-      ownershipCorrections: ownershipCorrections,
-      petUserAssociationChanges: [],
-      operationRecords: [],
-      professionalCatalog: defaultCatalog(),
-      analysisRuleCatalog: buildDefaultAnalysisRuleCatalog(),
-      analysisRuns: analysisRuns,
-      reportAnalysisAdjustments: reportAnalysisAdjustments
-    };
-  }
-
-  // ─── Persistence ────────────────────────────────────────────────────────
 
   function loadState() {
     if (localStorageAvailable) {
       try {
         var raw = localStorage.getItem(STORAGE_KEY);
         if (raw) {
-          var parsed = migrateState(JSON.parse(raw));
+          var parsed = JSON.parse(raw);
+          ensureDomainState(parsed);
           memoryState = parsed;
           return parsed;
         }
@@ -2464,7 +602,10 @@
         localStorageAvailable = false;
       }
     }
-    if (memoryState) return migrateState(memoryState);
+    if (memoryState) {
+      ensureDomainState(memoryState);
+      return memoryState;
+    }
     memoryState = buildSeedState();
     return memoryState;
   }
@@ -2472,11 +613,8 @@
   function persistState(state) {
     memoryState = state;
     if (localStorageAvailable) {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {
-        localStorageAvailable = false;
-      }
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+      catch (e) { localStorageAvailable = false; }
     }
     notifyListeners(state);
   }
@@ -2484,55 +622,62 @@
   function notifyListeners(state) {
     var snapshot = clone(state);
     listeners.forEach(function (fn) {
-      try {
-        fn(snapshot);
-      } catch (e) {
-        console.error('[PetReportMockStore] subscribe callback error:', e);
-      }
+      try { fn(snapshot); }
+      catch (e) { console.error('[PetReportMockStore] subscribe callback error:', e); }
     });
   }
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-
   function findReport(state, reportId) {
-    return state.reports.find(function (r) { return r.id === reportId; });
+    return (state.reports || []).find(function (r) { return r.id === reportId; });
   }
-
   function findTestRecord(state, testRecordId) {
-    return state.testRecords.find(function (t) { return t.id === testRecordId; });
+    return (state.testRecords || []).find(function (t) { return t.id === testRecordId; });
   }
-
   function findPet(state, petId) {
-    return state.pets.find(function (p) { return p.id === petId; });
+    return (state.pets || []).find(function (p) { return p.id === petId; });
   }
-
   function findUser(state, userId) {
-    return state.users.find(function (u) { return u.id === userId; });
+    return (state.users || []).find(function (u) { return u.id === userId; });
   }
-
   function findProduct(state, productId) {
-    return state.products.find(function (p) { return p.id === productId; });
+    return (state.products || []).find(function (p) { return p.id === productId; });
   }
-
-  function findCategory(state, categoryId) {
-    return state.categories.find(function (c) { return c.id === categoryId; });
-  }
-
-  function findHealthTag(state, healthTagId) {
-    return (state.healthTags || []).find(function (h) { return h.id === healthTagId; });
-  }
-
   function findReportByTestRecord(state, testRecordId) {
-    return state.reports.find(function (r) { return r.testRecordId === testRecordId; });
+    return (state.reports || []).find(function (r) { return r.testRecordId === testRecordId; });
+  }
+
+  function taxaByKeyMap(state) {
+    var map = {};
+    var taxa = (state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || [];
+    taxa.forEach(function (t) { if (t && t.key) map[t.key] = t; });
+    return map;
   }
 
   function findCatalogEntryByKey(state, key) {
     var catalog = state.professionalCatalog || defaultCatalog();
-    var taxon = (catalog.microbiotaTaxa || []).find(function (t) { return t.key === key; });
-    if (taxon) return { type: 'microbiota', item: taxon };
+    var taxonItem = (catalog.microbiotaTaxa || []).find(function (t) { return t.key === key; });
+    if (taxonItem) return { type: 'microbiota', item: taxonItem };
     var indicator = (catalog.testIndicators || []).find(function (t) { return t.key === key; });
     if (indicator) return { type: 'indicator', item: indicator };
     return null;
+  }
+
+  function classifyKey(state, key) {
+    var entry = findCatalogEntryByKey(state, key);
+    if (entry && entry.type === 'microbiota') {
+      var item = entry.item;
+      return {
+        level: item.level,
+        phylumKey: item.level === 'phylum' ? item.key : (item.parentKey || null)
+      };
+    }
+    return { level: 'indicator', phylumKey: null };
+  }
+
+  function taxonLabel(state, key) {
+    var entry = findCatalogEntryByKey(state, key);
+    if (entry && entry.item) return entry.item.label || key;
+    return key;
   }
 
   function getReportSpecies(state, report) {
@@ -2550,7 +695,6 @@
     var indicatorUnit = indicator.unit;
     var sourceTemplateId = indicator.sourceTemplateId;
     if (!sourceTemplateId || !species) return null;
-
     for (var i = 0; i < schemes.length; i++) {
       var scheme = schemes[i];
       if (scheme.status !== 'active') continue;
@@ -2565,63 +709,423 @@
         if (taxonomyLevel && item.taxonomyLevel && item.taxonomyLevel !== taxonomyLevel) continue;
         if (indicatorUnit && item.unit && item.unit !== indicatorUnit) continue;
         if (item.minValue == null || item.maxValue == null) continue;
-        return {
-          min: item.minValue,
-          max: item.maxValue,
-          unit: item.unit,
-          source: 'scheme',
-          schemeId: scheme.id
-        };
+        return { min: item.minValue, max: item.maxValue, unit: item.unit, source: 'platform', schemeId: scheme.id };
       }
     }
     return null;
   }
 
-  function resolveEffectiveRangeForIndicator(state, indicator, species, options) {
-    options = options || {};
-    if (indicator.effectiveRange && options.respectFrozen !== false) {
-      return clone(indicator.effectiveRange);
-    }
-    if (indicator.manualRange) {
+  function resolveResultRange(state, result, species) {
+    if (result.importedRange && result.importedRange.min != null && result.importedRange.max != null) {
       return {
-        min: indicator.manualRange.min,
-        max: indicator.manualRange.max,
-        unit: indicator.manualRange.unit,
-        source: 'manual'
-      };
-    }
-    if (indicator.importedRange && indicator.importedRange.min != null && indicator.importedRange.max != null) {
-      return {
-        min: indicator.importedRange.min,
-        max: indicator.importedRange.max,
-        unit: indicator.importedRange.unit || indicator.unit,
-        source: 'imported'
+        range: {
+          min: result.importedRange.min,
+          max: result.importedRange.max,
+          unit: result.importedRange.unit || result.unit
+        },
+        rangeSource: 'imported'
       };
     }
     var catalog = state.professionalCatalog || defaultCatalog();
-    var entry = findCatalogEntryByKey(state, indicator.key || indicator.rawImportName);
-    var schemeRange = resolveSchemeRangeForIndicator(catalog, indicator, species, entry);
-    if (schemeRange) return schemeRange;
-    return null;
+    var entry = findCatalogEntryByKey(state, result.key || result.rawImportName);
+    var schemeRange = resolveSchemeRangeForIndicator(catalog, result, species, entry);
+    if (schemeRange) {
+      return { range: { min: schemeRange.min, max: schemeRange.max, unit: schemeRange.unit }, rangeSource: 'platform' };
+    }
+    return { range: null, rangeSource: 'none' };
   }
 
-  function getIndicatorsForReportVersion(state, report, versionNo) {
-    var relevant = (state.indicators || []).filter(function (ind) {
-      return ind.reportId === report.id && ind.version <= versionNo;
+  function isEffectiveResultRow(result) {
+    if (!result) return false;
+    var status = normalizeDataStatus(result.dataStatus);
+    if (status === 'NOT_DETECTED') return true;
+    if (status !== 'PRESENT') return false;
+    var raw = result.effectiveValue !== undefined ? result.effectiveValue : result.value;
+    if (raw == null || raw === '') return false;
+    return isFinite(Number(raw));
+  }
+
+  function decorateResult(state, result, species) {
+    var out = clone(result);
+    if (!out.level || out.phylumKey === undefined) {
+      var meta = classifyKey(state, out.key);
+      out.level = out.level || meta.level;
+      if (out.phylumKey == null) out.phylumKey = meta.phylumKey;
+    }
+    out.effectiveValue = out.effectiveValue !== undefined ? out.effectiveValue : out.value;
+    out.value = out.effectiveValue;
+    if (!out.labNotice) out.labNotice = 'unmarked';
+    var resolved = resolveResultRange(state, out, species);
+    out.range = resolved.range;
+    out.rangeSource = resolved.rangeSource;
+    var status = normalizeDataStatus(out.dataStatus);
+    if (status === 'NOT_DETECTED' || status !== 'PRESENT') {
+      out.rangeStatus = null;
+    } else if (!out.range) {
+      out.rangeStatus = 'no_range';
+    } else {
+      var v = Number(out.effectiveValue);
+      if (!isFinite(v)) out.rangeStatus = null;
+      else if (v < out.range.min) out.rangeStatus = 'low';
+      else if (v > out.range.max) out.rangeStatus = 'high';
+      else out.rangeStatus = 'normal';
+    }
+    out.isEffective = isEffectiveResultRow(out);
+    return out;
+  }
+
+  function currentResultsOf(state, reportId) {
+    return (state.indicators || []).filter(function (r) {
+      return r.reportId === reportId && r.isCurrent !== false;
     });
-    var byKey = {};
-    relevant.forEach(function (ind) {
-      if (!byKey[ind.key] || byKey[ind.key].version < ind.version) {
-        byKey[ind.key] = ind;
+  }
+
+  function getDecoratedCurrentResults(state, report) {
+    var species = getReportSpecies(state, report);
+    return currentResultsOf(state, report.id).map(function (r) {
+      return decorateResult(state, r, species);
+    });
+  }
+
+  function emptyPhylumUnit(reportId, phylumKey) {
+    return {
+      id: 'unit-' + reportId + '-' + phylumKey,
+      reportId: reportId,
+      phylumKey: phylumKey,
+      hits: [],
+      analysisDraft: '',
+      adviceDraft: '',
+      draftSource: 'auto',
+      riskLevel: null,
+      confirmStatus: 'unconfirmed',
+      confirmedAt: null,
+      confirmedBy: null,
+      confirmedEvidenceSignature: null,
+      invalidatedReason: null,
+      primaryProductId: null,
+      relatedProductIds: [],
+      hitSignature: '',
+      updatedAt: nowIso()
+    };
+  }
+
+  function phylumEvidenceSignature(state, report, phylumKey) {
+    return getDecoratedCurrentResults(state, report)
+      .filter(function (r) { return r.phylumKey === phylumKey && r.isEffective; })
+      .map(function (r) {
+        return [r.key, r.dataStatus, String(r.effectiveValue), r.labNotice, r.rangeStatus].join(':');
+      })
+      .sort()
+      .join('|');
+  }
+
+  function ensurePhylumUnits(state, report) {
+    if (!state.phylumAnalysisUnits) state.phylumAnalysisUnits = [];
+    if (!report) return;
+    var needed = {};
+    getDecoratedCurrentResults(state, report).forEach(function (r) {
+      if (r.isEffective && r.phylumKey) needed[r.phylumKey] = true;
+    });
+    Object.keys(needed).forEach(function (pk) {
+      var existing = state.phylumAnalysisUnits.find(function (u) {
+        return u.reportId === report.id && u.phylumKey === pk;
+      });
+      if (!existing) state.phylumAnalysisUnits.push(emptyPhylumUnit(report.id, pk));
+    });
+  }
+
+  function listPhylumUnits(state, reportId) {
+    return (state.phylumAnalysisUnits || []).filter(function (u) { return u.reportId === reportId; });
+  }
+
+  function findPhylumUnit(state, reportId, phylumKey) {
+    return (state.phylumAnalysisUnits || []).find(function (u) {
+      return u.reportId === reportId && u.phylumKey === phylumKey;
+    });
+  }
+
+  function listActiveRules(state) {
+    return (state.analysisRuleCatalog || []).filter(function (r) { return r.status === 'active'; });
+  }
+
+  function computeResultSignature(results) {
+    return (results || []).map(function (r) {
+      return [r.key, r.dataStatus, String(r.effectiveValue), r.labNotice || '', r.rangeStatus || ''].join(':');
+    }).sort().join('|');
+  }
+
+  function computeRulesSignature(rules) {
+    return (rules || []).map(function (r) {
+      return r.id + '@' + (r.version || 1) + ':' + r.status;
+    }).sort().join('|');
+  }
+
+  function currentSignatures(state, report) {
+    var results = getDecoratedCurrentResults(state, report);
+    return {
+      resultSignature: computeResultSignature(results),
+      rulesSignature: computeRulesSignature(listActiveRules(state))
+    };
+  }
+
+  function getLatestAnalysisRunFromState(state, reportId) {
+    var report = findReport(state, reportId);
+    if (!report || !report.latestAnalysisRunId) return null;
+    return (state.analysisRuns || []).find(function (r) { return r.id === report.latestAnalysisRunId; }) || null;
+  }
+
+  function isReportEditable(report) {
+    if (!report || report.status === 'voided') return false;
+    if (report.status === 'published' && !report.correctionDraftActive) return false;
+    return true;
+  }
+
+  function getProductListingStatus(product) {
+    if (!product) return 'recycled';
+    if (product.deleted || product.status === 'recycled') return 'recycled';
+    if (product.status) return product.status;
+    if (!product.available) return 'off_shelf';
+    var stock = product.stock != null ? product.stock : 1;
+    if (stock <= 0) return 'zero_stock';
+    return 'on_sale';
+  }
+
+  function productIsUnavailable(product) {
+    var status = getProductListingStatus(product);
+    return status !== 'on_sale';
+  }
+
+  function unitHasUnavailableProduct(state, unit) {
+    if (!unit) return false;
+    var ids = [];
+    if (unit.primaryProductId) ids.push(unit.primaryProductId);
+    (unit.relatedProductIds || []).forEach(function (id) { ids.push(id); });
+    return ids.some(function (id) { return productIsUnavailable(findProduct(state, id)); });
+  }
+
+  function maybeInvalidateUnits(state, report) {
+    listPhylumUnits(state, report.id).forEach(function (unit) {
+      if (unit.confirmStatus !== 'confirmed' && unit.confirmStatus !== 'invalidated') return;
+      if (!unit.confirmedEvidenceSignature) return;
+      var current = phylumEvidenceSignature(state, report, unit.phylumKey);
+      if (current !== unit.confirmedEvidenceSignature) {
+        unit.confirmStatus = 'invalidated';
+        unit.invalidatedReason = '检测结果已变化，请重新分析并确认';
+        unit.updatedAt = nowIso();
       }
     });
-    return Object.keys(byKey).map(function (k) { return byKey[k]; });
   }
 
-  function getLatestAnalysisRun(state, reportId) {
-    var adj = (state.reportAnalysisAdjustments || {})[reportId];
-    if (!adj || !adj.latestRunId) return null;
-    return (state.analysisRuns || []).find(function (r) { return r.id === adj.latestRunId; }) || null;
+  function buildTodoFlags(state, report) {
+    var flags = [];
+    if (!report) return flags;
+    var run = getLatestAnalysisRunFromState(state, report.id);
+    if (run && isReportEditable(report) && run.inputSnapshot) {
+      var cur = currentSignatures(state, report);
+      if (cur.resultSignature !== run.inputSnapshot.resultSignature ||
+          cur.rulesSignature !== run.inputSnapshot.rulesSignature) {
+        flags.push('pending_reanalysis');
+      }
+    }
+    var results = currentResultsOf(state, report.id);
+    var hasMissing = results.some(function (r) {
+      return MISSING_DATA_STATUSES.indexOf(normalizeDataStatus(r.dataStatus)) >= 0;
+    });
+    if (hasMissing) flags.push('missing_unresolved');
+    var hasBadProduct = listPhylumUnits(state, report.id).some(function (u) {
+      return unitHasUnavailableProduct(state, u);
+    });
+    if (hasBadProduct) flags.push('product_unavailable');
+    if (report.petId && !report.userId) flags.push('user_unlinked');
+    return flags;
+  }
+
+  function syncReportVersionFields(report) {
+    if (!report) return;
+    if (report.workingVersion == null) report.workingVersion = report.currentVersion || 1;
+    if (report.publishedVersion == null && report.status === 'published' && !report.correctionDraftActive) {
+      report.publishedVersion = report.currentVersion || 1;
+    }
+  }
+
+  function syncReportDerived(state, report) {
+    if (!report) return;
+    report.ownershipStatus = report.petId ? 'bound' : 'unassigned';
+    ensurePhylumUnits(state, report);
+    maybeInvalidateUnits(state, report);
+    report.todoFlags = buildTodoFlags(state, report);
+    syncReportVersionFields(report);
+  }
+
+  function syncAllReportsDerived(state) {
+    (state.reports || []).forEach(function (report) {
+      syncReportDerived(state, report);
+    });
+  }
+
+  function applyExcludedToHits(newHits, oldHits) {
+    var oldByKey = {};
+    (oldHits || []).forEach(function (h) {
+      oldByKey[h.ruleId + '@' + (h.ruleVersion || 1)] = h;
+    });
+    (newHits || []).forEach(function (h) {
+      var prev = oldByKey[h.ruleId + '@' + (h.ruleVersion || 1)];
+      if (prev && prev.excluded) {
+        h.excluded = true;
+        h.excludedReason = prev.excludedReason || h.excludedReason;
+      }
+    });
+    Engine.resolveConflicts(newHits);
+    return newHits;
+  }
+
+  function runReportAnalysisInternal(state, reportId, options) {
+    options = normalizeActorOptions(options);
+    var actor = options.actor || '系统';
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    ensurePhylumUnits(state, report);
+    var results = getDecoratedCurrentResults(state, report);
+    var rules = listActiveRules(state);
+    var taxa = (state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || [];
+    var species = getReportSpecies(state, report);
+    var evaluated = Engine.evaluate({ rules: rules, results: results, species: species, taxa: taxa });
+    var engineByPhylum = {};
+    (evaluated.units || []).forEach(function (u) { engineByPhylum[u.phylumKey] = u; });
+
+    listPhylumUnits(state, reportId).forEach(function (unit) {
+      var incoming = engineByPhylum[unit.phylumKey];
+      var oldHits = unit.hits || [];
+      var oldSig = unit.hitSignature || Engine.hitSignature(oldHits);
+      var newHits = incoming ? clone(incoming.hits) : [];
+      applyExcludedToHits(newHits, oldHits);
+      var drafts = Engine.composeDrafts(newHits);
+      var newSig = Engine.hitSignature(newHits);
+      var wasLocked = unit.confirmStatus === 'confirmed' || unit.confirmStatus === 'invalidated';
+      unit.hits = newHits;
+      unit.hitSignature = newSig;
+      unit.riskLevel = Engine.unitRiskLevel(newHits);
+      if (unit.draftSource !== 'manual') {
+        unit.analysisDraft = drafts.analysis;
+        unit.adviceDraft = drafts.advice;
+      }
+      if (wasLocked && newSig !== oldSig) {
+        unit.confirmStatus = 'invalidated';
+        unit.invalidatedReason = '分析结果命中已变化，请重新确认';
+      }
+      unit.updatedAt = nowIso();
+    });
+
+    var sigs = currentSignatures(state, report);
+    var run = {
+      id: uid('run'),
+      reportId: reportId,
+      createdAt: nowIso(),
+      actor: actor,
+      inputSnapshot: {
+        resultSignature: sigs.resultSignature,
+        rulesSignature: sigs.rulesSignature,
+        workingVersion: report.workingVersion,
+        species: species
+      },
+      ruleIds: rules.map(function (r) { return r.id; }),
+      unitSummaries: listPhylumUnits(state, reportId).map(function (u) {
+        var primaryCount = (u.hits || []).filter(function (h) {
+          return !h.excluded && h.combineStatus === 'primary';
+        }).length;
+        return { phylumKey: u.phylumKey, hitCount: (u.hits || []).length, primaryCount: primaryCount, riskLevel: u.riskLevel };
+      }),
+      orphanHits: clone(evaluated.orphanHits || [])
+    };
+    if (!state.analysisRuns) state.analysisRuns = [];
+    state.analysisRuns.push(run);
+    report.latestAnalysisRunId = run.id;
+    report.updatedAt = nowIso();
+    syncReportDerived(state, report);
+    return run;
+  }
+
+  function savePhylumUnitDraftInternal(state, reportId, phylumKey, patch) {
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    assertResultsEditable(report);
+    var unit = findPhylumUnit(state, reportId, phylumKey);
+    if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
+    if (patch.analysis != null) unit.analysisDraft = patch.analysis;
+    if (patch.advice != null) unit.adviceDraft = patch.advice;
+    unit.draftSource = 'manual';
+    unit.confirmStatus = 'unconfirmed';
+    unit.invalidatedReason = null;
+    unit.updatedAt = nowIso();
+    report.updatedAt = nowIso();
+    return unit;
+  }
+
+  function confirmPhylumUnitInternal(state, reportId, phylumKey, options) {
+    options = normalizeActorOptions(options);
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    assertResultsEditable(report);
+    var unit = findPhylumUnit(state, reportId, phylumKey);
+    if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
+    unit.confirmStatus = 'confirmed';
+    unit.confirmedAt = nowIso();
+    unit.confirmedBy = options.actor || '审核员';
+    unit.confirmedEvidenceSignature = phylumEvidenceSignature(state, report, phylumKey);
+    unit.invalidatedReason = null;
+    unit.updatedAt = nowIso();
+    report.updatedAt = nowIso();
+    return unit;
+  }
+
+  function excludeHitInternal(state, reportId, phylumKey, hitId, params) {
+    params = params || {};
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    assertResultsEditable(report);
+    var unit = findPhylumUnit(state, reportId, phylumKey);
+    if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
+    var hit = (unit.hits || []).find(function (h) { return h.id === hitId; });
+    if (!hit) throw new Error('hit not found: ' + hitId);
+    hit.excluded = !!params.excluded;
+    hit.excludedReason = hit.excluded ? (params.reason || '人工排除') : null;
+    Engine.resolveConflicts(unit.hits);
+    unit.hitSignature = Engine.hitSignature(unit.hits);
+    unit.riskLevel = Engine.unitRiskLevel(unit.hits);
+    if (unit.draftSource !== 'manual') {
+      var drafts = Engine.composeDrafts(unit.hits);
+      unit.analysisDraft = drafts.analysis;
+      unit.adviceDraft = drafts.advice;
+    }
+    unit.confirmStatus = 'unconfirmed';
+    unit.updatedAt = nowIso();
+    report.updatedAt = nowIso();
+    return unit;
+  }
+
+  function savePhylumUnitProductsInternal(state, reportId, phylumKey, params) {
+    params = params || {};
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    assertResultsEditable(report);
+    var unit = findPhylumUnit(state, reportId, phylumKey);
+    if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
+    if (unit.riskLevel === 'notice' || !String(unit.adviceDraft || '').trim()) {
+      throw new Error('该菌门无建议，不配置商品');
+    }
+    var primary = params.primaryProductId || null;
+    if (primary && !findProduct(state, primary)) throw new Error('商品不存在: ' + primary);
+    var related = [];
+    (params.relatedProductIds || []).forEach(function (id) {
+      if (!id || id === primary) return;
+      if (!findProduct(state, id)) return;
+      if (related.indexOf(id) < 0 && related.length < 3) related.push(id);
+    });
+    unit.primaryProductId = primary;
+    unit.relatedProductIds = related;
+    unit.updatedAt = nowIso();
+    report.updatedAt = nowIso();
+    return unit;
   }
 
   function getWorkingReportVersion(state, reportId) {
@@ -2633,9 +1137,16 @@
 
   function getPublishedReportVersion(state, reportId) {
     var report = findReport(state, reportId);
-    if (!report || !report.versions) return null;
-    if (report.publishedVersion == null) return null;
+    if (!report || !report.versions || report.publishedVersion == null) return null;
     return report.versions.find(function (v) { return v.version === report.publishedVersion; }) || null;
+  }
+
+  function getCorrectionDraftStageFromReport(report) {
+    if (!report || !report.correctionDraftActive) return null;
+    var ver = (report.versions || []).find(function (v) { return v.version === report.workingVersion; });
+    if (!ver) return null;
+    if (ver.status === 'pending_review') return 'pending_review';
+    return 'incomplete';
   }
 
   function buildPresentationMock(report, version, species) {
@@ -2646,59 +1157,24 @@
         { key: 'species', label: '物种', value: species || report.reportSpecies || null }
       ],
       benchmarks: [
-        {
-          key: 'peer_percentile',
-          label: '同龄对比百分位',
-          value: version.percentile != null ? version.percentile : null,
-          demo: true,
-          note: ''
-        }
+        { key: 'peer_percentile', label: '同龄对比百分位', value: version.percentile != null ? version.percentile : null }
       ],
-      dimensions: version.platformDimensions ? clone(version.platformDimensions) : {
-        emotion: null,
-        immunity: null,
-        demo: true,
-        note: ''
-      }
+      dimensions: version.platformDimensions ? clone(version.platformDimensions) : { emotion: null, immunity: null }
     };
+  }
+
+  function hasAnyEffectiveRangeFromResults(results) {
+    return (results || []).some(function (r) {
+      return r.range && r.rangeSource && r.rangeSource !== 'none';
+    });
   }
 
   function buildContentSnapshot(state, report, versionNo, actor) {
     var version = (report.versions || []).find(function (v) { return v.version === versionNo; });
     if (!version) return null;
     var species = getReportSpecies(state, report);
-    var indicators = getIndicatorsForReportVersion(state, report, versionNo).map(function (ind) {
-      var effectiveRange = resolveEffectiveRangeForIndicator(state, ind, species, { respectFrozen: false });
-      return {
-        id: ind.id,
-        key: ind.key,
-        value: ind.value,
-        unit: ind.unit,
-        dataStatus: ind.dataStatus,
-        version: ind.version,
-        effectiveRange: effectiveRange ? clone(effectiveRange) : null
-      };
-    });
-    var run = getLatestAnalysisRun(state, report.id);
-    var recs = (state.recommendations || []).filter(function (r) { return r.reportId === report.id; });
-    var frozenRecommendations = recs.map(function (rec) {
-      return {
-        id: rec.id,
-        findingId: rec.findingId,
-        relation: {
-          targetType: rec.targetType,
-          primaryProductId: rec.primaryProductId || rec.productId || null,
-          relatedProductIds: (rec.relatedProductIds || []).slice(),
-          healthTagIds: (rec.healthTagIds || []).slice(),
-          reason: rec.reason || null,
-          label: rec.label
-        },
-        resolution: {
-          note: ' 产品解析为实时读取，发布快照仅冻结关系配置',
-          liveRead: true
-        }
-      };
-    });
+    var results = getDecoratedCurrentResults(state, report);
+    var units = listPhylumUnits(state, report.id).map(function (u) { return clone(u); });
     return {
       reportSpecies: report.reportSpecies || species,
       assessment: {
@@ -2708,31 +1184,14 @@
         platformDimensions: version.platformDimensions ? clone(version.platformDimensions) : null,
         summary: version.summary
       },
-      indicators: indicators,
-      analysis: run ? {
-        runId: run.id,
-        createdAt: run.createdAt,
-        rawHits: clone(run.rawHits || []),
-        combinedResult: clone(run.combinedResult || null),
-        finalContent: clone((run.adjustments && run.adjustments.finalContent) || null)
-      } : null,
-      recommendations: frozenRecommendations,
-      findings: (state.findings || []).filter(function (f) {
-        return f.reportId === report.id && f.reportVersion === versionNo;
-      }).map(function (f) { return clone(f); }),
+      results: results,
+      phylumUnits: units,
+      hasAnyEffectiveRange: hasAnyEffectiveRangeFromResults(results),
       presentationMock: buildPresentationMock(report, version, species),
+      analysisRunId: report.latestAnalysisRunId || null,
       frozenAt: nowIso(),
-      frozenBy: actor || (' 系统')
+      frozenBy: actor || '系统'
     };
-  }
-
-  function copyPublishedAssessmentFields(pubVer, workVer) {
-    if (!pubVer || !workVer) return;
-    if (pubVer.percentile != null) workVer.percentile = pubVer.percentile;
-    if (pubVer.platformDimensions) workVer.platformDimensions = clone(pubVer.platformDimensions);
-    if (!workVer.healthLevel && pubVer.healthLevel) workVer.healthLevel = pubVer.healthLevel;
-    if (workVer.healthScore == null && pubVer.healthScore != null) workVer.healthScore = pubVer.healthScore;
-    if (!workVer.summary && pubVer.summary) workVer.summary = pubVer.summary;
   }
 
   function appendOperationRecord(state, record) {
@@ -2740,235 +1199,1001 @@
     state.operationRecords.push(Object.assign({ id: uid('op'), createdAt: nowIso() }, record));
   }
 
-  function syncReportWorkflow(report, testRecord, state) {
+  function setReportStatus(report, nextStatus) {
     if (!report) return;
-    state = state || loadState();
-    report.workflowStatus = deriveWorkflowStatus(report, testRecord);
-    report.todoFlags = buildTodoFlags(report, testRecord, state);
-    syncReportVersionFields(report);
+    if (report.status !== nextStatus) {
+      report.status = nextStatus;
+      report.statusChangedAt = nowIso();
+    }
   }
 
-  function buildTodoFlags(report, testRecord, state) {
-    var flags = deriveTodoFlags(report, testRecord);
-    if (state && testRecord && testRecord.importBatchId) {
-      var batch = state.importBatches.find(function (b) { return b.id === testRecord.importBatchId; });
-      if (batch && batch.status === 'partial' && flags.indexOf('partial_import') < 0) {
-        flags.push('partial_import');
+  function assertResultsEditable(report) {
+    if (!report) throw new Error('report not found');
+    if (report.status === 'voided') throw new Error('已作废报告不可编辑');
+    if (report.status === 'published' && !report.correctionDraftActive) {
+      throw new Error('已发布报告需先创建更正草稿才能修改');
+    }
+  }
+
+  function collectPublicationChecks(state, reportId) {
+    var blockers = [];
+    var warnings = [];
+    function addBlocker(id, message, category) {
+      blockers.push({ id: id, message: message, category: category || 'blocker' });
+    }
+    function addWarning(id, message, category) {
+      warnings.push({ id: id, message: message, category: category || 'warning' });
+    }
+    var report = findReport(state, reportId);
+    if (!report) {
+      addBlocker('report_missing', '报告不存在', 'system');
+      return { blockers: blockers, warnings: warnings };
+    }
+    var tr = findTestRecord(state, report.testRecordId);
+    var pet = findPet(state, report.petId);
+    var workingVer = getWorkingReportVersion(state, reportId);
+    var species = getReportSpecies(state, report);
+    var results = getDecoratedCurrentResults(state, report);
+    var units = listPhylumUnits(state, reportId);
+
+    if (!report.petId || !pet) addBlocker('pet_archive', '未完成宠物建档/报告归档（需 petId 且宠物存在）', 'archive');
+    if (!tr) {
+      addBlocker('test_record', '缺少检测记录 testRecord', 'traceability');
+    } else {
+      if (!tr.sourceOrgId) addBlocker('source_org', '来源机构标识缺失', 'traceability');
+      if (!tr.externalReportNumber && !tr.sampleNumber) {
+        addBlocker('source_ref', '来源不可追溯（需外部报告号或样本号）', 'traceability');
       }
     }
-    if (report && report.correctionDraftActive && flags.indexOf('correction_draft') < 0) {
-      flags.push('correction_draft');
+    if (!species) addBlocker('report_species', '报告物种未填写', 'assessment');
+    if (!workingVer || !workingVer.healthLevel || HEALTH_LEVELS.indexOf(workingVer.healthLevel) < 0) {
+      addBlocker('health_level', '综合等级 A–E 未填写或无效', 'assessment');
     }
-    return flags;
-  }
-
-  function getTodoFlags(reportOrId, testRecordOrId) {
-    var state = loadState();
-    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
-    var testRecord = null;
-    if (typeof testRecordOrId === 'string') testRecord = findTestRecord(state, testRecordOrId);
-    else if (testRecordOrId) testRecord = testRecordOrId;
-    else if (report) testRecord = findTestRecord(state, report.testRecordId);
-    return buildTodoFlags(report, testRecord, state);
-  }
-
-  function getWorkflowStatus(reportOrId, testRecordOrId) {
-    var state = loadState();
-    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
-    var testRecord = null;
-    if (typeof testRecordOrId === 'string') {
-      testRecord = findTestRecord(state, testRecordOrId);
-    } else if (testRecordOrId) {
-      testRecord = testRecordOrId;
-    } else if (report) {
-      testRecord = findTestRecord(state, report.testRecordId);
+    var score = workingVer ? workingVer.healthScore : null;
+    if (score == null || score === '' || !isFinite(Number(score)) || Number(score) < 0 || Number(score) > 100) {
+      addBlocker('health_score', '综合分须为 0–100 的数值', 'assessment');
     }
-    if (report && report.workflowStatus) return report.workflowStatus;
-    return deriveWorkflowStatus(report, testRecord);
-  }
+    var validResults = results.filter(function (r) { return r.isEffective; });
+    if (!validResults.length) addBlocker('valid_results', '至少一项有效结果（PRESENT 有有限数值，或 NOT_DETECTED）', 'results');
 
-  function getPublishedVersionSnapshot(reportOrId) {
-    var state = loadState();
-    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
-    if (!report || !report.versions || report.versions.length === 0) return null;
-    var versionNo = report.publishedVersion;
-    if (versionNo == null) {
-      if (report.status === 'published' || report.status === 'corrected') versionNo = report.currentVersion;
-      else return null;
+    var unconfirmed = units.filter(function (u) { return u.confirmStatus !== 'confirmed'; });
+    if (unconfirmed.length) addBlocker('unconfirmed_units', '存在未确认的菌门分析单元', 'analysis');
+    var invalidated = units.some(function (u) { return u.confirmStatus === 'invalidated'; });
+    var pending = (report.todoFlags || []).indexOf('pending_reanalysis') >= 0;
+    if (pending || invalidated) addBlocker('pending_reanalysis', '依据变化后未重新分析', 'analysis');
+
+    if (!report.userId) addWarning('unclaimed_user', '报告未关联用户', 'ownership');
+    if ((report.todoFlags || []).indexOf('missing_unresolved') >= 0) {
+      addWarning('missing_unresolved', '存在缺失未处理的检测结果', 'data_quality');
     }
-    return report.versions.find(function (v) { return v.version === versionNo; }) || null;
-  }
-
-  function getWorkingVersionSnapshot(reportOrId) {
-    var state = loadState();
-    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
-    if (!report || !report.versions) return null;
-    var versionNo = report.workingVersion != null ? report.workingVersion : report.currentVersion;
-    return report.versions.find(function (v) { return v.version === versionNo; }) || null;
-  }
-
-  function getUserReportStatus(reportOrId, userId) {
-    var state = loadState();
-    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
-    if (!report || !userId) return null;
-    var pet = findPet(state, report.petId);
-    if (!pet || pet.userId !== userId) return null;
-    var workflow = getWorkflowStatus(report, findTestRecord(state, report.testRecordId));
-    if (workflow === 'voided' || report.status === 'voided') return null;
-    if (workflow === 'published' || report.status === 'published' || report.status === 'corrected') return 'published';
-    return null;
-  }
-
-  function getPetPublishedReports(petId) {
-    var state = loadState();
-    return (state.reports || []).filter(function (report) {
-      if (report.petId !== petId) return false;
-      if (report.status === 'voided' || report.status === 'cancelled') return false;
-      var workflow = getWorkflowStatus(report, findTestRecord(state, report.testRecordId));
-      return workflow === 'published' || report.status === 'published' || report.status === 'corrected';
-    }).sort(function (a, b) {
-      var trA = findTestRecord(state, a.testRecordId);
-      var trB = findTestRecord(state, b.testRecordId);
-      var dateA = (trA && trA.testDate) || a.updatedAt || a.createdAt || '';
-      var dateB = (trB && trB.testDate) || b.updatedAt || b.createdAt || '';
-      return String(dateB).localeCompare(String(dateA));
+    if (!hasAnyEffectiveRangeFromResults(results)) {
+      addWarning('no_effective_range', '本报告无有效参考范围', 'range');
+    }
+    units.forEach(function (unit) {
+      if (!String(unit.analysisDraft || '').trim()) {
+        addWarning('phylum_empty_' + unit.phylumKey, '菌门 ' + taxonLabel(state, unit.phylumKey) + ' 分析为空', 'analysis');
+      }
+      if (unitHasUnavailableProduct(state, unit)) {
+        addWarning('product_unavailable_' + unit.phylumKey, '菌门 ' + taxonLabel(state, unit.phylumKey) + ' 推荐商品失效', 'recommendation');
+      }
     });
+    results.forEach(function (ind) {
+      var status = normalizeDataStatus(ind.dataStatus);
+      if (MISSING_DATA_STATUSES.indexOf(status) >= 0) {
+        addWarning('data_status_' + ind.id, '指标「' + ind.key + '」状态 ' + status, 'data_quality');
+      }
+    });
+    if (workingVer) {
+      if (workingVer.percentile == null || workingVer.percentile === '') {
+        addWarning('percentile_empty', '人工百分位未填写', 'assessment');
+      }
+      var dims = workingVer.platformDimensions || {};
+      if (dims.emotion == null || dims.emotion === '') addWarning('platform_emotion', '平台评估维度「情绪」未填写', 'assessment');
+      if (dims.immunity == null || dims.immunity === '') addWarning('platform_immunity', '平台评估维度「免疫」未填写', 'assessment');
+    }
+    return { blockers: blockers, warnings: warnings };
   }
 
-  function syncPetLinkedEntities(state, petId, userId) {
-    (state.reports || []).forEach(function (report) {
-      if (report.petId !== petId) return;
-      report.userId = userId || null;
-      report.ownershipStatus = userId ? 'bound' : 'unassigned';
-      report.updatedAt = nowIso();
-      var tr = findTestRecord(state, report.testRecordId);
-      if (tr) syncReportWorkflow(report, tr);
-    });
-    (state.testRecords || []).forEach(function (tr) {
-      if (tr.petId !== petId) return;
-      tr.userId = userId || null;
-      tr.claimStatus = userId ? 'bound' : 'unassigned';
-      tr.updatedAt = nowIso();
-    });
+  function assertNoPublicationBlockers(state, reportId, actionLabel) {
+    syncReportDerived(state, findReport(state, reportId));
+    var checks = collectPublicationChecks(state, reportId);
+    if (checks.blockers.length) {
+      throw new Error((actionLabel || '操作') + '被阻断：' + checks.blockers.map(function (b) { return b.message; }).join('；'));
+    }
   }
 
-  function getUserVisibleReports(userId) {
-    var state = loadState();
-    return state.reports.filter(function (report) {
-      return getUserReportStatus(report, userId) != null;
-    }).map(function (report) {
-      var publishedVersion = getPublishedVersionSnapshot(report);
-      return {
-        report: clone(report),
-        userStatus: getUserReportStatus(report, userId),
-        publishedVersion: clone(publishedVersion),
-        contentSnapshot: publishedVersion && publishedVersion.contentSnapshot
-          ? clone(publishedVersion.contentSnapshot)
-          : null
-      };
-    });
-  }
-
-  function getUserPublishedReportProjection(userId, reportId) {
-    var state = loadState();
+  function submitReportInternal(state, reportId, options) {
+    options = normalizeActorOptions(options);
     var report = findReport(state, reportId);
-    if (!report) return null;
-    var userStatus = getUserReportStatus(report, userId);
-    if (!userStatus) return null;
-    var publishedVersion = getPublishedVersionSnapshot(report);
-    return {
-      report: clone(report),
-      publishedVersion: clone(publishedVersion),
-      contentSnapshot: publishedVersion && publishedVersion.contentSnapshot
-        ? clone(publishedVersion.contentSnapshot)
-        : null,
-      userStatus: userStatus
-    };
+    if (!report) throw new Error('report not found: ' + reportId);
+    var stage = getCorrectionDraftStageFromReport(report);
+    var ok = report.status === 'incomplete' || (report.status === 'published' && stage === 'incomplete');
+    if (!ok) throw new Error('当前状态不可提交审核');
+    assertNoPublicationBlockers(state, reportId, '提交审核');
+    var ver = getWorkingReportVersion(state, reportId);
+    if (report.correctionDraftActive) {
+      if (ver) ver.status = 'pending_review';
+    } else {
+      setReportStatus(report, 'pending_review');
+      if (ver) ver.status = 'pending_review';
+    }
+    report.rejectReason = null;
+    report.updatedAt = nowIso();
+    appendOperationRecord(state, { type: 'submit', reportId: reportId, actor: options.actor || '审核员' });
+    syncReportDerived(state, report);
+    return report;
   }
 
-  function resolveHealthTagCandidates(state, healthTagIds, species) {
-    healthTagIds = healthTagIds || [];
-    var candidates = [];
-    healthTagIds.forEach(function (tagId) {
-      var tag = findHealthTag(state, tagId);
-      if (!tag || !tag.enabled) return;
-      (state.healthTagProducts || []).forEach(function (mapping) {
-        if (mapping.healthTagId !== tagId || !mapping.enabled) return;
-        if (species && mapping.species && mapping.species.indexOf(species) < 0) return;
-        var product = findProduct(state, mapping.productId);
-        if (!product || !product.available) return;
-        if ((product.stock != null ? product.stock : 1) <= 0) return;
-        candidates.push({
-          productId: product.id,
-          product: product,
-          sortOrder: mapping.sortOrder || 0,
-          healthTagId: tagId
-        });
-      });
+  function withdrawReportInternal(state, reportId, options) {
+    options = normalizeActorOptions(options);
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    var stage = getCorrectionDraftStageFromReport(report);
+    var ok = report.status === 'pending_review' || (report.status === 'published' && stage === 'pending_review');
+    if (!ok) throw new Error('当前状态不可撤回');
+    var ver = getWorkingReportVersion(state, reportId);
+    if (report.correctionDraftActive) {
+      if (ver) ver.status = 'draft';
+    } else {
+      setReportStatus(report, 'incomplete');
+      if (ver) ver.status = 'draft';
+    }
+    report.updatedAt = nowIso();
+    appendOperationRecord(state, { type: 'withdraw', reportId: reportId, actor: options.actor || '审核员' });
+    syncReportDerived(state, report);
+    return report;
+  }
+
+  function rejectReportInternal(state, reportId, reason, options) {
+    options = normalizeActorOptions(options);
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    var stage = getCorrectionDraftStageFromReport(report);
+    var ok = report.status === 'pending_review' || (report.status === 'published' && stage === 'pending_review');
+    if (!ok) throw new Error('当前状态不可退回完善');
+    var ver = getWorkingReportVersion(state, reportId);
+    report.rejectReason = reason || '审核退回待完善';
+    if (report.correctionDraftActive) {
+      if (ver) ver.status = 'draft';
+    } else {
+      setReportStatus(report, 'incomplete');
+      if (ver) ver.status = 'draft';
+    }
+    report.updatedAt = nowIso();
+    appendOperationRecord(state, {
+      type: 'reject', reportId: reportId, reason: report.rejectReason, actor: options.actor || '审核员'
     });
-    candidates.sort(function (a, b) { return a.sortOrder - b.sortOrder; });
-    return candidates;
+    syncReportDerived(state, report);
+    return report;
   }
 
-  function checkDuplicateImport(params) {
+  function publishReportInternal(state, reportId, options) {
+    options = normalizeActorOptions(options);
+    var actor = options.actor || '审核员';
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    var stage = getCorrectionDraftStageFromReport(report);
+    var ok = report.status === 'pending_review' || (report.status === 'published' && stage === 'pending_review');
+    if (!ok) throw new Error('当前状态不可发布');
+    assertNoPublicationBlockers(state, reportId, '发布');
+    var publishVersion = report.workingVersion || report.currentVersion;
+    var ver = getWorkingReportVersion(state, reportId);
+    if (report.correctionDraftActive && report.publishedVersion != null) {
+      var oldPub = (report.versions || []).find(function (v) { return v.version === report.publishedVersion; });
+      if (oldPub) oldPub.status = 'superseded';
+    }
+    setReportStatus(report, 'published');
+    report.publishedVersion = publishVersion;
+    report.workingVersion = publishVersion;
+    report.currentVersion = publishVersion;
+    report.correctionDraftActive = false;
+    report.rejectReason = null;
+    report.updatedAt = nowIso();
+    if (ver) {
+      ver.status = 'published';
+      ver.publishedAt = nowIso();
+      ver.contentSnapshot = buildContentSnapshot(state, report, publishVersion, actor);
+    }
+    var tr = findTestRecord(state, report.testRecordId);
+    if (tr) {
+      tr.status = 'published';
+      tr.updatedAt = nowIso();
+    }
+    appendOperationRecord(state, { type: 'publish', reportId: report.id, version: publishVersion, actor: actor });
+    syncReportDerived(state, report);
+    return report;
+  }
+
+  function createCorrectionDraftInternal(state, report, params) {
     params = params || {};
-    var state = loadState();
-    return checkDuplicateImportInternal(state, params);
+    if (report.status !== 'published') throw new Error('仅已发布报告可创建更正草稿');
+    if (report.correctionDraftActive) return report;
+    var base = getPublishedReportVersion(state, report.id) || (report.versions || [])[report.versions.length - 1];
+    var newNo = (report.publishedVersion || report.currentVersion || 1) + 1;
+    report.workingVersion = newNo;
+    report.currentVersion = newNo;
+    report.correctionDraftActive = true;
+    report.versions.push({
+      version: newNo,
+      status: 'draft',
+      healthLevel: base ? base.healthLevel : null,
+      healthScore: base ? base.healthScore : null,
+      percentile: base && base.percentile != null ? base.percentile : null,
+      platformDimensions: base && base.platformDimensions ? clone(base.platformDimensions) : { emotion: null, immunity: null },
+      summary: params.summary != null ? params.summary : (base ? base.summary : ''),
+      createdAt: nowIso(),
+      publishedAt: null,
+      correctionNote: params.correctionNote || '更正草稿'
+    });
+    report.updatedAt = nowIso();
+    return report;
   }
 
-  function checkDuplicateImportInternal(state, params) {
-    var sourceOrgId = params.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
-    var externalNo = params.externalReportNumber || params.externalNumber;
-    var sampleNo = params.sampleNumber || params.sampleNo;
-    if (!externalNo && !sampleNo) return null;
-    var existing = state.testRecords.find(function (tr) {
-      if ((tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID) !== sourceOrgId) return false;
-      if (externalNo && tr.externalReportNumber === externalNo) return true;
-      if (sampleNo && tr.sampleNumber === sampleNo) return true;
-      return false;
-    });
-    if (!existing) return null;
-    return {
-      duplicate: true,
-      existingTestRecordId: existing.id,
-      sourceOrgId: sourceOrgId,
-      externalReportNumber: externalNo || null,
-      sampleNumber: sampleNo || null
+  function voidReportInternal(state, reportId, reason) {
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    if (report.status === 'voided') return report;
+    setReportStatus(report, 'voided');
+    report.voidedAt = nowIso();
+    report.voidReason = reason || '报告作废';
+    report.correctionDraftActive = false;
+    report.updatedAt = nowIso();
+    var tr = findTestRecord(state, report.testRecordId);
+    if (tr) {
+      tr.status = 'voided';
+      tr.updatedAt = nowIso();
+    }
+    appendOperationRecord(state, { type: 'void', reportId: report.id, reason: report.voidReason });
+    syncReportDerived(state, report);
+    return report;
+  }
+
+  function assignReportOwnershipInternal(state, params) {
+    params = params || {};
+    var report = params.reportId ? findReport(state, params.reportId) : null;
+    var tr = params.testRecordId
+      ? findTestRecord(state, params.testRecordId)
+      : (report ? findTestRecord(state, report.testRecordId) : null);
+    if (!report && tr) report = findReportByTestRecord(state, tr.id);
+    if (!tr && report) tr = findTestRecord(state, report.testRecordId);
+    if (!tr) throw new Error('test record not found');
+    var pet = params.petId ? findPet(state, params.petId) : null;
+    if (!pet) throw new Error('pet not found: ' + params.petId);
+    var userId = params.userId || pet.userId || null;
+    if (userId && !findUser(state, userId)) throw new Error('user not found: ' + userId);
+    if (userId && userId !== pet.userId) {
+      pet.userId = userId;
+      pet.claimStatus = 'bound';
+    } else if (userId) {
+      pet.claimStatus = 'bound';
+    }
+    tr.petId = pet.id;
+    tr.userId = pet.userId || null;
+    tr.claimStatus = pet.userId ? 'bound' : 'unassigned';
+    tr.storeId = params.storeId || pet.storeId || tr.storeId;
+    tr.updatedAt = nowIso();
+    if (!report) report = generateReportInternal(state, tr, params);
+    report.petId = pet.id;
+    report.userId = pet.userId || null;
+    report.reportSpecies = report.reportSpecies || pet.species;
+    if (report.status === 'unassigned') setReportStatus(report, 'incomplete');
+    report.updatedAt = nowIso();
+    syncReportDerived(state, report);
+    return { report: report, testRecord: tr, pet: pet };
+  }
+
+  function generateReportInternal(state, tr, params) {
+    params = params || {};
+    var reportId = bumpIds(state, 'reports', 'report');
+    var status = tr.petId ? 'incomplete' : 'unassigned';
+    var report = {
+      id: reportId,
+      reportNumber: params.reportNumber || ('RPT-' + reportId.replace('report-', '')),
+      externalReportNumber: tr.externalReportNumber,
+      sampleNumber: tr.sampleNumber,
+      sourceOrgId: tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
+      testRecordId: tr.id,
+      userId: tr.userId || null,
+      petId: tr.petId || null,
+      reportSpecies: params.reportSpecies || null,
+      status: status,
+      statusChangedAt: nowIso(),
+      ownershipStatus: tr.petId ? 'bound' : 'unassigned',
+      todoFlags: [],
+      rejectReason: null,
+      latestAnalysisRunId: null,
+      currentVersion: 1,
+      workingVersion: 1,
+      publishedVersion: null,
+      correctionDraftActive: false,
+      versions: [{
+        version: 1, status: 'draft', healthLevel: params.healthLevel || null,
+        healthScore: params.healthScore || null, percentile: null,
+        platformDimensions: { emotion: null, immunity: null },
+        summary: params.summary || '', createdAt: nowIso(), publishedAt: null
+      }],
+      createdAt: nowIso(),
+      updatedAt: nowIso()
     };
+    if (!report.reportSpecies && report.petId) {
+      var pet = findPet(state, report.petId);
+      if (pet) report.reportSpecies = pet.species;
+    }
+    state.reports.push(report);
+    (state.indicators || []).forEach(function (ind) {
+      if (ind.testRecordId === tr.id && ind.isCurrent) ind.reportId = report.id;
+    });
+    syncReportDerived(state, report);
+    return report;
   }
 
   function bumpIds(state, collection, prefix) {
     var max = 0;
-    state[collection].forEach(function (item) {
+    (state[collection] || []).forEach(function (item) {
       var num = parseInt(String(item.id).replace(/\D/g, ''), 10);
       if (!isNaN(num) && num > max) max = num;
     });
     return prefix + '-' + String(max + 1).padStart(3, '0');
   }
 
-  // ─── Public API ───────────────────────────────────────────────────────────
-
-  function getState() {
-    return clone(loadState());
+  function normalizeStoredResult(state, row) {
+    var meta = classifyKey(state, row.key);
+    row.level = row.level || meta.level;
+    if (row.phylumKey == null) row.phylumKey = meta.phylumKey;
+    if (row.sourceValue === undefined) row.sourceValue = row.valueSource === 'manual' ? null : (row.effectiveValue != null ? row.effectiveValue : row.value);
+    if (row.effectiveValue === undefined) row.effectiveValue = row.value;
+    row.value = row.effectiveValue;
+    if (!row.labNotice) row.labNotice = 'unmarked';
+    if (!row.valueSource) row.valueSource = row.sourceValue == null && row.effectiveValue != null ? 'manual' : 'import';
+    row.dataStatus = normalizeDataStatus(row.dataStatus || 'PRESENT');
+    if (row.isCurrent == null) row.isCurrent = true;
+    return row;
   }
 
-  function peekState() {
-    return loadState();
+  function makeResult(state, spec) {
+    var row = {
+      id: spec.id || uid('ind'),
+      testRecordId: spec.testRecordId,
+      reportId: spec.reportId,
+      key: spec.key,
+      rawImportName: spec.rawImportName || spec.key,
+      sourceTemplateId: spec.sourceTemplateId || DEFAULT_SOURCE_ORG_ID,
+      unit: spec.unit || '%',
+      dataStatus: spec.dataStatus || 'PRESENT',
+      sourceValue: spec.sourceValue !== undefined ? spec.sourceValue : (spec.value != null ? spec.value : null),
+      effectiveValue: spec.effectiveValue !== undefined ? spec.effectiveValue : (spec.value != null ? spec.value : null),
+      modifiedReason: spec.modifiedReason || null,
+      valueSource: spec.valueSource || 'import',
+      labNotice: spec.labNotice || 'unmarked',
+      importedRange: spec.importedRange ? clone(spec.importedRange) : null,
+      version: spec.version || 1,
+      isCurrent: spec.isCurrent !== false,
+      correctedFrom: spec.correctedFrom || null,
+      createdAt: spec.createdAt || nowIso(),
+      updatedBy: spec.updatedBy || null
+    };
+    return normalizeStoredResult(state, row);
   }
+
+  function modifyResultValueInternal(state, params) {
+    params = params || {};
+    var report = findReport(state, params.reportId);
+    if (!report) throw new Error('report not found: ' + params.reportId);
+    assertResultsEditable(report);
+    var original = (state.indicators || []).find(function (i) { return i.id === params.resultId; });
+    if (!original || original.reportId !== report.id) throw new Error('result not found');
+    if (!params.reason || !String(params.reason).trim()) throw new Error('修改有效值须填写原因');
+    original.isCurrent = false;
+    var next = makeResult(state, {
+      id: uid('ind'),
+      testRecordId: original.testRecordId,
+      reportId: original.reportId,
+      key: original.key,
+      rawImportName: original.rawImportName,
+      sourceTemplateId: original.sourceTemplateId,
+      unit: original.unit,
+      dataStatus: params.dataStatus || original.dataStatus,
+      sourceValue: original.sourceValue,
+      effectiveValue: params.value !== undefined ? params.value : original.effectiveValue,
+      modifiedReason: String(params.reason).trim(),
+      valueSource: original.valueSource || 'import',
+      labNotice: params.labNotice || original.labNotice,
+      importedRange: original.importedRange,
+      version: (original.version || 1) + 1,
+      isCurrent: true,
+      correctedFrom: original.id,
+      updatedBy: params.actor || '审核员'
+    });
+    state.indicators.push(next);
+    report.updatedAt = nowIso();
+    syncReportDerived(state, report);
+    return next;
+  }
+
+  function supplementResultInternal(state, params) {
+    params = params || {};
+    var report = findReport(state, params.reportId);
+    if (!report) throw new Error('report not found: ' + params.reportId);
+    assertResultsEditable(report);
+    if (!params.key) throw new Error('请选择补录指标');
+    if (!params.reason || !String(params.reason).trim()) throw new Error('补录须填写原因');
+    var exists = currentResultsOf(state, report.id).some(function (r) { return r.key === params.key; });
+    if (exists) throw new Error('该指标已有结果，请使用修改有效值');
+    var tr = findTestRecord(state, report.testRecordId);
+    var row = makeResult(state, {
+      testRecordId: report.testRecordId,
+      reportId: report.id,
+      key: params.key,
+      sourceTemplateId: (tr && tr.sourceOrgId) || report.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
+      unit: params.unit || '%',
+      dataStatus: params.dataStatus || 'PRESENT',
+      sourceValue: null,
+      effectiveValue: params.value,
+      modifiedReason: String(params.reason).trim(),
+      valueSource: 'manual',
+      labNotice: params.labNotice || 'unmarked'
+    });
+    state.indicators.push(row);
+    report.updatedAt = nowIso();
+    syncReportDerived(state, report);
+    return row;
+  }
+
+  function nextRuleId(state) {
+    return bumpIds(state, 'analysisRuleCatalog', 'rule');
+  }
+
+  function deactivateSiblings(state, lineageId, exceptId) {
+    (state.analysisRuleCatalog || []).forEach(function (r) {
+      if (r.lineageId === lineageId && r.id !== exceptId && r.status === 'active') r.status = 'inactive';
+    });
+  }
+
+  function saveAnalysisRuleInternal(state, rule) {
+    rule = rule || {};
+    var errors = Engine.validateRule(rule, taxaByKeyMap(state));
+    if (errors.length) throw new Error(errors.join('；'));
+    var now = nowIso();
+    var existing = rule.id ? (state.analysisRuleCatalog || []).find(function (r) { return r.id === rule.id; }) : null;
+    if (existing) {
+      Object.keys(rule).forEach(function (k) {
+        if (k === 'id' || k === 'lineageId' || k === 'createdAt') return;
+        existing[k] = clone(rule[k]);
+      });
+      existing.updatedAt = now;
+      if (existing.status === 'active') deactivateSiblings(state, existing.lineageId, existing.id);
+      return existing;
+    }
+    var created = {
+      id: rule.id || nextRuleId(state),
+      lineageId: rule.lineageId || uid('lineage'),
+      version: rule.version || 1,
+      status: rule.status || 'draft',
+      name: rule.name,
+      description: rule.description || '',
+      target: clone(rule.target),
+      conditionLogic: rule.conditionLogic || 'ALL',
+      conditions: clone(rule.conditions || []),
+      riskLevel: rule.riskLevel,
+      priority: rule.priority || 0,
+      conflictGroup: rule.conflictGroup || null,
+      output: clone(rule.output),
+      createdAt: now,
+      updatedAt: now
+    };
+    state.analysisRuleCatalog.push(created);
+    if (created.status === 'active') deactivateSiblings(state, created.lineageId, created.id);
+    return created;
+  }
+
+  function createRuleRevisionInternal(state, ruleId) {
+    var src = (state.analysisRuleCatalog || []).find(function (r) { return r.id === ruleId; });
+    if (!src) throw new Error('rule not found: ' + ruleId);
+    var maxVer = 0;
+    state.analysisRuleCatalog.forEach(function (r) {
+      if (r.lineageId === src.lineageId && r.version > maxVer) maxVer = r.version;
+    });
+    var copy = clone(src);
+    copy.id = nextRuleId(state);
+    copy.version = maxVer + 1;
+    copy.status = 'draft';
+    copy.createdAt = nowIso();
+    copy.updatedAt = nowIso();
+    state.analysisRuleCatalog.push(copy);
+    return copy;
+  }
+
+  function duplicateAnalysisRuleInternal(state, ruleId) {
+    var src = (state.analysisRuleCatalog || []).find(function (r) { return r.id === ruleId; });
+    if (!src) throw new Error('rule not found: ' + ruleId);
+    var copy = clone(src);
+    copy.id = nextRuleId(state);
+    copy.lineageId = uid('lineage');
+    copy.version = 1;
+    copy.status = 'draft';
+    copy.name = (src.name || '') + '（副本）';
+    copy.createdAt = nowIso();
+    copy.updatedAt = nowIso();
+    state.analysisRuleCatalog.push(copy);
+    return copy;
+  }
+
+  function setRuleActiveInternal(state, ruleId, active) {
+    var rule = (state.analysisRuleCatalog || []).find(function (r) { return r.id === ruleId; });
+    if (!rule) throw new Error('rule not found: ' + ruleId);
+    if (active) {
+      var errors = Engine.validateRule(rule, taxaByKeyMap(state));
+      if (errors.length) throw new Error(errors.join('；'));
+      deactivateSiblings(state, rule.lineageId, rule.id);
+      rule.status = 'active';
+    } else {
+      rule.status = 'inactive';
+    }
+    rule.updatedAt = nowIso();
+    return rule;
+  }
+
+  function deleteAnalysisRuleInternal(state, ruleId) {
+    var idx = (state.analysisRuleCatalog || []).findIndex(function (r) { return r.id === ruleId; });
+    if (idx < 0) throw new Error('rule not found: ' + ruleId);
+    var removed = state.analysisRuleCatalog.splice(idx, 1)[0];
+    return removed;
+  }
+
+  function seedRule(spec, ts) {
+    var conditions = (spec.conditions || []).map(function (c, i) {
+      return Object.assign({ id: spec.id + '-c' + (i + 1) }, c);
+    });
+    return {
+      id: spec.id,
+      lineageId: spec.lineageId,
+      version: 1,
+      status: spec.status || 'active',
+      name: spec.name,
+      description: spec.description || '',
+      target: spec.target,
+      conditionLogic: spec.conditionLogic || 'ALL',
+      conditions: conditions,
+      riskLevel: spec.riskLevel,
+      priority: spec.priority || 10,
+      conflictGroup: spec.conflictGroup || null,
+      output: spec.output,
+      createdAt: ts,
+      updatedAt: ts
+    };
+  }
+
+  function buildDefaultAnalysisRuleCatalog(ts) {
+    return [
+      seedRule({
+        id: 'rule-actino-low', lineageId: 'lineage-actino-low', name: '放线菌门低于参考范围',
+        target: { level: 'phylum', taxonKey: 'Actinobacteria' },
+        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'low' }],
+        riskLevel: 'medium', priority: 20, conflictGroup: 'actinobacteria',
+        output: { analysis: '放线菌门占比低于参考范围，可能影响肠道屏障与免疫调节。', advice: '关注日常饮食多样性，可考虑益生菌补充。' }
+      }, ts),
+      seedRule({
+        id: 'rule-firmi-normal', lineageId: 'lineage-firmi-normal', name: '厚壁菌门处于参考范围',
+        target: { level: 'phylum', taxonKey: 'Firmicutes' },
+        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'normal' }],
+        riskLevel: 'low', priority: 5, conflictGroup: 'firmicutes',
+        output: { analysis: '厚壁菌门处于参考范围内。', advice: '保持当前饮食结构即可。' }
+      }, ts),
+      seedRule({
+        id: 'rule-bactero-normal', lineageId: 'lineage-bactero-normal', name: '拟杆菌门处于参考范围',
+        target: { level: 'phylum', taxonKey: 'Bacteroidetes' },
+        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'normal' }],
+        riskLevel: 'low', priority: 5, conflictGroup: 'bacteroidetes',
+        output: { analysis: '拟杆菌门处于参考范围内。', advice: '继续维持饮食多样性。' }
+      }, ts),
+      seedRule({
+        id: 'rule-fuso-nd', lineageId: 'lineage-fuso-nd', name: '梭杆菌属未检出',
+        target: { level: 'genus', taxonKey: 'Fusobacterium' },
+        conditions: [{ type: 'NOT_DETECTED' }],
+        riskLevel: 'high', priority: 25, conflictGroup: 'fusobacteria',
+        output: { analysis: '梭杆菌属未检出，不可等同于偏低结论。', advice: '建议结合复检与其他指标综合判断。' }
+      }, ts),
+      seedRule({
+        id: 'rule-proteus-high', lineageId: 'lineage-proteus-high', name: 'Proteus 高于参考范围',
+        target: { level: 'genus', taxonKey: 'Proteus' },
+        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'high' }],
+        riskLevel: 'high', priority: 30, conflictGroup: 'proteobacteria-alert',
+        output: { analysis: 'Proteus 高于参考范围，变形菌门内潜在风险升高。', advice: '建议复查并关注消化道症状，必要时咨询兽医。' }
+      }, ts),
+      seedRule({
+        id: 'rule-esh-high', lineageId: 'lineage-esh-high', name: 'Escherichia-Shigella 高于参考范围',
+        target: { level: 'genus', taxonKey: 'Escherichia-Shigella' },
+        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'high' }],
+        riskLevel: 'medium', priority: 20, conflictGroup: 'proteobacteria-alert',
+        output: { analysis: 'Escherichia-Shigella 高于参考范围。', advice: '减少易发酵零食，观察排便情况。' }
+      }, ts),
+      seedRule({
+        id: 'rule-kleb-high', lineageId: 'lineage-kleb-high', name: 'Klebsiella 高于参考范围',
+        target: { level: 'genus', taxonKey: 'Klebsiella' },
+        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'high' }],
+        riskLevel: 'low', priority: 10, conflictGroup: 'proteobacteria-alert',
+        output: { analysis: 'Klebsiella 高于参考范围。', advice: '持续观察，必要时复查。' }
+      }, ts),
+      seedRule({
+        id: 'rule-kleb-present', lineageId: 'lineage-kleb-present', name: 'Klebsiella 无有效参考范围',
+        target: { level: 'genus', taxonKey: 'Klebsiella' },
+        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'no_range' }],
+        riskLevel: 'notice', priority: 1, conflictGroup: 'klebsiella-notice',
+        output: { analysis: 'Klebsiella 已检出，但本报告无有效参考范围，仅作提示。', advice: '' }
+      }, ts)
+    ];
+  }
+
+  function standardTaxonValues() {
+    return {
+      Firmicutes: 42.1,
+      Bacteroidetes: 28.4,
+      Proteobacteria: 11.2,
+      Actinobacteria: 32.0,
+      Fusobacteria: 6.0,
+      Bacteroides: 18.0,
+      Fusobacterium: 3.2,
+      'Escherichia-Shigella': 6.5,
+      Collinsella: 5.0,
+      Streptococcus: 4.2,
+      Peptacetobacter: 6.1,
+      Proteus: 3.5,
+      Klebsiella: 4.59,
+      Mediterraneibacter: 4.0,
+      Pseudomonas: 0.8
+    };
+  }
+
+  function pushTaxonResults(state, list, spec) {
+    var values = standardTaxonValues();
+    Object.keys(values).forEach(function (key) {
+      var override = (spec.overrides && spec.overrides[key]) || {};
+      var value = override.value !== undefined ? override.value : values[key];
+      var dataStatus = override.dataStatus || 'PRESENT';
+      list.push(makeResult(state, {
+        id: spec.idPrefix + '-' + key.replace(/[^A-Za-z0-9]/g, '') + '-v' + (override.version || 1),
+        testRecordId: spec.testRecordId,
+        reportId: spec.reportId,
+        key: key,
+        sourceTemplateId: spec.templateId,
+        dataStatus: dataStatus,
+        value: dataStatus === 'PRESENT' ? value : null,
+        sourceValue: dataStatus === 'PRESENT' ? (override.sourceValue !== undefined ? override.sourceValue : value) : null,
+        effectiveValue: dataStatus === 'PRESENT' ? value : null,
+        labNotice: override.labNotice || 'unmarked',
+        importedRange: spec.importedRange || null,
+        version: override.version || 1,
+        isCurrent: override.isCurrent !== false,
+        correctedFrom: override.correctedFrom || null,
+        modifiedReason: override.modifiedReason || null,
+        createdAt: spec.createdAt
+      }));
+    });
+    (spec.extra || []).forEach(function (row) {
+      list.push(makeResult(state, Object.assign({
+        testRecordId: spec.testRecordId,
+        reportId: spec.reportId,
+        sourceTemplateId: spec.templateId,
+        createdAt: spec.createdAt
+      }, row)));
+    });
+  }
+
+  function confirmAllUnitsInternal(state, reportId, actor) {
+    listPhylumUnits(state, reportId).forEach(function (unit) {
+      confirmPhylumUnitInternal(state, reportId, unit.phylumKey, { actor: actor });
+    });
+  }
+
+  function assignDefaultProducts(state, reportId, mapping) {
+    mapping = mapping || {};
+    listPhylumUnits(state, reportId).forEach(function (unit) {
+      if (unit.riskLevel === 'notice' || !String(unit.adviceDraft || '').trim()) return;
+      var spec = mapping[unit.phylumKey] || { primaryProductId: 'prod-001', relatedProductIds: [] };
+      try {
+        savePhylumUnitProductsInternal(state, reportId, unit.phylumKey, spec);
+      } catch (e) { /* notice / 无建议则跳过 */ }
+    });
+  }
+
+  function saveAssessmentInternal(state, reportId, params) {
+    params = params || {};
+    var report = findReport(state, reportId);
+    var ver = getWorkingReportVersion(state, reportId);
+    if (params.reportSpecies != null) report.reportSpecies = params.reportSpecies;
+    if (params.healthLevel != null) ver.healthLevel = params.healthLevel;
+    if (params.healthScore != null) ver.healthScore = params.healthScore;
+    if (params.percentile != null) ver.percentile = params.percentile;
+    if (params.summary != null) ver.summary = params.summary;
+    if (params.platformDimensions != null) ver.platformDimensions = clone(params.platformDimensions);
+    report.updatedAt = nowIso();
+  }
+
+  function buildSeedState() {
+    var ts = '2025-08-20T10:00:00.000Z';
+    var catalog = defaultCatalog();
+    backfillMissingCatalogSortOrders(catalog.microbiotaTaxa);
+    backfillMissingCatalogSortOrders(catalog.testIndicators);
+    backfillMissingCatalogSortOrders(catalog.breeds);
+
+    var state = {
+      meta: {
+        version: 16,
+        disclaimer: '',
+        dataStatuses: DATA_STATUSES.slice(),
+        reportStatuses: REPORT_STATUSES.slice(),
+        initializedAt: ts
+      },
+      professionalCatalog: catalog,
+      users: [
+        { id: 'user-001', name: '张女士', phone: '13812345678', address: '北京市朝阳区某某小区', createdAt: ts },
+        { id: 'user-002', name: '李先生', phone: '13987654321', address: '上海市浦东新区某某路', createdAt: ts }
+      ],
+      stores: [
+        { id: 'store-001', name: '萌宠肠道健康中心（朝阳店）', code: 'STORE-BJ-CY-001', createdAt: ts },
+        { id: 'store-002', name: '宠物医院肠道专科（浦东店）', code: 'STORE-SH-PD-002', createdAt: ts }
+      ],
+      pets: [
+        { id: 'pet-001', userId: 'user-001', name: '小花', breed: '英国短毛猫', age: 3.5, gender: 'female', species: 'cat', storeId: 'store-001', claimStatus: 'bound', createdAt: ts },
+        { id: 'pet-002', userId: 'user-001', name: '阿黄', breed: '金毛寻回犬', age: 5, gender: 'male', species: 'dog', storeId: 'store-002', claimStatus: 'bound', createdAt: ts },
+        { id: 'pet-003', userId: 'user-002', name: '咪咪', breed: '布偶猫', age: 2, gender: 'female', species: 'cat', storeId: null, claimStatus: 'bound', opsCreated: true, createdAt: ts },
+        { id: 'pet-004', userId: null, name: '旺仔', breed: '柯基', age: 4, gender: 'male', species: 'dog', storeId: 'store-001', claimStatus: 'unassigned', opsCreated: true, createdAt: ts },
+        { id: 'pet-005', userId: null, name: '豆豆', breed: '中华田园猫', age: 1, gender: 'female', species: 'cat', storeId: 'store-001', claimStatus: 'unassigned', opsCreated: true, createdAt: ts }
+      ],
+      categories: [
+        { id: 'cat-001', name: '肠道健康', available: true, createdAt: ts },
+        { id: 'cat-002', name: '益生菌调理', available: true, createdAt: ts },
+        { id: 'cat-003', name: '已下架分类（兜底测试）', available: false, createdAt: ts }
+      ],
+      products: [
+        { id: 'prod-001', spuId: 'prod-001', name: '益生菌套装 A', categoryId: 'cat-002', status: 'on_sale', available: true, stock: 25, price: 199, createdAt: ts },
+        { id: 'prod-002', spuId: 'prod-002', name: '肠道调理粉（已下架）', categoryId: 'cat-001', status: 'off_shelf', available: false, stock: 0, price: 159, createdAt: ts },
+        { id: 'prod-003', spuId: 'prod-003', name: '膳食纤维补充剂', categoryId: 'cat-001', status: 'on_sale', available: true, stock: 15, price: 89, createdAt: ts },
+        { id: 'prod-004', spuId: 'prod-004', name: '益生菌套装 B（零库存）', categoryId: 'cat-002', status: 'zero_stock', available: true, stock: 0, price: 179, createdAt: ts },
+        { id: 'prod-missing', spuId: 'prod-missing', name: '已回收商品（不存在）', categoryId: 'cat-001', status: 'recycled', deleted: true, available: false, stock: 0, price: 0, createdAt: ts }
+      ],
+      importBatches: [
+        { id: 'batch-001', fileName: '检测结果导入_成功.xlsx', status: 'success', totalRows: 12, successRows: 12, failedRows: 0, errors: [], testRecordIds: ['tr-004'], createdAt: '2025-08-20T10:00:00.000Z' },
+        { id: 'batch-002', fileName: '检测结果导入_失败.xlsx', status: 'failed', totalRows: 8, successRows: 0, failedRows: 8, errors: [{ row: 2, column: 'Actinobacteria', code: 'MISSING_COLUMN', message: '缺少必需列「Actinobacteria」' }], testRecordIds: ['tr-002'], createdAt: '2025-08-21T11:30:00.000Z' },
+        { id: 'batch-harley', fileName: 'harley_final_microbiome_report.xlsx', status: 'success', totalRows: 16, successRows: 16, failedRows: 0, errors: [], testRecordIds: ['tr-006'], createdAt: '2025-08-19T09:00:00.000Z' },
+        { id: 'batch-oscar', fileName: 'oscar_final_microbiome_report.xlsx', status: 'success', totalRows: 16, successRows: 16, failedRows: 0, errors: [], testRecordIds: ['tr-009'], createdAt: '2025-08-18T09:00:00.000Z' }
+      ],
+      testRecords: [
+        { id: 'tr-001', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-PARTIAL-001', sampleNumber: 'SAMPLE-PARTIAL-001', sampleType: 'feces', testDate: '2025-08-22', status: 'pending_result', importBatchId: null, claimStatus: 'bound', label: 'SAMPLE-PARTIAL-001', createdAt: '2025-08-22T09:15:00.000Z', updatedAt: '2025-08-22T09:15:00.000Z' },
+        { id: 'tr-002', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-FAIL-002', sampleNumber: 'SAMPLE-FAIL-002', sampleType: 'feces', testDate: '2025-08-21', status: 'pending_review', importBatchId: 'batch-002', claimStatus: 'bound', label: 'SAMPLE-FAIL-002', createdAt: '2025-08-21T11:30:00.000Z', updatedAt: '2025-08-21T11:30:00.000Z' },
+        { id: 'tr-003', petId: 'pet-003', userId: 'user-002', storeId: null, sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-REVIEW-003', sampleNumber: 'SAMPLE-REVIEW-003', sampleType: 'feces', testDate: '2025-08-23', status: 'pending_review', importBatchId: null, claimStatus: 'bound', label: 'SAMPLE-REVIEW-003', createdAt: '2025-08-23T14:00:00.000Z', updatedAt: '2025-08-23T14:00:00.000Z' },
+        { id: 'tr-004', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-001', sampleNumber: 'SAMPLE-BJ-001', sampleType: 'feces', testDate: '2025-08-20', status: 'published', importBatchId: 'batch-001', claimStatus: 'bound', label: 'SAMPLE-BJ-001', createdAt: '2025-08-20T10:00:00.000Z', updatedAt: '2025-08-24T16:00:00.000Z' },
+        { id: 'tr-006', petId: 'pet-004', userId: null, storeId: 'store-001', sourceOrgId: SECOND_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-HARLEY-006', sampleNumber: 'SAMPLE-HARLEY-006', sampleType: 'feces', testDate: '2025-08-18', status: 'published', importBatchId: 'batch-harley', claimStatus: 'unassigned', label: 'SAMPLE-HARLEY-006', createdAt: '2025-08-19T09:00:00.000Z', updatedAt: '2025-08-19T16:00:00.000Z' },
+        { id: 'tr-008', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-VOID-008', sampleNumber: 'SAMPLE-VOID-008', sampleType: 'feces', testDate: '2025-08-10', status: 'voided', importBatchId: 'batch-001', claimStatus: 'bound', label: 'SAMPLE-VOID-008', createdAt: '2025-08-10T09:00:00.000Z', updatedAt: '2025-08-12T10:00:00.000Z' },
+        { id: 'tr-009', petId: null, userId: null, storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-NEW-UNASSIGNED-009', sampleNumber: 'SAMPLE-NEW-UNASSIGNED-009', sampleType: 'feces', testDate: '2025-08-25', status: 'unassigned', importBatchId: 'batch-oscar', claimStatus: 'unassigned', label: 'SAMPLE-NEW-UNASSIGNED-009', createdAt: '2025-08-18T09:00:00.000Z', updatedAt: '2025-08-18T09:00:00.000Z' }
+      ],
+      indicators: [],
+      reports: [],
+      analysisRuleCatalog: buildDefaultAnalysisRuleCatalog(ts),
+      analysisRuns: [],
+      phylumAnalysisUnits: [],
+      operationRecords: [],
+      ownershipCorrections: [],
+      petUserAssociationChanges: []
+    };
+
+    function baseReport(spec) {
+      return {
+        id: spec.id,
+        reportNumber: spec.reportNumber,
+        externalReportNumber: spec.externalReportNumber,
+        sampleNumber: spec.sampleNumber,
+        sourceOrgId: spec.sourceOrgId,
+        testRecordId: spec.testRecordId,
+        userId: spec.userId,
+        petId: spec.petId,
+        reportSpecies: spec.reportSpecies,
+        status: spec.status,
+        statusChangedAt: spec.statusChangedAt,
+        ownershipStatus: spec.petId ? 'bound' : 'unassigned',
+        todoFlags: [],
+        rejectReason: spec.rejectReason || null,
+        latestAnalysisRunId: null,
+        currentVersion: 1,
+        workingVersion: 1,
+        publishedVersion: spec.publishedVersion != null ? spec.publishedVersion : null,
+        correctionDraftActive: false,
+        versions: [{
+          version: 1, status: 'draft',
+          healthLevel: spec.healthLevel || null,
+          healthScore: spec.healthScore != null ? spec.healthScore : null,
+          percentile: spec.percentile != null ? spec.percentile : null,
+          platformDimensions: spec.platformDimensions || { emotion: 70, immunity: 72 },
+          summary: spec.summary || '',
+          createdAt: spec.createdAt, publishedAt: null
+        }],
+        createdAt: spec.createdAt,
+        updatedAt: spec.updatedAt || spec.createdAt
+      };
+    }
+
+    state.reports = [
+      baseReport({
+        id: 'report-001', reportNumber: 'RPT-2025-001', externalReportNumber: 'EXT-2025-001',
+        sampleNumber: 'SAMPLE-BJ-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, testRecordId: 'tr-004',
+        userId: 'user-001', petId: 'pet-001', reportSpecies: 'cat', status: 'incomplete',
+        statusChangedAt: '2025-08-20T11:00:00.000Z', healthLevel: 'A', healthScore: 92, percentile: 80,
+        platformDimensions: { emotion: 78, immunity: 82 }, summary: '肠道菌群整体良好。',
+        createdAt: '2025-08-20T11:00:00.000Z'
+      }),
+      baseReport({
+        id: 'report-002', reportNumber: 'RPT-2025-002', externalReportNumber: 'EXT-2025-REVIEW-003',
+        sampleNumber: 'SAMPLE-REVIEW-003', sourceOrgId: DEFAULT_SOURCE_ORG_ID, testRecordId: 'tr-003',
+        userId: 'user-002', petId: 'pet-003', reportSpecies: 'cat', status: 'incomplete',
+        statusChangedAt: '2025-08-23T15:00:00.000Z', healthLevel: 'C', healthScore: 68, percentile: 45,
+        platformDimensions: { emotion: 60, immunity: 58 }, summary: '部分指标异常，待审核发布。',
+        createdAt: '2025-08-23T15:00:00.000Z'
+      }),
+      baseReport({
+        id: 'report-003', reportNumber: 'RPT-2025-003', externalReportNumber: 'EXT-2025-FAIL-002',
+        sampleNumber: 'SAMPLE-FAIL-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, testRecordId: 'tr-002',
+        userId: 'user-001', petId: 'pet-002', reportSpecies: 'dog', status: 'incomplete',
+        statusChangedAt: '2025-08-21T14:00:00.000Z', healthLevel: 'C', healthScore: 60, percentile: 40,
+        platformDimensions: { emotion: 55, immunity: 50 }, summary: '导入数据不完整。',
+        rejectReason: 'Excel 缺少放线菌门列，请补录后重新提交',
+        createdAt: '2025-08-21T13:00:00.000Z', updatedAt: '2025-08-21T14:00:00.000Z'
+      }),
+      baseReport({
+        id: 'report-004', reportNumber: 'RPT-2025-004', externalReportNumber: 'EXT-2025-HARLEY-006',
+        sampleNumber: 'SAMPLE-HARLEY-006', sourceOrgId: SECOND_SOURCE_ORG_ID, testRecordId: 'tr-006',
+        userId: null, petId: 'pet-004', reportSpecies: 'dog', status: 'incomplete',
+        statusChangedAt: '2025-08-19T11:00:00.000Z', healthLevel: 'A', healthScore: 90, percentile: 70,
+        platformDimensions: { emotion: 75, immunity: 80 }, summary: '肠道菌群整体良好。无平台参考范围。',
+        createdAt: '2025-08-19T11:00:00.000Z'
+      }),
+      baseReport({
+        id: 'report-005', reportNumber: 'RPT-2025-005', externalReportNumber: 'EXT-2025-VOID-008',
+        sampleNumber: 'SAMPLE-VOID-008', sourceOrgId: DEFAULT_SOURCE_ORG_ID, testRecordId: 'tr-008',
+        userId: 'user-001', petId: 'pet-002', reportSpecies: 'dog', status: 'incomplete',
+        statusChangedAt: '2025-08-10T11:00:00.000Z', healthLevel: 'B', healthScore: 75, percentile: 55,
+        platformDimensions: { emotion: 65, immunity: 70 }, summary: '曾发布后作废。',
+        createdAt: '2025-08-10T11:00:00.000Z'
+      }),
+      baseReport({
+        id: 'report-006', reportNumber: 'RPT-2025-006', externalReportNumber: 'EXT-2025-NEW-UNASSIGNED-009',
+        sampleNumber: 'SAMPLE-NEW-UNASSIGNED-009', sourceOrgId: DEFAULT_SOURCE_ORG_ID, testRecordId: 'tr-009',
+        userId: null, petId: null, reportSpecies: null, status: 'unassigned',
+        statusChangedAt: '2025-08-18T09:00:00.000Z',
+        createdAt: '2025-08-18T09:00:00.000Z'
+      })
+    ];
+
+    var indicators = [];
+    pushTaxonResults(state, indicators, {
+      idPrefix: 'r1', testRecordId: 'tr-004', reportId: 'report-001',
+      templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-20T10:30:00.000Z',
+      overrides: {
+        Actinobacteria: { value: 12.3 },
+        Proteus: { value: 1.1 },
+        'Escherichia-Shigella': { value: 2.0 },
+        Klebsiella: { value: 1.2 }
+      },
+      extra: [
+        { id: 'r1-alpha-v1', key: 'alpha-diversity', unit: 'index', value: 4.2, dataStatus: 'PRESENT' }
+      ]
+    });
+    pushTaxonResults(state, indicators, {
+      idPrefix: 'r2', testRecordId: 'tr-003', reportId: 'report-002',
+      templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-23T14:30:00.000Z',
+      overrides: {
+        Actinobacteria: { value: 18.0 },
+        Fusobacterium: { value: null, dataStatus: 'NOT_DETECTED' },
+        Proteus: { value: 3.5 },
+        'Escherichia-Shigella': { value: 6.5 },
+        Klebsiella: { value: 4.59 }
+      }
+    });
+    pushTaxonResults(state, indicators, {
+      idPrefix: 'r3', testRecordId: 'tr-002', reportId: 'report-003',
+      templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-21T12:00:00.000Z',
+      overrides: {
+        Actinobacteria: { value: null, dataStatus: 'MISSING_COLUMN' }
+      }
+    });
+    pushTaxonResults(state, indicators, {
+      idPrefix: 'r4', testRecordId: 'tr-006', reportId: 'report-004',
+      templateId: SECOND_SOURCE_ORG_ID, createdAt: '2025-08-19T10:30:00.000Z',
+      overrides: { Klebsiella: { value: 4.59 } }
+    });
+    pushTaxonResults(state, indicators, {
+      idPrefix: 'r5', testRecordId: 'tr-008', reportId: 'report-005',
+      templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-10T10:30:00.000Z',
+      overrides: { Actinobacteria: { value: 28.0 }, Proteus: { value: 0.8 }, 'Escherichia-Shigella': { value: 1.5 }, Klebsiella: { value: 0.9 } }
+    });
+    pushTaxonResults(state, indicators, {
+      idPrefix: 'r6', testRecordId: 'tr-009', reportId: 'report-006',
+      templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-18T09:10:00.000Z'
+    });
+    state.indicators = indicators;
+
+    function prepareAndPublish(reportId, timeIso, productMap) {
+      withTime(timeIso, function () {
+        runReportAnalysisInternal(state, reportId, { actor: '系统' });
+        confirmAllUnitsInternal(state, reportId, '审核员');
+        assignDefaultProducts(state, reportId, productMap);
+        var report = findReport(state, reportId);
+        var ver = getWorkingReportVersion(state, reportId);
+        if (ver) ver.status = 'pending_review';
+        setReportStatus(report, 'pending_review');
+        publishReportInternal(state, reportId, { actor: '审核员' });
+      });
+    }
+
+    prepareAndPublish('report-001', '2025-08-20T16:00:00.000Z');
+    withTime('2025-08-24T15:00:00.000Z', function () {
+      createCorrectionDraftInternal(state, findReport(state, 'report-001'), { correctionNote: '放线菌门由实验室复核后更正' });
+      var actino = currentResultsOf(state, 'report-001').find(function (r) { return r.key === 'Actinobacteria'; });
+      modifyResultValueInternal(state, {
+        reportId: 'report-001', resultId: actino.id, value: 18.5, reason: '实验室复核后更正放线菌门有效值'
+      });
+      runReportAnalysisInternal(state, 'report-001', { actor: '审核员' });
+      confirmAllUnitsInternal(state, 'report-001', '审核员');
+      assignDefaultProducts(state, 'report-001');
+      saveAssessmentInternal(state, 'report-001', {
+        healthLevel: 'B', healthScore: 85, percentile: 62,
+        platformDimensions: { emotion: 75, immunity: 80 },
+        summary: '放线菌门指标已更正，综合评级下调。'
+      });
+      submitReportInternal(state, 'report-001', { actor: '审核员' });
+    });
+    withTime('2025-08-24T16:00:00.000Z', function () {
+      publishReportInternal(state, 'report-001', { actor: '审核员' });
+    });
+
+    withTime('2025-08-23T15:10:00.000Z', function () {
+      runReportAnalysisInternal(state, 'report-002', { actor: '系统' });
+      confirmAllUnitsInternal(state, 'report-002', '审核员');
+      assignDefaultProducts(state, 'report-002', {
+        Proteobacteria: { primaryProductId: 'prod-002', relatedProductIds: ['prod-004'] }
+      });
+      var r2 = findReport(state, 'report-002');
+      var v = getWorkingReportVersion(state, 'report-002');
+      v.status = 'pending_review';
+      setReportStatus(r2, 'pending_review');
+      r2.updatedAt = nowIso();
+    });
+
+    withTime('2025-08-21T13:30:00.000Z', function () {
+      runReportAnalysisInternal(state, 'report-003', { actor: '系统' });
+      var r3 = findReport(state, 'report-003');
+      r3.rejectReason = 'Excel 缺少放线菌门列，请补录后重新提交';
+      setReportStatus(r3, 'incomplete');
+    });
+
+    prepareAndPublish('report-004', '2025-08-19T16:00:00.000Z');
+    withTime('2025-08-26T10:00:00.000Z', function () {
+      createCorrectionDraftInternal(state, findReport(state, 'report-004'), { correctionNote: 'Klebsiella 有效值更正' });
+      var kleb = currentResultsOf(state, 'report-004').find(function (r) { return r.key === 'Klebsiella'; });
+      modifyResultValueInternal(state, {
+        reportId: 'report-004', resultId: kleb.id, value: 6.10, reason: '更正草稿中将 Klebsiella 由 4.59 改为 6.10'
+      });
+    });
+
+    prepareAndPublish('report-005', '2025-08-11T16:00:00.000Z');
+    withTime('2025-08-12T10:00:00.000Z', function () {
+      voidReportInternal(state, 'report-005', '客户要求作废重检');
+    });
+
+    syncAllReportsDerived(state);
+    return state;
+  }
+
+  function getState() { return clone(loadState()); }
+  function peekState() { return loadState(); }
 
   function reset() {
-    var state = migrateState(buildSeedState());
-    state.meta.resetAt = nowIso();
+    memoryState = null;
     if (localStorageAvailable) {
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      } catch (e) {
-        localStorageAvailable = false;
-      }
+      try { localStorage.removeItem(STORAGE_KEY); } catch (e) { localStorageAvailable = false; }
     }
-    memoryState = state;
-    notifyListeners(state);
+    var state = buildSeedState();
+    state.meta.resetAt = nowIso();
+    persistState(state);
     return clone(state);
   }
 
@@ -2984,966 +2209,232 @@
   function commit(mutator) {
     var state = loadState();
     var result = mutator(state);
+    syncAllReportsDerived(state);
     state.meta.lastModifiedAt = nowIso();
     persistState(state);
     return result !== undefined ? clone(result) : clone(state);
   }
 
-  function appendIndicatorsForTestRecord(state, testRecordId, indicators, source) {
-    source = source || {};
-    var rows = indicators || [
-      { key: '放线菌门', value: 22.5, unit: '%', dataStatus: 'PRESENT' },
-      { key: '拟杆菌门', value: 33.1, unit: '%', dataStatus: 'PRESENT' },
-      { key: '厚壁菌门', value: 41.0, unit: '%', dataStatus: 'PRESENT' }
-    ];
-    rows.forEach(function (ind) {
-      state.indicators.push({
-        id: uid('ind'),
-        testRecordId: testRecordId,
-        reportId: null,
-        key: ind.key,
-        value: ind.value,
-        unit: ind.unit || '%',
-        dataStatus: ind.dataStatus || 'PRESENT',
-        importedRange: ind.importedRange ? clone(ind.importedRange) : null,
-        sourceTemplateId: ind.sourceTemplateId || source.sourceTemplateId || source.templateId || null,
-        version: 1,
-        isCurrent: true,
-        correctedFrom: null,
-        createdAt: nowIso()
-      });
-    });
-  }
-
-  function updateTestRecordAfterImport(tr, file, batchId) {
-    tr.importBatchId = batchId;
-    tr.sourceOrgId = file.sourceOrgId || tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
-    if (file.externalReportNumber) tr.externalReportNumber = file.externalReportNumber;
-    if (file.sampleNumber || file.sampleNo) tr.sampleNumber = file.sampleNumber || file.sampleNo;
-    if (file.sampleNumber || file.sampleNo) tr.label = String(file.sampleNumber || file.sampleNo).trim();
-    if (tr.petId && tr.userId) {
-      tr.status = 'pending_review';
-      tr.claimStatus = 'bound';
-    } else if (tr.petId || tr.userId) {
-      tr.status = 'pending_review';
-      tr.claimStatus = tr.userId ? 'bound' : 'unassigned';
-    } else {
-      tr.status = 'unassigned';
-      tr.claimStatus = 'unassigned';
-    }
-    tr.updatedAt = nowIso();
-  }
-
-  function ensureReportForImport(state, tr, params) {
-    params = params || {};
-    var report = findReportByTestRecord(state, tr.id);
-    if (!report) {
-      report = generateReportInternal(state, tr, params);
-    } else {
-      report.petId = tr.petId;
-      report.userId = tr.userId;
-      report.externalReportNumber = tr.externalReportNumber;
-      report.sampleNumber = tr.sampleNumber;
-      report.sourceOrgId = tr.sourceOrgId || report.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
-      report.updatedAt = nowIso();
-    }
-    state.indicators.forEach(function (ind) {
-      if (ind.testRecordId === tr.id && ind.isCurrent) ind.reportId = report.id;
-    });
-    syncReportWorkflow(report, tr, state);
-    return report;
-  }
-
-  /** 登记送检：仅创建待导入结果送检记录 */
-  function registerTest(params) {
-    params = params || {};
-    return commit(function (state) {
-      if (!params.petId) throw new Error('请选择已关联用户的宠物');
-      var pet = findPet(state, params.petId);
-      if (!pet) throw new Error('宠物不存在');
-      if (!pet.userId) {
-        throw new Error('该宠物尚未关联平台用户，请先在客户管理或宠物档案完成关联');
-      }
-      var sampleNumber = params.sampleNumber != null ? String(params.sampleNumber).trim() : '';
-      if (!sampleNumber) throw new Error('请填写样本编号');
-      if (!params.testDate) throw new Error('请选择送检日期');
-      if (!params.storeId && !params.sourceOrgId) {
-        throw new Error('请选择检测机构或来源');
-      }
-      var id = bumpIds(state, 'testRecords', 'tr');
-      var record = {
-        id: id,
-        petId: pet.id,
-        userId: pet.userId,
-        storeId: params.storeId || pet.storeId || null,
-        sourceOrgId: params.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-        externalReportNumber: params.externalReportNumber || null,
-        sampleNumber: sampleNumber,
-        sampleType: params.sampleType || 'feces',
-        testDate: params.testDate,
-        status: 'pending_result',
-        importBatchId: null,
-        claimStatus: 'bound',
-        label: sampleNumber,
-        createdAt: nowIso(),
-        updatedAt: nowIso()
-      };
-      state.testRecords.push(record);
-      return record;
-    });
-  }
-
-  /** 模拟 Excel 导入成功 */
-  function simulateExcelImportSuccess(params) {
-    params = params || {};
-    return commit(function (state) {
-      var dup = checkDuplicateImportInternal(state, params);
-      if (dup) throw new Error('duplicate import blocked: ' + dup.existingTestRecordId);
-
-      var batchId = bumpIds(state, 'importBatches', 'batch');
-      var testRecordId = params.testRecordId;
-      var record = testRecordId ? findTestRecord(state, testRecordId) : null;
-      var hasPartial = (params.indicators || []).some(function (ind) {
-        return ind.dataStatus && ind.dataStatus !== 'PRESENT';
-      });
-      var batchStatus = hasPartial ? 'partial' : 'success';
-
-      if (!record) {
-        var newTrId = bumpIds(state, 'testRecords', 'tr');
-        record = {
-          id: newTrId,
-          petId: params.petId || null,
-          userId: params.userId || null,
-          storeId: params.storeId || null,
-          sourceOrgId: params.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-          externalReportNumber: params.externalReportNumber || null,
-          sampleNumber: params.sampleNumber || params.sampleNo || null,
-          sampleType: 'feces',
-          testDate: params.testDate || new Date().toISOString().slice(0, 10),
-          status: 'pending_result',
-          importBatchId: batchId,
-          claimStatus: params.petId && params.userId ? 'bound' : (params.petId || params.userId ? 'bound' : 'unassigned'),
-          label: params.sampleNumber || params.sampleNo || ' 导入成功',
-          createdAt: nowIso(),
-          updatedAt: nowIso()
-        };
-        state.testRecords.push(record);
-        testRecordId = newTrId;
-      }
-
-      updateTestRecordAfterImport(record, params, batchId);
-
-      var rows = params.rows || 10;
-      var batch = {
-        id: batchId,
-        fileName: params.fileName || (' 模拟导入成功.xlsx'),
-        status: batchStatus,
-        totalRows: rows,
-        successRows: batchStatus === 'partial' ? Math.max(1, rows - 1) : rows,
-        failedRows: batchStatus === 'partial' ? 1 : 0,
-        errors: batchStatus === 'partial' ? [{ row: rows, column: '局部字段', code: 'PARTIAL', message: ' 局部导入异常' }] : [],
-        testRecordIds: [testRecordId],
-        createdAt: nowIso()
-      };
-      state.importBatches.push(batch);
-
-      appendIndicatorsForTestRecord(state, testRecordId, params.indicators, params);
-      ensureReportForImport(state, record, params);
-
-      return { batchId: batchId, testRecordId: testRecordId, batchStatus: batchStatus };
-    });
-  }
-
-  /** 模拟批量 Excel 导入（逐文件独立结果） */
-  function simulateBatchImport(params) {
-    params = params || {};
-    var files = params.files || [];
-    var directedTestRecordId = params.testRecordId || null;
-    return commit(function (state) {
-      var batchId = bumpIds(state, 'importBatches', 'batch');
-      var fileResults = [];
-      var directedRecord = directedTestRecordId ? findTestRecord(state, directedTestRecordId) : null;
-      if (directedTestRecordId && !directedRecord) {
-        throw new Error('目标送检记录不存在: ' + directedTestRecordId);
-      }
-
-      files.forEach(function (file) {
-        file = file || {};
-        var scenario = file.scenario || 'success';
-        var fileName = file.fileName || (' 批量文件.xlsx');
-
-        if (scenario === 'duplicate') {
-          var dup = checkDuplicateImportInternal(state, file);
-          if (dup) {
-            fileResults.push({
-              fileName: fileName,
-              status: 'duplicate',
-              error: dup,
-              testRecordId: null
-            });
-            return;
-          }
-        }
-
-        if (scenario === 'failure') {
-          fileResults.push({
-            fileName: fileName,
-            status: 'failed',
-            testRecordId: directedRecord ? directedRecord.id : null,
-            errorCode: file.errorCode || 'MISSING_COLUMN'
-          });
-          if (directedRecord) {
-            directedRecord.importBatchId = batchId;
-            directedRecord.updatedAt = nowIso();
-          }
-          return;
-        }
-
-        if (scenario === 'duplicate_force') {
-          fileResults.push({
-            fileName: fileName,
-            status: 'duplicate',
-            error: { duplicate: true, reason: 'forced demo duplicate' },
-            testRecordId: null
-          });
-          return;
-        }
-
-        var partial = scenario === 'partial';
-        var tr = null;
-        var trId = null;
-
-        if (directedRecord) {
-          tr = directedRecord;
-          trId = tr.id;
-        } else {
-          trId = bumpIds(state, 'testRecords', 'tr');
-          tr = {
-            id: trId,
-            petId: file.petId || null,
-            userId: file.userId || null,
-            storeId: file.storeId || null,
-            sourceOrgId: file.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-            externalReportNumber: file.externalReportNumber || ('EXT-BATCH-' + trId),
-            sampleNumber: file.sampleNumber || ('SAMPLE-BATCH-' + trId),
-            sampleType: 'feces',
-            testDate: file.testDate || new Date().toISOString().slice(0, 10),
-            status: 'pending_result',
-            importBatchId: batchId,
-            claimStatus: file.petId || file.userId ? 'bound' : 'unassigned',
-            label: file.sampleNumber || ('SAMPLE-BATCH-' + trId),
-            createdAt: nowIso(),
-            updatedAt: nowIso()
-          };
-          state.testRecords.push(tr);
-        }
-
-        updateTestRecordAfterImport(tr, file, batchId);
-
-        var indicators = file.indicators || [
-          { key: '放线菌门', value: 20.1, unit: '%', dataStatus: 'PRESENT' },
-          { key: '厚壁菌门', value: null, unit: '%', dataStatus: partial ? 'NOT_DETECTED' : 'PRESENT' }
-        ];
-        appendIndicatorsForTestRecord(state, trId, indicators, file);
-        ensureReportForImport(state, tr, file);
-
-        fileResults.push({
-          fileName: fileName,
-          status: partial ? 'partial' : 'success',
-          testRecordId: trId
-        });
-
-        if (directedRecord) directedRecord = null;
-      });
-
-      var successCount = fileResults.filter(function (r) { return r.status === 'success' || r.status === 'partial'; }).length;
-      var failedCount = fileResults.filter(function (r) { return r.status === 'failed' || r.status === 'duplicate'; }).length;
-      var batch = {
-        id: batchId,
-        fileName: params.fileName || (' 批量导入批次.xlsx'),
-        status: failedCount && successCount ? 'partial' : (failedCount ? 'failed' : 'success'),
-        totalRows: files.length,
-        successRows: successCount,
-        failedRows: failedCount,
-        errors: fileResults.filter(function (r) { return r.error || r.errorCode; }).map(function (r) {
-          return { fileName: r.fileName, code: r.errorCode || 'DUPLICATE', message: ' ' + r.status };
-        }),
-        testRecordIds: fileResults.map(function (r) { return r.testRecordId; }).filter(Boolean),
-        fileResults: fileResults,
-        createdAt: nowIso()
-      };
-      state.importBatches.push(batch);
-      return { batchId: batchId, fileResults: fileResults };
-    });
-  }
-
-  /** 模拟 Excel 导入失败 */
-  function simulateExcelImportFailure(params) {
-    params = params || {};
-    return commit(function (state) {
-      var batchId = bumpIds(state, 'importBatches', 'batch');
-      var testRecordId = params.testRecordId;
-      var record = testRecordId ? findTestRecord(state, testRecordId) : null;
-
-      if (!record && testRecordId) {
-        throw new Error('testRecord not found: ' + testRecordId);
-      }
-
-      if (record) {
-        record.importBatchId = batchId;
-        if (record.status !== 'pending_result') {
-          record.status = 'import_failed';
-        }
-        record.updatedAt = nowIso();
-        testRecordId = record.id;
-      } else {
-        testRecordId = null;
-      }
-
-      var errorCode = params.errorCode || 'MISSING_COLUMN';
-      var batch = {
-        id: batchId,
-        fileName: params.fileName || (' 模拟导入失败.xlsx'),
-        status: 'failed',
-        totalRows: params.totalRows || 5,
-        successRows: 0,
-        failedRows: params.totalRows || 5,
-        errors: [
-          {
-            row: params.errorRow || 2,
-            column: params.errorColumn || '放线菌门',
-            code: errorCode,
-            message: ' 导入失败: ' + errorCode
-          }
-        ],
-        testRecordIds: testRecordId ? [testRecordId] : [],
-        createdAt: nowIso()
-      };
-      state.importBatches.push(batch);
-
-      return { batchId: batchId, testRecordId: testRecordId, errorCode: errorCode };
-    });
-  }
-
-  /** 生成报告（draft） */
-  function generateReport(params) {
-    params = params || {};
-    if (!params.testRecordId) throw new Error('testRecordId is required');
-    return commit(function (state) {
-      var tr = findTestRecord(state, params.testRecordId);
-      if (!tr) throw new Error('testRecord not found: ' + params.testRecordId);
-
-      var reportId = bumpIds(state, 'reports', 'report');
-      var reportNumber = params.reportNumber || (' RPT-' + reportId.replace('report-', ''));
-      var report = {
-        id: reportId,
-        reportNumber: reportNumber,
-        externalReportNumber: tr.externalReportNumber || null,
-        sampleNumber: tr.sampleNumber || null,
-        sourceOrgId: tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-        testRecordId: tr.id,
-        userId: tr.userId,
-        petId: tr.petId,
-        status: 'draft',
-        workflowStatus: tr.petId ? 'incomplete' : 'unassigned',
-        ownershipStatus: tr.userId ? 'bound' : (tr.petId ? 'pending_claim' : 'unassigned'),
-        todoFlags: [],
-        currentVersion: 1,
-        workingVersion: 1,
-        publishedVersion: null,
-        correctionDraftActive: false,
-        versions: [
-          {
-            version: 1,
-            status: 'draft',
-            healthLevel: params.healthLevel || null,
-            healthScore: params.healthScore || null,
-            summary: params.summary || (' 草稿报告'),
-            createdAt: nowIso(),
-            publishedAt: null
-          }
-        ],
-        createdAt: nowIso(),
-        updatedAt: nowIso()
-      };
-      state.reports.push(report);
-
-      state.indicators.forEach(function (ind) {
-        if (ind.testRecordId === tr.id && ind.isCurrent) {
-          ind.reportId = reportId;
-        }
-      });
-
-      syncReportWorkflow(report, tr);
-      return report;
-    });
-  }
-
-  /** 提交审核 */
-  function submitReport(reportId) {
+  function setReportStatusPublic(reportId, nextStatus) {
     return commit(function (state) {
       var report = findReport(state, reportId);
       if (!report) throw new Error('report not found: ' + reportId);
-      report.status = 'pending_review';
-      report.workflowStatus = 'pending_review';
+      setReportStatus(report, nextStatus);
       report.updatedAt = nowIso();
-      var ver = report.versions[report.versions.length - 1];
-      ver.status = 'pending_review';
-
-      var tr = findTestRecord(state, report.testRecordId);
-      if (tr) {
-        tr.status = 'pending_review';
-        tr.updatedAt = nowIso();
-      }
-      syncReportWorkflow(report, tr);
       return report;
     });
   }
 
-  /** 驳回报告 */
-  function rejectReport(reportId, reason) {
-    return commit(function (state) {
-      var report = findReport(state, reportId);
-      if (!report) throw new Error('report not found: ' + reportId);
-      report.status = 'rejected';
-      report.workflowStatus = 'incomplete';
-      report.updatedAt = nowIso();
-      if (!report.todoFlags) report.todoFlags = [];
-      if (report.todoFlags.indexOf('rejected') < 0) report.todoFlags.push('rejected');
-      var ver = report.versions[report.versions.length - 1];
-      ver.status = 'rejected';
-      ver.rejectReason = reason || (' 审核驳回');
+  function getReport(id) {
+    var r = findReport(loadState(), id);
+    return r ? clone(r) : null;
+  }
+  function listReports() { return clone(loadState().reports || []); }
 
-      var tr = findTestRecord(state, report.testRecordId);
-      if (tr) {
-        tr.status = 'import_failed';
-        tr.updatedAt = nowIso();
-      }
-      syncReportWorkflow(report, tr);
-      return report;
-    });
+  function getEffectiveResults(reportId) {
+    var state = loadState();
+    var report = findReport(state, reportId);
+    if (!report) return [];
+    return getDecoratedCurrentResults(state, report);
   }
 
-  /** 批准报告 */
-  function approveReport(reportId) {
-    return commit(function (state) {
-      var report = findReport(state, reportId);
-      if (!report) throw new Error('report not found: ' + reportId);
-      report.status = 'approved';
-      report.workflowStatus = 'pending_review';
-      report.updatedAt = nowIso();
-      var ver = report.versions[report.versions.length - 1];
-      ver.status = 'approved';
-      syncReportWorkflow(report, findTestRecord(state, report.testRecordId));
-      return report;
-    });
+  function getPhylumUnits(reportId) {
+    return clone(listPhylumUnits(loadState(), reportId));
   }
 
-  /** 发布报告（允许已发布待认领） */
+  function decorateResultPublic(result, reportId) {
+    var state = loadState();
+    var report = reportId ? findReport(state, reportId) : (result && result.reportId ? findReport(state, result.reportId) : null);
+    var species = report ? getReportSpecies(state, report) : null;
+    return decorateResult(state, result, species);
+  }
+
+  function runReportAnalysis(reportId, options) {
+    return commit(function (state) { return runReportAnalysisInternal(state, reportId, options); });
+  }
+  function savePhylumUnitDraft(reportId, phylumKey, patch) {
+    return commit(function (state) { return savePhylumUnitDraftInternal(state, reportId, phylumKey, patch); });
+  }
+  function confirmPhylumUnit(reportId, phylumKey, options) {
+    return commit(function (state) { return confirmPhylumUnitInternal(state, reportId, phylumKey, options); });
+  }
+  function excludeHit(reportId, phylumKey, hitId, params) {
+    return commit(function (state) { return excludeHitInternal(state, reportId, phylumKey, hitId, params); });
+  }
+  function savePhylumUnitProducts(reportId, phylumKey, params) {
+    return commit(function (state) { return savePhylumUnitProductsInternal(state, reportId, phylumKey, params); });
+  }
+  function modifyResultValue(params) {
+    return commit(function (state) { return modifyResultValueInternal(state, params); });
+  }
+  function supplementResult(params) {
+    return commit(function (state) { return supplementResultInternal(state, params); });
+  }
+  function submitReport(reportId, options) {
+    return commit(function (state) { return submitReportInternal(state, reportId, options); });
+  }
+  function withdrawReport(reportId, options) {
+    return commit(function (state) { return withdrawReportInternal(state, reportId, options); });
+  }
+  function rejectReport(reportId, reason, options) {
+    return commit(function (state) { return rejectReportInternal(state, reportId, reason, options); });
+  }
   function publishReport(reportId, options) {
-    options = normalizeActorOptions(options);
-    var actor = options.actor || (' 审核员');
-    return commit(function (state) {
-      var report = findReport(state, reportId);
-      if (!report) throw new Error('report not found: ' + reportId);
-      var tr = findTestRecord(state, report.testRecordId);
-      var publishVersion = report.correctionDraftActive ? report.workingVersion : report.currentVersion;
-      var ver = report.versions.find(function (v) { return v.version === publishVersion; }) ||
-        report.versions[report.versions.length - 1];
-
-      report.status = report.correctionDraftActive || (report.publishedVersion && report.publishedVersion < publishVersion)
-        ? 'corrected'
-        : 'published';
-      report.workflowStatus = 'published';
-      report.publishedVersion = publishVersion;
-      report.workingVersion = publishVersion;
-      report.currentVersion = publishVersion;
-      report.correctionDraftActive = false;
-      report.updatedAt = nowIso();
-      ver.status = report.status === 'corrected' ? 'corrected' : 'published';
-      ver.publishedAt = nowIso();
-      ver.contentSnapshot = buildContentSnapshot(state, report, publishVersion, actor);
-
-      if (tr) {
-        tr.status = 'published';
-        tr.updatedAt = nowIso();
-      }
-      syncReportWorkflow(report, tr, state);
-      appendOperationRecord(state, {
-        type: 'publish',
-        reportId: report.id,
-        version: publishVersion,
-        ownershipStatus: report.ownershipStatus,
-        actor: actor
-      });
-      return report;
-    });
+    return commit(function (state) { return publishReportInternal(state, reportId, options); });
   }
-
-  /** 指标更正 — 生成新版本，不覆盖原始 */
-  function correctIndicator(params) {
-    params = params || {};
-    if (!params.indicatorId && !params.testRecordId) {
-      throw new Error('indicatorId or testRecordId is required');
-    }
-    return commit(function (state) {
-      var original = null;
-      if (params.indicatorId) {
-        original = state.indicators.find(function (i) { return i.id === params.indicatorId; });
-      } else {
-        original = state.indicators.find(function (i) {
-          return i.testRecordId === params.testRecordId && i.key === params.key && i.isCurrent;
-        });
-      }
-      if (!original) throw new Error('indicator not found');
-
-      original.isCurrent = false;
-      var newVersion = original.version + 1;
-      var corrected = {
-        id: uid('ind'),
-        testRecordId: original.testRecordId,
-        reportId: original.reportId,
-        key: original.key,
-        value: params.value !== undefined ? params.value : original.value,
-        unit: original.unit,
-        dataStatus: params.dataStatus || 'PRESENT',
-        version: newVersion,
-        isCurrent: true,
-        correctedFrom: original.id,
-        createdAt: nowIso()
-      };
-      state.indicators.push(corrected);
-
-      if (original.reportId) {
-        var report = findReport(state, original.reportId);
-        if (report) {
-          if (!report.correctionDraftActive) {
-            createCorrectionDraftInternal(state, report, {
-              summary: params.correctionNote || (' 指标「' + original.key + '」已更正'),
-              correctionNote: params.correctionNote || (' 原始指标更正')
-            });
-          } else {
-            var workingVer = report.versions.find(function (v) { return v.version === report.workingVersion; });
-            if (workingVer) {
-              workingVer.summary = params.correctionNote || workingVer.summary;
-              workingVer.correctionNote = params.correctionNote || workingVer.correctionNote;
-            }
-          }
-          report.status = 'corrected';
-          report.updatedAt = nowIso();
-          syncReportWorkflow(report, findTestRecord(state, report.testRecordId));
-        }
-      }
-
-      return corrected;
-    });
-  }
-
-  function createCorrectionDraftInternal(state, report, params) {
-    params = params || {};
-    var baseVersion = report.publishedVersion || report.currentVersion || 1;
-    var base = report.versions.find(function (v) { return v.version === baseVersion; }) ||
-      report.versions[report.versions.length - 1];
-    var newReportVersion = (report.workingVersion || report.currentVersion || 1) + 1;
-    report.workingVersion = newReportVersion;
-    report.currentVersion = newReportVersion;
-    report.correctionDraftActive = true;
-    report.versions.push({
-      version: newReportVersion,
-      status: 'draft',
-      healthLevel: base.healthLevel,
-      healthScore: base.healthScore,
-      summary: params.summary || (' 更正草稿'),
-      createdAt: nowIso(),
-      publishedAt: null,
-      correctionNote: params.correctionNote || (' 更正草稿')
-    });
-    syncReportWorkflow(report, findTestRecord(state, report.testRecordId));
-    return report;
-  }
-
-  /** 创建更正草稿（用户继续看旧发布版本） */
   function createCorrectionDraft(reportId, params) {
-    params = params || {};
     return commit(function (state) {
       var report = findReport(state, reportId);
       if (!report) throw new Error('report not found: ' + reportId);
-      if (report.workflowStatus !== 'published' && report.status !== 'published' && report.status !== 'corrected') {
-        throw new Error('only published reports can create correction draft');
-      }
-      if (report.correctionDraftActive) return report;
       createCorrectionDraftInternal(state, report, params);
       appendOperationRecord(state, { type: 'correction_draft', reportId: report.id, version: report.workingVersion });
       return report;
     });
   }
-
-  /** 发布更正版本（替换当前发布版本） */
-  function publishCorrection(reportId, options) {
-    return publishReport(reportId, options);
-  }
-
-  /** 作废报告 */
   function voidReport(reportId, reason) {
-    return commit(function (state) {
-      var report = findReport(state, reportId);
-      if (!report) throw new Error('report not found: ' + reportId);
-      report.status = 'voided';
-      report.workflowStatus = 'voided';
-      report.voidedAt = nowIso();
-      report.voidReason = reason || (' 报告作废');
-      report.updatedAt = nowIso();
-      var tr = findTestRecord(state, report.testRecordId);
-      if (tr) {
-        tr.status = 'voided';
-        tr.updatedAt = nowIso();
-      }
-      syncReportWorkflow(report, tr);
-      appendOperationRecord(state, {
-        type: 'void',
-        reportId: report.id,
-        reason: report.voidReason
-      });
-      return report;
-    });
+    return commit(function (state) { return voidReportInternal(state, reportId, reason); });
   }
-
-  /** 运营归档：报告关联宠物，可选关联平台用户 */
   function assignReportOwnership(params) {
-    params = params || {};
-    if (!params.reportId && !params.testRecordId) {
-      throw new Error('reportId or testRecordId is required');
-    }
-    return commit(function (state) {
-      var report = params.reportId ? findReport(state, params.reportId) : null;
-      var tr = params.testRecordId
-        ? findTestRecord(state, params.testRecordId)
-        : findTestRecord(state, report.testRecordId);
-      if (!report && tr) report = findReportByTestRecord(state, tr.id);
-      if (!tr && report) tr = findTestRecord(state, report.testRecordId);
-      if (!tr) throw new Error('test record not found');
-
-      var pet = params.petId ? findPet(state, params.petId) : null;
-      if (!pet) throw new Error('pet not found: ' + params.petId);
-
-      var userId = params.userId || null;
-      if (userId && !findUser(state, userId)) throw new Error('user not found: ' + userId);
-
-      tr.petId = pet.id;
-      tr.storeId = params.storeId || pet.storeId || tr.storeId;
-      if (userId && userId !== pet.userId) {
-        if (!state.petUserAssociationChanges) state.petUserAssociationChanges = [];
-        state.petUserAssociationChanges.push({
-          id: bumpIds(state, 'petUserAssociationChanges', 'petuser'),
-          petId: pet.id,
-          fromUserId: pet.userId || null,
-          toUserId: userId,
-          actor: params.actor || '运营专员',
-          reason: params.reason || '报告归档时关联用户',
-          createdAt: nowIso()
-        });
-        pet.userId = userId;
-        pet.claimStatus = 'bound';
-      } else if (userId) {
-        pet.userId = userId;
-        pet.claimStatus = 'bound';
-      }
-      tr.userId = pet.userId || null;
-      tr.claimStatus = pet.userId ? 'bound' : 'unassigned';
-      if (tr.status === 'unassigned' || tr.status === 'pending_claim') {
-        tr.status = 'pending_review';
-      }
-      tr.updatedAt = nowIso();
-
-      if (!report) {
-        report = generateReportInternal(state, tr, params);
-      } else {
-        report.petId = pet.id;
-        report.userId = pet.userId || null;
-        report.ownershipStatus = pet.userId ? 'bound' : 'unassigned';
-        report.workflowStatus = pet.userId ? 'incomplete' : 'unassigned';
-        report.updatedAt = nowIso();
-      }
-      syncReportWorkflow(report, tr);
-      return { report: report, testRecord: tr, pet: pet };
+    return commit(function (state) { return assignReportOwnershipInternal(state, params); });
+  }
+  function saveAnalysisRule(rule) {
+    return commit(function (state) { return saveAnalysisRuleInternal(state, rule); });
+  }
+  function createRuleRevision(ruleId) {
+    return commit(function (state) { return createRuleRevisionInternal(state, ruleId); });
+  }
+  function duplicateAnalysisRule(ruleId) {
+    return commit(function (state) { return duplicateAnalysisRuleInternal(state, ruleId); });
+  }
+  function activateAnalysisRule(ruleId) {
+    return commit(function (state) { return setRuleActiveInternal(state, ruleId, true); });
+  }
+  function deactivateAnalysisRule(ruleId) {
+    return commit(function (state) { return setRuleActiveInternal(state, ruleId, false); });
+  }
+  function deleteAnalysisRule(ruleId) {
+    return commit(function (state) { return deleteAnalysisRuleInternal(state, ruleId); });
+  }
+  function validateAnalysisRule(rule) {
+    return Engine.validateRule(rule, taxaByKeyMap(loadState()));
+  }
+  function listTaxaForRuleTarget(level) {
+    var taxa = (loadState().professionalCatalog && loadState().professionalCatalog.microbiotaTaxa) || [];
+    return clone(taxa.filter(function (t) { return t.level === level; }));
+  }
+  function previewRuleEvaluation(reportId, options) {
+    options = options || {};
+    var state = loadState();
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    var results = getDecoratedCurrentResults(state, report);
+    var rules = (state.analysisRuleCatalog || []).filter(function (r) {
+      if (options.ruleIds && options.ruleIds.length && options.ruleIds.indexOf(r.id) < 0) return false;
+      if (options.includeDrafts) return r.status === 'active' || r.status === 'draft';
+      return r.status === 'active';
+    });
+    var taxa = (state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || [];
+    return Engine.evaluate({
+      rules: rules,
+      results: results,
+      species: getReportSpecies(state, report),
+      taxa: taxa
     });
   }
+  function describeCondition(cond, rule) {
+    return Engine.describeCondition(cond, rule);
+  }
 
-  function generateReportInternal(state, tr, params) {
-    params = params || {};
-    var reportId = bumpIds(state, 'reports', 'report');
-    var report = {
-      id: reportId,
-      reportNumber: params.reportNumber || (' RPT-' + reportId.replace('report-', '')),
-      externalReportNumber: tr.externalReportNumber,
-      sampleNumber: tr.sampleNumber,
-      sourceOrgId: tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-      testRecordId: tr.id,
-      userId: tr.userId,
-      petId: tr.petId,
-      status: 'draft',
-      workflowStatus: tr.userId ? 'incomplete' : 'unassigned',
-      ownershipStatus: tr.userId ? 'bound' : 'pending_claim',
-      todoFlags: [],
-      currentVersion: 1,
-      workingVersion: 1,
-      publishedVersion: null,
-      correctionDraftActive: false,
-      versions: [{
-        version: 1,
-        status: 'draft',
-        healthLevel: null,
-        healthScore: null,
-        summary: params.summary || (' 归属后草稿'),
-        createdAt: nowIso(),
-        publishedAt: null
-      }],
-      createdAt: nowIso(),
-      updatedAt: nowIso()
+  function getWorkflowStatus(reportOrId) {
+    var state = loadState();
+    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
+    return report ? report.status : null;
+  }
+  function getTodoFlags(reportOrId) {
+    var state = loadState();
+    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
+    return report ? clone(report.todoFlags || []) : [];
+  }
+  function getCorrectionDraftStage(reportOrId) {
+    var state = loadState();
+    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
+    return getCorrectionDraftStageFromReport(report);
+  }
+  function getPublishedVersionSnapshot(reportOrId) {
+    var state = loadState();
+    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
+    if (!report) return null;
+    return clone(getPublishedReportVersion(state, report.id));
+  }
+  function getWorkingVersionSnapshot(reportOrId) {
+    var state = loadState();
+    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
+    if (!report) return null;
+    return clone(getWorkingReportVersion(state, report.id));
+  }
+  function getLatestAnalysisRun(reportId) {
+    var run = getLatestAnalysisRunFromState(loadState(), reportId);
+    return run ? clone(run) : null;
+  }
+  function getUserReportStatus(reportOrId, userId) {
+    var state = loadState();
+    var report = typeof reportOrId === 'string' ? findReport(state, reportOrId) : reportOrId;
+    if (!report || !userId) return null;
+    var pet = findPet(state, report.petId);
+    var bound = report.userId === userId || (pet && pet.userId === userId);
+    if (!bound) return null;
+    if (report.status === 'voided') return null;
+    if (report.status === 'published') return 'published';
+    return null;
+  }
+  function getPetPublishedReports(petId) {
+    var state = loadState();
+    return (state.reports || []).filter(function (report) {
+      return report.petId === petId && report.status === 'published';
+    }).sort(function (a, b) {
+      return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+    }).map(function (r) { return clone(r); });
+  }
+  function getUserVisibleReports(userId) {
+    var state = loadState();
+    return state.reports.filter(function (report) {
+      return getUserReportStatus(report, userId) != null;
+    }).map(function (report) {
+      var publishedVersion = getPublishedReportVersion(state, report.id);
+      return {
+        report: clone(report),
+        userStatus: getUserReportStatus(report, userId),
+        publishedVersion: clone(publishedVersion),
+        contentSnapshot: publishedVersion && publishedVersion.contentSnapshot ? clone(publishedVersion.contentSnapshot) : null
+      };
+    });
+  }
+  function getUserPublishedReportProjection(userId, reportId) {
+    var state = loadState();
+    var report = findReport(state, reportId);
+    if (!report) return null;
+    var userStatus = getUserReportStatus(report, userId);
+    if (!userStatus) return null;
+    var publishedVersion = getPublishedReportVersion(state, reportId);
+    return {
+      report: clone(report),
+      publishedVersion: clone(publishedVersion),
+      contentSnapshot: publishedVersion && publishedVersion.contentSnapshot ? clone(publishedVersion.contentSnapshot) : null,
+      userStatus: userStatus
     };
-    state.reports.push(report);
-    return report;
   }
 
-  /** 运营创建宠物 */
-  function createOpsPet(params) {
-    params = params || {};
-    return commit(function (state) {
-      var petId = bumpIds(state, 'pets', 'pet');
-      var pet = {
-        id: petId,
-        userId: params.userId || null,
-        name: params.name || (' 运营建档宠物'),
-        breed: params.breed || '未知品种',
-        age: params.age != null ? params.age : null,
-        gender: params.gender || 'unknown',
-        species: params.species || 'dog',
-        storeId: params.storeId || null,
-        claimStatus: params.userId ? 'bound' : 'unassigned',
-        opsCreated: true,
-        createdAt: nowIso()
-      };
-      state.pets.push(pet);
-      return pet;
-    });
-  }
-
-  /** 生成领取凭证 */
-  function generateClaimCredential(params) {
-    params = params || {};
-    return commit(function (state) {
-      var report = params.reportId ? findReport(state, params.reportId) : null;
-      var tr = params.testRecordId
-        ? findTestRecord(state, params.testRecordId)
-        : (report ? findTestRecord(state, report.testRecordId) : null);
-      if (!tr) throw new Error('test record not found');
-      if (!tr.petId) throw new Error('pet must be archived before generating claim credential');
-
-      var code = params.code || ('CLAIM-' + Date.now().toString(36).toUpperCase());
-      var claim = {
-        id: bumpIds(state, 'claimCodes', 'claim'),
-        code: code,
-        storeId: params.storeId || tr.storeId,
-        petId: tr.petId,
-        testRecordId: tr.id,
-        status: 'pending',
-        expiresAt: params.expiresAt || '2099-12-31T23:59:59.000Z',
-        createdAt: nowIso()
-      };
-      state.claimCodes.push(claim);
-      if (report) {
-        report.ownershipStatus = 'pending_claim';
-        report.userId = null;
-        syncReportWorkflow(report, tr);
-      }
-      tr.claimStatus = 'pending_claim';
-      return claim;
-    });
-  }
-
-  /** 作废领取凭证 */
-  function voidClaimCredential(params) {
-    params = params || {};
-    return commit(function (state) {
-      var claim = state.claimCodes.find(function (c) {
-        if (params.id) return c.id === params.id;
-        if (params.code) return c.code === params.code;
-        return false;
-      });
-      if (!claim) throw new Error('claim credential not found');
-      claim.status = 'voided';
-      claim.voidedAt = nowIso();
-      claim.voidReason = params.reason || (' 手动作废');
-      return claim;
-    });
-  }
-
-  /** 归属纠错 */
-  function correctOwnership(params) {
-    params = params || {};
-    if (!params.reportId) throw new Error('reportId is required');
-    if (!params.userId || !params.petId) throw new Error('userId and petId are required');
-    return commit(function (state) {
-      var report = findReport(state, params.reportId);
-      if (!report) throw new Error('report not found: ' + params.reportId);
-      var tr = findTestRecord(state, report.testRecordId);
-      var correction = {
-        id: bumpIds(state, 'ownershipCorrections', 'owncorr'),
-        reportId: report.id,
-        fromUserId: report.userId,
-        toUserId: params.userId,
-        fromPetId: report.petId,
-        toPetId: params.petId,
-        actor: params.actor || (' 运营专员'),
-        reason: params.reason || (' 归属纠错'),
-        createdAt: nowIso()
-      };
-      if (!state.ownershipCorrections) state.ownershipCorrections = [];
-      state.ownershipCorrections.push(correction);
-
-      report.userId = params.userId;
-      report.petId = params.petId;
-      report.ownershipStatus = 'bound';
-      report.updatedAt = nowIso();
-      if (tr) {
-        tr.userId = params.userId;
-        tr.petId = params.petId;
-        tr.claimStatus = 'bound';
-        tr.updatedAt = nowIso();
-      }
-      syncReportWorkflow(report, tr);
-      appendOperationRecord(state, {
-        type: 'ownership_correction',
-        reportId: report.id,
-        correctionId: correction.id
-      });
-      return correction;
-    });
-  }
-
-  /** 认领码绑定 — 运营预建宠物，领取只绑定用户 */
-  function bindClaimCode(params) {
-    params = params || {};
-    if (!params.code) throw new Error('code is required');
-    if (!params.userId) throw new Error('userId is required');
-    return commit(function (state) {
-      var claim = state.claimCodes.find(function (c) {
-        return c.code === params.code && c.status === 'pending';
-      });
-      if (!claim) throw new Error('claim code not found or already used: ' + params.code);
-
-      var user = findUser(state, params.userId);
-      if (!user) throw new Error('user not found: ' + params.userId);
-
-      claim.status = 'used';
-      claim.usedAt = nowIso();
-      claim.usedByUserId = params.userId;
-
-      var petId = params.petId || claim.petId;
-      if (!petId && params.allowCreatePet) {
-        petId = bumpIds(state, 'pets', 'pet');
-        var newPet = {
-          id: petId,
-          userId: params.userId,
-          name: params.petName || (' 新认领宠物'),
-          breed: params.petBreed || '未知品种',
-          age: params.petAge || null,
-          gender: params.petGender || 'unknown',
-          species: params.species || 'dog',
-          storeId: claim.storeId,
-          claimStatus: 'claimed',
-          opsCreated: false,
-          createdAt: nowIso()
-        };
-        state.pets.push(newPet);
-        claim.petId = petId;
-      } else if (!petId) {
-        throw new Error('运营预建宠物不存在，无法认领');
-      } else {
-        var existingPet = findPet(state, petId);
-        if (!existingPet) throw new Error('pet not found: ' + petId);
-        existingPet.userId = params.userId;
-        existingPet.storeId = claim.storeId || existingPet.storeId;
-        existingPet.claimStatus = 'claimed';
-        claim.petId = petId;
-      }
-
-      if (claim.testRecordId) {
-        var tr = findTestRecord(state, claim.testRecordId);
-        if (tr) {
-          tr.petId = petId;
-          tr.userId = params.userId;
-          tr.storeId = claim.storeId;
-          tr.claimStatus = 'claimed';
-          if (tr.status === 'pending_claim' || tr.status === 'unassigned') {
-            tr.status = tr.status === 'unassigned' ? 'pending_review' : 'pending_review';
-          }
-          tr.updatedAt = nowIso();
-        }
-        state.reports.forEach(function (r) {
-          if (r.testRecordId === claim.testRecordId) {
-            r.userId = params.userId;
-            r.petId = petId;
-            r.ownershipStatus = 'bound';
-            r.updatedAt = nowIso();
-            syncReportWorkflow(r, tr);
-          }
-        });
-      }
-
-      return { claimCode: claim, petId: petId, userId: params.userId };
-    });
-  }
-
-  /** 审核更新报告摘要/评分 */
-  function updateReportContent(params) {
-    params = params || {};
-    if (!params.reportId) throw new Error('reportId is required');
-    var actor = params.actor || (' 审核员');
-    return commit(function (state) {
-      var report = findReport(state, params.reportId);
-      if (!report) throw new Error('report not found: ' + params.reportId);
-      var ver = report.versions[report.versions.length - 1];
-      if (params.summary != null) ver.summary = params.summary;
-      if (params.healthLevel != null) ver.healthLevel = params.healthLevel;
-      if (params.healthScore != null) ver.healthScore = params.healthScore;
-      report.updatedAt = nowIso();
-      report.contentUpdatedAt = nowIso();
-      report.contentUpdatedBy = actor;
-      return report;
-    });
-  }
-
-  /** 审核更新发现说明 */
-  function updateFinding(params) {
-    params = params || {};
-    if (!params.findingId) throw new Error('findingId is required');
-    var actor = params.actor || (' 审核员');
-    return commit(function (state) {
-      var finding = state.findings.find(function (f) { return f.id === params.findingId; });
-      if (!finding) throw new Error('finding not found: ' + params.findingId);
-      if (params.description != null) finding.description = params.description;
-      if (params.consumer != null) {
-        finding.consumer = params.consumer;
-        finding.description = params.consumer;
-      }
-      if (params.professional != null) finding.professional = params.professional;
-      if (params.conclusion != null) finding.conclusion = params.conclusion;
-      if (params.riskLevel != null) finding.riskLevel = params.riskLevel;
-      finding.updatedAt = nowIso();
-      finding.updatedBy = actor;
-      return finding;
-    });
-  }
-
-  function getProductListingStatus(product) {
-    if (!product) return 'recycled';
-    if (product.deleted || product.status === 'recycled') return 'recycled';
-    if (product.status) return product.status;
-    if (!product.available) return 'off_shelf';
-    var stock = product.stock != null ? product.stock : 1;
-    if (stock <= 0) return 'zero_stock';
-    return 'on_sale';
+  function resolveProductAvailability(productId, stateOverride) {
+    var state = stateOverride || loadState();
+    var product = findProduct(state, productId);
+    var status = getProductListingStatus(product);
+    return {
+      productId: productId || null,
+      product: product ? clone(product) : null,
+      status: status,
+      available: status === 'on_sale',
+      label: PRODUCT_STATUS_LABELS[status] || status
+    };
   }
 
   function normalizeRelatedProductIds(state, primaryProductId, relatedProductIds) {
@@ -3968,12 +2459,9 @@
     var page = Math.max(1, parseInt(options.page, 10) || 1);
     var pageSize = Math.max(1, parseInt(options.pageSize, 10) || 20);
     var includeProductIds = options.includeProductIds || [];
-
     var filtered = (state.products || []).filter(function (product) {
       var listingStatus = getProductListingStatus(product);
-      if (listingStatus === 'recycled' || product.deleted) {
-        return includeProductIds.indexOf(product.id) >= 0;
-      }
+      if (listingStatus === 'recycled' || product.deleted) return includeProductIds.indexOf(product.id) >= 0;
       if (categoryId && product.categoryId !== categoryId) return false;
       if (status && listingStatus !== status) return false;
       if (q) {
@@ -3984,151 +2472,324 @@
       }
       return true;
     });
-
     var total = filtered.length;
     var start = (page - 1) * pageSize;
     var items = filtered.slice(start, start + pageSize).map(function (product) {
       return {
-        id: product.id,
-        spuId: product.spuId || product.id,
-        name: product.name,
-        categoryId: product.categoryId,
-        status: getProductListingStatus(product),
-        stock: product.stock,
-        available: product.available
+        id: product.id, spuId: product.spuId || product.id, name: product.name,
+        categoryId: product.categoryId, status: getProductListingStatus(product),
+        stock: product.stock, available: product.available
       };
     });
-
-    return {
-      items: items,
-      total: total,
-      page: page,
-      pageSize: pageSize
-    };
+    return { items: items, total: total, page: page, pageSize: pageSize };
   }
 
-  /** 审核更新推荐映射 */
-  function updateRecommendation(params) {
-    params = params || {};
-    if (!params.recommendationId) throw new Error('recommendationId is required');
-    var actor = params.actor || (' 审核员');
-    return commit(function (state) {
-      var rec = state.recommendations.find(function (r) { return r.id === params.recommendationId; });
-      if (!rec) throw new Error('recommendation not found: ' + params.recommendationId);
-      if (params.label != null) rec.label = params.label;
-      if (params.reason != null) rec.reason = params.reason;
-      if (params.targetType != null) rec.targetType = params.targetType;
-      if (params.primaryProductId !== undefined) {
-        rec.primaryProductId = params.primaryProductId;
-        rec.productId = params.primaryProductId;
-      } else if (params.productId !== undefined) {
-        rec.productId = params.productId;
-        rec.primaryProductId = params.productId;
-      }
-      if (params.categoryId !== undefined) rec.categoryId = params.categoryId;
-      if (params.relatedProductIds !== undefined) rec.relatedProductIds = params.relatedProductIds;
+  function checkDuplicateImportInternal(state, params) {
+    var sourceOrgId = params.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
+    var externalNo = params.externalReportNumber || params.externalNumber;
+    var sampleNo = params.sampleNumber || params.sampleNo;
+    if (!externalNo && !sampleNo) return null;
+    var existing = state.testRecords.find(function (tr) {
+      if ((tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID) !== sourceOrgId) return false;
+      if (externalNo && tr.externalReportNumber === externalNo) return true;
+      if (sampleNo && tr.sampleNumber === sampleNo) return true;
+      return false;
+    });
+    if (!existing) return null;
+    return {
+      duplicate: true, existingTestRecordId: existing.id, sourceOrgId: sourceOrgId,
+      externalReportNumber: externalNo || null, sampleNumber: sampleNo || null
+    };
+  }
+  function checkDuplicateImport(params) {
+    return checkDuplicateImportInternal(loadState(), params || {});
+  }
 
-      var primaryProductId = rec.primaryProductId || rec.productId || null;
-      rec.relatedProductIds = normalizeRelatedProductIds(state, primaryProductId, rec.relatedProductIds || []);
-
-      var resolved = resolveRecommendationTarget({
-        targetType: rec.targetType,
-        primaryProductId: primaryProductId,
-        relatedProductIds: rec.relatedProductIds,
-        label: rec.label
-      }, state);
-      rec.resolvedType = resolved.resolvedType;
-      rec.resolvedProductId = resolved.resolvedProductId;
-      rec.availability = resolved.availability;
-      rec.relatedProductIds = resolved.relatedProductIds;
-      rec.candidateProductIds = resolved.candidateProductIds;
-      rec.updatedAt = nowIso();
-      rec.updatedBy = actor;
-      return rec;
+  function appendIndicatorsForTestRecord(state, testRecordId, indicators, source) {
+    source = source || {};
+    var rows = indicators || [
+      { key: 'Actinobacteria', value: 22.5, unit: '%', dataStatus: 'PRESENT' },
+      { key: 'Bacteroidetes', value: 33.1, unit: '%', dataStatus: 'PRESENT' },
+      { key: 'Firmicutes', value: 41.0, unit: '%', dataStatus: 'PRESENT' }
+    ];
+    var report = findReportByTestRecord(state, testRecordId);
+    rows.forEach(function (ind) {
+      state.indicators.push(makeResult(state, {
+        testRecordId: testRecordId,
+        reportId: report ? report.id : null,
+        key: ind.key,
+        sourceTemplateId: ind.sourceTemplateId || source.sourceTemplateId || source.templateId || DEFAULT_SOURCE_ORG_ID,
+        unit: ind.unit || '%',
+        dataStatus: ind.dataStatus || 'PRESENT',
+        value: ind.value,
+        importedRange: ind.importedRange || null,
+        labNotice: ind.labNotice || 'unmarked'
+      }));
     });
   }
 
-  /** 门店预绑定宠物 */
-  function preBindPetToStore(params) {
-    params = params || {};
-    if (!params.petId || !params.storeId) {
-      throw new Error('petId and storeId are required');
+  function updateTestRecordAfterImport(tr, file, batchId) {
+    tr.importBatchId = batchId;
+    tr.sourceOrgId = file.sourceOrgId || tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
+    if (file.externalReportNumber) tr.externalReportNumber = file.externalReportNumber;
+    if (file.sampleNumber || file.sampleNo) {
+      tr.sampleNumber = file.sampleNumber || file.sampleNo;
+      tr.label = String(file.sampleNumber || file.sampleNo).trim();
     }
+    if (tr.petId) {
+      tr.status = 'pending_review';
+      tr.claimStatus = tr.userId ? 'bound' : 'unassigned';
+    } else {
+      tr.status = 'unassigned';
+      tr.claimStatus = 'unassigned';
+    }
+    tr.updatedAt = nowIso();
+  }
+
+  function ensureReportForImport(state, tr, params) {
+    params = params || {};
+    var report = findReportByTestRecord(state, tr.id);
+    if (!report) report = generateReportInternal(state, tr, params);
+    else {
+      report.petId = tr.petId;
+      report.userId = tr.userId;
+      report.externalReportNumber = tr.externalReportNumber;
+      report.sampleNumber = tr.sampleNumber;
+      report.sourceOrgId = tr.sourceOrgId || report.sourceOrgId;
+      report.updatedAt = nowIso();
+      if (report.status === 'unassigned' && tr.petId) setReportStatus(report, 'incomplete');
+    }
+    state.indicators.forEach(function (ind) {
+      if (ind.testRecordId === tr.id && ind.isCurrent) ind.reportId = report.id;
+    });
+    syncReportDerived(state, report);
+    return report;
+  }
+
+  function registerTest(params) {
+    params = params || {};
     return commit(function (state) {
+      if (!params.petId) throw new Error('请选择已关联用户的宠物');
       var pet = findPet(state, params.petId);
-      if (!pet) throw new Error('pet not found: ' + params.petId);
-      var store = state.stores.find(function (s) { return s.id === params.storeId; });
-      if (!store) throw new Error('store not found: ' + params.storeId);
-      pet.storeId = params.storeId;
-      pet.claimStatus = 'pre_bound';
+      if (!pet) throw new Error('宠物不存在');
+      if (!pet.userId) throw new Error('该宠物尚未关联平台用户，请先在客户管理或宠物档案完成关联');
+      var sampleNumber = params.sampleNumber != null ? String(params.sampleNumber).trim() : '';
+      if (!sampleNumber) throw new Error('请填写样本编号');
+      if (!params.testDate) throw new Error('请选择送检日期');
+      if (!params.storeId && !params.sourceOrgId) throw new Error('请选择检测机构或来源');
+      var record = {
+        id: bumpIds(state, 'testRecords', 'tr'),
+        petId: pet.id, userId: pet.userId, storeId: params.storeId || pet.storeId || null,
+        sourceOrgId: params.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
+        externalReportNumber: params.externalReportNumber || null,
+        sampleNumber: sampleNumber, sampleType: params.sampleType || 'feces',
+        testDate: params.testDate, status: 'pending_result', importBatchId: null,
+        claimStatus: 'bound', label: sampleNumber, createdAt: nowIso(), updatedAt: nowIso()
+      };
+      state.testRecords.push(record);
+      return record;
+    });
+  }
+
+  function simulateExcelImportSuccess(params) {
+    params = params || {};
+    return commit(function (state) {
+      var dup = checkDuplicateImportInternal(state, params);
+      if (dup) throw new Error('duplicate import blocked: ' + dup.existingTestRecordId);
+      var batchId = bumpIds(state, 'importBatches', 'batch');
+      var testRecordId = params.testRecordId;
+      var record = testRecordId ? findTestRecord(state, testRecordId) : null;
+      var hasPartial = (params.indicators || []).some(function (ind) {
+        return ind.dataStatus && ind.dataStatus !== 'PRESENT';
+      });
+      var batchStatus = hasPartial ? 'partial' : 'success';
+      if (!record) {
+        var newTrId = bumpIds(state, 'testRecords', 'tr');
+        record = {
+          id: newTrId, petId: params.petId || null, userId: params.userId || null,
+          storeId: params.storeId || null, sourceOrgId: params.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
+          externalReportNumber: params.externalReportNumber || null,
+          sampleNumber: params.sampleNumber || params.sampleNo || null, sampleType: 'feces',
+          testDate: params.testDate || new Date().toISOString().slice(0, 10),
+          status: 'pending_result', importBatchId: batchId,
+          claimStatus: params.petId && params.userId ? 'bound' : 'unassigned',
+          label: params.sampleNumber || params.sampleNo || '导入成功',
+          createdAt: nowIso(), updatedAt: nowIso()
+        };
+        state.testRecords.push(record);
+        testRecordId = newTrId;
+      }
+      updateTestRecordAfterImport(record, params, batchId);
+      var rows = params.rows || 10;
+      state.importBatches.push({
+        id: batchId, fileName: params.fileName || '模拟导入成功.xlsx', status: batchStatus,
+        totalRows: rows, successRows: batchStatus === 'partial' ? Math.max(1, rows - 1) : rows,
+        failedRows: batchStatus === 'partial' ? 1 : 0,
+        errors: batchStatus === 'partial' ? [{ row: rows, column: '局部字段', code: 'PARTIAL', message: '局部导入异常' }] : [],
+        testRecordIds: [testRecordId], createdAt: nowIso()
+      });
+      appendIndicatorsForTestRecord(state, testRecordId, params.indicators, params);
+      ensureReportForImport(state, record, params);
+      return { batchId: batchId, testRecordId: testRecordId, batchStatus: batchStatus };
+    });
+  }
+
+  function simulateBatchImport(params) {
+    params = params || {};
+    var files = params.files || [];
+    var directedTestRecordId = params.testRecordId || null;
+    return commit(function (state) {
+      var batchId = bumpIds(state, 'importBatches', 'batch');
+      var fileResults = [];
+      var directedRecord = directedTestRecordId ? findTestRecord(state, directedTestRecordId) : null;
+      if (directedTestRecordId && !directedRecord) throw new Error('目标送检记录不存在: ' + directedTestRecordId);
+      files.forEach(function (file) {
+        file = file || {};
+        var scenario = file.scenario || 'success';
+        var fileName = file.fileName || '批量文件.xlsx';
+        if (scenario === 'duplicate' || scenario === 'duplicate_force') {
+          fileResults.push({ fileName: fileName, status: 'duplicate', error: { duplicate: true }, testRecordId: null });
+          return;
+        }
+        if (scenario === 'failure') {
+          fileResults.push({ fileName: fileName, status: 'failed', testRecordId: directedRecord ? directedRecord.id : null, errorCode: file.errorCode || 'MISSING_COLUMN' });
+          return;
+        }
+        var partial = scenario === 'partial';
+        var tr = directedRecord;
+        var trId = tr ? tr.id : bumpIds(state, 'testRecords', 'tr');
+        if (!tr) {
+          tr = {
+            id: trId, petId: file.petId || null, userId: file.userId || null, storeId: file.storeId || null,
+            sourceOrgId: file.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
+            externalReportNumber: file.externalReportNumber || ('EXT-BATCH-' + trId),
+            sampleNumber: file.sampleNumber || ('SAMPLE-BATCH-' + trId), sampleType: 'feces',
+            testDate: file.testDate || new Date().toISOString().slice(0, 10),
+            status: 'pending_result', importBatchId: batchId,
+            claimStatus: file.petId || file.userId ? 'bound' : 'unassigned',
+            label: file.sampleNumber || ('SAMPLE-BATCH-' + trId), createdAt: nowIso(), updatedAt: nowIso()
+          };
+          state.testRecords.push(tr);
+        }
+        updateTestRecordAfterImport(tr, file, batchId);
+        appendIndicatorsForTestRecord(state, trId, file.indicators, file);
+        ensureReportForImport(state, tr, file);
+        fileResults.push({ fileName: fileName, status: partial ? 'partial' : 'success', testRecordId: trId });
+        if (directedRecord) directedRecord = null;
+      });
+      var successCount = fileResults.filter(function (r) { return r.status === 'success' || r.status === 'partial'; }).length;
+      var failedCount = fileResults.filter(function (r) { return r.status === 'failed' || r.status === 'duplicate'; }).length;
+      state.importBatches.push({
+        id: batchId, fileName: params.fileName || '批量导入批次.xlsx',
+        status: failedCount && successCount ? 'partial' : (failedCount ? 'failed' : 'success'),
+        totalRows: files.length, successRows: successCount, failedRows: failedCount,
+        errors: [], testRecordIds: fileResults.map(function (r) { return r.testRecordId; }).filter(Boolean),
+        fileResults: fileResults, createdAt: nowIso()
+      });
+      return { batchId: batchId, fileResults: fileResults };
+    });
+  }
+
+  function simulateExcelImportFailure(params) {
+    params = params || {};
+    return commit(function (state) {
+      var batchId = bumpIds(state, 'importBatches', 'batch');
+      var testRecordId = params.testRecordId;
+      var record = testRecordId ? findTestRecord(state, testRecordId) : null;
+      if (!record && testRecordId) throw new Error('testRecord not found: ' + testRecordId);
+      if (record) {
+        record.importBatchId = batchId;
+        if (record.status !== 'pending_result') record.status = 'import_failed';
+        record.updatedAt = nowIso();
+        testRecordId = record.id;
+      } else testRecordId = null;
+      var errorCode = params.errorCode || 'MISSING_COLUMN';
+      state.importBatches.push({
+        id: batchId, fileName: params.fileName || '模拟导入失败.xlsx', status: 'failed',
+        totalRows: params.totalRows || 5, successRows: 0, failedRows: params.totalRows || 5,
+        errors: [{ row: params.errorRow || 2, column: params.errorColumn || 'Actinobacteria', code: errorCode, message: '导入失败: ' + errorCode }],
+        testRecordIds: testRecordId ? [testRecordId] : [], createdAt: nowIso()
+      });
+      return { batchId: batchId, testRecordId: testRecordId, errorCode: errorCode };
+    });
+  }
+
+  function generateReport(params) {
+    params = params || {};
+    if (!params.testRecordId) throw new Error('testRecordId is required');
+    return commit(function (state) {
+      var tr = findTestRecord(state, params.testRecordId);
+      if (!tr) throw new Error('testRecord not found: ' + params.testRecordId);
+      return generateReportInternal(state, tr, params);
+    });
+  }
+
+  function createOpsPet(params) {
+    params = params || {};
+    return commit(function (state) {
+      var pet = {
+        id: bumpIds(state, 'pets', 'pet'), userId: params.userId || null,
+        name: params.name || '运营建档宠物', breed: params.breed || '未知品种',
+        age: params.age != null ? params.age : null, gender: params.gender || 'unknown',
+        species: params.species || 'dog', storeId: params.storeId || null,
+        claimStatus: params.userId ? 'bound' : 'unassigned', opsCreated: true, createdAt: nowIso()
+      };
+      state.pets.push(pet);
       return pet;
     });
   }
 
-  /**
-   * 解析推荐目标：基于手动 primaryProductId + relatedProductIds
-   * @param {{ targetType?: string, primaryProductId?: string, productId?: string, relatedProductIds?: string[], label?: string }} params
-   * @param {object} [stateOverride]
-   */
-  function resolveRecommendationTarget(params, stateOverride) {
+  function correctOwnership(params) {
     params = params || {};
-    var state = stateOverride || loadState();
-    var targetType = params.targetType || 'PRODUCT';
-    var primaryProductId = params.primaryProductId || params.productId || null;
-    var relatedProductIds = normalizeRelatedProductIds(state, primaryProductId, params.relatedProductIds || []);
+    if (!params.reportId) throw new Error('reportId is required');
+    if (!params.userId || !params.petId) throw new Error('userId and petId are required');
+    return commit(function (state) {
+      var report = findReport(state, params.reportId);
+      if (!report) throw new Error('report not found: ' + params.reportId);
+      var tr = findTestRecord(state, report.testRecordId);
+      var correction = {
+        id: bumpIds(state, 'ownershipCorrections', 'owncorr'),
+        reportId: report.id, fromUserId: report.userId, toUserId: params.userId,
+        fromPetId: report.petId, toPetId: params.petId,
+        actor: params.actor || '运营专员', reason: params.reason || '归属纠错', createdAt: nowIso()
+      };
+      state.ownershipCorrections.push(correction);
+      report.userId = params.userId;
+      report.petId = params.petId;
+      report.updatedAt = nowIso();
+      if (tr) {
+        tr.userId = params.userId;
+        tr.petId = params.petId;
+        tr.claimStatus = 'bound';
+        tr.updatedAt = nowIso();
+      }
+      syncReportDerived(state, report);
+      appendOperationRecord(state, { type: 'ownership_correction', reportId: report.id, correctionId: correction.id });
+      return correction;
+    });
+  }
 
-    var result = {
-      requestedType: targetType,
-      requestedProductId: primaryProductId,
-      primaryProductId: primaryProductId,
-      relatedProductIds: relatedProductIds.slice(),
-      resolvedType: 'NONE',
-      resolvedProductId: null,
-      availability: 'NO_CANDIDATES',
-      candidateProductIds: relatedProductIds.slice(),
-      label: params.label || ' 无推荐'
-    };
-
-    if (targetType !== 'PRODUCT' || !primaryProductId) {
-      return result;
-    }
-
-    var product = findProduct(state, primaryProductId);
-    if (!product) {
-      result.availability = 'UNAVAILABLE';
-      return result;
-    }
-
-    result.resolvedType = 'PRODUCT';
-    result.resolvedProductId = primaryProductId;
-
-    if (!product.available) {
-      result.availability = 'UNAVAILABLE';
-      result.label = params.label || (' 推荐产品: ' + product.name + '（不可用）');
-      return result;
-    }
-
-    var stock = product.stock != null ? product.stock : 1;
-    if (stock <= 0) {
-      result.availability = 'ZERO_STOCK';
-      result.label = params.label || (' 推荐产品: ' + product.name + '（零库存）');
-      return result;
-    }
-
-    result.availability = 'AVAILABLE';
-    result.label = params.label || (' 推荐产品: ' + product.name);
-    return result;
+  function syncPetLinkedEntities(state, petId, userId) {
+    (state.reports || []).forEach(function (report) {
+      if (report.petId !== petId) return;
+      report.userId = userId || null;
+      report.updatedAt = nowIso();
+      syncReportDerived(state, report);
+    });
+    (state.testRecords || []).forEach(function (tr) {
+      if (tr.petId !== petId) return;
+      tr.userId = userId || null;
+      tr.claimStatus = userId ? 'bound' : 'unassigned';
+      tr.updatedAt = nowIso();
+    });
   }
 
   function createPlatformUser(params) {
     params = params || {};
     return commit(function (state) {
       var user = {
-        id: bumpIds(state, 'users', 'user'),
-        name: params.name || (' 新用户'),
-        phone: params.phone,
-        address: params.address || null,
-        createdAt: nowIso()
+        id: bumpIds(state, 'users', 'user'), name: params.name || '新用户',
+        phone: params.phone, address: params.address || null, createdAt: nowIso()
       };
       state.users.push(user);
       return user;
@@ -4160,18 +2821,11 @@
       if (params.birthDate != null) pet.birthDate = params.birthDate;
       if (params.storeId !== undefined) pet.storeId = params.storeId;
       if (params.userId !== undefined && params.userId !== pet.userId) {
-        if (!params.reason || !String(params.reason).trim()) {
-          throw new Error('变更关联用户时必须填写原因');
-        }
-        if (!state.petUserAssociationChanges) state.petUserAssociationChanges = [];
+        if (!params.reason || !String(params.reason).trim()) throw new Error('变更关联用户时必须填写原因');
         state.petUserAssociationChanges.push({
           id: bumpIds(state, 'petUserAssociationChanges', 'petuser'),
-          petId: petId,
-          fromUserId: pet.userId || null,
-          toUserId: params.userId || null,
-          actor: params.actor || '运营专员',
-          reason: String(params.reason).trim(),
-          createdAt: nowIso()
+          petId: petId, fromUserId: pet.userId || null, toUserId: params.userId || null,
+          actor: params.actor || '运营专员', reason: String(params.reason).trim(), createdAt: nowIso()
         });
         pet.userId = params.userId || null;
         pet.claimStatus = pet.userId ? 'bound' : 'unassigned';
@@ -4193,22 +2847,17 @@
     patch = patch || {};
     return updateProfessionalCatalog(function (catalog) {
       if (!catalog.microbiotaTaxa) catalog.microbiotaTaxa = [];
-      var taxon = catalog.microbiotaTaxa.find(function (item) {
-        return item.key === taxonKey;
-      });
-      if (!taxon) throw new Error('taxon not found: ' + taxonKey);
-      if (patch.latinName !== undefined) taxon.latinName = patch.latinName;
-      if (patch.value !== undefined) taxon.value = patch.value;
-      if (patch.edu !== undefined) {
-        taxon.edu = taxonEduForLevel(taxon, Object.assign({}, taxon.edu || {}, patch.edu || {}));
-      }
-      return taxon;
+      var item = catalog.microbiotaTaxa.find(function (t) { return t.key === taxonKey; });
+      if (!item) throw new Error('taxon not found: ' + taxonKey);
+      if (patch.latinName !== undefined) item.latinName = patch.latinName;
+      if (patch.value !== undefined) item.value = patch.value;
+      if (patch.edu !== undefined) item.edu = taxonEduForLevel(item, Object.assign({}, item.edu || {}, patch.edu || {}));
+      return item;
     });
   }
 
   function getMicrobiotaPresentation() {
-    var state = loadState();
-    var catalog = state.professionalCatalog || defaultCatalog();
+    var catalog = loadState().professionalCatalog || defaultCatalog();
     return clone(normalizeMicrobiotaPresentation(catalog.microbiotaPresentation, true));
   }
 
@@ -4216,213 +2865,139 @@
     patch = patch || {};
     return updateProfessionalCatalog(function (catalog) {
       var current = catalog.microbiotaPresentation || defaultMicrobiotaPresentation();
-      catalog.microbiotaPresentation = normalizeMicrobiotaPresentation(
-        Object.assign({}, current, patch),
-        false
-      );
+      catalog.microbiotaPresentation = normalizeMicrobiotaPresentation(Object.assign({}, current, patch), false);
       catalog.meta = catalog.meta || {};
-      catalog.meta.version = Math.max(catalog.meta.version || 0, 9);
+      catalog.meta.version = Math.max(catalog.meta.version || 0, 16);
       return catalog.microbiotaPresentation;
-    });
-  }
-
-  function updateAnalysisState(mutator) {
-    return commit(function (state) {
-      ensureDomainState(state);
-      return mutator(state);
     });
   }
 
   function saveReportAssessment(reportId, params, actor) {
     params = params || {};
-    actor = actor || (' 审核员');
+    actor = actor || '审核员';
     return commit(function (state) {
       var report = findReport(state, reportId);
       if (!report) throw new Error('report not found');
       var ver = getWorkingReportVersion(state, reportId);
       if (!ver) throw new Error('working version not found');
-
-      if (params.reportSpecies != null) report.reportSpecies = params.reportSpecies;
-      if (params.healthLevel != null) ver.healthLevel = params.healthLevel;
-      if (params.healthScore != null) ver.healthScore = params.healthScore;
-      if (params.percentile != null) ver.percentile = params.percentile;
-      if (params.summary != null) ver.summary = params.summary;
-      if (params.platformDimensions != null) {
-        ver.platformDimensions = clone(params.platformDimensions);
-      }
-      report.updatedAt = nowIso();
+      saveAssessmentInternal(state, reportId, params);
       report.contentUpdatedAt = report.updatedAt;
       report.contentUpdatedBy = actor;
-      appendOperationRecord(state, {
-        type: 'assessment_saved',
-        reportId: reportId,
-        version: ver.version,
-        actor: actor
-      });
+      appendOperationRecord(state, { type: 'assessment_saved', reportId: reportId, version: ver.version, actor: actor });
       return report;
     });
   }
 
-  function saveAnalysisFinalContent(reportId, finalContent, actor) {
-    actor = actor || (' 审核员');
-    finalContent = finalContent || {};
-    return commit(function (state) {
-      ensureDomainState(state);
-      var run = getLatestAnalysisRun(state, reportId);
-      if (!run) throw new Error('no analysis run for report');
-      if (!run.adjustments) run.adjustments = { excludedHits: [], manualFindings: [], finalContent: {} };
-      run.adjustments.finalContent = Object.assign({}, run.adjustments.finalContent || {}, finalContent, {
-        updatedAt: nowIso(),
-        updatedBy: actor
-      });
-      appendOperationRecord(state, {
-        type: 'analysis_final_saved',
-        reportId: reportId,
-        runId: run.id,
-        actor: actor
-      });
-      return run;
-    });
+  function buildPublicationChecksPublic(reportId, stateOverride) {
+    var state = stateOverride || loadState();
+    var report = findReport(state, reportId);
+    if (report) syncReportDerived(state, report);
+    return collectPublicationChecks(state, reportId);
   }
 
-  function rejectReportToIncomplete(reportId, reason, actor) {
-    actor = actor || (' 审核员');
-    return commit(function (state) {
-      var report = findReport(state, reportId);
-      if (!report) throw new Error('report not found');
-      var ver = getWorkingReportVersion(state, reportId);
-      report.status = 'rejected';
-      report.workflowStatus = 'incomplete';
-      report.updatedAt = nowIso();
-      if (!report.todoFlags) report.todoFlags = [];
-      if (report.todoFlags.indexOf('rejected') < 0) report.todoFlags.push('rejected');
-      if (ver) {
-        ver.status = 'rejected';
-        ver.rejectReason = reason || (' 审核退回待完善');
-      }
-      var tr = findTestRecord(state, report.testRecordId);
-      if (tr && tr.status === 'import_failed') {
-        tr.status = 'pending_review';
-        tr.updatedAt = nowIso();
-      } else if (tr) {
-        tr.updatedAt = nowIso();
-      }
-      syncReportWorkflow(report, tr, state);
-      appendOperationRecord(state, {
-        type: 'reject_to_incomplete',
-        reportId: reportId,
-        reason: reason,
-        actor: actor
-      });
-      return report;
-    });
+  function hasAnyEffectiveRange(reportId) {
+    var state = loadState();
+    var report = findReport(state, reportId);
+    if (!report) return false;
+    return hasAnyEffectiveRangeFromResults(getDecoratedCurrentResults(state, report));
   }
 
-  function reviewCorrectionDraft(reportId, decision, reason, actor) {
-    actor = actor || (' 审核员');
-    return commit(function (state) {
-      var report = findReport(state, reportId);
-      if (!report || !report.correctionDraftActive) throw new Error('no active correction draft');
-      var ver = getWorkingReportVersion(state, reportId);
-      if (!ver) throw new Error('working version not found');
-      ver.correctionReviewStatus = decision === 'approved' ? 'approved' : 'rejected';
-      if (decision === 'rejected') {
-        ver.correctionRejectReason = reason || '';
-      }
-      report.updatedAt = nowIso();
-      appendOperationRecord(state, {
-        type: decision === 'approved' ? 'correction_review_approved' : 'correction_review_rejected',
-        reportId: reportId,
-        version: ver.version,
-        reason: reason || null,
-        actor: actor
-      });
-      return report;
-    });
+  function removedApi(name) {
+    return function () {
+      throw new Error('[deprecated] ' + name + ' 已移除，请改用新状态机 / 菌门分析单元 API（见 issue 01 API 说明）');
+    };
   }
 
-  function createCorrectionDraftExtended(reportId, params) {
-    params = params || {};
-    return commit(function (state) {
-      var report = findReport(state, reportId);
-      if (!report) throw new Error('report not found: ' + reportId);
-      if (report.workflowStatus !== 'published' && report.status !== 'published' && report.status !== 'corrected') {
-        throw new Error('only published reports can create correction draft');
-      }
-      var pubVer = getPublishedReportVersion(state, reportId);
-      var reportSpecies = report.reportSpecies;
-      if (!report.correctionDraftActive) {
-        createCorrectionDraftInternal(state, report, params);
-        appendOperationRecord(state, {
-          type: 'correction_draft',
-          reportId: report.id,
-          version: report.workingVersion
-        });
-      }
-      var workVer = getWorkingReportVersion(state, reportId);
-      if (pubVer && workVer) copyPublishedAssessmentFields(pubVer, workVer);
-      if (reportSpecies) report.reportSpecies = reportSpecies;
-      return report;
-    });
-  }
-
-  // Initialize from storage or seed on first load
   loadState();
 
   return {
     STORAGE_KEY: STORAGE_KEY,
-    DEMO_LABEL: DEMO_LABEL,
     DATA_STATUSES: DATA_STATUSES,
-    CONCLUSION_LEVELS: CONCLUSION_LEVELS,
+    REPORT_STATUSES: REPORT_STATUSES,
+    REPORT_STATUS_LABELS: REPORT_STATUS_LABELS,
+    WORKFLOW_STATUSES: WORKFLOW_STATUSES,
+    OWNERSHIP_STATUSES: OWNERSHIP_STATUSES,
+    OWNERSHIP_STATUS_LABELS: OWNERSHIP_STATUS_LABELS,
+    TODO_FLAG_LABELS: TODO_FLAG_LABELS,
+    HEALTH_LEVELS: HEALTH_LEVELS,
+    USER_REPORT_STATUSES: USER_REPORT_STATUSES,
+    VERSION_STATUSES: VERSION_STATUSES,
+    VERSION_STATUS_LABELS: VERSION_STATUS_LABELS,
+    UNIT_CONFIRM_STATUSES: UNIT_CONFIRM_STATUSES,
+    UNIT_CONFIRM_LABELS: UNIT_CONFIRM_LABELS,
+    RANGE_SOURCES: RANGE_SOURCES,
+    RANGE_SOURCE_LABELS: RANGE_SOURCE_LABELS,
+    RANGE_STATUS_LABELS: RANGE_STATUS_LABELS,
+    LAB_NOTICE_LABELS: LAB_NOTICE_LABELS,
+    RISK_LEVEL_LABELS: RISK_LEVEL_LABELS,
+    CONDITION_TYPE_LABELS: CONDITION_TYPE_LABELS,
+    PRODUCT_STATUS_LABELS: PRODUCT_STATUS_LABELS,
+    VALUE_SOURCES: VALUE_SOURCES,
+    DEFAULT_SOURCE_ORG_ID: DEFAULT_SOURCE_ORG_ID,
+    SECOND_SOURCE_ORG_ID: SECOND_SOURCE_ORG_ID,
     normalizeDataStatus: normalizeDataStatus,
     isPresentDataStatus: isPresentDataStatus,
-    REPORT_STATUSES: REPORT_STATUSES,
-    RECOMMEND_TYPES: RECOMMEND_TYPES,
-    HEALTH_LEVELS: HEALTH_LEVELS,
-    WORKFLOW_STATUSES: WORKFLOW_STATUSES,
-    USER_REPORT_STATUSES: USER_REPORT_STATUSES,
-    OWNERSHIP_STATUSES: OWNERSHIP_STATUSES,
-    TODO_FLAG_LABELS: TODO_FLAG_LABELS,
-    DEFAULT_SOURCE_ORG_ID: DEFAULT_SOURCE_ORG_ID,
     getState: getState,
     peekState: peekState,
     reset: reset,
     subscribe: subscribe,
+    commit: commit,
+    setReportStatus: setReportStatusPublic,
+    getReport: getReport,
+    listReports: listReports,
+    getEffectiveResults: getEffectiveResults,
+    getPhylumUnits: getPhylumUnits,
+    decorateResult: decorateResultPublic,
+    evaluateResult: decorateResultPublic,
+    hasAnyEffectiveRange: hasAnyEffectiveRange,
+    runReportAnalysis: runReportAnalysis,
+    savePhylumUnitDraft: savePhylumUnitDraft,
+    confirmPhylumUnit: confirmPhylumUnit,
+    excludeHit: excludeHit,
+    savePhylumUnitProducts: savePhylumUnitProducts,
+    modifyResultValue: modifyResultValue,
+    supplementResult: supplementResult,
+    submitReport: submitReport,
+    withdrawReport: withdrawReport,
+    rejectReport: rejectReport,
+    publishReport: publishReport,
+    createCorrectionDraft: createCorrectionDraft,
+    voidReport: voidReport,
+    assignReportOwnership: assignReportOwnership,
+    saveAnalysisRule: saveAnalysisRule,
+    createRuleRevision: createRuleRevision,
+    duplicateAnalysisRule: duplicateAnalysisRule,
+    activateAnalysisRule: activateAnalysisRule,
+    deactivateAnalysisRule: deactivateAnalysisRule,
+    deleteAnalysisRule: deleteAnalysisRule,
+    validateAnalysisRule: validateAnalysisRule,
+    listTaxaForRuleTarget: listTaxaForRuleTarget,
+    previewRuleEvaluation: previewRuleEvaluation,
+    describeCondition: describeCondition,
+    buildPublicationChecks: buildPublicationChecksPublic,
+    getWorkflowStatus: getWorkflowStatus,
+    getTodoFlags: getTodoFlags,
+    getCorrectionDraftStage: getCorrectionDraftStage,
+    getPublishedVersionSnapshot: getPublishedVersionSnapshot,
+    getWorkingVersionSnapshot: getWorkingVersionSnapshot,
+    getLatestAnalysisRun: getLatestAnalysisRun,
+    getUserReportStatus: getUserReportStatus,
+    getUserVisibleReports: getUserVisibleReports,
+    getUserPublishedReportProjection: getUserPublishedReportProjection,
+    getPetPublishedReports: getPetPublishedReports,
+    resolveProductAvailability: resolveProductAvailability,
+    searchProductsForPicker: searchProductsForPicker,
+    normalizeRelatedProductIds: function (primaryProductId, relatedProductIds) {
+      return normalizeRelatedProductIds(loadState(), primaryProductId, relatedProductIds);
+    },
     registerTest: registerTest,
     simulateExcelImportSuccess: simulateExcelImportSuccess,
     simulateExcelImportFailure: simulateExcelImportFailure,
     simulateBatchImport: simulateBatchImport,
     checkDuplicateImport: checkDuplicateImport,
     generateReport: generateReport,
-    submitReport: submitReport,
-    rejectReport: rejectReport,
-    approveReport: approveReport,
-    publishReport: publishReport,
-    createCorrectionDraft: createCorrectionDraft,
-    publishCorrection: publishCorrection,
-    voidReport: voidReport,
-    assignReportOwnership: assignReportOwnership,
     createOpsPet: createOpsPet,
-    generateClaimCredential: generateClaimCredential,
-    voidClaimCredential: voidClaimCredential,
     correctOwnership: correctOwnership,
-    getWorkflowStatus: getWorkflowStatus,
-    getTodoFlags: getTodoFlags,
-    getPublishedVersionSnapshot: getPublishedVersionSnapshot,
-    getWorkingVersionSnapshot: getWorkingVersionSnapshot,
-    getUserReportStatus: getUserReportStatus,
-    getUserVisibleReports: getUserVisibleReports,
-    getUserPublishedReportProjection: getUserPublishedReportProjection,
-    getPetPublishedReports: getPetPublishedReports,
-    resolveHealthTagCandidates: resolveHealthTagCandidates,
-    updateReportContent: updateReportContent,
-    updateFinding: updateFinding,
-    updateRecommendation: updateRecommendation,
-    correctIndicator: correctIndicator,
-    bindClaimCode: bindClaimCode,
-    preBindPetToStore: preBindPetToStore,
-    resolveRecommendationTarget: resolveRecommendationTarget,
-    searchProductsForPicker: searchProductsForPicker,
     createPlatformUser: createPlatformUser,
     updatePlatformUser: updatePlatformUser,
     updateOpsPet: updateOpsPet,
@@ -4442,8 +3017,10 @@
     resolveMicrobiotaSceneStatusWord: resolveMicrobiotaSceneStatusWord,
     getMicrobiotaPresentation: getMicrobiotaPresentation,
     saveMicrobiotaPresentation: saveMicrobiotaPresentation,
-    resolveEffectiveRangeForIndicator: function (indicator, species, options) {
-      return resolveEffectiveRangeForIndicator(loadState(), indicator, species, options);
+    resolveEffectiveRangeForIndicator: function (indicator, species) {
+      var state = loadState();
+      var decorated = decorateResult(state, indicator, species);
+      return decorated.range ? { min: decorated.range.min, max: decorated.range.max, unit: decorated.range.unit, source: decorated.rangeSource } : null;
     },
     resolveSchemeRangeForIndicator: function (indicator, species) {
       var state = loadState();
@@ -4453,12 +3030,40 @@
     },
     flattenSchemesToPlatformRanges: flattenSchemesToPlatformRanges,
     schemeHasValidItems: schemeHasValidItems,
-    updateAnalysisState: updateAnalysisState,
     saveReportAssessment: saveReportAssessment,
-    saveAnalysisFinalContent: saveAnalysisFinalContent,
-    rejectReportToIncomplete: rejectReportToIncomplete,
-    reviewCorrectionDraft: reviewCorrectionDraft,
-    createCorrectionDraftExtended: createCorrectionDraftExtended,
-    buildContentSnapshot: buildContentSnapshot
+    buildContentSnapshot: function (reportId, versionNo, actor) {
+      var state = loadState();
+      var report = findReport(state, reportId);
+      return report ? clone(buildContentSnapshot(state, report, versionNo, actor)) : null;
+    },
+    defaultIndicators: defaultIndicators,
+    defaultBreeds: defaultBreeds,
+    defaultMicrobiotaTaxa: defaultMicrobiotaTaxa,
+    ensurePhylumUnits: function (reportId) {
+      return commit(function (state) {
+        var report = findReport(state, reportId);
+        ensurePhylumUnits(state, report);
+        return listPhylumUnits(state, reportId);
+      });
+    },
+    approveReport: removedApi('approveReport'),
+    publishCorrection: removedApi('publishCorrection'),
+    deriveWorkflowStatus: removedApi('deriveWorkflowStatus'),
+    bindClaimCode: removedApi('bindClaimCode'),
+    generateClaimCredential: removedApi('generateClaimCredential'),
+    voidClaimCredential: removedApi('voidClaimCredential'),
+    preBindPetToStore: removedApi('preBindPetToStore'),
+    updateFinding: removedApi('updateFinding'),
+    updateRecommendation: removedApi('updateRecommendation'),
+    updateReportContent: removedApi('updateReportContent'),
+    correctIndicator: removedApi('correctIndicator'),
+    resolveRecommendationTarget: removedApi('resolveRecommendationTarget'),
+    resolveHealthTagCandidates: removedApi('resolveHealthTagCandidates'),
+    saveAnalysisFinalContent: removedApi('saveAnalysisFinalContent'),
+    rejectReportToIncomplete: function (reportId, reason, actor) {
+      return rejectReport(reportId, reason, { actor: actor });
+    },
+    createCorrectionDraftExtended: createCorrectionDraft,
+    reviewCorrectionDraft: removedApi('reviewCorrectionDraft')
   };
 });

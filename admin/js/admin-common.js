@@ -9,7 +9,7 @@
   };
 
   function parseRoute() {
-    var raw = (global.location.hash || '').replace(/^#/, '') || 'dashboard';
+    var raw = (global.location.hash || '').replace(/^#/, '') || 'report-center';
     var qIndex = raw.indexOf('?');
     var pageId = qIndex >= 0 ? raw.slice(0, qIndex) : raw;
     var params = {};
@@ -136,12 +136,6 @@
     return (state.testRecords || []).find(function (t) { return t.id === testRecordId; });
   }
 
-  function lookupClaimCode(state, claimIdOrCode) {
-    return (state.claimCodes || []).find(function (c) {
-      return c.id === claimIdOrCode || c.code === claimIdOrCode;
-    });
-  }
-
   function speciesToMajorBreed(species) {
     if (species === 'cat') return '猫科';
     if (species === 'dog') return '犬科';
@@ -173,15 +167,6 @@
     });
   }
 
-  function getPendingClaimCodes(state, petId, testRecordId) {
-    return (state.claimCodes || []).filter(function (c) {
-      if (c.status !== 'pending') return false;
-      if (petId && c.petId === petId) return true;
-      if (testRecordId && c.testRecordId === testRecordId) return true;
-      return false;
-    });
-  }
-
   function subscribeDemo(callback) {
     var st = store();
     if (!st || typeof callback !== 'function') return function () {};
@@ -208,9 +193,7 @@
 
   var OWNERSHIP_STATUS_LABELS = {
     unassigned: '待归属',
-    pending_claim: '待领取',
-    bound: '已绑定',
-    claimed: '已领取'
+    bound: '已绑定'
   };
 
   function getCurrentIndicators(state, testRecordId) {
@@ -221,7 +204,6 @@
 
   var TEST_STATUS_LABELS = {
     pending_result: '待导入结果',
-    pending_claim: '待认领',
     import_failed: '导入异常',
     pending_review: '待审核',
     published: '已发布',
@@ -230,23 +212,14 @@
   };
 
   var REPORT_STATUS_LABELS = {
-    draft: '草稿',
+    unassigned: '待归属',
+    incomplete: '待完善',
     pending_review: '待审核',
-    rejected: '已驳回',
-    approved: '已批准',
     published: '已发布',
-    corrected: '已更正',
     voided: '已作废'
   };
 
   var HEALTH_LEVELS = ['A', 'B', 'C', 'D', 'E'];
-
-  var REC_AVAILABILITY_WARNINGS = {
-    UNAVAILABLE: '推荐目标已下架',
-    ZERO_STOCK: '推荐商品零库存',
-    NO_CANDIDATES: '推荐无可用候选',
-    NONE: '推荐无法解析到有效目标'
-  };
 
   function dictService() {
     return global.dictionaryDataService || null;
@@ -285,23 +258,35 @@
   }
 
   function getLatestAnalysisRun(state, reportId) {
-    var adj = (state.reportAnalysisAdjustments || {})[reportId];
-    if (!adj || !adj.latestRunId) return null;
-    return (state.analysisRuns || []).find(function (r) { return r.id === adj.latestRunId; }) || null;
+    var st = store();
+    if (st && typeof st.getLatestAnalysisRun === 'function') {
+      return st.getLatestAnalysisRun(reportId);
+    }
+    var report = lookupReport(state, reportId);
+    if (!report || !report.latestAnalysisRunId) return null;
+    return (state.analysisRuns || []).find(function (r) { return r.id === report.latestAnalysisRunId; }) || null;
   }
 
   function isValidResultIndicator(ind) {
     var st = store();
+    if (st && typeof st.decorateResult === 'function') {
+      return !!st.decorateResult(ind).isEffective;
+    }
     var status = st && st.normalizeDataStatus ? st.normalizeDataStatus(ind.dataStatus) : ind.dataStatus;
     if (status === 'NOT_DETECTED') return true;
     if (status === 'PRESENT') {
-      var val = Number(ind.value);
-      return ind.value != null && ind.value !== '' && isFinite(val);
+      var raw = ind.effectiveValue !== undefined ? ind.effectiveValue : ind.value;
+      var val = Number(raw);
+      return raw != null && raw !== '' && isFinite(val);
     }
     return false;
   }
 
   function buildPublicationChecks(state, reportId) {
+    var st = store();
+    if (st && typeof st.buildPublicationChecks === 'function') {
+      return st.buildPublicationChecks(reportId, state);
+    }
     var report = lookupReport(state, reportId);
     var blockers = [];
     var warnings = [];
@@ -309,121 +294,6 @@
       blockers.push({ id: 'report_missing', message: '报告不存在', category: 'system' });
       return { blockers: blockers, warnings: warnings };
     }
-
-    var tr = lookupTestRecord(state, report.testRecordId);
-    var pet = lookupPet(state, report.petId);
-    var workingVer = getWorkingReportVersion(state, reportId);
-    var species = getReportSpeciesForChecks(state, report);
-    var indicators = getCurrentIndicators(state, report.testRecordId);
-    var ds = dictService();
-
-    function addBlocker(id, message, category) {
-      blockers.push({ id: id, message: message, category: category || 'blocker' });
-    }
-    function addWarning(id, message, category) {
-      warnings.push({ id: id, message: message, category: category || 'warning' });
-    }
-
-    if (!report.petId || !pet) {
-      addBlocker('pet_archive', '未完成宠物建档/报告归档（需 petId 且宠物存在）', 'archive');
-    }
-    if (!tr) {
-      addBlocker('test_record', '缺少检测记录 testRecord', 'traceability');
-    } else {
-      if (!tr.sourceOrgId) {
-        addBlocker('source_org', '来源机构标识缺失', 'traceability');
-      }
-      if (!tr.externalReportNumber && !tr.sampleNumber) {
-        addBlocker('source_ref', '来源不可追溯（需外部报告号或样本号）', 'traceability');
-      }
-    }
-    if (!species) {
-      addBlocker('report_species', '报告物种未填写', 'assessment');
-    }
-    if (!workingVer || !workingVer.healthLevel || HEALTH_LEVELS.indexOf(workingVer.healthLevel) < 0) {
-      addBlocker('health_level', '综合等级 A–E 未填写或无效', 'assessment');
-    }
-    var score = workingVer ? workingVer.healthScore : null;
-    if (score == null || score === '' || !isFinite(Number(score)) || Number(score) < 0 || Number(score) > 100) {
-      addBlocker('health_score', '综合分须为 0–100 的数值', 'assessment');
-    }
-
-    var validResults = indicators.filter(isValidResultIndicator);
-    if (!validResults.length) {
-      addBlocker('valid_results', '至少一项有效结果（PRESENT 有有限数值，或 NOT_DETECTED）', 'results');
-    }
-
-    var overviewOk = workingVer &&
-      (workingVer.summary || '').trim() &&
-      workingVer.healthLevel &&
-      workingVer.healthScore != null && workingVer.healthScore !== '';
-    if (!overviewOk) {
-      addBlocker('mock_overview', '综合概览必备：摘要 + 等级 + 分数', 'mock_module');
-    }
-    if (!validResults.length) {
-      addBlocker('mock_results_module', '专业检测结果必备：至少一项有效结果', 'mock_module');
-    }
-
-    if (!report.userId) {
-      addWarning('unclaimed_user', '报告未绑定用户/未领取', 'ownership');
-    }
-    if (report.ownershipStatus === 'pending_claim' || (tr && tr.claimStatus === 'pending_claim')) {
-      addWarning('pending_claim', '归属状态为待领取', 'ownership');
-    }
-
-    indicators.forEach(function (ind) {
-      var status = store().normalizeDataStatus ? store().normalizeDataStatus(ind.dataStatus) : ind.dataStatus;
-      if (['MISSING_COLUMN', 'EMPTY', 'INVALID', 'NOT_APPLICABLE'].indexOf(status) >= 0) {
-        addWarning('data_status_' + ind.id, '指标「' + ind.key + '」状态 ' + (DATA_STATUS_LABELS[status] || status), 'data_quality');
-      }
-      if (status === 'PRESENT' && ind.value != null && ind.value !== '' && isFinite(Number(ind.value))) {
-        var range = ds && ds.resolveEffectiveRangeForIndicator
-          ? ds.resolveEffectiveRangeForIndicator(ind, species)
-          : null;
-        if (!range) {
-          addWarning('no_range_' + ind.id, '指标「' + ind.key + '」有值但无有效参考范围', 'range');
-        }
-      }
-    });
-
-    if (workingVer) {
-      if (workingVer.percentile == null || workingVer.percentile === '') {
-        addWarning('percentile_empty', '人工百分位未填写', 'assessment');
-      }
-      var dims = workingVer.platformDimensions || {};
-      if (dims.emotion == null || dims.emotion === '') {
-        addWarning('platform_emotion', '平台评估维度「情绪」未填写', 'assessment');
-      }
-      if (dims.immunity == null || dims.immunity === '') {
-        addWarning('platform_immunity', '平台评估维度「免疫」未填写', 'assessment');
-      }
-    }
-
-    var run = getLatestAnalysisRun(state, reportId);
-    if (!run) {
-      addWarning('no_analysis_run', '规则分析尚未运行', 'analysis');
-    } else if (report.todoFlags && report.todoFlags.indexOf('pending_reanalysis') >= 0) {
-      addWarning('pending_reanalysis', '指标或规则变更，待重新分析', 'analysis');
-    } else {
-      var final = (run.adjustments && run.adjustments.finalContent) || {};
-      var hasFinal = (final.professional || '').trim() || (final.consumer || '').trim() || (final.healthAdvice || '').trim();
-      if (!hasFinal) {
-        addWarning('empty_final_content', '规则分析最终解释或建议为空', 'analysis');
-      }
-    }
-
-    (state.recommendations || []).filter(function (r) { return r.reportId === reportId; }).forEach(function (rec) {
-      var msg = REC_AVAILABILITY_WARNINGS[rec.availability] || REC_AVAILABILITY_WARNINGS[rec.resolvedType];
-      if (msg) {
-        addWarning('rec_' + rec.id, '推荐「' + (rec.label || rec.id) + '」：' + msg, 'recommendation');
-      }
-    });
-
-    (report.todoFlags || []).forEach(function (flag) {
-      if (flag === 'rejected' || flag === 'correction_draft') return;
-      addWarning('todo_' + flag, '待办标记：' + flag, 'todo');
-    });
-
     return { blockers: blockers, warnings: warnings };
   }
 
@@ -433,34 +303,10 @@
     return st.saveReportAssessment(reportId, params, actor);
   }
 
-  function saveAnalysisFinalContent(reportId, finalContent, actor) {
-    var st = store();
-    if (!st) return null;
-    return st.saveAnalysisFinalContent(reportId, finalContent, actor);
-  }
-
-  function rejectReportToIncomplete(reportId, reason, actor) {
-    var st = store();
-    if (!st) return null;
-    return st.rejectReportToIncomplete(reportId, reason, actor);
-  }
-
-  function reviewCorrectionDraft(reportId, decision, reason, actor) {
-    var st = store();
-    if (!st) return null;
-    return st.reviewCorrectionDraft(reportId, decision, reason, actor);
-  }
-
-  function createCorrectionDraftExtended(reportId, params) {
-    var st = store();
-    if (!st) throw new Error('store unavailable');
-    return st.createCorrectionDraftExtended(reportId, params);
-  }
-
   function isReportInReviewQueue(report) {
     if (!report || report.status === 'voided') return false;
     if (report.correctionDraftActive) return true;
-    return ['draft', 'pending_review', 'approved', 'rejected'].indexOf(report.status) >= 0;
+    return report.status === 'unassigned' || report.status === 'incomplete' || report.status === 'pending_review';
   }
 
   function validateAssessmentInput(params) {
@@ -488,14 +334,11 @@
     var label = (map && map[status]) || status;
     var tagMap = {
       pending_result: 'ant-tag ant-tag-processing',
-      pending_claim: 'ant-tag ant-tag-purple',
       import_failed: 'ant-tag ant-tag-error',
+      unassigned: 'ant-tag ant-tag-purple',
+      incomplete: 'ant-tag ant-tag-warning',
       pending_review: 'ant-tag ant-tag-warning',
       published: 'ant-tag ant-tag-success',
-      draft: 'ant-tag ant-tag-default',
-      rejected: 'ant-tag ant-tag-error',
-      approved: 'ant-tag ant-tag-cyan',
-      corrected: 'ant-tag ant-tag-indigo',
       voided: 'ant-tag ant-tag-default',
       success: 'ant-tag ant-tag-success',
       failed: 'ant-tag ant-tag-error',
@@ -717,31 +560,6 @@
     });
   }
 
-  function canRecommend(dataStatus) {
-    var normalized = dataStatus === 'VALID' ? 'PRESENT' : dataStatus;
-    return normalized === 'PRESENT';
-  }
-
-  var REVIEW_DRAFT_KEY = 'pet-admin-review-drafts-v1';
-
-  function getReviewDrafts() {
-    try {
-      return JSON.parse(sessionStorage.getItem(REVIEW_DRAFT_KEY) || '{}');
-    } catch (e) {
-      return {};
-    }
-  }
-
-  function saveReviewDraft(reportId, draft) {
-    var all = getReviewDrafts();
-    all[reportId] = draft;
-    sessionStorage.setItem(REVIEW_DRAFT_KEY, JSON.stringify(all));
-  }
-
-  function getReviewDraft(reportId) {
-    return getReviewDrafts()[reportId] || null;
-  }
-
   global.PetAdminCommon = {
     store: store,
     parseRoute: parseRoute,
@@ -758,13 +576,11 @@
     lookupStore: lookupStore,
     lookupReport: lookupReport,
     lookupTestRecord: lookupTestRecord,
-    lookupClaimCode: lookupClaimCode,
     speciesToMajorBreed: speciesToMajorBreed,
     majorBreedToSpecies: majorBreedToSpecies,
     countPetReports: countPetReports,
     countUserReports: countUserReports,
     getUnassignedTestRecords: getUnassignedTestRecords,
-    getPendingClaimCodes: getPendingClaimCodes,
     subscribeDemo: subscribeDemo,
     createPlatformUser: createPlatformUser,
     updatePlatformUser: updatePlatformUser,
@@ -775,19 +591,12 @@
     REPORT_STATUS_LABELS: REPORT_STATUS_LABELS,
     DATA_STATUS_LABELS: DATA_STATUS_LABELS,
     statusBadge: statusBadge,
-    canRecommend: canRecommend,
-    getReviewDraft: getReviewDraft,
-    saveReviewDraft: saveReviewDraft,
     HEALTH_LEVELS: HEALTH_LEVELS,
     getWorkingReportVersion: getWorkingReportVersion,
     getPublishedReportVersion: getPublishedReportVersion,
     getLatestAnalysisRun: getLatestAnalysisRun,
     buildPublicationChecks: buildPublicationChecks,
     saveReportAssessment: saveReportAssessment,
-    saveAnalysisFinalContent: saveAnalysisFinalContent,
-    rejectReportToIncomplete: rejectReportToIncomplete,
-    reviewCorrectionDraft: reviewCorrectionDraft,
-    createCorrectionDraftExtended: createCorrectionDraftExtended,
     isReportInReviewQueue: isReportInReviewQueue,
     validateAssessmentInput: validateAssessmentInput,
     getReportSpeciesForChecks: getReportSpeciesForChecks,

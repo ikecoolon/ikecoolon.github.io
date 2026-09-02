@@ -94,9 +94,89 @@ function initDetectionRecords() {
   var unsub = store.subscribe(render);
   window.__petAdminPageTeardown = function () { unsub(); };
 
+  function inferImportScenario(fileName) {
+    var name = String(fileName || '').toLowerCase();
+    if (/重复|dup|duplicate/.test(name)) return 'duplicate';
+    if (/失败|fail|缺列|阻断/.test(name)) return 'failure';
+    if (/异常|partial|warn|警告/.test(name)) return 'partial';
+    return 'success';
+  }
+
+  function makeImportFileMeta(file, index, directedRecord) {
+    var seq = Date.now().toString(36) + '-' + index;
+    var scenario = inferImportScenario(file.name);
+    var meta = {
+      scenario: scenario,
+      fileName: file.name,
+      externalReportNumber: 'EXT-UP-' + seq,
+      sampleNumber: directedRecord && directedRecord.sampleNumber ? directedRecord.sampleNumber : ('SAMPLE-UP-' + seq)
+    };
+    if (scenario === 'duplicate') {
+      meta.sourceOrgId = store.DEFAULT_SOURCE_ORG_ID;
+      meta.externalReportNumber = 'EXT-2025-001';
+      delete meta.sampleNumber;
+    }
+    if (scenario === 'failure') meta.errorCode = 'MISSING_COLUMN';
+    if (directedRecord) meta.storeId = directedRecord.storeId;
+    return meta;
+  }
+
+  function runExcelImport(testRecordId, fileList) {
+    if (!fileList || !fileList.length) {
+      C.toast('请选择文件', 'warning');
+      return;
+    }
+    var state = store.getState();
+    var directedRecord = testRecordId
+      ? (state.testRecords || []).find(function (tr) { return tr.id === testRecordId; })
+      : null;
+    var files = testRecordId
+      ? [makeImportFileMeta(fileList[0], 0, directedRecord)]
+      : Array.prototype.map.call(fileList, function (file, idx) {
+        return makeImportFileMeta(file, idx, null);
+      });
+    var importParams = {
+      fileName: testRecordId
+        ? ('定向导入_' + testRecordId + '.xlsx')
+        : ('批量导入批次_' + new Date().toISOString().slice(0, 10) + '.zip'),
+      files: files
+    };
+    if (testRecordId) importParams.testRecordId = testRecordId;
+    try {
+      var result = store.simulateBatchImport(importParams);
+      var okCount = (result.fileResults || []).filter(function (r) {
+        return r.status === 'success' || r.status === 'partial';
+      }).length;
+      sessionStorage.removeItem('pet-admin-excel-tr');
+      if (okCount) {
+        C.toast(testRecordId
+          ? '导入完成：已写入检测结果并生成报告草稿'
+          : ('导入完成：' + okCount + ' 个文件已生成送检记录与报告草稿'), 'success');
+      } else {
+        C.toast(testRecordId ? '导入失败，送检记录仍为待导入结果' : '导入完成，无成功文件', 'warning');
+      }
+    } catch (err) {
+      C.toast(err.message || '导入失败', 'error');
+    }
+  }
+
+  function pickExcelFiles(testRecordId) {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,.xlsx,.xls';
+    input.multiple = !testRecordId;
+    input.style.display = 'none';
+    input.onchange = function () {
+      runExcelImport(testRecordId || null, input.files);
+      if (input.parentNode) input.parentNode.removeChild(input);
+    };
+    document.body.appendChild(input);
+    input.click();
+  }
+
   document.getElementById('btn-go-import').onclick = function () {
     sessionStorage.removeItem('pet-admin-excel-tr');
-    C.navigate('excel-import');
+    pickExcelFiles(null);
   };
 
   document.getElementById('btn-register-test').onclick = function () {
@@ -371,8 +451,8 @@ function initDetectionRecords() {
 
     tbody.querySelectorAll('[data-action="import"]').forEach(function (btn) {
       btn.onclick = function () {
-        sessionStorage.setItem('pet-admin-excel-tr', btn.dataset.id);
-        C.navigate('excel-import');
+        sessionStorage.removeItem('pet-admin-excel-tr');
+        pickExcelFiles(btn.dataset.id);
       };
     });
     tbody.querySelectorAll('[data-action="review"]').forEach(function (btn) {

@@ -3,6 +3,38 @@
 
 var store = require('./mock-store.js');
 
+global.window = global;
+global.location = { hash: '', href: '' };
+global.document = {
+  getElementById: function () { return null; },
+  body: {
+    appendChild: function () {},
+    querySelector: function () { return null; },
+    querySelectorAll: function () { return []; }
+  },
+  createElement: function () {
+    return {
+      className: '',
+      classList: { add: function () {}, toggle: function () {} },
+      setAttribute: function () {},
+      getAttribute: function () { return null; },
+      querySelector: function () { return { onclick: null }; },
+      querySelectorAll: function () { return []; },
+      appendChild: function () {},
+      remove: function () {},
+      closest: function () { return null; },
+      focus: function () {},
+      innerHTML: '',
+      textContent: '',
+      tagName: 'DIV',
+      style: {}
+    };
+  }
+};
+global.window.PetReportMockStore = store;
+require('../admin/js/admin-common.js');
+var C = global.PetAdminCommon;
+
 var passed = 0;
 var failed = 0;
 
@@ -20,451 +52,331 @@ function assertEqual(actual, expected, message) {
   assert(actual === expected, message + ' (got ' + JSON.stringify(actual) + ', expected ' + JSON.stringify(expected) + ')');
 }
 
-function main() {
+function findReport(state, id) {
+  return state.reports.find(function (r) { return r.id === id; });
+}
+
+function blockerIds(checks) {
+  return (checks.blockers || []).map(function (b) { return b.id; });
+}
+
+function warningIds(checks) {
+  return (checks.warnings || []).map(function (w) { return w.id; });
+}
+
+function testSeed() {
   store.reset();
   var state = store.getState();
 
-  assert(state.meta.version >= 3, 'meta.version migrated to >= 3');
-  assert(Array.isArray(state.healthTags) && state.healthTags.length >= 3, 'seed healthTags');
-  assert(Array.isArray(state.healthTagProducts) && state.healthTagProducts.length >= 3, 'seed healthTagProducts');
-  assert(state.professionalCatalog && state.professionalCatalog.microbiotaTaxa.length >= 3, 'seed professionalCatalog');
-  var bacteroidetes = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === '拟杆菌门'; });
-  assert(bacteroidetes && bacteroidetes.edu && bacteroidetes.edu.sceneCopy, '拟杆菌门 has edu.sceneCopy');
-  assert(bacteroidetes.edu.narrativeRole === undefined, 'edu model omits narrativeRole');
-  assert(bacteroidetes.edu.tooLowHint === undefined, 'edu model omits tooLowHint');
-  assert(bacteroidetes.edu.tooHighHint === undefined, 'edu model omits tooHighHint');
-  assert(state.meta.version >= 8, 'meta.version migrated to >= 8');
-  assert(state.meta.version >= 9, 'meta.version migrated to >= 9');
-  assert(state.professionalCatalog.meta && state.professionalCatalog.meta.version >= 7, 'catalog.meta.version migrated to >= 7');
-  assert(state.professionalCatalog.meta.version >= 9, 'catalog.meta.version migrated to >= 9');
-  assert(state.professionalCatalog.microbiotaPresentation, 'seed microbiotaPresentation');
-  assertEqual(state.professionalCatalog.microbiotaPresentation.low, '略显稀疏', 'default low scene status word');
-  assertEqual(state.professionalCatalog.microbiotaPresentation.normal, '生机适宜', 'default normal scene status word');
-  assertEqual(state.professionalCatalog.microbiotaPresentation.high, '略显繁茂', 'default high scene status word');
-  var stripped = store.normalizeTaxonEdu({
-    narrativeRole: '活跃的采集者',
-    functionText: '中性说明',
-    tooLowHint: '旧偏低提示',
-    tooHighHint: '旧偏高提示',
-    mainTasks: ['一', '二']
+  assert(!state.findings, 'no findings collection');
+  assert(!state.recommendations, 'no recommendations collection');
+  assert(!state.healthTags, 'no healthTags collection');
+  assert(!state.healthTagProducts, 'no healthTagProducts collection');
+  assert(!state.claimCodes, 'no claimCodes collection');
+  assert(!state.reportAnalysisAdjustments, 'no reportAnalysisAdjustments collection');
+  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v2', 'storage key v2');
+  assertEqual(store.REPORT_STATUSES.join(','), 'unassigned,incomplete,pending_review,published,voided', 'five report statuses');
+  assertEqual(store.OWNERSHIP_STATUSES.join(','), 'unassigned,bound', 'ownership two values');
+  assert(store.WORKFLOW_STATUSES === store.REPORT_STATUSES, 'WORKFLOW_STATUSES aliases REPORT_STATUSES');
+
+  var r1 = findReport(state, 'report-001');
+  var r2 = findReport(state, 'report-002');
+  var r3 = findReport(state, 'report-003');
+  var r4 = findReport(state, 'report-004');
+  var r5 = findReport(state, 'report-005');
+  var r6 = findReport(state, 'report-006');
+
+  assertEqual(r1.status, 'published', 'report-001 published');
+  assertEqual(r1.publishedVersion, 2, 'report-001 publishedVersion=2');
+  assertEqual(r1.versions[0].status, 'superseded', 'report-001 v1 superseded');
+  assertEqual(r1.versions[1].status, 'published', 'report-001 v2 published');
+  assertEqual(r1.petId, 'pet-001', 'report-001 小花');
+  assertEqual(r1.userId, 'user-001', 'report-001 user-001');
+
+  var actino = state.indicators.filter(function (i) {
+    return i.reportId === 'report-001' && i.key === 'Actinobacteria';
   });
-  assertEqual(stripped.sceneCopy, '活跃的采集者', 'normalizeTaxonEdu migrates sceneCopy from narrativeRole');
-  assertEqual(stripped.functionText, '中性说明', 'normalizeTaxonEdu keeps functionText');
-  assert(stripped.narrativeRole === undefined, 'normalizeTaxonEdu strips narrativeRole');
-  assert(stripped.mainTasks && stripped.mainTasks.length === 2, 'normalizeTaxonEdu keeps mainTasks up to 3');
-  assertEqual(stripped.lowHint, '旧偏低提示', 'normalizeTaxonEdu migrates lowHint from tooLowHint');
-  assertEqual(stripped.highHint, '旧偏高提示', 'normalizeTaxonEdu migrates highHint from tooHighHint');
-  assert(bacteroidetes.edu.introText, '拟杆菌门 has edu.introText after V11');
-  assert(bacteroidetes.edu.mainTasks && bacteroidetes.edu.mainTasks.length >= 1, '拟杆菌门 has mainTasks after V11');
-  var bacteroides = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Bacteroides'; });
-  assert(bacteroides && bacteroides.edu && bacteroides.edu.appearanceText, 'Bacteroides has appearanceText');
-  assert(bacteroides.edu.functionText, 'Bacteroides has functionText');
-  assert(store.peekState() === store.peekState(), 'peekState returns live state without cloning');
-  assert(store.getState() !== store.peekState(), 'getState still returns a clone');
-  var collinsella = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; });
-  var parentKeyBefore = collinsella && collinsella.parentKey;
-  store.saveTaxonEdu('Collinsella', { edu: { sceneCopy: '药草（已修订）' } });
-  var collinsellaAfter = store.getState().professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; });
-  assertEqual(collinsellaAfter.parentKey, parentKeyBefore, 'saveTaxonEdu merges without changing parentKey');
-  assertEqual(collinsellaAfter.edu.sceneCopy, '药草（已修订）', 'saveTaxonEdu merges edu.sceneCopy');
-  store.saveTaxonEdu('Collinsella', { value: '字典短说明已修订' });
-  var collinsellaValue = store.getState().professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; });
-  assertEqual(collinsellaValue.value, '字典短说明已修订', 'saveTaxonEdu can update dictionary short value');
-  assertEqual(collinsellaValue.edu.sceneCopy, '药草（已修订）', 'saveTaxonEdu value patch keeps edu');
+  var v1 = actino.find(function (i) { return i.version === 1; });
+  var v2 = actino.find(function (i) { return i.version === 2 && i.isCurrent; });
+  assert(v1 && v1.sourceValue === 12.3 && v1.isCurrent === false, 'report-001 Actinobacteria v1 12.3 archived');
+  assert(v2 && v2.effectiveValue === 18.5 && v2.sourceValue === 12.3 && v2.modifiedReason, 'report-001 Actinobacteria v2 18.5 with reason');
+  var snapActino = r1.versions[0].contentSnapshot.results.find(function (x) { return x.key === 'Actinobacteria'; });
+  assertEqual(snapActino.effectiveValue, 12.3, 'report-001 v1 snapshot freezes 12.3');
+  assert(r1.versions[0].contentSnapshot.phylumUnits && r1.versions[0].contentSnapshot.phylumUnits.length, 'report-001 v1 snapshot has phylumUnits');
 
-  store.saveMicrobiotaPresentation({ high: '茂盛异常（已修订）' });
-  assertEqual(
-    store.getState().professionalCatalog.microbiotaPresentation.high,
-    '茂盛异常（已修订）',
-    'saveMicrobiotaPresentation persists high status word'
-  );
-  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-high'), '茂盛异常（已修订）', 'resolveMicrobiotaSceneStatusWord maps status-high');
-  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-low'), '略显稀疏', 'resolveMicrobiotaSceneStatusWord maps status-low');
-  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-normal'), '生机适宜', 'resolveMicrobiotaSceneStatusWord maps status-normal');
-  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-no-range'), '', 'resolveMicrobiotaSceneStatusWord skips status-no-range');
-  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-not-detected'), '', 'resolveMicrobiotaSceneStatusWord skips status-not-detected');
-  assertEqual(store.resolveMicrobiotaSceneStatusWord('status-invalid'), '', 'resolveMicrobiotaSceneStatusWord skips status-invalid');
-  store.saveMicrobiotaPresentation({ high: '略显繁茂' });
+  assertEqual(r2.status, 'pending_review', 'report-002 pending_review');
+  var prot = store.getPhylumUnits('report-002').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assert(prot && prot.hits.length === 3, 'report-002 Proteobacteria has 3 hits');
+  var primaries = prot.hits.filter(function (h) { return h.combineStatus === 'primary'; });
+  var superseded = prot.hits.filter(function (h) { return h.combineStatus === 'superseded_by_conflict'; });
+  assertEqual(primaries.length, 1, 'report-002 Proteobacteria 1 primary');
+  assertEqual(superseded.length, 2, 'report-002 Proteobacteria 2 superseded_by_conflict');
+  var fuso = store.getEffectiveResults('report-002').find(function (x) { return x.key === 'Fusobacterium'; });
+  assertEqual(fuso.dataStatus, 'NOT_DETECTED', 'report-002 Fusobacterium 未检出');
 
-  var liveState = store.peekState();
-  delete liveState.professionalCatalog.microbiotaPresentation;
-  liveState.meta.version = 8;
-  liveState.professionalCatalog.meta.version = 8;
-  store.getState();
-  var migratedPres = store.getState().professionalCatalog.microbiotaPresentation;
-  assert(migratedPres && migratedPres.high === '略显繁茂', 'migrateMicrobiotaPresentationV9 backfills defaults');
+  assertEqual(r3.status, 'incomplete', 'report-003 incomplete');
+  assert(!!r3.rejectReason, 'report-003 has rejectReason');
+  assert((r3.todoFlags || []).indexOf('missing_unresolved') >= 0, 'report-003 missing_unresolved');
+  var actino3 = store.getEffectiveResults('report-003').find(function (x) { return x.key === 'Actinobacteria'; });
+  assertEqual(actino3.dataStatus, 'MISSING_COLUMN', 'report-003 Actinobacteria MISSING_COLUMN');
+  assert(store.getPhylumUnits('report-003').every(function (u) { return u.confirmStatus !== 'confirmed'; }), 'report-003 units unconfirmed');
 
-  assert(Array.isArray(state.professionalCatalog.referenceRangeSchemes) &&
-    state.professionalCatalog.referenceRangeSchemes.length >= 2, 'seed referenceRangeSchemes');
+  assertEqual(r4.status, 'published', 'report-004 published');
+  assertEqual(r4.correctionDraftActive, true, 'report-004 correctionDraftActive');
+  assertEqual(store.getCorrectionDraftStage('report-004'), 'incomplete', 'report-004 draft stage incomplete');
+  assert(!r4.userId, 'report-004 无用户');
+  assert((r4.todoFlags || []).indexOf('pending_reanalysis') >= 0, 'report-004 pending_reanalysis');
+  assert((r4.todoFlags || []).indexOf('user_unlinked') >= 0, 'report-004 user_unlinked');
+  assertEqual(store.hasAnyEffectiveRange('report-004'), false, 'report-004 无任何有效范围');
+  var units4 = store.getPhylumUnits('report-004');
+  var prot4 = units4.find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assertEqual(prot4.confirmStatus, 'invalidated', 'report-004 Proteobacteria invalidated');
+  var kleb = store.getEffectiveResults('report-004').find(function (x) { return x.key === 'Klebsiella'; });
+  assertEqual(kleb.sourceValue, 4.59, 'report-004 Klebsiella source 4.59');
+  assert(Math.abs(Number(kleb.effectiveValue) - 6.10) < 1e-6, 'report-004 Klebsiella effective 6.10');
+  var tr4 = state.testRecords.find(function (t) { return t.id === r4.testRecordId; });
+  assertEqual(tr4.sourceOrgId, 'ORG-LAB-GUT-002', 'report-004 机构 ORG-LAB-GUT-002');
+  var batchHarley = state.importBatches.find(function (b) { return b.id === tr4.importBatchId; });
+  assertEqual(batchHarley.fileName, 'harley_final_microbiome_report.xlsx', 'report-004 harley file');
 
-  var manualRange = store.resolveEffectiveRangeForIndicator({
-    key: '放线菌门',
-    unit: '%',
-    manualRange: { min: 1, max: 2, unit: '%' },
-    sourceTemplateId: 'ORG-LAB-GUT-001'
-  }, 'cat');
-  assertEqual(manualRange.source, 'manual', 'resolver prefers manualRange');
+  assertEqual(r5.status, 'voided', 'report-005 voided');
+  assertEqual(r5.petId, 'pet-002', 'report-005 阿黄');
 
-  var importedRange = store.resolveEffectiveRangeForIndicator({
-    key: '放线菌门',
-    unit: '%',
-    importedRange: { min: 10, max: 20, unit: '%' },
-    sourceTemplateId: 'ORG-LAB-GUT-001'
-  }, 'cat');
-  assertEqual(importedRange.source, 'imported', 'resolver prefers importedRange over scheme');
+  assertEqual(r6.status, 'unassigned', 'report-006 unassigned');
+  assert(!r6.petId && !r6.userId, 'report-006 无宠物/用户');
+  assert(!r6.latestAnalysisRunId, 'report-006 未运行分析');
+  var units6 = store.getPhylumUnits('report-006');
+  assert(units6.length >= 5, 'report-006 空壳菌门单元已懒创建');
+  assert(units6.every(function (u) { return (u.hits || []).length === 0; }), 'report-006 单元 hits 为空');
+  var tr6 = state.testRecords.find(function (t) { return t.id === 'tr-009'; });
+  assertEqual(tr6.sampleNumber, 'SAMPLE-NEW-UNASSIGNED-009', 'report-006 对应 tr-009');
+  var batchOscar = state.importBatches.find(function (b) { return b.id === tr6.importBatchId; });
+  assertEqual(batchOscar.fileName, 'oscar_final_microbiome_report.xlsx', 'report-006 oscar file');
+  assertEqual(tr6.claimStatus, 'unassigned', 'tr-009 claimStatus unassigned');
 
-  var schemeRange = store.resolveEffectiveRangeForIndicator({
-    key: '放线菌门',
-    unit: '%',
-    sourceTemplateId: 'ORG-LAB-GUT-001'
-  }, 'cat');
-  assert(schemeRange && schemeRange.source === 'scheme', 'resolver matches active scheme');
+  var bacteroidetes = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Bacteroidetes'; });
+  assert(bacteroidetes && bacteroidetes.edu && bacteroidetes.edu.hint, 'edu.hint 存在');
+  assert(bacteroidetes.edu.lowHint === undefined, 'edu 无 lowHint');
+  assert(bacteroidetes.edu.normalHint === undefined, 'edu 无 normalHint');
+  assert(bacteroidetes.edu.highHint === undefined, 'edu 无 highHint');
+  var emptyEdu = store.emptyTaxonEdu();
+  assert(emptyEdu.hint === '' && emptyEdu.lowHint === undefined, 'emptyTaxonEdu 仅 hint');
+  var migrated = store.normalizeTaxonEdu({ lowHint: '偏低', normalHint: '正常', highHint: '偏高' });
+  assertEqual(migrated.hint, '正常', 'normalizeTaxonEdu 合并 hint = normalHint || lowHint || highHint');
+  assert(migrated.lowHint === undefined, 'normalizeTaxonEdu 不输出 lowHint');
 
-  var missingRange = store.resolveEffectiveRangeForIndicator({
-    key: '放线菌门',
-    unit: '%'
-  }, 'cat');
-  assertEqual(missingRange, null, 'resolver returns null without sourceTemplateId');
+  assert(store.peekState() === store.peekState(), 'peekState returns live state');
+  assert(store.getState() !== store.peekState(), 'getState returns clone');
+}
 
-  var wrongSpecies = store.resolveEffectiveRangeForIndicator({
-    key: '放线菌门',
-    unit: '%',
-    sourceTemplateId: 'ORG-LAB-GUT-001'
-  }, 'rabbit');
-  assertEqual(wrongSpecies, null, 'resolver rejects species not in applicableSpecies');
+function testStateMachine() {
+  store.reset();
+  var r2 = store.getReport('report-002');
+  var trBefore = store.peekState().testRecords.find(function (t) { return t.id === r2.testRecordId; });
+  var trStatusBefore = trBefore.status;
+  var changedAtBefore = r2.statusChangedAt;
 
-  var wrongTemplate = store.resolveEffectiveRangeForIndicator({
-    key: '放线菌门',
-    unit: '%',
-    sourceTemplateId: 'UNKNOWN-TEMPLATE'
-  }, 'cat');
-  assertEqual(wrongTemplate, null, 'resolver rejects template mismatch');
+  store.withdrawReport('report-002', { actor: 'smoke' });
+  var afterWithdraw = store.getReport('report-002');
+  var trAfterWithdraw = store.peekState().testRecords.find(function (t) { return t.id === r2.testRecordId; });
+  assertEqual(afterWithdraw.status, 'incomplete', 'withdraw → incomplete');
+  assertEqual(trAfterWithdraw.status, trStatusBefore, 'withdraw 不改 testRecord.status');
+  assert(afterWithdraw.statusChangedAt !== changedAtBefore, 'withdraw 写入 statusChangedAt');
+  var frozenAt = afterWithdraw.statusChangedAt;
+  store.setReportStatus('report-002', 'incomplete');
+  assertEqual(store.getReport('report-002').statusChangedAt, frozenAt, 'status 未变则不写 statusChangedAt');
 
-  var wrongUnit = store.resolveEffectiveRangeForIndicator({
-    key: '放线菌门',
-    unit: 'index',
-    sourceTemplateId: 'ORG-LAB-GUT-001'
-  }, 'cat');
-  assertEqual(wrongUnit, null, 'resolver rejects unit mismatch');
-  assert(Array.isArray(state.analysisRuleCatalog) && state.analysisRuleCatalog.length >= 3, 'seed analysisRuleCatalog');
-  assert(store.RECOMMEND_TYPES.indexOf('CATEGORY') < 0, 'RECOMMEND_TYPES has no CATEGORY');
+  var sameAt = store.getReport('report-002').statusChangedAt;
+  store.submitReport('report-002', { actor: 'smoke' });
+  var afterSubmit = store.getReport('report-002');
+  assertEqual(afterSubmit.status, 'pending_review', 'submit → pending_review');
+  assert(afterSubmit.statusChangedAt !== sameAt, 'submit 写入 statusChangedAt');
+  assert(!afterSubmit.rejectReason, 'submit 清空 rejectReason');
 
-  var snap001 = store.getPublishedVersionSnapshot('report-001');
-  assert(snap001 && snap001.contentSnapshot && snap001.contentSnapshot.assessment, 'report-001 published snapshot backfilled');
-  var snap004 = store.getPublishedVersionSnapshot('report-004');
-  assert(snap004 && snap004.contentSnapshot && snap004.contentSnapshot.indicators, 'report-004 published snapshot backfilled');
-  var proj001 = store.getUserPublishedReportProjection('user-001', 'report-001');
-  assert(proj001 && proj001.contentSnapshot, 'user projection includes contentSnapshot');
+  store.rejectReport('report-002', '需要补全建议', { actor: 'smoke' });
+  var afterReject = store.getReport('report-002');
+  assertEqual(afterReject.status, 'incomplete', 'reject → incomplete');
+  assertEqual(afterReject.rejectReason, '需要补全建议', 'reject 写入 rejectReason');
 
-  assertEqual(store.getWorkflowStatus('report-004'), 'published', 'published unclaimed report workflow');
-  assertEqual(store.getWorkflowStatus('report-002'), 'pending_review', 'pending review workflow');
-  assertEqual(store.getWorkflowStatus('report-006'), 'voided', 'voided workflow');
-  assert(state.testRecords.some(function (tr) { return tr.id === 'tr-009' && tr.status === 'unassigned'; }), 'seed unassigned import');
+  store.submitReport('report-002', { actor: 'smoke' });
+  store.publishReport('report-002', { actor: 'smoke' });
+  var afterPublish = store.getReport('report-002');
+  assertEqual(afterPublish.status, 'published', 'publish → published');
+  assertEqual(afterPublish.publishedVersion, 1, 'publish 冻结 publishedVersion');
+  assert(afterPublish.versions[0].contentSnapshot, 'publish 写入 contentSnapshot');
+  assert(afterPublish.versions[0].contentSnapshot.phylumUnits, 'snapshot.phylumUnits');
+  assert(afterPublish.versions[0].contentSnapshot.results, 'snapshot.results');
 
-  var dup = store.checkDuplicateImport({
-    sourceOrgId: store.DEFAULT_SOURCE_ORG_ID,
-    externalReportNumber: 'EXT-2025-001'
+  store.createCorrectionDraft('report-002', { correctionNote: 'smoke 更正' });
+  var afterDraft = store.getReport('report-002');
+  assertEqual(afterDraft.status, 'published', '更正草稿时主状态仍为 published');
+  assertEqual(afterDraft.correctionDraftActive, true, 'correctionDraftActive');
+  assertEqual(store.getCorrectionDraftStage('report-002'), 'incomplete', '更正草稿 stage=incomplete');
+
+  store.voidReport('report-002', 'smoke 作废');
+  assertEqual(store.getReport('report-002').status, 'voided', 'void → voided');
+}
+
+function testUnitsAndEngine() {
+  store.reset();
+  var prot = store.getPhylumUnits('report-002').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assertEqual(prot.confirmStatus, 'confirmed', 'seed 变形菌门已确认');
+
+  store.savePhylumUnitDraft('report-002', 'Proteobacteria', { analysis: '手工改写分析', advice: prot.adviceDraft });
+  var afterDraft = store.getPhylumUnits('report-002').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assertEqual(afterDraft.confirmStatus, 'unconfirmed', '改草稿回到 unconfirmed');
+  assertEqual(afterDraft.draftSource, 'manual', '草稿来源 manual');
+
+  store.confirmPhylumUnit('report-002', 'Proteobacteria', { actor: 'smoke' });
+  assertEqual(store.getPhylumUnits('report-002').find(function (u) { return u.phylumKey === 'Proteobacteria'; }).confirmStatus, 'confirmed', '可再次确认');
+
+  var kleb = store.getEffectiveResults('report-002').find(function (r) { return r.key === 'Klebsiella'; });
+  store.modifyResultValue({
+    reportId: 'report-002',
+    resultId: kleb.id,
+    value: 8.8,
+    reason: 'smoke 修改 Klebsiella'
   });
-  assert(dup && dup.duplicate && dup.existingTestRecordId === 'tr-004', 'duplicate import by source org + external number');
+  var afterMod = store.getReport('report-002');
+  assert((afterMod.todoFlags || []).indexOf('pending_reanalysis') >= 0, '改结果 → pending_reanalysis');
+  var protAfter = store.getPhylumUnits('report-002').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assertEqual(protAfter.confirmStatus, 'invalidated', '改结果 → invalidated');
 
-  var notDetected = state.indicators.find(function (ind) {
-    return ind.testRecordId === 'tr-003' && ind.key === '厚壁菌门';
+  store.runReportAnalysis('report-002', { actor: 'smoke' });
+  store.confirmPhylumUnit('report-002', 'Proteobacteria', { actor: 'smoke' });
+  var protRe = store.getPhylumUnits('report-002').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assertEqual(protRe.confirmStatus, 'confirmed', '重跑后可再确认');
+  assert((store.getReport('report-002').todoFlags || []).indexOf('pending_reanalysis') < 0, '重跑后 pending_reanalysis 清除');
+
+  var previewRuns = store.peekState().analysisRuns.length;
+  var previewUnits = JSON.stringify(store.getPhylumUnits('report-002'));
+  var preview = store.previewRuleEvaluation('report-002', { includeDrafts: false });
+  assert(preview.units && preview.units.length, 'previewRuleEvaluation 返回菌门单元');
+  assertEqual(store.peekState().analysisRuns.length, previewRuns, 'preview 不写入 analysisRuns');
+  assert(JSON.stringify(store.getPhylumUnits('report-002')) === previewUnits, 'preview 不写入 phylumUnits');
+
+  store.deactivateAnalysisRule('rule-firmi-normal');
+  assert((store.getReport('report-003').todoFlags || []).indexOf('pending_reanalysis') >= 0, '启用规则变化 → report-003 pending_reanalysis');
+  assert((store.getReport('report-001').todoFlags || []).indexOf('pending_reanalysis') < 0, '已发布无草稿的报告不打 pending_reanalysis');
+}
+
+function testPublicationChecks() {
+  store.reset();
+  var checks4 = C.buildPublicationChecks(store.getState(), 'report-004');
+  var ids4 = blockerIds(checks4);
+  assert(ids4.indexOf('unconfirmed_units') >= 0, '发布检查：未确认/失效单元为阻断');
+  assert(ids4.indexOf('pending_reanalysis') >= 0, '发布检查：pending_reanalysis 为阻断');
+  var msgs = (checks4.blockers || []).map(function (b) { return b.message; }).join('|');
+  assert(msgs.indexOf('未确认') >= 0, '阻断文案含未确认单元');
+  assert(msgs.indexOf('依据变化') >= 0, '阻断文案含依据变化');
+  var w4 = warningIds(checks4);
+  assert(w4.indexOf('no_effective_range') >= 0 || (checks4.warnings || []).some(function (w) { return /无有效参考范围/.test(w.message); }), '警告：无有效范围');
+  assert((checks4.warnings || []).some(function (w) { return w.id === 'unclaimed_user'; }), '警告：未关联用户');
+  assert(!(checks4.blockers || []).some(function (b) { return /三类|findings|healthTag|综合摘要/.test(b.message); }), '发布检查不再引用三类文案/findings/healthTag');
+
+  var checks3 = C.buildPublicationChecks(store.getState(), 'report-003');
+  assert(blockerIds(checks3).indexOf('unconfirmed_units') >= 0, 'report-003 未确认单元为阻断');
+  assert((checks3.warnings || []).some(function (w) { return w.id === 'missing_unresolved' || /缺失/.test(w.message); }), '警告：缺失未处理');
+}
+
+function testSnapshotFreeze() {
+  store.reset();
+  store.publishReport('report-002', { actor: 'smoke' });
+  var published = store.getReport('report-002');
+  var snap = published.versions.find(function (v) { return v.version === published.publishedVersion; }).contentSnapshot;
+  var snapKleb = snap.results.find(function (r) { return r.key === 'Klebsiella'; });
+  var snapVal = snapKleb.effectiveValue;
+  assert(snap.phylumUnits && snap.phylumUnits.length, 'publish 后 snapshot.phylumUnits 冻结');
+  assert(snap.results && snap.results.length, 'publish 后 snapshot.results 冻结');
+
+  store.createCorrectionDraft('report-002', { correctionNote: '改值不影响快照' });
+  var kleb = store.getEffectiveResults('report-002').find(function (r) { return r.key === 'Klebsiella'; });
+  store.modifyResultValue({
+    reportId: 'report-002',
+    resultId: kleb.id,
+    value: 9.99,
+    reason: '验证快照冻结'
   });
-  assert(notDetected && notDetected.dataStatus === 'NOT_DETECTED' && notDetected.value == null, 'NOT_DETECTED is not zero or missing');
+  var after = store.getReport('report-002');
+  var frozen = after.versions.find(function (v) { return v.version === 1; }).contentSnapshot;
+  var frozenKleb = frozen.results.find(function (r) { return r.key === 'Klebsiella'; });
+  assertEqual(frozenKleb.effectiveValue, snapVal, '之后再改有效值不影响已发布快照');
+  var live = store.getEffectiveResults('report-002').find(function (r) { return r.key === 'Klebsiella'; });
+  assert(Math.abs(Number(live.effectiveValue) - 9.99) < 1e-6, '工作版有效值已更新');
+}
 
-  assert(state.meta.version >= 14, 'meta.version migrated to >= 14');
-  assert(state.meta.version >= 15, 'meta.version migrated to >= 15');
+function testCatalogAndPicker() {
+  store.reset();
+  var parentKeyBefore = store.getState().professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; }).parentKey;
+  store.saveTaxonEdu('Collinsella', { edu: { sceneCopy: '药草（已修订）', hint: '固定提示' } });
+  var after = store.getState().professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Collinsella'; });
+  assertEqual(after.parentKey, parentKeyBefore, 'saveTaxonEdu 不改 parentKey');
+  assertEqual(after.edu.sceneCopy, '药草（已修订）', 'saveTaxonEdu 合并 sceneCopy');
+  assertEqual(after.edu.hint, '固定提示', 'saveTaxonEdu 写入 hint');
 
-  var available = store.resolveRecommendationTarget({
-    primaryProductId: 'prod-001',
-    relatedProductIds: ['prod-003']
-  });
-  assertEqual(available.resolvedType, 'PRODUCT', 'manual recommendation primary PRODUCT when available');
-  assertEqual(available.availability, 'AVAILABLE', 'normal product availability');
-  assertEqual(available.relatedProductIds.join(','), 'prod-003', 'relatedProductIds order preserved');
-
-  var zeroStock = store.resolveRecommendationTarget({
-    primaryProductId: 'prod-004',
-    relatedProductIds: []
-  });
-  assertEqual(zeroStock.resolvedType, 'PRODUCT', 'zero stock primary kept as PRODUCT');
-  assertEqual(zeroStock.availability, 'ZERO_STOCK', 'zero stock availability');
-  assertEqual(zeroStock.resolvedProductId, 'prod-004', 'zero stock keeps primary');
-
-  var delisted = store.resolveRecommendationTarget({
-    primaryProductId: 'prod-002',
-    relatedProductIds: ['prod-001', 'prod-003']
-  });
-  assertEqual(delisted.resolvedType, 'PRODUCT', 'delisted primary still PRODUCT not auto-substituted');
-  assertEqual(delisted.resolvedProductId, 'prod-002', 'delisted keeps primary');
-  assertEqual(delisted.availability, 'UNAVAILABLE', 'delisted availability');
-  assertEqual(delisted.relatedProductIds.join(','), 'prod-001,prod-003', 'relatedProductIds order preserved');
-
-  var maxRelated = store.resolveRecommendationTarget({
-    primaryProductId: 'prod-001',
-    relatedProductIds: ['prod-003', 'prod-001', 'prod-004', 'prod-002']
-  });
-  assert(maxRelated.relatedProductIds.length <= 3, 'relatedProductIds max 3');
-  assert(maxRelated.relatedProductIds.indexOf('prod-001') < 0, 'related excludes primary');
-
-  var snapRec001 = snap001.contentSnapshot.recommendations.find(function (r) { return r.id === 'rec-001'; });
-  assert(snapRec001 && snapRec001.resolution && snapRec001.resolution.liveRead, 'publish snapshot notes live product read');
-  assert(!snapRec001.resolution.resolvedProductId, 'product config not frozen in publish snapshot');
-
-  store.updateRecommendation({
-    recommendationId: 'rec-001',
-    relatedProductIds: ['prod-004'],
-    actor: 'smoke'
-  });
-  var updatedRec = store.getState().recommendations.find(function (r) { return r.id === 'rec-001'; });
-  assertEqual(updatedRec.relatedProductIds.join(','), 'prod-004', 'updateRecommendation after publish updates live store');
-  var snapAfterUpdate = store.getPublishedVersionSnapshot('report-001');
-  var frozenRecAfter = snapAfterUpdate.contentSnapshot.recommendations.find(function (r) { return r.id === 'rec-001'; });
-  assertEqual(frozenRecAfter.relation.relatedProductIds.join(','), 'prod-003', 'publish snapshot relation unchanged until republish');
-
-  var pickerOnSale = store.searchProductsForPicker(state, { status: 'on_sale' });
+  var pickerOnSale = store.searchProductsForPicker(store.getState(), { status: 'on_sale' });
   assert(pickerOnSale.items.length >= 2, 'searchProductsForPicker filters on_sale');
-  var pickerRecycled = store.searchProductsForPicker(state, { status: 'recycled' });
-  assert(pickerRecycled.items.length === 0, 'searchProductsForPicker excludes recycled by default');
-  var pickerIncludeMissing = store.searchProductsForPicker(state, {
-    status: 'recycled',
+  var pickerRecycled = store.searchProductsForPicker(store.getState(), { status: 'recycled' });
+  assertEqual(pickerRecycled.items.length, 0, 'searchProductsForPicker excludes recycled by default');
+  var pickerIncludeMissing = store.searchProductsForPicker(store.getState(), {
     includeProductIds: ['prod-missing']
   });
   assert(pickerIncludeMissing.items.some(function (p) { return p.id === 'prod-missing'; }), 'searchProductsForPicker includes recycled when in relationship');
 
-  var legacyCategory = store.resolveRecommendationTarget({
-    targetType: 'CATEGORY',
-    categoryId: 'cat-001'
+  var avail = store.resolveProductAvailability('prod-002');
+  assertEqual(avail.status, 'off_shelf', 'resolveProductAvailability 下架');
+  assertEqual(avail.available, false, '下架商品 available=false');
+
+  var taxa = store.listTaxaForRuleTarget('phylum');
+  assert(taxa.some(function (t) { return t.key === 'Firmicutes'; }), 'listTaxaForRuleTarget(phylum)');
+  var genera = store.listTaxaForRuleTarget('genus');
+  assert(genera.some(function (t) { return t.key === 'Klebsiella'; }), 'listTaxaForRuleTarget(genus)');
+
+  var errors = store.validateAnalysisRule({
+    name: '测试',
+    target: { level: 'phylum', taxonKey: 'Firmicutes' },
+    conditionLogic: 'ALL',
+    conditions: [{ id: 'c1', type: 'RANGE_STATUS', rangeStatus: 'low' }],
+    riskLevel: 'medium',
+    output: { analysis: '分析', advice: '建议' }
   });
-  assert(legacyCategory.resolvedType !== 'CATEGORY', 'legacy CATEGORY input never returns CATEGORY');
+  assert(Array.isArray(errors) && errors.length === 0, 'validateAnalysisRule 合法规则');
+}
 
-  var batch = store.simulateBatchImport({
-    files: [
-      { scenario: 'success', fileName: 'ok.xlsx', externalReportNumber: 'EXT-SMOKE-001', sampleNumber: 'SAMPLE-SMOKE-001' },
-      { scenario: 'duplicate', fileName: 'dup.xlsx', sourceOrgId: store.DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-001' },
-      { scenario: 'partial', fileName: 'partial.xlsx', externalReportNumber: 'EXT-SMOKE-002', sampleNumber: 'SAMPLE-SMOKE-002' },
-      { scenario: 'failure', fileName: 'fail.xlsx', externalReportNumber: 'EXT-SMOKE-003', sampleNumber: 'SAMPLE-SMOKE-003' }
-    ]
-  });
-  assert(batch.fileResults.length === 4, 'batch import processes 4 files');
-  assert(batch.fileResults.some(function (r) { return r.status === 'duplicate'; }), 'batch duplicate result');
-  assert(batch.fileResults.some(function (r) { return r.status === 'partial'; }), 'batch partial result');
-  assert(batch.fileResults.some(function (r) { return r.status === 'failed'; }), 'batch failure result');
-  var failedRow = batch.fileResults.find(function (r) { return r.status === 'failed'; });
-  assertEqual(failedRow.testRecordId, null, 'batch failure does not create testRecord');
-
-  var regPet = state.pets.find(function (p) { return p.userId === 'user-001' && p.claimStatus === 'bound'; });
-  assert(regPet, 'seed has bound pet for registration');
-  var registered = store.registerTest({
-    petId: regPet.id,
-    sampleNumber: 'SAMPLE-REG-SMOKE-001',
-    testDate: '2025-08-28',
-    storeId: regPet.storeId || 'store-001'
-  });
-  assertEqual(registered.status, 'pending_result', 'registerTest creates pending_result only');
-  assert(!store.getState().reports.some(function (r) { return r.testRecordId === registered.id; }), 'registerTest does not create report');
-
-  var beforeDirectedCount = store.getState().testRecords.length;
-  var directed = store.simulateBatchImport({
-    testRecordId: registered.id,
-    files: [{ scenario: 'success', fileName: 'directed-ok.xlsx', externalReportNumber: 'EXT-DIR-001', sampleNumber: 'SAMPLE-REG-SMOKE-001' }]
-  });
-  var afterDirected = store.getState();
-  assertEqual(afterDirected.testRecords.length, beforeDirectedCount, 'directed import reuses testRecord');
-  assert(afterDirected.reports.filter(function (r) { return r.testRecordId === registered.id; }).length === 1, 'directed import creates single report');
-  assert(directed.fileResults[0].status === 'success', 'directed import success');
-
-  var directedFailBefore = store.getState().testRecords.length;
-  var regForFail = store.registerTest({
-    petId: regPet.id,
-    sampleNumber: 'SAMPLE-REG-FAIL-001',
-    testDate: '2025-08-28',
-    storeId: regPet.storeId || 'store-001'
-  });
-  store.simulateBatchImport({
-    testRecordId: regForFail.id,
-    files: [{ scenario: 'failure', fileName: 'directed-fail.xlsx', errorCode: 'MISSING_COLUMN' }]
-  });
-  var regAfterFail = store.getState().testRecords.find(function (tr) { return tr.id === regForFail.id; });
-  assertEqual(regAfterFail.status, 'pending_result', 'directed failure keeps pending_result');
-  assertEqual(store.getState().testRecords.length, directedFailBefore + 1, 'directed failure does not add extra testRecord');
-
-  var imported = store.simulateExcelImportSuccess({
-    externalReportNumber: 'EXT-SMOKE-LIFE-001',
-    sampleNumber: 'SAMPLE-SMOKE-LIFE-001',
-    petId: 'pet-001',
-    userId: 'user-001',
-    sourceTemplateId: 'ORG-LAB-GUT-001',
-    indicators: [{
-      key: '放线菌门',
-      value: 10,
-      unit: '%',
-      dataStatus: 'PRESENT',
-      importedRange: { min: 8, max: 12, unit: '%' },
-      sourceTemplateId: 'ORG-LAB-GUT-001'
-    }]
-  });
-  var importedInd = store.getState().indicators.find(function (ind) {
-    return ind.testRecordId === imported.testRecordId && ind.key === '放线菌门';
-  });
-  assert(importedInd && importedInd.importedRange && importedInd.importedRange.min === 8, 'simulateExcelImportSuccess keeps importedRange');
-  assertEqual(importedInd.sourceTemplateId, 'ORG-LAB-GUT-001', 'simulateExcelImportSuccess keeps sourceTemplateId');
-  var lifeReport = store.generateReport({ testRecordId: imported.testRecordId, healthLevel: 'B', healthScore: 80 });
-  store.submitReport(lifeReport.id);
-  store.approveReport(lifeReport.id);
-  store.saveReportAssessment(lifeReport.id, {
-    healthLevel: 'B',
-    healthScore: 80,
-    percentile: 55,
-    summary: 'smoke assessment',
-    platformDimensions: { emotion: 60, immunity: 62 }
-  });
-  store.publishReport(lifeReport.id, { actor: 'smoke' });
-  assertEqual(store.getWorkflowStatus(lifeReport.id), 'published', 'lifecycle publish workflow');
-  assertEqual(store.getUserReportStatus(lifeReport.id, 'user-001'), 'published', 'user sees published report');
-  var pubSnap = store.getPublishedVersionSnapshot(lifeReport.id);
-  assert(pubSnap && pubSnap.contentSnapshot && pubSnap.contentSnapshot.assessment.percentile === 55, 'publish atomically freezes contentSnapshot');
-
-  var newUser = store.createPlatformUser({ name: 'Smoke User', phone: '13900001111' });
-  assert(newUser && newUser.id, 'createPlatformUser');
-  var opsPet = store.createOpsPet({ name: 'Smoke Pet', species: 'dog' });
-  assert(opsPet && opsPet.id, 'createOpsPet prebuild');
-  store.updateProfessionalCatalog(function (catalog) {
-    catalog.meta = catalog.meta || {};
-    catalog.meta.smokeTouched = true;
-  });
-  assert(store.getState().professionalCatalog.meta.smokeTouched, 'updateProfessionalCatalog');
-  store.updateAnalysisState(function (s) {
-    s.analysisRuns = s.analysisRuns || [];
-    s.analysisRuns.push({
-      id: 'run-smoke-001',
-      reportId: lifeReport.id,
-      createdAt: new Date().toISOString(),
-      rawHits: [],
-      combinedResult: {},
-      adjustments: { excludedHits: [], manualFindings: [], finalContent: { professional: 'smoke' } }
-    });
-    s.reportAnalysisAdjustments = s.reportAnalysisAdjustments || {};
-    s.reportAnalysisAdjustments[lifeReport.id] = { latestRunId: 'run-smoke-001' };
-  });
-  assert(store.getState().analysisRuns.some(function (r) { return r.id === 'run-smoke-001'; }), 'updateAnalysisState');
-
-  var draft = store.createCorrectionDraftExtended(lifeReport.id, { summary: '更正草稿' });
-  assert(draft.correctionDraftActive === true, 'correction draft active');
-  var publishedBefore = store.getPublishedVersionSnapshot(lifeReport.id);
-  var projDuring = store.getUserPublishedReportProjection('user-001', lifeReport.id);
-  assert(publishedBefore && publishedBefore.version === draft.publishedVersion, 'user still sees old published version during correction');
-  assert(projDuring && projDuring.contentSnapshot.assessment.percentile === 55, 'correction draft keeps old snapshot projection');
-  store.reviewCorrectionDraft(lifeReport.id, 'approved', null, 'smoke');
-  store.publishCorrection(lifeReport.id, { actor: 'smoke' });
-  var publishedAfter = store.getPublishedVersionSnapshot(lifeReport.id);
-  assert(publishedAfter.version > publishedBefore.version, 'published version replaced after correction publish');
-  assert(publishedAfter.contentSnapshot, 'correction publish atomically freezes new snapshot');
-
-  var voidTarget = store.generateReport({
-    testRecordId: store.simulateExcelImportSuccess({
-      externalReportNumber: 'EXT-SMOKE-VOID-001',
-      sampleNumber: 'SAMPLE-SMOKE-VOID-001',
-      petId: 'pet-002',
-      userId: 'user-001'
-    }).testRecordId
-  });
-  store.submitReport(voidTarget.id);
-  store.publishReport(voidTarget.id);
-  store.voidReport(voidTarget.id, 'smoke void');
-  assertEqual(store.getUserReportStatus(voidTarget.id, 'user-001'), null, 'voided report hidden from user');
-  assert(store.getState().reports.some(function (r) { return r.id === voidTarget.id && r.status === 'voided'; }), 'voided report trace data retained');
-
-  var correction = store.correctOwnership({
-    reportId: 'report-003',
-    userId: 'user-002',
-    petId: 'pet-003',
-    reason: 'smoke ownership correction'
-  });
-  assert(correction && correction.reportId === 'report-003', 'ownership correction recorded');
-  assertEqual(store.getState().reports.find(function (r) { return r.id === 'report-003'; }).userId, 'user-002', 'ownership correction updates report userId');
-
-  assertEqual(store.getUserReportStatus('report-002', 'user-001'), null, 'pending review report hidden from user');
-  assertEqual(store.getUserReportStatus('report-004', 'user-001'), null, 'unlinked pet report hidden before association');
-
-  var claim = store.bindClaimCode({ code: 'CLAIM-PUBLISHED-2025', userId: 'user-001' });
-  assert(claim.petId === 'pet-004', 'claim binds ops prebuilt pet only');
-  assertEqual(store.getUserReportStatus('report-004', 'user-001'), 'published', 'claimed published report visible');
-
-  var visible = store.getUserVisibleReports('user-001');
-  assert(visible.some(function (item) { return item.report.id === 'report-004'; }), 'user visible reports includes claimed published report');
-  assert(!visible.some(function (item) { return item.report.id === 'report-006'; }), 'voided report excluded from user visible reports');
-
-  var petPublished = store.getPetPublishedReports('pet-001');
-  assert(petPublished.length >= 1, 'getPetPublishedReports returns published reports for pet');
-
-  var archivedPet = store.createOpsPet({ name: 'Smoke Archive Pet', species: 'dog', breed: '测试犬' });
-  var archivedTr = store.simulateExcelImportSuccess({
-    externalReportNumber: 'EXT-SMOKE-ARCHIVE-001',
-    sampleNumber: 'SAMPLE-SMOKE-ARCHIVE-001'
-  });
-  store.assignReportOwnership({ testRecordId: archivedTr.testRecordId, petId: archivedPet.id });
-  var archivedReport = store.generateReport({ testRecordId: archivedTr.testRecordId });
-  store.submitReport(archivedReport.id);
-  store.publishReport(archivedReport.id);
-  assertEqual(store.getUserReportStatus(archivedReport.id, 'user-001'), null, 'published report hidden when pet has no user');
-  store.updateOpsPet(archivedPet.id, { userId: 'user-001', reason: 'smoke bind user', actor: 'smoke' });
-  assertEqual(store.getUserReportStatus(archivedReport.id, 'user-001'), 'published', 'visibility follows pet user association');
-
-  assert(store.normalizeDataStatus('VALID') === 'PRESENT', 'VALID migrates to PRESENT');
-
+function testDeprecatedAndLabels() {
   store.reset();
-  var v10Baseline = store.getState();
-  assert(v10Baseline.meta.version >= 10, 'meta.version migrated to >= 10');
-  assert(JSON.stringify(v10Baseline).indexOf('[演示 Mock]') < 0, 'state JSON has no [演示 Mock] prefix');
-  assert(!v10Baseline.meta.disclaimer || !/Mock|演示/.test(v10Baseline.meta.disclaimer), 'meta.disclaimer clean after reset');
+  assertEqual(C.REPORT_STATUS_LABELS.unassigned, '待归属', 'admin-common 待归属');
+  assertEqual(C.REPORT_STATUS_LABELS.incomplete, '待完善', 'admin-common 待完善');
+  assertEqual(C.REPORT_STATUS_LABELS.pending_review, '待审核', 'admin-common 待审核');
+  assertEqual(C.REPORT_STATUS_LABELS.published, '已发布', 'admin-common 已发布');
+  assertEqual(C.REPORT_STATUS_LABELS.voided, '已作废', 'admin-common 已作废');
+  assert(!C.REPORT_STATUS_LABELS.draft, '删除 draft 标签');
+  assert(!C.saveReviewDraft && !C.getReviewDraft, '删除 sessionStorage 审核草稿 API');
+  assert(!C.lookupClaimCode && !C.getPendingClaimCodes && !C.canRecommend, '删除 claim/recommend throw 别名');
+  assert(!C.saveAnalysisFinalContent && !C.reviewCorrectionDraft, '删除已移除审核 API');
+  assert(!C.rejectReportToIncomplete && !C.createCorrectionDraftExtended, '删除状态机薄别名');
 
-  var liveV10 = store.peekState();
-  liveV10.meta.version = 9;
-  liveV10.meta.disclaimer = '演示环境免责声明';
-  if (liveV10.users && liveV10.users.length) {
-    liveV10.users[0].name = '[演示 Mock] 嵌套旧前缀用户';
-  }
-  if (liveV10.reports && liveV10.reports.length && liveV10.reports[0].versions && liveV10.reports[0].versions.length) {
-    liveV10.reports[0].versions[0].summary = '[演示 Mock] 嵌套报告摘要';
-  }
-  var schemeTarget = liveV10.professionalCatalog &&
-    liveV10.professionalCatalog.referenceRangeSchemes &&
-    liveV10.professionalCatalog.referenceRangeSchemes[0];
-  var schemeTargetId = schemeTarget && schemeTarget.id;
-  if (schemeTarget) {
-    schemeTarget.evidenceType = 'demo';
-    schemeTarget.evidenceRef = '演示待专业确认';
-    schemeTarget.name = '参考范围（演示）';
-  }
-  store.getState();
-  var v10Migrated = store.getState();
-  assert(v10Migrated.meta.version >= 10, 'downgrade to v9 triggers v10 migration');
-  assertEqual(v10Migrated.meta.disclaimer, '', 'v10 migration clears demo disclaimer');
-  if (v10Migrated.users && v10Migrated.users.length) {
-    assert(v10Migrated.users[0].name.indexOf('[演示 Mock]') < 0, 'v10 migration strips nested demo prefix from user name');
-    assert(v10Migrated.users[0].name.indexOf('嵌套旧前缀用户') >= 0, 'v10 migration keeps user name body');
-  }
-  if (v10Migrated.reports && v10Migrated.reports.length && v10Migrated.reports[0].versions && v10Migrated.reports[0].versions.length) {
-    assert(v10Migrated.reports[0].versions[0].summary.indexOf('[演示 Mock]') < 0, 'v10 migration strips nested demo prefix from report summary');
-  }
-  if (schemeTargetId) {
-    var migratedScheme = v10Migrated.professionalCatalog.referenceRangeSchemes.find(function (s) {
-      return s.id === schemeTargetId;
-    });
-    assert(migratedScheme, 'v10 migration keeps reference range scheme');
-    assertEqual(migratedScheme.evidenceType, 'internal', 'v10 migration maps demo evidenceType to internal');
-    assertEqual(migratedScheme.evidenceRef, '检测机构内部参考范围', 'v10 migration normalizes demo evidenceRef');
-    assert(migratedScheme.name.indexOf('演示') < 0, 'v10 migration strips demo marker from scheme name');
-  }
-  store.reset();
+  var threw = false;
+  try { store.approveReport('report-001'); } catch (e) { threw = /deprecated/.test(e.message); }
+  assert(threw, 'approveReport 已删除并抛友好错误');
 
-  var resetState = store.reset();
-  assert(resetState.meta.resetAt, 'reset preserves resetAt');
-  assert(resetState.reports.length >= 6, 'reset restores seed reports');
+  var decorated = store.decorateResult(store.getEffectiveResults('report-001')[0]);
+  assert(decorated.isEffective === true || decorated.isEffective === false, 'decorateResult 含 isEffective');
+  assert(C.isValidResultIndicator(store.getEffectiveResults('report-001')[0]), 'isValidResultIndicator 基于 isEffective');
+  assertEqual(store.getWorkflowStatus('report-001'), 'published', 'getWorkflowStatus → report.status');
+}
 
-  console.log('\nSmoke summary: ' + passed + ' passed, ' + failed + ' failed');
-  if (failed > 0) process.exit(1);
+function main() {
+  testSeed();
+  testStateMachine();
+  testUnitsAndEngine();
+  testPublicationChecks();
+  testSnapshotFreeze();
+  testCatalogAndPicker();
+  testDeprecatedAndLabels();
+
+  console.log('\n' + passed + ' passed, ' + failed + ' failed');
+  if (failed) process.exit(1);
 }
 
 main();
