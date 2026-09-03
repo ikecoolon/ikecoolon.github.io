@@ -414,8 +414,16 @@
     if (route.page === 'report') bindReportSurface(route);
   }
 
+  function applyPersonaParam(route) {
+    var key = route.params && route.params.persona;
+    if (!key) return;
+    var persona = H.DEMO_PERSONAS.find(function (item) { return item.id === key; });
+    if (persona) H.setCurrentUserId(persona.userId);
+  }
+
   function renderCurrentRoute() {
     var route = parseRoute();
+    applyPersonaParam(route);
 
     if (redirectLegacyRoute(route)) return;
 
