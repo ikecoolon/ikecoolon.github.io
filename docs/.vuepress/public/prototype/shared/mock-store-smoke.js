@@ -74,10 +74,11 @@ function testSeed() {
   assert(!state.healthTagProducts, 'no healthTagProducts collection');
   assert(!state.claimCodes, 'no claimCodes collection');
   assert(!state.reportAnalysisAdjustments, 'no reportAnalysisAdjustments collection');
-  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v3', 'storage key v3');
-  assertEqual(store.REPORT_STATUSES.join(','), 'unassigned,incomplete,pending_review,published,voided', 'five report statuses');
+  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v4', 'storage key v4');
+  assertEqual(store.REPORT_STATUSES.join(','), 'unassigned,incomplete,pending_review,published,voided', 'five report statuses remain in model');
   assertEqual(store.OWNERSHIP_STATUSES.join(','), 'unassigned,bound', 'ownership two values');
   assert(store.WORKFLOW_STATUSES === store.REPORT_STATUSES, 'WORKFLOW_STATUSES aliases REPORT_STATUSES');
+  assertEqual(store.SUBMISSION_TYPES.join(','), 'in_store,customer_brought', 'submission types');
 
   var r1 = findReport(state, 'report-001');
   var r2 = findReport(state, 'report-002');
@@ -142,17 +143,23 @@ function testSeed() {
   assertEqual(r5.status, 'voided', 'report-005 voided');
   assertEqual(r5.petId, 'pet-002', 'report-005 阿黄');
 
-  assertEqual(r6.status, 'unassigned', 'report-006 unassigned');
-  assert(!r6.petId && !r6.userId, 'report-006 无宠物/用户');
+  assertEqual(r6.status, 'incomplete', 'report-006 incomplete (oscar 已挂送检+宠物)');
+  assertEqual(r6.petId, 'pet-005', 'report-006 豆豆');
+  assertEqual(r6.userId, 'user-002', 'report-006 李先生');
   assert(!r6.latestAnalysisRunId, 'report-006 未运行分析');
   var units6 = store.getPhylumUnits('report-006');
   assert(units6.length >= 5, 'report-006 空壳菌门单元已懒创建');
   assert(units6.every(function (u) { return (u.hits || []).length === 0; }), 'report-006 单元 hits 为空');
   var tr6 = state.testRecords.find(function (t) { return t.id === 'tr-009'; });
-  assertEqual(tr6.sampleNumber, 'SAMPLE-NEW-UNASSIGNED-009', 'report-006 对应 tr-009');
+  assertEqual(tr6.sampleNumber, 'SAMPLE-OSCAR-009', 'report-006 对应 tr-009');
+  assertEqual(tr6.petId, 'pet-005', 'tr-009 已关联宠物');
+  assertEqual(tr6.userId, 'user-002', 'tr-009 已关联用户');
+  assertEqual(tr6.submissionType, 'customer_brought', 'oscar 为客户自带报告');
   var batchOscar = state.importBatches.find(function (b) { return b.id === tr6.importBatchId; });
   assertEqual(batchOscar.fileName, 'oscar_final_microbiome_report.xlsx', 'report-006 oscar file');
-  assertEqual(tr6.claimStatus, 'unassigned', 'tr-009 claimStatus unassigned');
+  assertEqual(tr6.claimStatus, 'bound', 'tr-009 claimStatus bound');
+  assert(state.reports.every(function (r) { return r.status !== 'unassigned'; }), 'seed 无待归属报告');
+  assertEqual(state.pets.filter(function (p) { return p.userId === 'user-002'; }).length, 2, 'user-002 两只宠物（咪咪+豆豆）');
 
   var r7 = findReport(state, 'report-007');
   assertEqual(r7.status, 'published', 'report-007 published');
@@ -169,6 +176,23 @@ function testSeed() {
   } catch (err) {
     assert(/送检记录/.test(err.message), '无预登记批量导入抛错');
   }
+
+  try {
+    store.registerTest({ petId: 'pet-001', sampleNumber: 'S-1', testDate: '2025-09-01', storeId: 'store-001' });
+    assert(false, '缺送检类型应被拒绝');
+  } catch (err) {
+    assert(/送检类型/.test(err.message), '登记送检必填送检类型');
+  }
+  var registered = store.registerTest({
+    petId: 'pet-001',
+    sampleNumber: 'S-BROUGHT-1',
+    testDate: '2025-09-01',
+    storeId: 'store-001',
+    submissionType: 'customer_brought'
+  });
+  assertEqual(registered.submissionType, 'customer_brought', '可登记客户自带报告');
+  store.setReportStatus('report-006', 'unassigned');
+  assertEqual(store.getReport('report-006').status, 'incomplete', '不得把报告写入待归属');
 
   var bacteroidetes = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Bacteroidetes'; });
   assert(bacteroidetes && bacteroidetes.edu && bacteroidetes.edu.hint, 'edu.hint 存在');
@@ -361,7 +385,7 @@ function testCatalogAndPicker() {
 
 function testDeprecatedAndLabels() {
   store.reset();
-  assertEqual(C.REPORT_STATUS_LABELS.unassigned, '待归属', 'admin-common 待归属');
+  assertEqual(C.REPORT_STATUS_LABELS.unassigned, '待归属', 'admin-common 仍保留待归属标签但不作为入口');
   assertEqual(C.REPORT_STATUS_LABELS.incomplete, '待完善', 'admin-common 待完善');
   assertEqual(C.REPORT_STATUS_LABELS.pending_review, '待审核', 'admin-common 待审核');
   assertEqual(C.REPORT_STATUS_LABELS.published, '已发布', 'admin-common 已发布');
@@ -382,6 +406,46 @@ function testDeprecatedAndLabels() {
   assertEqual(store.getWorkflowStatus('report-001'), 'published', 'getWorkflowStatus → report.status');
 }
 
+function testIntakePipeline() {
+  store.reset();
+  var inStore = store.registerTest({
+    petId: 'pet-001',
+    sampleNumber: 'S-INSTORE-PIPE',
+    testDate: '2025-09-02',
+    storeId: 'store-001',
+    submissionType: 'in_store'
+  });
+  var imported = store.simulateExcelImportSuccess({
+    testRecordId: inStore.id,
+    fileName: 'lab_in_store.xlsx',
+    sampleNumber: 'S-INSTORE-PIPE'
+  });
+  var report = store.peekState().reports.find(function (r) { return r.testRecordId === inStore.id; });
+  assert(report, '本店送检行上导入生成报告');
+  assertEqual(report.status, 'incomplete', '本店送检导入后进入待完善');
+  assertEqual(report.petId, 'pet-001', '导入后仍挂原宠物');
+  assertEqual(inStore.submissionType, 'in_store', '本店送检类型保留');
+  assertEqual(imported.testRecordId, inStore.id, '导入写入原送检记录');
+
+  store.reset();
+  var brought = store.registerTest({
+    petId: 'pet-006',
+    sampleNumber: 'S-BROUGHT-PIPE',
+    testDate: '2025-09-02',
+    storeId: 'store-001',
+    submissionType: 'customer_brought'
+  });
+  store.simulateExcelImportSuccess({
+    testRecordId: brought.id,
+    fileName: 'customer_file.xlsx',
+    sampleNumber: 'S-BROUGHT-PIPE'
+  });
+  var report2 = store.peekState().reports.find(function (r) { return r.testRecordId === brought.id; });
+  assertEqual(report2.status, 'incomplete', '客户自带报告导入后进入待完善');
+  assertEqual(report2.petId, 'pet-006', '客户自带报告仍挂原宠物');
+  assertEqual(store.getReport(report2.id).status !== 'unassigned', true, '导入不进入待归属');
+}
+
 function main() {
   testSeed();
   testStateMachine();
@@ -390,6 +454,7 @@ function main() {
   testSnapshotFreeze();
   testCatalogAndPicker();
   testDeprecatedAndLabels();
+  testIntakePipeline();
 
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   if (failed) process.exit(1);

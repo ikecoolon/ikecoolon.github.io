@@ -5,15 +5,14 @@ function initReportCenter() {
   var VIEW_LABELS = {
     pending: '待处理',
     all: '全部',
-    unassigned: '待归属',
     incomplete: '待完善',
     pending_review: '待审核',
     published: '已发布',
     voided: '已作废'
   };
 
-  var PENDING_STATUSES = ['unassigned', 'incomplete', 'pending_review'];
-  var QUEUE_SORT_VIEWS = ['pending', 'unassigned', 'incomplete', 'pending_review'];
+  var PENDING_STATUSES = ['incomplete', 'pending_review'];
+  var QUEUE_SORT_VIEWS = ['pending', 'incomplete', 'pending_review'];
   var SPECIES_LABEL = { cat: '猫', dog: '狗', 猫: '猫', 狗: '狗' };
 
   var currentView = 'pending';
@@ -193,12 +192,6 @@ function initReportCenter() {
   }
 
   function userPetCell(row) {
-    if (row.status === 'unassigned') {
-      var parts = ['未归属'];
-      if (row.batchFileName) parts.push(row.batchFileName);
-      if (row.sampleNumber) parts.push(row.sampleNumber);
-      return '<div class="text-slate-600 text-xs leading-5">' + C.escapeHtml(parts.join(' · ')) + '</div>';
-    }
     return '<div class="text-slate-800">' + C.escapeHtml(row.userName) + '</div>' +
       '<div class="text-xs text-slate-500">' + C.escapeHtml(row.petName) + '</div>';
   }
@@ -207,8 +200,6 @@ function initReportCenter() {
     var label = '查看';
     if (row.correctionDraftActive) {
       label = row.correctionStage === 'pending_review' ? '审核更正' : '处理更正';
-    } else if (row.status === 'unassigned') {
-      label = '处理归属';
     } else if (row.status === 'incomplete') {
       label = '完善';
     } else if (row.status === 'pending_review') {
@@ -297,7 +288,7 @@ function initReportCenter() {
     var route = C.parseRoute();
     var view = route.params.view || route.params.status || 'pending';
     if (view === 'pending_result') view = 'pending';
-    if (!VIEW_LABELS[view]) view = 'pending';
+    if (view === 'unassigned' || !VIEW_LABELS[view]) view = 'pending';
     setActiveView(view);
   }
 
@@ -320,7 +311,7 @@ function initReportCenter() {
       return;
     }
     if (action === 'versions' && row.reportId) {
-      C.navigate('report-review', withReturnView({ reportId: row.reportId, module: 'versions' }));
+      C.navigate('report-review', withReturnView({ reportId: row.reportId, module: 'source', focus: 'trace' }));
       return;
     }
     if (action === 'records' && row.testRecordId) {
