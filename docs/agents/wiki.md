@@ -1,6 +1,6 @@
 # Pet Eden Wiki VAULT
 
-当前 `product/pet-eden` 分支只服务宠物健康报告，所有 Wiki 操作固定使用同一个 VAULT：
+当前项目只服务宠物健康报告（Pet Eden），所有 Wiki 操作固定使用同一个 VAULT：
 
 - 本地路径：`/Users/zhaoyanlong/Documents/personal/pet-eden-wiki`
 - GitHub 远程：`https://github.com/ikecoolon/pet-eden-wiki`

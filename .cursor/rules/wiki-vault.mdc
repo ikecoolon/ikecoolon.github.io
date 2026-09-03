@@ -1,11 +1,11 @@
 ---
-description: 固定宠物健康报告分支使用唯一的 Pet Eden Wiki VAULT
+description: 固定宠物健康报告项目使用唯一的 Pet Eden Wiki VAULT
 alwaysApply: true
 ---
 
 # Pet Eden Wiki VAULT
 
-本分支只服务宠物健康报告，唯一 Wiki VAULT 为：
+本项目只服务宠物健康报告（Pet Eden），唯一 Wiki VAULT 为：
 
 - 本地：`/Users/zhaoyanlong/Documents/personal/pet-eden-wiki`
 - GitHub：`https://github.com/ikecoolon/pet-eden-wiki`

@@ -1,6 +1,6 @@
 # 宠物健康报告文档工程
 
-本分支只承载宠物健康报告（Pet Eden）的产品文档与静态原型；本仓库不是 Wiki VAULT。
+本项目只承载宠物健康报告（Pet Eden）的产品文档与静态原型；本仓库不是 Wiki VAULT。
 
 ## 固定 Wiki VAULT
 
