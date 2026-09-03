@@ -73,6 +73,7 @@ module.exports = config({
                 'document-structure',
                 'business-logic',
                 'prototype',
+                'project-progress',
                 'iteration',
                 'launch',
                 'collaboration',
