@@ -36,129 +36,85 @@
     return html;
   }
 
+  function renderHomePrimary(processing, published) {
+    if (processing.length) {
+      var card = processing[0];
+      return '<div class="home-primary processing-card" aria-disabled="true">' +
+        '<div class="home-primary-kicker">当前进度</div>' +
+        '<div class="home-primary-title">报告处理中</div>' +
+        '<div class="home-primary-sub">检测日期 ' + esc(H.formatDate(card.testDate)) +
+        ' · 发布后可查看完整报告</div></div>';
+    }
+    if (published.length) {
+      var latest = published[0];
+      return '<button type="button" class="home-primary published-card" data-nav="report" data-report-id="' +
+        esc(latest.reportId) + '">' +
+        '<div class="home-primary-kicker">最新报告</div>' +
+        '<div class="home-primary-title">' + esc(latest.title) + '</div>' +
+        '<div class="home-primary-sub">检测日期 ' + esc(H.formatDate(latest.testDate)) + ' · 查看完整报告</div>' +
+        '<i class="fas fa-chevron-right home-primary-chevron"></i></button>';
+    }
+    return '<div class="home-primary empty-card"><p>该宠物暂无报告</p></div>';
+  }
+
   function renderHome() {
-    var stats = H.countUserStats();
     var pets = H.getUserPets();
-    var html = '<div class="page-shell">';
-
-    html += '<section class="hero-card">';
-    html += '<div class="hero-text"><h2>我的宠物</h2><p>查看关联宠物、报告处理中与已发布报告</p></div>';
-    html += '<button type="button" class="btn-primary compact" data-nav="pets"><i class="fas fa-paw"></i>全部宠物</button>';
-    html += '</section>';
-
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>宠物列表</h3><span class="hint-text">' + stats.petCount + ' 只</span></div>';
+    var html = '<div class="page-shell home-page">';
 
     if (!pets.length) {
-      html += '<div class="empty-hint"><i class="fas fa-paw"></i><p>暂无关联宠物</p></div>';
-    } else {
-      pets.forEach(function (pet) {
-        var count = H.countVisibleReportsForPet(pet.id, H.CURRENT_USER_ID);
-        html += '<button type="button" class="list-card actionable" data-nav="pet-reports" data-pet-id="' + esc(pet.id) + '">';
-        html += '<div class="pet-avatar sm"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
-        html += '<div class="list-card-main">';
-        html += '<div class="list-title">' + esc(H.stripDemo(pet.name)) + '</div>';
-        html += '<div class="list-sub">' + esc(pet.breed) + ' · ' + count + ' 份报告</div>';
-        html += '</div>';
-        html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
+      html += '<section class="empty-pet-block">';
+      html += '<p class="empty-pet-copy">暂无宠物，请联系门店</p>';
+      html += '</section></div>';
+      return html;
+    }
+
+    var petId = H.getSelectedPetId();
+    var pet = petId ? H.findPet(petId) : pets[0];
+    var petName = H.stripDemo(pet.name);
+    var cards = H.getUserVisibleCards(H.getCurrentUserId(), { petId: pet.id });
+    var processing = cards.filter(function (c) { return c.userStatus === 'in_progress'; });
+    var published = cards.filter(function (c) { return c.userStatus === 'published'; });
+
+    if (pets.length >= 2) {
+      html += '<div class="pet-switcher" role="tablist" aria-label="切换宠物">';
+      pets.forEach(function (item) {
+        var active = item.id === pet.id;
+        html += '<button type="button" class="pet-chip' + (active ? ' active' : '') + '" data-switch-pet="' +
+          esc(item.id) + '"' + (active ? ' aria-current="true"' : '') + '>';
+        html += '<i class="fas ' + H.petSpeciesIcon(item) + '"></i>' + esc(H.stripDemo(item.name));
+        html += '</button>';
       });
-    }
-    html += '</section>';
-
-    if (pets.length) {
-      html += '<section class="section-block">';
-      html += '<div class="section-head"><h3>最近报告</h3><span class="hint-text">含处理中与已发布</span></div>';
-      var recent = H.getUserVisibleCards(H.CURRENT_USER_ID).slice(0, 3);
-      if (!recent.length) {
-        html += '<div class="empty-inline">暂无报告记录</div>';
-      } else {
-        recent.forEach(function (card) { html += renderReportCard(card); });
-      }
-      html += '</section>';
-    }
-
-    html += '</div>';
-    return html;
-  }
-
-  function renderPets() {
-    var pets = H.getUserPets();
-    var html = '<div class="page-shell">';
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>我的宠物</h3></div>';
-
-    if (!pets.length) {
-      html += '<div class="empty-hint"><i class="fas fa-paw"></i><p>暂无关联宠物</p></div>';
-    }
-
-    pets.forEach(function (pet) {
-      var count = H.countVisibleReportsForPet(pet.id, H.CURRENT_USER_ID);
-      html += '<button type="button" class="list-card actionable" data-nav="pet-reports" data-pet-id="' + esc(pet.id) + '">';
-      html += '<div class="pet-avatar sm"><i class="fas ' + H.petSpeciesIcon(pet) + '"></i></div>';
-      html += '<div class="list-card-main">';
-      html += '<div class="list-title">' + esc(H.stripDemo(pet.name)) + '</div>';
-      html += '<div class="list-sub">' + esc(pet.breed) + ' · ' + count + ' 份已发布报告</div>';
       html += '</div>';
-      html += '<i class="fas fa-chevron-right list-chevron"></i></button>';
-    });
-
-    html += '</section></div>';
-    return html;
-  }
-
-  function renderPetReports(params) {
-    var pet = params.petId ? H.findPet(params.petId) : null;
-    if (!pet || pet.userId !== H.CURRENT_USER_ID) {
-      return '<div class="page-shell"><div class="empty-hint"><p>未找到宠物或无权查看</p></div></div>';
     }
 
-    var cards = H.getUserVisibleCards(H.CURRENT_USER_ID, { petId: pet.id });
-    var html = '<div class="page-shell">';
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>' + esc(H.stripDemo(pet.name)) + '</h3><span class="readonly-tag">只读</span></div>';
-    html += '<dl class="detail-list pet-detail-inline">';
-    html += '<div><dt>物种</dt><dd>' + esc(pet.species === 'cat' ? '猫' : '犬') + '</dd></div>';
-    html += '<div><dt>品种</dt><dd>' + esc(pet.breed || '—') + '</dd></div>';
-    html += '<div><dt>性别</dt><dd>' + esc(H.genderLabel(pet.gender)) + '</dd></div>';
-    html += '<div><dt>年龄</dt><dd>' + esc(pet.age != null ? String(pet.age) + ' 岁' : '—') + '</dd></div>';
-    html += '</dl>';
+    html += '<section class="home-greeting">';
+    html += '<p class="home-hi">Hi, ' + esc(petName) + '</p>';
+    html += '<p class="home-sub">' + esc(pet.breed || (pet.species === 'dog' ? '狗狗' : '猫咪')) + '</p>';
     html += '</section>';
 
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>检测报告</h3><span class="hint-text">' + cards.length + ' 份</span></div>';
-    if (!cards.length) {
-      html += '<div class="empty-inline">该宠物暂无报告记录</div>';
+    html += renderHomePrimary(processing, published);
+
+    html += '<section class="section-block home-history">';
+    html += '<div class="section-head"><h3>历史报告</h3></div>';
+    if (!published.length) {
+      html += '<div class="empty-inline">暂无已发布报告</div>';
     } else {
-      cards.forEach(function (card) { html += renderReportCard(card); });
+      published.forEach(function (card) { html += renderReportCard(card); });
     }
     html += '</section></div>';
     return html;
-  }
-
-  function renderPetDetail(params) {
-    if (params && params.petId) {
-      return renderPetReports({ petId: params.petId });
-    }
-    return '<div class="page-shell"><div class="empty-hint"><p>未找到宠物</p></div></div>';
   }
 
   function renderProfile() {
     var user = H.getCurrentUser();
-    var stats = H.countUserStats();
-    var html = '<div class="page-shell">';
+    var html = '<div class="page-shell profile-page">';
     html += '<section class="profile-header">';
     html += '<div class="profile-avatar"><i class="fas fa-user"></i></div>';
     html += '<div>';
-    html += '<div class="profile-name">' + esc(H.stripDemo(user ? user.name : '用户')) + '</div>';
+    html += '<div class="profile-name">' + esc(H.stripDemo(user ? user.name : '微信用户')) + '</div>';
     html += '<div class="profile-phone">' + esc(user ? user.phone : '') + '</div>';
     html += '</div></section>';
-
-    html += '<section class="section-block">';
-    html += '<div class="section-head"><h3>我的宠物</h3><span class="hint-text">' + stats.petCount + ' 只 · ' + stats.publishedCount + ' 份报告</span></div>';
-    html += '<div class="menu-list">';
-    html += '<button type="button" class="menu-item" data-nav="pets"><i class="fas fa-paw"></i><span>宠物列表</span><i class="fas fa-chevron-right"></i></button>';
-    html += '</div></section>';
-
+    html += '<p class="profile-contact">资料有误请联系运营</p>';
     html += '</div>';
     return html;
   }
@@ -445,9 +401,10 @@
     var level = version.healthLevel || 'C';
     var petName = pet ? H.stripDemo(pet.name) : 'TA';
     var pills = HERO_PILL_KEYS.map(function (key) {
-      return partitioned.regular.find(function (ind) { return ind.key === key; }) ||
-        partitioned.microbiota.find(function (ind) { return ind.key === key; });
-    }).filter(Boolean);
+      var ind = partitioned.regular.find(function (item) { return item.key === key; }) ||
+        partitioned.microbiota.find(function (item) { return item.key === key; });
+      return { key: key, indicator: ind };
+    });
     var orbs = tree.slice(0, 4);
     var dims = overlay.dimensions || [];
     var emotion = dims.find(function (d) { return d.key === 'emotion'; });
@@ -460,14 +417,19 @@
     html += ' <button type="button" class="icon-q on-dark" data-open-grade-info aria-label="等级说明">i</button></p>';
     html += '</div>';
 
-    if (pills.length) {
-      html += '<div class="hero-pills">';
-      pills.forEach(function (ind) {
-        html += '<div class="hero-pill"><span class="hero-pill-num">' + esc(prettyNum(H.resultNumericValue(ind))) + '</span>';
-        html += '<span class="hero-pill-label">' + esc(H.getIndicatorLabel(ind.key)) + '</span></div>';
-      });
-      html += '</div>';
-    }
+    html += '<div class="hero-pills">';
+    pills.forEach(function (pill) {
+      var raw = pill.indicator ? H.resultNumericValue(pill.indicator) : null;
+      var missing = raw == null || raw === '';
+      html += '<div class="hero-pill">';
+      if (missing) {
+        html += '<span class="hero-pill-num is-empty">暂无有效结果</span>';
+      } else {
+        html += '<span class="hero-pill-num">' + esc(prettyNum(raw)) + '</span>';
+      }
+      html += '<span class="hero-pill-label">' + esc(H.getIndicatorLabel(pill.key)) + '</span></div>';
+    });
+    html += '</div>';
 
     html += '<div class="hero-scene" aria-hidden="true">';
     html += '<div class="scene-glow"></div>';
@@ -576,6 +538,18 @@
     html += '</section>';
     html += '</div>';
     return html;
+  }
+
+  function renderPets() {
+    return renderHome();
+  }
+
+  function renderPetReports() {
+    return renderHome();
+  }
+
+  function renderPetDetail() {
+    return renderHome();
   }
 
   root.PetMiniPages = {

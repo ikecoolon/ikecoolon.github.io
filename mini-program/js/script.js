@@ -8,17 +8,15 @@
   var PAGE_TITLES = {
     home: '首页',
     profile: '我的',
-    pets: '宠物',
-    'pet-reports': '宠物详情',
-    'pet-detail': '宠物详情',
     report: '报告详情',
     'spu-detail': 'SPU 详情'
   };
 
-  var MAIN_PAGES = ['home', 'pets', 'profile'];
+  var MAIN_PAGES = ['home', 'profile'];
   var DEPRECATED_PAGES = [
     'progress', 'history', 'reports', 'claim',
-    'finding', 'metrics', 'recommendation-target', 'recommendation' + 's'
+    'finding', 'metrics', 'recommendation-target', 'recommendation' + 's',
+    'pets', 'pet-reports', 'pet-detail', 'settings'
   ];
 
   var navTitle = null;
@@ -81,12 +79,8 @@
   }
 
   function redirectLegacyRoute(route) {
-    if (route.page === 'pet-detail' && route.id) {
-      navigate('pet-reports', route.id, null, true);
-      return true;
-    }
     if (DEPRECATED_PAGES.indexOf(route.page) >= 0) {
-      navigate('pets', null, null, true);
+      navigate('home', null, null, true);
       return true;
     }
     return false;
@@ -394,15 +388,15 @@
         var target = el.getAttribute('data-nav');
         if (!target) return;
 
-        if (target === 'pets') return navigate('pets');
-        if (target === 'pet-reports') return navigate('pet-reports', el.getAttribute('data-pet-id'));
-        if (target === 'pet-detail') {
-          var legacyPetId = el.getAttribute('data-pet-id');
-          if (legacyPetId) return navigate('pet-reports', legacyPetId);
-          return navigate('pets');
-        }
         if (target === 'report') return navigate('report', el.getAttribute('data-report-id'));
         if (target === 'spu-detail') return navigate('spu-detail', el.getAttribute('data-product-id'));
+      });
+    });
+
+    pageContainer.querySelectorAll('[data-switch-pet]').forEach(function (el) {
+      el.addEventListener('click', function () {
+        H.setSelectedPetId(el.getAttribute('data-switch-pet'));
+        renderCurrentRoute();
       });
     });
 
@@ -420,8 +414,16 @@
     if (route.page === 'report') bindReportSurface(route);
   }
 
+  function applyPersonaParam(route) {
+    var key = route.params && route.params.persona;
+    if (!key) return;
+    var persona = H.DEMO_PERSONAS.find(function (item) { return item.id === key; });
+    if (persona) H.setCurrentUserId(persona.userId);
+  }
+
   function renderCurrentRoute() {
     var route = parseRoute();
+    applyPersonaParam(route);
 
     if (redirectLegacyRoute(route)) return;
 
@@ -441,15 +443,6 @@
         case 'profile':
           html = P.renderProfile();
           break;
-        case 'pets':
-          html = P.renderPets();
-          break;
-        case 'pet-reports':
-          html = P.renderPetReports({ petId: route.id });
-          break;
-        case 'pet-detail':
-          html = P.renderPetDetail({ petId: route.id });
-          break;
         case 'report':
           html = P.renderReport({ reportId: route.id });
           break;
@@ -467,6 +460,7 @@
     pageContainer.innerHTML = html;
     applyImmersiveTheme();
     bindPageEvents(route);
+    syncDemoPersonaButtons();
     pageContainer.scrollTop = 0;
     if (route.page === 'report' && route.params.view === 'sheet') {
       requestAnimationFrame(function () {
@@ -474,6 +468,16 @@
         if (sheet) sheet.scrollIntoView({ block: 'start' });
       });
     }
+  }
+
+  function syncDemoPersonaButtons() {
+    var userId = H.getCurrentUserId();
+    document.querySelectorAll('[data-demo-persona]').forEach(function (btn) {
+      var persona = H.DEMO_PERSONAS.find(function (item) {
+        return item.id === btn.getAttribute('data-demo-persona');
+      });
+      btn.classList.toggle('active', !!(persona && persona.userId === userId));
+    });
   }
 
   function init() {
@@ -496,6 +500,20 @@
         navigate(tab.dataset.page);
       });
     });
+
+    document.querySelectorAll('[data-demo-persona]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var persona = H.DEMO_PERSONAS.find(function (item) {
+          return item.id === btn.getAttribute('data-demo-persona');
+        });
+        if (!persona) return;
+        H.setCurrentUserId(persona.userId);
+        syncDemoPersonaButtons();
+        navigate('home', null, null, true);
+        renderCurrentRoute();
+      });
+    });
+    syncDemoPersonaButtons();
 
     backButton.addEventListener('click', function () {
       if (window.history.length > 1) {

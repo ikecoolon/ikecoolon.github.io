@@ -1450,41 +1450,145 @@ body.mk-drawer-open {
   background: #f0f0f0;
 }
 
-.rw-preview-tabs {
-  display: flex;
-  gap: 0;
-  background: #fff;
-  border-bottom: 1px solid var(--ant-border);
-}
-
-.rw-preview-tab {
-  flex: 1;
-  padding: 8px 4px;
-  border: none;
-  background: transparent;
-  font-size: 11px;
-  cursor: pointer;
-  color: var(--ant-text-secondary);
-  border-bottom: 2px solid transparent;
-}
-
-.rw-preview-tab.active {
-  color: #1a6b5c;
-  border-bottom-color: #1a6b5c;
-  font-weight: 500;
-}
-
 .rw-preview-frame {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 0;
   display: flex;
   justify-content: center;
+  background: #071510;
 }
 
 .rw-mini-app {
   width: 100%;
   max-width: 360px;
+}
+
+.rw-scroll-report {
+  position: relative;
+  color: #eef6f1;
+  min-height: 100%;
+  padding-bottom: 28px;
+}
+.rw-scroll-report.theme-A { background: radial-gradient(120% 80% at 50% 30%, #1d4a38 0%, #071510 62%); }
+.rw-scroll-report.theme-B { background: radial-gradient(120% 80% at 50% 28%, #16344a 0%, #07141c 64%); }
+.rw-scroll-report.theme-C { background: radial-gradient(120% 80% at 50% 30%, #35553a 0%, #121a14 64%); }
+.rw-scroll-report.theme-D { background: radial-gradient(120% 80% at 50% 28%, #3a4638 0%, #101410 64%); }
+.rw-scroll-report.theme-E { background: radial-gradient(120% 80% at 70% 20%, #c4783a 0%, #24160c 58%); }
+
+.rw-report-hero { padding: 16px 16px 8px; }
+.rw-hero-hi { margin: 0 0 6px; font-size: 22px; font-weight: 700; }
+.rw-hero-grade { margin: 0 0 12px; font-size: 12px; color: rgba(238,246,241,0.86); line-height: 1.5; cursor: pointer; }
+.rw-hero-grade strong { font-size: 18px; color: #fff; }
+.rw-hero-pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+.rw-hero-pill {
+  background: rgba(255,255,255,0.28);
+  border-radius: 14px;
+  padding: 8px 4px;
+  text-align: center;
+}
+.rw-hero-pill-num { display: block; font-size: 16px; font-weight: 800; }
+.rw-hero-pill-num.is-empty { font-size: 10px; font-weight: 600; }
+.rw-hero-pill-label { display: block; margin-top: 4px; font-size: 10px; opacity: 0.8; }
+.rw-hero-dims { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+.rw-dim-card {
+  background: rgba(255,255,255,0.16);
+  border-radius: 12px;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.rw-dim-card span { font-size: 11px; opacity: 0.8; }
+.rw-dim-card strong { display: block; font-size: 18px; }
+.rw-qual { display: inline-block; margin-top: 4px; font-size: 10px; padding: 1px 6px; border-radius: 999px; }
+.rw-qual.is-strong { background: #3d8b6e; }
+.rw-qual.is-mid { background: #c9852b; }
+.rw-qual.is-weak { background: #c44d4d; }
+.rw-hero-percentile {
+  background: rgba(0,0,0,0.28);
+  border-radius: 999px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+}
+.rw-hero-percentile strong { color: #f5d56e; font-size: 16px; }
+.rw-hero-more {
+  display: block;
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #eef6f1;
+  font-size: 13px;
+  padding: 8px 0 4px;
+  cursor: pointer;
+}
+
+.rw-report-sheet {
+  background: #f6f3ee;
+  color: #2c2a28;
+  border-radius: 20px 20px 0 0;
+  padding: 16px 14px 24px;
+  min-height: 280px;
+}
+.rw-compare-block h3 { margin: 0; font-size: 18px; }
+.rw-compare-block p { margin: 4px 0 10px; font-size: 12px; color: #6b6560; }
+.rw-seg { display: flex; gap: 8px; margin-bottom: 10px; }
+.rw-seg-btn {
+  flex: 1;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 6px;
+  font-size: 12px;
+  background: #e8e4df;
+  color: #2c2a28;
+  cursor: pointer;
+}
+.rw-seg-btn.active { background: #1a6b5c; color: #fff; }
+.rw-cmp-row { font-size: 11px; margin-bottom: 8px; }
+.rw-phylum-tabs { display: flex; gap: 6px; overflow-x: auto; margin: 12px 0; }
+.rw-phylum-tab {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.rw-phylum-tab.active { background: #1a6b5c; color: #fff; }
+.rw-phylum-hero { background: #fff; border-radius: 12px; padding: 12px; margin-bottom: 8px; }
+.rw-phylum-name { font-weight: 600; }
+.rw-phylum-value { font-size: 22px; font-weight: 800; color: #c44d4d; }
+.rw-phylum-range { font-size: 11px; color: #6b6560; }
+.rw-advice-tabs { display: flex; gap: 8px; margin: 8px 0; }
+.rw-advice-tab {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 8px;
+  font-size: 12px;
+  background: #fff;
+  cursor: pointer;
+}
+.rw-advice-tab.active { background: #1a6b5c; color: #fff; }
+.rw-advice-panel {
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.rw-mini-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 9px;
+  color: #5a9e8f;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 2px 6px;
+  border-radius: 4px;
 }
 
 .rw-mini-shell {
