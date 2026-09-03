@@ -25,3 +25,28 @@
  * 分组小计（人日）：产品设计 2 / PC 管理端 18 / 小程序 8 / 后端 16 / 部署 5，合计 49 人日（392 人时）。
  * 含 20% 缓冲：9.8 人日（78.4 人时），总计 58.8 人日（470.4 人时）。
  */
+window.PROJECT_PROGRESS_DATA = {
+  meta: {
+    title: '项目进度管理',
+    hoursPerWorkday: 8,
+    workdaysPerWeek: 5,
+    planWorkdaysPerWeek: 5,
+    bufferRate: 0.2,
+    devStartWeek: 1,
+    devEndWeek: 9,
+    bufferStartWeek: 10,
+    bufferEndWeek: 11,
+    totalWeeks: 11,
+    projectStartDate: ''
+  },
+  lanes: [
+    { id: 'product', name: '产品' },
+    { id: 'frontend', name: '前端' },
+    { id: 'backend', name: '后端' },
+    { id: 'deploy', name: '部署' },
+    { id: 'external', name: '待甲方预备' }
+  ],
+  tasks: [
+    { id: 'pd-01', lane: 'product', group: '产品设计', name: '产品设计', owner: '产品经理', workdays: 2, startWeek: 1, endWeek: 1, progress: 100, status: 'done' }
+  ]
+};
