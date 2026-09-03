@@ -9,6 +9,13 @@
     <link rel="stylesheet" href="./css/app.css">
 </head>
 <body class="app-body">
+    <div class="demo-persona-bar" role="navigation" aria-label="演示人设">
+        <span class="demo-persona-label">演示</span>
+        <button type="button" class="demo-persona-btn active" data-demo-persona="multi">多宠切换</button>
+        <button type="button" class="demo-persona-btn" data-demo-persona="one-published">单宠已发布</button>
+        <button type="button" class="demo-persona-btn" data-demo-persona="one-processing">单宠处理中</button>
+        <button type="button" class="demo-persona-btn" data-demo-persona="empty">无宠物</button>
+    </div>
     <div class="iphone-frame">
         <div class="status-bar" aria-hidden="true">
             <span>9:41</span>
@@ -33,11 +40,6 @@
             <button type="button" class="tab-item active" data-page="home">
                 <i class="fas fa-house"></i>
                 <span>首页</span>
-            </button>
-            <!-- 产品已锁定底栏为「首页 / 我的」并删除「宠物」tab；此处仍画出该 tab 仅因原型未改，不代表当前产品。 -->
-            <button type="button" class="tab-item" data-page="pets">
-                <i class="fas fa-paw"></i>
-                <span>宠物</span>
             </button>
             <button type="button" class="tab-item" data-page="profile">
                 <i class="fas fa-user"></i>

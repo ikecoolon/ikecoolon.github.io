@@ -2,8 +2,15 @@
 (function (root) {
   'use strict';
 
-  var CURRENT_USER_ID = 'user-001';
+  var CURRENT_USER_KEY = 'pet-mini-demo-user';
   var SELECTED_PET_KEY = 'pet-mini-selected-pet';
+  var DEFAULT_USER_ID = 'user-001';
+  var DEMO_PERSONAS = [
+    { id: 'multi', userId: 'user-001', label: '多宠切换' },
+    { id: 'one-published', userId: 'user-004', label: '单宠已发布' },
+    { id: 'one-processing', userId: 'user-002', label: '单宠处理中' },
+    { id: 'empty', userId: 'user-003', label: '无宠物' }
+  ];
 
   function stripDemo(text) {
     if (!text) return '';
@@ -18,12 +25,30 @@
     return getStore().getState();
   }
 
+  function getCurrentUserId() {
+    var saved = null;
+    try {
+      saved = sessionStorage.getItem(CURRENT_USER_KEY);
+    } catch (e) { /* ignore */ }
+    if (saved && getState().users.some(function (u) { return u.id === saved; })) return saved;
+    return DEFAULT_USER_ID;
+  }
+
+  function setCurrentUserId(userId) {
+    try {
+      sessionStorage.setItem(CURRENT_USER_KEY, userId);
+      sessionStorage.removeItem(SELECTED_PET_KEY);
+    } catch (e) { /* ignore */ }
+  }
+
   function getCurrentUser() {
-    return getState().users.find(function (u) { return u.id === CURRENT_USER_ID; }) || null;
+    var userId = getCurrentUserId();
+    return getState().users.find(function (u) { return u.id === userId; }) || null;
   }
 
   function getUserPets() {
-    return getState().pets.filter(function (p) { return p.userId === CURRENT_USER_ID; });
+    var userId = getCurrentUserId();
+    return getState().pets.filter(function (p) { return p.userId === userId; });
   }
 
   function getSelectedPetId() {
@@ -96,7 +121,7 @@
   function buildCardFromReport(item) {
     var report = item.report;
     var testRecord = findTestRecord(report.testRecordId);
-    var userStatus = item.userStatus || getStore().getUserReportStatus(report, CURRENT_USER_ID);
+    var userStatus = item.userStatus || getStore().getUserReportStatus(report, getCurrentUserId());
     return {
       id: report.id,
       reportId: report.id,
@@ -200,7 +225,7 @@
   }
 
   function getPublishedReportContext(reportId) {
-    var projection = getStore().getUserPublishedReportProjection(CURRENT_USER_ID, reportId);
+    var projection = getStore().getUserPublishedReportProjection(getCurrentUserId(), reportId);
     if (!projection || projection.userStatus !== 'published') return null;
     var version = projection.publishedVersion;
     if (!version) return null;
@@ -920,7 +945,7 @@
 
   function countUserStats() {
     var pets = getUserPets();
-    var cards = getUserVisibleCards(CURRENT_USER_ID);
+    var cards = getUserVisibleCards(getCurrentUserId());
     var publishedCount = cards.filter(function (c) { return c.userStatus === 'published'; }).length;
     var inProgressCount = cards.filter(function (c) { return c.userStatus === 'in_progress'; }).length;
     return {
@@ -932,7 +957,10 @@
   }
 
   root.PetMiniHelpers = {
-    CURRENT_USER_ID: CURRENT_USER_ID,
+    CURRENT_USER_ID: DEFAULT_USER_ID,
+    DEMO_PERSONAS: DEMO_PERSONAS,
+    getCurrentUserId: getCurrentUserId,
+    setCurrentUserId: setCurrentUserId,
     stripDemo: stripDemo,
     getStore: getStore,
     getState: getState,

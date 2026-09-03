@@ -74,7 +74,7 @@ function testSeed() {
   assert(!state.healthTagProducts, 'no healthTagProducts collection');
   assert(!state.claimCodes, 'no claimCodes collection');
   assert(!state.reportAnalysisAdjustments, 'no reportAnalysisAdjustments collection');
-  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v2', 'storage key v2');
+  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v3', 'storage key v3');
   assertEqual(store.REPORT_STATUSES.join(','), 'unassigned,incomplete,pending_review,published,voided', 'five report statuses');
   assertEqual(store.OWNERSHIP_STATUSES.join(','), 'unassigned,bound', 'ownership two values');
   assert(store.WORKFLOW_STATUSES === store.REPORT_STATUSES, 'WORKFLOW_STATUSES aliases REPORT_STATUSES');
@@ -153,6 +153,22 @@ function testSeed() {
   var batchOscar = state.importBatches.find(function (b) { return b.id === tr6.importBatchId; });
   assertEqual(batchOscar.fileName, 'oscar_final_microbiome_report.xlsx', 'report-006 oscar file');
   assertEqual(tr6.claimStatus, 'unassigned', 'tr-009 claimStatus unassigned');
+
+  var r7 = findReport(state, 'report-007');
+  assertEqual(r7.status, 'published', 'report-007 published');
+  assertEqual(r7.userId, 'user-004', 'report-007 周女士');
+  assertEqual(r7.petId, 'pet-006', 'report-007 豆包');
+  assertEqual(state.pets.filter(function (p) { return p.userId === 'user-003'; }).length, 0, 'user-003 无宠物');
+  assertEqual(state.pets.filter(function (p) { return p.userId === 'user-004'; }).length, 1, 'user-004 一只宠物');
+  var vis002 = store.getUserVisibleReports('user-002');
+  assert(vis002.every(function (item) { return item.userStatus !== 'published'; }), 'user-002 无已发布报告');
+
+  try {
+    store.simulateBatchImport({ files: [{ scenario: 'success', fileName: 'orphan.xlsx' }] });
+    assert(false, '无送检记录的批量导入应被拒绝');
+  } catch (err) {
+    assert(/送检记录/.test(err.message), '无预登记批量导入抛错');
+  }
 
   var bacteroidetes = state.professionalCatalog.microbiotaTaxa.find(function (t) { return t.key === 'Bacteroidetes'; });
   assert(bacteroidetes && bacteroidetes.edu && bacteroidetes.edu.hint, 'edu.hint 存在');

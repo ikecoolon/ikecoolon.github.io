@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  window.__PET_ADMIN_ASSET_VERSION = '202609021';
+  window.__PET_ADMIN_ASSET_VERSION = '202609031';
   var C = window.PetAdminCommon;
   var navItems = document.querySelectorAll('#main-nav .nav-item');
   var pageContentContainer = document.getElementById('page-content-container');

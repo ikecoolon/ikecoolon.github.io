@@ -21,7 +21,7 @@
     throw new Error('PetReportAnalysisEngine 不可用');
   }
 
-  var STORAGE_KEY = 'pet-report-mock-store-v2';
+  var STORAGE_KEY = 'pet-report-mock-store-v3';
   var DATA_STATUSES = ['PRESENT', 'MISSING_COLUMN', 'EMPTY', 'NOT_DETECTED', 'INVALID', 'NOT_APPLICABLE'];
   var REPORT_STATUSES = ['unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
   /** @deprecated 指向 REPORT_STATUSES */
@@ -1918,7 +1918,7 @@
 
     var state = {
       meta: {
-        version: 16,
+        version: 17,
         disclaimer: '',
         dataStatuses: DATA_STATUSES.slice(),
         reportStatuses: REPORT_STATUSES.slice(),
@@ -1927,7 +1927,9 @@
       professionalCatalog: catalog,
       users: [
         { id: 'user-001', name: '张女士', phone: '13812345678', address: '北京市朝阳区某某小区', createdAt: ts },
-        { id: 'user-002', name: '李先生', phone: '13987654321', address: '上海市浦东新区某某路', createdAt: ts }
+        { id: 'user-002', name: '李先生', phone: '13987654321', address: '上海市浦东新区某某路', createdAt: ts },
+        { id: 'user-003', name: '陈女士', phone: '13700001111', address: '广州市天河区某某街', createdAt: ts },
+        { id: 'user-004', name: '周女士', phone: '13600002222', address: '杭州市西湖区某某苑', createdAt: ts }
       ],
       stores: [
         { id: 'store-001', name: '萌宠肠道健康中心（朝阳店）', code: 'STORE-BJ-CY-001', createdAt: ts },
@@ -1938,7 +1940,8 @@
         { id: 'pet-002', userId: 'user-001', name: '阿黄', breed: '金毛寻回犬', age: 5, gender: 'male', species: 'dog', storeId: 'store-002', claimStatus: 'bound', createdAt: ts },
         { id: 'pet-003', userId: 'user-002', name: '咪咪', breed: '布偶猫', age: 2, gender: 'female', species: 'cat', storeId: null, claimStatus: 'bound', opsCreated: true, createdAt: ts },
         { id: 'pet-004', userId: null, name: '旺仔', breed: '柯基', age: 4, gender: 'male', species: 'dog', storeId: 'store-001', claimStatus: 'unassigned', opsCreated: true, createdAt: ts },
-        { id: 'pet-005', userId: null, name: '豆豆', breed: '中华田园猫', age: 1, gender: 'female', species: 'cat', storeId: 'store-001', claimStatus: 'unassigned', opsCreated: true, createdAt: ts }
+        { id: 'pet-005', userId: null, name: '豆豆', breed: '中华田园猫', age: 1, gender: 'female', species: 'cat', storeId: 'store-001', claimStatus: 'unassigned', opsCreated: true, createdAt: ts },
+        { id: 'pet-006', userId: 'user-004', name: '豆包', breed: '橘猫', age: 2.5, gender: 'male', species: 'cat', storeId: 'store-001', claimStatus: 'bound', createdAt: ts }
       ],
       categories: [
         { id: 'cat-001', name: '肠道健康', available: true, createdAt: ts },
@@ -1956,7 +1959,8 @@
         { id: 'batch-001', fileName: '检测结果导入_成功.xlsx', status: 'success', totalRows: 12, successRows: 12, failedRows: 0, errors: [], testRecordIds: ['tr-004'], createdAt: '2025-08-20T10:00:00.000Z' },
         { id: 'batch-002', fileName: '检测结果导入_失败.xlsx', status: 'failed', totalRows: 8, successRows: 0, failedRows: 8, errors: [{ row: 2, column: 'Actinobacteria', code: 'MISSING_COLUMN', message: '缺少必需列「Actinobacteria」' }], testRecordIds: ['tr-002'], createdAt: '2025-08-21T11:30:00.000Z' },
         { id: 'batch-harley', fileName: 'harley_final_microbiome_report.xlsx', status: 'success', totalRows: 16, successRows: 16, failedRows: 0, errors: [], testRecordIds: ['tr-006'], createdAt: '2025-08-19T09:00:00.000Z' },
-        { id: 'batch-oscar', fileName: 'oscar_final_microbiome_report.xlsx', status: 'success', totalRows: 16, successRows: 16, failedRows: 0, errors: [], testRecordIds: ['tr-009'], createdAt: '2025-08-18T09:00:00.000Z' }
+        { id: 'batch-oscar', fileName: 'oscar_final_microbiome_report.xlsx', status: 'success', totalRows: 16, successRows: 16, failedRows: 0, errors: [], testRecordIds: ['tr-009'], createdAt: '2025-08-18T09:00:00.000Z' },
+        { id: 'batch-007', fileName: '检测结果导入_豆包.xlsx', status: 'success', totalRows: 12, successRows: 12, failedRows: 0, errors: [], testRecordIds: ['tr-010'], createdAt: '2025-08-27T10:00:00.000Z' }
       ],
       testRecords: [
         { id: 'tr-001', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-PARTIAL-001', sampleNumber: 'SAMPLE-PARTIAL-001', sampleType: 'feces', testDate: '2025-08-22', status: 'pending_result', importBatchId: null, claimStatus: 'bound', label: 'SAMPLE-PARTIAL-001', createdAt: '2025-08-22T09:15:00.000Z', updatedAt: '2025-08-22T09:15:00.000Z' },
@@ -1965,7 +1969,8 @@
         { id: 'tr-004', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-001', sampleNumber: 'SAMPLE-BJ-001', sampleType: 'feces', testDate: '2025-08-20', status: 'published', importBatchId: 'batch-001', claimStatus: 'bound', label: 'SAMPLE-BJ-001', createdAt: '2025-08-20T10:00:00.000Z', updatedAt: '2025-08-24T16:00:00.000Z' },
         { id: 'tr-006', petId: 'pet-004', userId: null, storeId: 'store-001', sourceOrgId: SECOND_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-HARLEY-006', sampleNumber: 'SAMPLE-HARLEY-006', sampleType: 'feces', testDate: '2025-08-18', status: 'published', importBatchId: 'batch-harley', claimStatus: 'unassigned', label: 'SAMPLE-HARLEY-006', createdAt: '2025-08-19T09:00:00.000Z', updatedAt: '2025-08-19T16:00:00.000Z' },
         { id: 'tr-008', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-VOID-008', sampleNumber: 'SAMPLE-VOID-008', sampleType: 'feces', testDate: '2025-08-10', status: 'voided', importBatchId: 'batch-001', claimStatus: 'bound', label: 'SAMPLE-VOID-008', createdAt: '2025-08-10T09:00:00.000Z', updatedAt: '2025-08-12T10:00:00.000Z' },
-        { id: 'tr-009', petId: null, userId: null, storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-NEW-UNASSIGNED-009', sampleNumber: 'SAMPLE-NEW-UNASSIGNED-009', sampleType: 'feces', testDate: '2025-08-25', status: 'unassigned', importBatchId: 'batch-oscar', claimStatus: 'unassigned', label: 'SAMPLE-NEW-UNASSIGNED-009', createdAt: '2025-08-18T09:00:00.000Z', updatedAt: '2025-08-18T09:00:00.000Z' }
+        { id: 'tr-009', petId: null, userId: null, storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-NEW-UNASSIGNED-009', sampleNumber: 'SAMPLE-NEW-UNASSIGNED-009', sampleType: 'feces', testDate: '2025-08-25', status: 'unassigned', importBatchId: 'batch-oscar', claimStatus: 'unassigned', label: 'SAMPLE-NEW-UNASSIGNED-009', createdAt: '2025-08-18T09:00:00.000Z', updatedAt: '2025-08-18T09:00:00.000Z' },
+        { id: 'tr-010', petId: 'pet-006', userId: 'user-004', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-007', sampleNumber: 'SAMPLE-HZ-007', sampleType: 'feces', testDate: '2025-08-27', status: 'published', importBatchId: 'batch-007', claimStatus: 'bound', label: 'SAMPLE-HZ-007', createdAt: '2025-08-27T10:00:00.000Z', updatedAt: '2025-08-27T16:00:00.000Z' }
       ],
       indicators: [],
       reports: [],
@@ -2060,6 +2065,14 @@
         userId: null, petId: null, reportSpecies: null, status: 'unassigned',
         statusChangedAt: '2025-08-18T09:00:00.000Z',
         createdAt: '2025-08-18T09:00:00.000Z'
+      }),
+      baseReport({
+        id: 'report-007', reportNumber: 'RPT-2025-007', externalReportNumber: 'EXT-2025-007',
+        sampleNumber: 'SAMPLE-HZ-007', sourceOrgId: DEFAULT_SOURCE_ORG_ID, testRecordId: 'tr-010',
+        userId: 'user-004', petId: 'pet-006', reportSpecies: 'cat', status: 'incomplete',
+        statusChangedAt: '2025-08-27T11:00:00.000Z', healthLevel: 'A', healthScore: 91, percentile: 58.1,
+        platformDimensions: { emotion: 32.9, immunity: 67.2 }, summary: '肠道菌群整体良好。',
+        createdAt: '2025-08-27T11:00:00.000Z'
       })
     ];
 
@@ -2074,7 +2087,9 @@
         Klebsiella: { value: 1.2 }
       },
       extra: [
-        { id: 'r1-alpha-v1', key: 'alpha-diversity', unit: 'index', value: 4.2, dataStatus: 'PRESENT' }
+        { id: 'r1-alpha-v1', key: 'alpha-diversity', unit: 'index', value: 4.2, dataStatus: 'PRESENT' },
+        { id: 'r1-evenness-v1', key: 'evenness', unit: 'index', value: 3.1, dataStatus: 'PRESENT' },
+        { id: 'r1-richness-v1', key: 'richness', unit: 'count', value: 48, dataStatus: 'PRESENT' }
       ]
     });
     pushTaxonResults(state, indicators, {
@@ -2108,6 +2123,15 @@
     pushTaxonResults(state, indicators, {
       idPrefix: 'r6', testRecordId: 'tr-009', reportId: 'report-006',
       templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-18T09:10:00.000Z'
+    });
+    pushTaxonResults(state, indicators, {
+      idPrefix: 'r7', testRecordId: 'tr-010', reportId: 'report-007',
+      templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-27T10:30:00.000Z',
+      extra: [
+        { id: 'r7-alpha-v1', key: 'alpha-diversity', unit: 'index', value: 86.1, dataStatus: 'PRESENT' },
+        { id: 'r7-evenness-v1', key: 'evenness', unit: 'index', value: 65.2, dataStatus: 'PRESENT' },
+        { id: 'r7-richness-v1', key: 'richness', unit: 'count', value: 70.1, dataStatus: 'PRESENT' }
+      ]
     });
     state.indicators = indicators;
 
@@ -2178,6 +2202,8 @@
     withTime('2025-08-12T10:00:00.000Z', function () {
       voidReportInternal(state, 'report-005', '客户要求作废重检');
     });
+
+    prepareAndPublish('report-007', '2025-08-27T16:00:00.000Z');
 
     syncAllReportsDerived(state);
     return state;
@@ -2638,6 +2664,9 @@
     params = params || {};
     var files = params.files || [];
     var directedTestRecordId = params.testRecordId || null;
+    if (!directedTestRecordId) {
+      throw new Error('导入结果必须从已登记的送检记录发起，不做无预登记批量导入');
+    }
     return commit(function (state) {
       var batchId = bumpIds(state, 'importBatches', 'batch');
       var fileResults = [];
