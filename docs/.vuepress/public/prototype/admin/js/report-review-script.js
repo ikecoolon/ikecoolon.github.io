@@ -10,7 +10,6 @@ function initReportReview() {
   var selectedResultId = null;
   var resultsSearch = '';
   var resultsFilters = { abnormal: false, missing: false, modified: false };
-  var previewTab = 'overview';
   var previewCollapsed = false;
   var versionView = 'working';
   var pickerState = { phylumKey: null, slot: 'primary', page: 1 };
@@ -256,16 +255,6 @@ function initReportReview() {
       document.getElementById('ver-toggle-working').classList.remove('active');
       renderVersionsPanel(store.getState());
       updatePreview(store.getState());
-    });
-
-    document.querySelectorAll('.rw-preview-tab').forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        previewTab = tab.getAttribute('data-preview-tab');
-        document.querySelectorAll('.rw-preview-tab').forEach(function (t) {
-          t.classList.toggle('active', t.getAttribute('data-preview-tab') === previewTab);
-        });
-        updatePreview(store.getState());
-      });
     });
 
     document.getElementById('btn-preview-collapse').addEventListener('click', function () {
@@ -1563,15 +1552,71 @@ function initReportReview() {
       '<span class="rw-compare-marker" style="left:' + mark + '%"></span></div>';
   }
 
+  function dimQual(score) {
+    if (score == null || score === '') return '';
+    var n = Number(score);
+    if (isNaN(n)) return '';
+    if (n >= 70) return '<span class="rw-qual is-strong">强健</span>';
+    if (n >= 40) return '<span class="rw-qual is-mid">中等</span>';
+    return '<span class="rw-qual is-weak">偏弱</span>';
+  }
+
+  function resultByKey(results, key) {
+    return (results || []).find(function (r) { return r.key === key; }) || null;
+  }
+
+  function pillHtml(results, key, label) {
+    var ind = resultByKey(results, key);
+    var raw = ind && (ind.effectiveValue != null && ind.effectiveValue !== '' ? ind.effectiveValue : ind.value);
+    var missing = raw == null || raw === '';
+    return '<div class="rw-hero-pill"><span class="rw-hero-pill-num' + (missing ? ' is-empty' : '') + '">' +
+      (missing ? '暂无有效结果' : C.escapeHtml(formatNum(raw))) +
+      '</span><span class="rw-hero-pill-label">' + C.escapeHtml(label) + '</span></div>';
+  }
+
+  function bindPreviewReading(root) {
+    if (!root) return;
+    function activate(scope, btnSel, keyAttr, panelSel, panelAttr, key) {
+      scope.querySelectorAll(btnSel).forEach(function (btn) {
+        btn.classList.toggle('active', btn.getAttribute(keyAttr) === key);
+      });
+      scope.querySelectorAll(panelSel).forEach(function (panel) {
+        panel.hidden = panel.getAttribute(panelAttr) !== key;
+      });
+    }
+    root.querySelectorAll('[data-compare-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        activate(root, '[data-compare-tab]', 'data-compare-tab', '[data-compare-panel]', 'data-compare-panel', btn.getAttribute('data-compare-tab'));
+      });
+    });
+    root.querySelectorAll('[data-phylum-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        activate(root, '[data-phylum-tab]', 'data-phylum-tab', '[data-phylum-panel]', 'data-phylum-panel', btn.getAttribute('data-phylum-tab'));
+      });
+    });
+    root.querySelectorAll('[data-advice-tab]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var panel = btn.closest('[data-phylum-panel]') || root;
+        activate(panel, '[data-advice-tab]', 'data-advice-tab', '[data-advice-panel]', 'data-advice-panel', btn.getAttribute('data-advice-tab'));
+      });
+    });
+    root.querySelectorAll('[data-scroll-target]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var el = root.querySelector('#' + btn.getAttribute('data-scroll-target'));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    });
+  }
+
   function updatePreview(state) {
     var report = C.lookupReport(state, currentReportId);
     if (!report) return;
     var vals = getPreviewFormValues();
     var data = getPreviewData(state, report);
     var pet = C.lookupPet(state, report.petId);
+    var petName = pet ? pet.name : 'TA';
     var species = data.fromSnapshot ? data.species : (vals.species || data.species);
     var level = data.fromSnapshot ? (data.assessment.healthLevel || '') : vals.level;
-    var score = data.fromSnapshot ? (data.assessment.healthScore != null ? data.assessment.healthScore : '') : vals.score;
     var percentile = data.fromSnapshot ? (data.assessment.percentile != null ? data.assessment.percentile : '') : vals.percentile;
     var emotion = data.fromSnapshot
       ? ((data.assessment.platformDimensions && data.assessment.platformDimensions.emotion) || '')
@@ -1580,57 +1625,107 @@ function initReportReview() {
       ? ((data.assessment.platformDimensions && data.assessment.platformDimensions.immunity) || '')
       : vals.immunity;
     var levelTheme = HEALTH_LEVEL_THEMES[level] || '草原';
-    var noticeMap = labNoticeLabels();
+    var themeClass = 'theme-' + (level || 'C');
     var viewTag = versionView === 'published' && report.correctionDraftActive ? '发布版预览' : '工作版预览';
+    var speciesNoun = species === 'dog' ? '狗狗' : '猫咪';
+    var catalogPhyla = ((state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || [])
+      .filter(function (t) { return t.level === 'phylum'; });
+    var phylumKeys = {};
+    catalogPhyla.forEach(function (t) { phylumKeys[t.key] = true; });
 
-    var overviewHtml =
-      '<div class="rw-mini-header">' +
-      '<div class="rw-mini-title">' + C.escapeHtml(pet ? pet.name : '宠物报告') + '</div>' +
-      '<div class="rw-mini-sub">肠道菌群 · ' + (species === 'dog' ? '狗' : '猫') + '</div></div>' +
-      '<div class="rw-mini-card" data-preview-region="level" data-preview-focus="assess-level" data-preview-module="assessment">' +
-      '<div class="rw-mini-level">' + C.escapeHtml(level || '—') + '</div>' +
-      '<div class="rw-mini-theme">' + C.escapeHtml(levelTheme) + '</div></div>' +
-      '<div class="rw-mini-card" data-preview-region="score" data-preview-focus="assess-score" data-preview-module="assessment">' +
-      '<div class="rw-mini-stat-label">综合分</div><div class="rw-mini-stat-value">' + C.escapeHtml(String(score || '—')) + '</div></div>' +
-      '<div class="rw-mini-card" data-preview-region="percentile" data-preview-focus="assess-percentile" data-preview-module="assessment">' +
-      '<div class="rw-mini-stat-label">百分位</div><div class="rw-mini-stat-value">' + C.escapeHtml(String(percentile || '—')) + '</div></div>' +
-      '<div class="rw-mini-dims">' +
-      '<span data-preview-region="emotion" data-preview-focus="assess-emotion" data-preview-module="assessment">情绪 ' + C.escapeHtml(String(emotion || '—')) + '</span>' +
-      '<span data-preview-region="immunity" data-preview-focus="assess-immunity" data-preview-module="assessment">免疫 ' + C.escapeHtml(String(immunity || '—')) + '</span></div>';
+    var html = '<div class="rw-scroll-report ' + themeClass + '">';
+    html += '<section class="rw-report-hero">';
+    html += '<p class="rw-hero-hi">Hi, ' + C.escapeHtml(petName) + '</p>';
+    html += '<p class="rw-hero-grade" data-preview-region="level" data-preview-focus="assess-level" data-preview-module="assessment">TA的健康综合评分 <strong>' +
+      C.escapeHtml(level || '—') + '等</strong> (' + C.escapeHtml(levelTheme) + ')</p>';
+    html += '<div class="rw-hero-pills" data-preview-region="score" data-preview-focus="assess-score" data-preview-module="assessment">';
+    html += pillHtml(data.results, 'alpha-diversity', 'Alpha多样性');
+    html += pillHtml(data.results, 'evenness', '均匀度');
+    html += pillHtml(data.results, 'richness', '丰富度');
+    html += '</div>';
+    html += '<div class="rw-hero-dims">';
+    html += '<div class="rw-dim-card" data-preview-region="emotion" data-preview-focus="assess-emotion" data-preview-module="assessment"><span>情绪</span><strong>' +
+      C.escapeHtml(String(emotion === '' || emotion == null ? '—' : emotion)) + '</strong>' + dimQual(emotion) + '</div>';
+    html += '<div class="rw-dim-card" data-preview-region="immunity" data-preview-focus="assess-immunity" data-preview-module="assessment"><span>免疫</span><strong>' +
+      C.escapeHtml(String(immunity === '' || immunity == null ? '—' : immunity)) + '</strong>' + dimQual(immunity) + '</div>';
+    html += '</div>';
+    if (percentile !== '' && percentile != null) {
+      html += '<div class="rw-hero-percentile" data-preview-region="percentile" data-preview-focus="assess-percentile" data-preview-module="assessment">优于 <strong>' +
+        C.escapeHtml(String(percentile)) + '%</strong> 的' + speciesNoun + '</div>';
+    }
+    html += '<button type="button" class="rw-hero-more" data-scroll-target="rw-report-sheet">详细 <i class="fas fa-chevron-down"></i></button>';
+    html += '</section>';
 
-    var compareHtml;
-    if (!data.hasRange) {
-      compareHtml = '<div class="rw-compare-placeholder">本报告无有效参考范围</div>';
-    } else {
-      var ranged = data.results.filter(function (r) { return r.range && r.rangeSource && r.rangeSource !== 'none'; });
-      compareHtml = '<div class="rw-mini-list">' + ranged.map(function (ind) {
-        return '<div class="rw-mini-list-item" style="display:block">' +
-          '<div class="flex justify-between"><span>' + C.escapeHtml(taxonLabel(state, ind.key)) + '</span><strong>' +
-          C.escapeHtml(formatNum(ind.effectiveValue)) + (ind.unit || '') + '</strong></div>' +
-          compareBarHtml(ind) + '</div>';
-      }).join('') + '</div>';
+    html += '<div class="rw-report-sheet" id="rw-report-sheet">';
+    if (data.hasRange) {
+      var phylumRows = data.results.filter(function (r) {
+        return phylumKeys[r.key] && r.range && r.rangeSource && r.rangeSource !== 'none';
+      });
+      var genusRows = data.results.filter(function (r) {
+        return !phylumKeys[r.key] && r.range && r.rangeSource && r.rangeSource !== 'none' &&
+          r.key !== 'alpha-diversity' && r.key !== 'evenness' && r.key !== 'richness';
+      });
+      html += '<section class="rw-compare-block" data-preview-region="compare">';
+      html += '<h3>微生物组对比</h3><p>理想菌群组合 VS ' + C.escapeHtml(petName) + '</p>';
+      html += '<div class="rw-seg"><button type="button" class="rw-seg-btn active" data-compare-tab="phylum">「门」检测数值</button>';
+      html += '<button type="button" class="rw-seg-btn" data-compare-tab="genus">「属」检测数值</button></div>';
+      html += '<div data-compare-panel="phylum">';
+      phylumRows.forEach(function (ind) {
+        html += '<div class="rw-cmp-row"><span>' + C.escapeHtml(taxonLabel(state, ind.key)) + '</span><strong>' +
+          C.escapeHtml(formatNum(ind.effectiveValue)) + (ind.unit || '') + '</strong>' + compareBarHtml(ind) + '</div>';
+      });
+      html += '</div><div data-compare-panel="genus" hidden>';
+      genusRows.forEach(function (ind) {
+        html += '<div class="rw-cmp-row"><span>' + C.escapeHtml(taxonLabel(state, ind.key)) + '</span><strong>' +
+          C.escapeHtml(formatNum(ind.effectiveValue)) + (ind.unit || '') + '</strong>' + compareBarHtml(ind) + '</div>';
+      });
+      html += '</div></section>';
     }
 
-    var phylumHtml = data.units.map(function (unit) {
-      var rows = data.results.filter(function (r) { return r.phylumKey === unit.phylumKey; });
-      var primary = unit.primaryProductId ? findProduct(state, unit.primaryProductId) : null;
-      return '<div class="rw-mini-card">' +
-        '<div class="font-medium text-sm">' + C.escapeHtml(taxonLabel(state, unit.phylumKey)) + '</div>' +
-        rows.map(function (r) {
-          return '<div class="text-xs mt-1 flex justify-between"><span>' + C.escapeHtml(taxonLabel(state, r.key)) + '</span>' +
-            '<span>' + C.escapeHtml(r.dataStatus === 'NOT_DETECTED' ? '未检出' : formatNum(r.effectiveValue) + (r.unit || '')) +
-            ' · ' + C.escapeHtml(formatRange(r)) +
-            ' · ' + C.escapeHtml(noticeMap[r.labNotice] || r.labNotice || '') + '</span></div>';
-        }).join('') +
-        (unit.analysisDraft ? '<p class="rw-mini-text mt-2"><strong>分析</strong> ' + C.escapeHtml(unit.analysisDraft) + '</p>' : '') +
-        (unit.adviceDraft ? '<p class="rw-mini-text mt-1"><strong>建议</strong> ' + C.escapeHtml(unit.adviceDraft) + '</p>' : '') +
-        (primary ? '<div class="rw-mini-product mt-2">' + C.escapeHtml(primary.name) + '</div>' : '') +
-        '</div>';
-    }).join('') || '<p class="text-xs text-slate-400 p-3">暂无菌门分析单元</p>';
+    var units = data.units || [];
+    if (units.length) {
+      html += '<section class="rw-phylum-block">';
+      html += '<div class="rw-phylum-tabs">';
+      units.forEach(function (unit, idx) {
+        html += '<button type="button" class="rw-phylum-tab' + (idx === 0 ? ' active' : '') + '" data-phylum-tab="' +
+          C.escapeHtml(unit.phylumKey) + '">' + C.escapeHtml(taxonLabel(state, unit.phylumKey)) + '</button>';
+      });
+      html += '</div>';
+      units.forEach(function (unit, idx) {
+        var primary = unit.primaryProductId ? findProduct(state, unit.primaryProductId) : null;
+        var analysis = unit.analysisDraft || unit.analysis || '';
+        var advice = unit.adviceDraft || unit.advice || '';
+        var hero = resultByKey(data.results, unit.phylumKey);
+        html += '<div class="rw-phylum-panel" data-phylum-panel="' + C.escapeHtml(unit.phylumKey) + '"' + (idx === 0 ? '' : ' hidden') + '>';
+        html += '<div class="rw-phylum-hero"><div class="rw-phylum-name">' + C.escapeHtml(taxonLabel(state, unit.phylumKey)) +
+          '</div><div class="rw-phylum-value">' +
+          C.escapeHtml(hero && hero.dataStatus === 'NOT_DETECTED' ? '未检出' : formatNum(hero && hero.effectiveValue)) +
+          (hero && hero.dataStatus !== 'NOT_DETECTED' && hero && hero.effectiveValue != null ? '%' : '') +
+          '</div>';
+        if (hero && hero.range) html += '<div class="rw-phylum-range">正常范围: ' + C.escapeHtml(formatRange(hero)) + '</div>';
+        html += '</div>';
+        if (analysis || advice || primary) {
+          html += '<div class="rw-advice-tabs">';
+          html += '<button type="button" class="rw-advice-tab" data-advice-tab="analysis">分析</button>';
+          html += '<button type="button" class="rw-advice-tab active" data-advice-tab="advice">总体建议</button></div>';
+          html += '<div class="rw-advice-panel" data-advice-panel="analysis" hidden><p>' + C.escapeHtml(analysis || '暂无分析') + '</p></div>';
+          html += '<div class="rw-advice-panel" data-advice-panel="advice">';
+          if (advice) html += '<p>' + C.escapeHtml(advice) + '</p>';
+          if (primary) html += '<div class="rw-mini-product">' + C.escapeHtml(primary.name) + '</div>';
+          if (!advice && !primary) html += '<p>暂无建议</p>';
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+      html += '</section>';
+    }
+    html += '</div>';
+    html += '<div class="rw-mini-badge">' + C.escapeHtml(viewTag) + '</div>';
+    html += '</div>';
 
-    var tabContent = previewTab === 'compare' ? compareHtml : previewTab === 'phylum' ? phylumHtml : overviewHtml;
-    document.getElementById('preview-content').innerHTML =
-      '<div class="rw-mini-shell">' + tabContent + '<div class="rw-mini-badge">' + viewTag + '</div></div>';
+    var host = document.getElementById('preview-content');
+    host.innerHTML = html;
+    bindPreviewReading(host);
   }
 
   function partialUpdate(state) {
