@@ -7,6 +7,7 @@
 - [ADR-0023：仅支持微生物组报告产品](./0023-support-only-the-microbiome-report-product.md)
 - [ADR-0030：送检管理与报告中心分工](./0030-separate-test-submission-management-from-report-center.md)
 - [ADR-0031：按菌门组织分析、建议与商品](./0031-organize-analysis-advice-and-products-by-phylum.md)
+- [ADR-0032：在现有商城小程序内承载健康报告](./0032-embed-health-reports-in-the-existing-mall-mini-program.md)
 
 ## 数据与发布
 

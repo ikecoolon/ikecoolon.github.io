@@ -6,8 +6,15 @@
     'use strict';
 
     var DATA = window.PROJECT_PROGRESS_DATA;
-    var META = DATA.meta;
-    var COLS = META.totalWeeks;
+    var BASE_META = DATA.meta;
+    var profileMeta = {};
+    var activeProfile = null;
+    var staffingId = '1fe';
+    var derivedTasks = [];
+    var derivedPrereqs = [];
+    var COLS = 11;
+    var WEEK_W = 100;
+    var TRACK_W = COLS * WEEK_W;
 
     function readWeekWidth() {
         var fallback = 100;
@@ -21,8 +28,12 @@
         return fallback;
     }
 
-    var WEEK_W = readWeekWidth();
-    var TRACK_W = COLS * WEEK_W;
+    function syncLayoutMetrics() {
+        WEEK_W = readWeekWidth();
+        TRACK_W = COLS * WEEK_W;
+        document.documentElement.style.setProperty('--total-weeks', String(COLS));
+        document.documentElement.style.setProperty('--track-w', TRACK_W + 'px');
+    }
 
     var dateCtx = {
         selectedDate: null,
@@ -31,6 +42,118 @@
         weekendAdjusted: false,
         workdaysPerWeek: 5
     };
+
+    /* ---------- 人员 profile 与任务派生 ---------- */
+
+    function readStaffingFromUrl() {
+        try {
+            return new URLSearchParams(window.location.search).get('staffing');
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function resolveStaffingProfile() {
+        var raw = readStaffingFromUrl();
+        staffingId = raw === '2fe' ? '2fe' : '1fe';
+        activeProfile = DATA.staffingProfiles[staffingId];
+        profileMeta = Object.assign({}, BASE_META, activeProfile.meta);
+        COLS = profileMeta.totalWeeks;
+        syncLayoutMetrics();
+        deriveTasks();
+        derivePrereqs();
+    }
+
+    function planEndDay(schedule) {
+        return schedule.planStart + schedule.duration - 0.5;
+    }
+
+    function weeksFromPlan(schedule) {
+        var endDay = planEndDay(schedule);
+        return {
+            startWeek: Math.floor(schedule.planStart / profileMeta.planWorkdaysPerWeek) + 1,
+            endWeek: Math.floor(endDay / profileMeta.planWorkdaysPerWeek) + 1,
+            planEndDay: endDay
+        };
+    }
+
+    function deriveTasks() {
+        derivedTasks = DATA.tasks.map(function (task) {
+            var schedule = activeProfile.taskSchedules[task.id];
+            var weeks = weeksFromPlan(schedule);
+            return Object.assign({}, task, {
+                owner: schedule.owner,
+                startWeek: weeks.startWeek,
+                endWeek: weeks.endWeek,
+                planStart: schedule.planStart,
+                planDuration: schedule.duration,
+                planEndDay: weeks.planEndDay
+            });
+        });
+    }
+
+    function derivePrereqs() {
+        var overrides = activeProfile.prereqExpectedWeeks || {};
+        derivedPrereqs = DATA.prerequisites.map(function (pre) {
+            var expectedWeek = overrides[pre.id] !== undefined ? overrides[pre.id] : pre.expectedWeek;
+            return Object.assign({}, pre, { expectedWeek: expectedWeek });
+        });
+    }
+
+    function updateUrlStaffing(value) {
+        try {
+            var url = new URL(window.location.href);
+            url.searchParams.set('staffing', value);
+            history.replaceState(null, '', url.pathname + url.search + url.hash);
+        } catch (err) { /* ignore */ }
+    }
+
+    function syncStaffingRadios() {
+        var value = staffingId;
+        document.querySelectorAll('input[name="staffing-profile"]').forEach(function (radio) {
+            radio.checked = radio.value === value;
+        });
+    }
+
+    function staffingLeadWeeks() {
+        var one = DATA.staffingProfiles['1fe'].meta;
+        var two = DATA.staffingProfiles['2fe'].meta;
+        return {
+            dev: one.devEndWeek - two.devEndWeek,
+            total: one.totalWeeks - two.totalWeeks
+        };
+    }
+
+    function staffingDescriptionText() {
+        return activeProfile.description || '';
+    }
+
+    function updateDynamicChrome() {
+        var scrollHint = document.getElementById('schedule-scroll-hint');
+        if (scrollHint) {
+            scrollHint.textContent = '左侧任务固定，横向滑动查看第 1–' + COLS + ' 周。';
+        }
+        var scrollPanel = document.querySelector('.schedule-scroll');
+        if (scrollPanel) {
+            scrollPanel.setAttribute('aria-label', '周次排期总控板，左侧任务列固定，横向滑动查看第 1 至 ' + COLS + ' 周');
+        }
+        var bufferLegend = document.getElementById('legend-buffer-weeks');
+        if (bufferLegend) {
+            if (profileMeta.bufferStartWeek === profileMeta.bufferEndWeek) {
+                bufferLegend.textContent = '第 ' + profileMeta.bufferStartWeek + ' 周';
+            } else {
+                bufferLegend.textContent = '第 ' + profileMeta.bufferStartWeek + '–' + profileMeta.bufferEndWeek + ' 周';
+            }
+        }
+        var prereqDesc = document.getElementById('prereq-section-desc');
+        if (prereqDesc) {
+            prereqDesc.textContent = '共 ' + derivedPrereqs.length + ' 条甲方预备事项，当前均已判断适用且按实际交付状态核验。甲方预备事项不参与研发工作量与进度统计，本页不推演延期。支付相关事项优先核验并复用商城现状，不默认重新申请商户号或向前端交付支付密钥。';
+        }
+        var laneNote = document.getElementById('lane-note');
+        if (laneNote) {
+            laneNote.textContent = '健康报告在现有商城小程序同一 AppID 内二次开发；启动/登录默认进入健康报告首页，主导航按原型为「首页」「我的」，报告从首页打开。商城交易后端继续复用。外部条件未齐时可通过 H5 或 Mock 继续公共功能开发，但微信登录、真机支付与发布验证仍需真实环境。';
+        }
+    }
 
     /* ---------- 项目开始日期与工作周换算 ---------- */
 
@@ -81,11 +204,15 @@
     }
 
     function weekStartDate(weekNo) {
-        return getWorkdayAt(dateCtx.effectiveStart, (weekNo - 1) * META.planWorkdaysPerWeek);
+        return getWorkdayAt(dateCtx.effectiveStart, (weekNo - 1) * profileMeta.planWorkdaysPerWeek);
     }
 
     function weekEndDate(weekNo) {
-        return getWorkdayAt(dateCtx.effectiveStart, weekNo * META.planWorkdaysPerWeek - 1);
+        return weekEndDateForPlan(weekNo, profileMeta.planWorkdaysPerWeek);
+    }
+
+    function weekEndDateForPlan(weekNo, planWorkdaysPerWeek) {
+        return getWorkdayAt(dateCtx.effectiveStart, weekNo * planWorkdaysPerWeek - 1);
     }
 
     function formatCnFull(dt) {
@@ -126,7 +253,7 @@
 
     function resolveWorkdaysPerWeek() {
         var raw = readWorkdaysFromUrl();
-        var value = raw !== null ? parseInt(raw, 10) : META.workdaysPerWeek;
+        var value = raw !== null ? parseInt(raw, 10) : profileMeta.workdaysPerWeek;
         if (value !== 5 && value !== 6) value = 5;
         dateCtx.workdaysPerWeek = value;
     }
@@ -138,9 +265,9 @@
         if (urlStart) {
             var fromUrl = parseLocalDateString(urlStart);
             if (fromUrl) chosen = { str: urlStart, date: fromUrl };
-        } else if (META.projectStartDate) {
-            var fromMeta = parseLocalDateString(META.projectStartDate);
-            if (fromMeta) chosen = { str: META.projectStartDate, date: fromMeta };
+        } else if (profileMeta.projectStartDate) {
+            var fromMeta = parseLocalDateString(profileMeta.projectStartDate);
+            if (fromMeta) chosen = { str: profileMeta.projectStartDate, date: fromMeta };
         }
 
         if (!chosen) {
@@ -232,18 +359,17 @@
             addDerived('含缓冲完成', '待选择', true);
             weekendNote.hidden = true;
             weekendNote.textContent = '';
-            return;
-        }
-
-        addDerived('研发计划完成', formatCnFull(weekEndDate(META.devEndWeek)), false);
-        addDerived('含缓冲完成', formatCnFull(weekEndDate(META.totalWeeks)), false);
-
-        if (dateCtx.weekendAdjusted) {
-            weekendNote.hidden = false;
-            weekendNote.textContent = '所选日期为非工作日，排期从 ' + formatCnFull(dateCtx.effectiveStart) + ' 起算';
         } else {
-            weekendNote.hidden = true;
-            weekendNote.textContent = '';
+            addDerived('研发计划完成', formatCnFull(weekEndDate(profileMeta.devEndWeek)), false);
+            addDerived('含缓冲完成', formatCnFull(weekEndDate(profileMeta.totalWeeks)), false);
+
+            if (dateCtx.weekendAdjusted) {
+                weekendNote.hidden = false;
+                weekendNote.textContent = '所选日期为非工作日，排期从 ' + formatCnFull(dateCtx.effectiveStart) + ' 起算';
+            } else {
+                weekendNote.hidden = true;
+                weekendNote.textContent = '';
+            }
         }
     }
 
@@ -288,7 +414,26 @@
         var input = document.getElementById('project-start-date');
         if (input) input.value = dateCtx.selectedDate || '';
         syncWorkdaysRadios();
+        syncStaffingRadios();
         renderDateSummary();
+        refreshStaffingDependent();
+    }
+
+    function setupStaffingControls() {
+        syncStaffingRadios();
+        document.querySelectorAll('input[name="staffing-profile"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                if (!radio.checked) return;
+                staffingId = radio.value === '2fe' ? '2fe' : '1fe';
+                updateUrlStaffing(staffingId);
+                resolveStaffingProfile();
+                refreshStaffingDependent();
+            });
+        });
+    }
+
+    function refreshStaffingDependent() {
+        updateDynamicChrome();
         clearHost('schedule');
         renderSchedule();
         clearHost('detail-groups');
@@ -297,6 +442,7 @@
         renderPrereqTable();
         clearHost('foot-notes');
         renderFootNotes();
+        renderDateSummary();
     }
 
     var STATUS_META = {
@@ -322,15 +468,15 @@
     }
 
     function countActiveIncomplete() {
-        return DATA.prerequisites.filter(isPreBlocking).length;
+        return derivedPrereqs.filter(isPreBlocking).length;
     }
 
     function countConditionalPending() {
-        return DATA.prerequisites.filter(isPreConditional).length;
+        return derivedPrereqs.filter(isPreConditional).length;
     }
 
     function incompleteByCategory(category) {
-        return DATA.prerequisites.filter(function (p) {
+        return derivedPrereqs.filter(function (p) {
             return p.category === category && isPreBlocking(p);
         }).length;
     }
@@ -369,7 +515,7 @@
     }
 
     function laneTasks(laneId) {
-        return DATA.tasks.filter(function (t) { return t.lane === laneId; });
+        return derivedTasks.filter(function (t) { return t.lane === laneId; });
     }
 
     function sumWorkdays(tasks) {
@@ -382,7 +528,7 @@
     }
 
     function workdaysToHours(workdays) {
-        return workdays * META.hoursPerWorkday;
+        return workdays * profileMeta.hoursPerWorkday;
     }
 
     function formatWorkload(workdays) {
@@ -458,25 +604,27 @@
     }
 
     function renderOverview() {
-        var base = sumWorkdays(DATA.tasks);
-        var buffer = base * META.bufferRate;
+        var base = sumWorkdays(derivedTasks);
+        var buffer = base * profileMeta.bufferRate;
         var total = base + buffer;
-        var overall = averageProgress(DATA.tasks);
-        var inProgress = DATA.tasks.filter(function (t) { return effectiveStatus(t) === 'in-progress'; }).length;
+        var overall = averageProgress(derivedTasks);
+        var inProgress = derivedTasks.filter(function (t) { return effectiveStatus(t) === 'in-progress'; }).length;
         var preIncomplete = countActiveIncomplete();
         var conditionalCount = countConditionalPending();
 
         var band = document.getElementById('overview-band');
-        band.appendChild(overviewCell('基础工作量', null, null, DATA.tasks.length + ' 条研发任务合计', null, null, base));
-        band.appendChild(overviewCell('人力缓冲', null, null, '按基础工作量 ' + Math.round(META.bufferRate * 100) + '% 单独计算', null, null, buffer));
+        band.appendChild(overviewCell('基础工作量', null, null, derivedTasks.length + ' 条研发任务合计', null, null, base));
+        band.appendChild(overviewCell('人力缓冲', null, null, '按基础工作量 ' + Math.round(profileMeta.bufferRate * 100) + '% 单独计算', null, null, buffer));
         band.appendChild(overviewCell('合计工作量', null, null, '基础 + 缓冲，缓冲不摊入任务', null, null, total));
-        band.appendChild(overviewCell('总体进度', formatPct(overall), '', DATA.tasks.length + ' 条研发任务人工进度简单平均', 'is-green', overall));
+        band.appendChild(overviewCell('总体进度', formatPct(overall), '', derivedTasks.length + ' 条研发任务人工进度简单平均', 'is-green', overall));
         band.appendChild(overviewCell('进行中任务', inProgress, '项', '人工进度实时汇总'));
         band.appendChild(overviewCell(
             '待甲方预备',
             preIncomplete,
             '项',
-            '甲方预备事项，不计入进度；另有 ' + conditionalCount + ' 项条件待确认',
+            conditionalCount
+                ? '甲方预备事项，不计入进度；另有 ' + conditionalCount + ' 项条件待确认'
+                : '甲方预备事项，不计入进度；当前均已判定是否适用',
             'is-amber'
         ));
     }
@@ -520,7 +668,7 @@
     /* ---------- 周次排期总控板 ---------- */
 
     function isBufferWeek(w) {
-        return w >= META.bufferStartWeek && w <= META.bufferEndWeek;
+        return w >= profileMeta.bufferStartWeek && w <= profileMeta.bufferEndWeek;
     }
 
     function buildRuler() {
@@ -691,8 +839,11 @@
             if (lane.id === 'external') {
                 var activeIncomplete = countActiveIncomplete();
                 var conditionalCount = countConditionalPending();
-                headLeft.appendChild(el('span', 'lane-meta',
-                    DATA.prerequisites.length + ' 项里程碑 · ' + activeIncomplete + ' 项当前未完成 · ' + conditionalCount + ' 项条件待确认'));
+                var prereqMeta = derivedPrereqs.length + ' 项里程碑 · ' + activeIncomplete + ' 项当前未完成';
+                prereqMeta += conditionalCount
+                    ? ' · ' + conditionalCount + ' 项条件待确认'
+                    : ' · 均已判定是否适用';
+                headLeft.appendChild(el('span', 'lane-meta', prereqMeta));
             } else {
                 var tasks = laneTasks(lane.id);
                 headLeft.appendChild(el('span', 'lane-meta',
@@ -704,7 +855,7 @@
             host.appendChild(head);
 
             if (lane.id === 'external') {
-                DATA.prerequisites.forEach(function (pre) {
+                derivedPrereqs.forEach(function (pre) {
                     host.appendChild(buildPrereqRow(pre));
                 });
             } else {
@@ -771,7 +922,7 @@
         var host = document.getElementById('detail-groups');
         STATUS_ORDER.forEach(function (statusKey) {
             var info = STATUS_META[statusKey];
-            var tasks = DATA.tasks.filter(function (t) { return effectiveStatus(t) === statusKey; });
+            var tasks = derivedTasks.filter(function (t) { return effectiveStatus(t) === statusKey; });
 
             var group = el('section', 'detail-group' + (info.defaultOpen ? ' is-open' : ''));
             var contentId = 'detail-body-' + statusKey;
@@ -851,7 +1002,7 @@
     function renderPrereqTable() {
         var wrap = document.getElementById('prereq-table-wrap');
         var taskById = {};
-        DATA.tasks.forEach(function (t) { taskById[t.id] = t; });
+        derivedTasks.forEach(function (t) { taskById[t.id] = t; });
 
         var table = el('table', 'prereq-table');
         var thead = el('thead');
@@ -863,7 +1014,7 @@
         table.appendChild(thead);
 
         var tbody = el('tbody');
-        DATA.prerequisites.forEach(function (pre) {
+        derivedPrereqs.forEach(function (pre) {
             var done = pre.status === 'complete';
             var rowClass = done ? 'is-complete' : isPreConditional(pre) ? 'is-conditional' : '';
             var tr = el('tr', rowClass);
@@ -905,24 +1056,36 @@
     function renderFootNotes() {
         var host = document.getElementById('foot-notes');
         var w = dateCtx.workdaysPerWeek;
+        var bufferWeekText = profileMeta.bufferStartWeek === profileMeta.bufferEndWeek
+            ? '第' + profileMeta.bufferStartWeek + '周'
+            : '第' + profileMeta.bufferStartWeek + '–' + profileMeta.bufferEndWeek + '周';
+        var staffingNote = staffingId === '2fe'
+            ? '人员配置：1 产品 + 2 前端 + 1 后端并行推进；' + staffingDescriptionText()
+            : '人员配置：1 产品 + 1 前端 + 1 后端并行推进；' + staffingDescriptionText();
+        var lead = staffingLeadWeeks();
         var notes = [
-            '人员配置：1 产品 + 1 前端 + 1 后端并行推进；PC 管理端与小程序由同一前端交叉推进。',
+            staffingNote,
             '接口约定后前后端并行开发，前端可使用 Mock 数据先行。',
-            '每周 ' + w + ' 个工作日，' + META.hoursPerWorkday + ' 小时计 1 人日。',
-            '人力缓冲按基础工作量的 ' + Math.round(META.bufferRate * 100) + '% 单独计算，对应第' + META.bufferStartWeek + '–' + META.bufferEndWeek + '周，不摊入具体研发任务。',
+            '每周 ' + w + ' 个工作日，' + profileMeta.hoursPerWorkday + ' 小时计 1 人日。',
+            '人力缓冲按基础工作量的 ' + Math.round(profileMeta.bufferRate * 100) + '% 单独计算（' + formatWorkload(sumWorkdays(derivedTasks) * profileMeta.bufferRate) + '），对应' + bufferWeekText + '，不摊入具体研发任务。',
             '范围待确认项不参与工作量与进度统计，确认后重新评估并更新当前计划。',
-            '甲方预备事项不进入研发进度；小程序外部条件未齐时公共功能经 H5 继续开发，H5 不是另一套正式产品。',
-            '支付若由独立商城小程序承接，报告小程序不需要新的商户号或支付密钥；若当前 AppID 直接支付，才需商户权限、AppID 绑定、安全参数、HTTPS 回调和真实支付退款闭环，并需重新评估研发范围。'
+            '甲方预备事项不进入研发进度；外部条件未齐时公共功能可经 H5 或 Mock 继续开发，但 H5 不是另一套正式产品。',
+            '实施方式已确认：健康报告在现有商城小程序同一 AppID 内二次开发；启动/登录默认进入健康报告首页，主导航按原型为「首页」「我的」。商城交易后端继续复用并完成从报告推荐到支付退款的真实回归联调。'
         ];
+        if (staffingId === '2fe') {
+            notes.push('与 1 前端方案相比，本方案研发完成提前 ' + lead.dev + ' 个计划周，含缓冲完成提前 ' + lead.total + ' 个计划周（日历日期随顶栏开始日与工作周口径派生）。');
+        } else if (lead.dev > 0) {
+            notes.push('若切换为 2 前端 + 1 后端，研发完成可提前 ' + lead.dev + ' 个计划周，含缓冲完成可提前 ' + lead.total + ' 个计划周。');
+        }
         if (dateCtx.hasSchedule) {
             notes.push(
-                '项目开始日期：顶栏选择或 URL 参数 ?start=YYYY-MM-DD（优先于 data.js 的 meta.projectStartDate）；工作周口径由顶栏单选或 URL 参数 ?workdays=5|6（优先于 meta.workdaysPerWeek，无效值回退 5）；未设定开始日期时页面仅显示相对周次。',
-                '工作日换算：每个计划周固定按 ' + META.planWorkdaysPerWeek + ' 个基准工作日；5/6 天选项只改变可工作的日历日，不改变任务工作量。第 N 周开始 = 起算日后 (N−1)×' + META.planWorkdaysPerWeek + ' 个工作日，第 N 周结束 = 起算日后 N×' + META.planWorkdaysPerWeek + '−1 个工作日；当前 ' + w + ' 天工作制下' + workdaysSkipRuleText() + '，不识别法定节假日。',
-                '若所选开始日为当前口径下的非工作日，输入框保留原日期，排期从下一工作日顺延起算；研发计划完成取第 ' + META.devEndWeek + ' 周结束日，含缓冲完成取第 ' + META.totalWeeks + ' 周结束日；任务计划完成取 endWeek 周结束日，甲方事项最迟完成取 expectedWeek 周结束日。'
+                '项目开始日期：顶栏选择或 URL 参数 ?start=YYYY-MM-DD（优先于 data.js 的 meta.projectStartDate）；人员配置由顶栏单选或 URL 参数 ?staffing=1fe|2fe（默认 1fe）；工作周口径由顶栏单选或 URL 参数 ?workdays=5|6（优先于 meta.workdaysPerWeek，无效值回退 5）；未设定开始日期时页面仅显示相对周次。',
+                '工作日换算：每个计划周固定按 ' + profileMeta.planWorkdaysPerWeek + ' 个基准工作日；5/6 天选项只改变可工作的日历日，不改变任务工作量。第 N 周开始 = 起算日后 (N−1)×' + profileMeta.planWorkdaysPerWeek + ' 个工作日，第 N 周结束 = 起算日后 N×' + profileMeta.planWorkdaysPerWeek + '−1 个工作日；当前 ' + w + ' 天工作制下' + workdaysSkipRuleText() + '，不识别法定节假日。',
+                '若所选开始日为当前口径下的非工作日，输入框保留原日期，排期从下一工作日顺延起算；研发计划完成取第 ' + profileMeta.devEndWeek + ' 周结束日，含缓冲完成取第 ' + profileMeta.totalWeeks + ' 周结束日；任务计划完成取 endWeek 周结束日，甲方事项最迟完成取 expectedWeek 周结束日。'
             );
         } else {
             notes.push(
-                '项目开始日期：可在顶栏选择或通过 URL ?start=YYYY-MM-DD 设定；工作周口径可通过顶栏单选或 URL ?workdays=5|6 设定（默认 5 天）；亦可在 data.js 的 meta.projectStartDate 填写默认日期。未设定开始日期时排期仅显示相对周次，不换算具体日历日期。'
+                '项目开始日期：可在顶栏选择或通过 URL ?start=YYYY-MM-DD 设定；人员配置可通过顶栏单选或 URL ?staffing=1fe|2fe 设定；工作周口径可通过顶栏单选或 URL ?workdays=5|6 设定（默认 5 天）；亦可在 data.js 的 meta.projectStartDate 填写默认日期。未设定开始日期时排期仅显示相对周次，不换算具体日历日期。'
             );
         }
         notes.forEach(function (text) {
@@ -932,11 +1095,14 @@
 
     /* ---------- 启动 ---------- */
 
+    resolveStaffingProfile();
     resolveWorkdaysPerWeek();
     resolveStartDate();
     renderLastUpdated(new Date(document.lastModified));
     resolveLastUpdated();
     setupDateControls();
+    setupStaffingControls();
+    updateDynamicChrome();
     renderOverview();
     renderAmberStrip();
     renderSchedule();

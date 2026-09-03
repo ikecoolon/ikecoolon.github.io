@@ -20,6 +20,8 @@
     --row-h: 28px;
     --left-w: 360px;
     --week-w: 100px;
+    --total-weeks: 11;
+    --track-w: 1100px;
 }
 
 * {
@@ -489,7 +491,7 @@ a:hover {
 .sch-row {
     display: flex;
     align-items: stretch;
-    min-width: calc(var(--left-w) + 11 * var(--week-w));
+    min-width: calc(var(--left-w) + var(--track-w));
 }
 
 .sch-row + .sch-row {
@@ -517,7 +519,7 @@ a:hover {
 .sch-track {
     position: relative;
     flex: 0 0 auto;
-    width: calc(11 * var(--week-w));
+    width: var(--track-w);
     min-height: var(--row-h);
 }
 
@@ -537,7 +539,7 @@ a:hover {
 .ruler-cells,
 .grid-cells {
     display: grid;
-    grid-template-columns: repeat(11, var(--week-w));
+    grid-template-columns: repeat(var(--total-weeks), var(--week-w));
 }
 
 .ruler-cells {
