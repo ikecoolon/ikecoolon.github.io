@@ -272,6 +272,13 @@ a:hover {
     min-width: 0;
 }
 
+.overview-cell:first-child {
+    flex-grow: 1.18;
+    padding-top: 12px;
+    background: var(--wall);
+    border-top: 2px solid var(--line-strong);
+}
+
 .overview-cell + .overview-cell {
     border-left: 1px solid var(--line);
 }
@@ -284,10 +291,20 @@ a:hover {
     margin-bottom: 4px;
 }
 
+.overview-cell:first-child .overview-label {
+    color: var(--ink-2);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+}
+
 .overview-value {
     font-size: 26px;
     font-weight: 700;
     line-height: 1.2;
+}
+
+.overview-cell:first-child .overview-value {
+    font-size: 30px;
 }
 
 .overview-value-wrap {
@@ -301,11 +318,22 @@ a:hover {
     margin-left: 3px;
 }
 
+.overview-cell:first-child .overview-unit {
+    color: var(--ink);
+    font-weight: 500;
+}
+
 .overview-sub {
     display: block;
     font-size: 12px;
     color: var(--ink-3);
     margin-top: 2px;
+}
+
+.overview-cell:first-child .overview-sub {
+    color: var(--ink-2);
+    font-weight: 500;
+    margin-top: 4px;
 }
 
 .overview-cell.is-amber .overview-value {
