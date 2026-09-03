@@ -21,7 +21,7 @@
     throw new Error('PetReportAnalysisEngine 不可用');
   }
 
-  var STORAGE_KEY = 'pet-report-mock-store-v3';
+  var STORAGE_KEY = 'pet-report-mock-store-v4';
   var DATA_STATUSES = ['PRESENT', 'MISSING_COLUMN', 'EMPTY', 'NOT_DETECTED', 'INVALID', 'NOT_APPLICABLE'];
   var REPORT_STATUSES = ['unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
   /** @deprecated 指向 REPORT_STATUSES */
@@ -32,6 +32,8 @@
   var DEFAULT_SOURCE_ORG_ID = 'ORG-LAB-GUT-001';
   var SECOND_SOURCE_ORG_ID = 'ORG-LAB-GUT-002';
   var VERSION_STATUSES = ['draft', 'pending_review', 'published', 'superseded'];
+  var SUBMISSION_TYPES = ['in_store', 'customer_brought'];
+  var SUBMISSION_TYPE_LABELS = { in_store: '本店送检', customer_brought: '客户自带报告' };
   var UNIT_CONFIRM_STATUSES = ['unconfirmed', 'confirmed', 'invalidated'];
   var RANGE_SOURCES = ['imported', 'platform', 'none'];
   var VALUE_SOURCES = ['import', 'manual'];
@@ -586,6 +588,17 @@
     backfillMissingCatalogSortOrders(state.professionalCatalog.testIndicators);
     backfillMissingCatalogSortOrders(state.professionalCatalog.breeds);
     syncPlatformReferenceRangesFromSchemes(state.professionalCatalog);
+    (state.testRecords || []).forEach(function (tr) {
+      if (!tr.submissionType || SUBMISSION_TYPES.indexOf(tr.submissionType) < 0) {
+        tr.submissionType = 'in_store';
+      }
+      if (tr.status === 'unassigned') {
+        tr.status = tr.petId ? 'pending_review' : 'pending_result';
+      }
+    });
+    (state.reports || []).forEach(function (report) {
+      if (report.status === 'unassigned') report.status = 'incomplete';
+    });
   }
 
   function loadState() {
@@ -950,6 +963,7 @@
 
   function syncReportDerived(state, report) {
     if (!report) return;
+    if (report.status === 'unassigned') setReportStatus(report, 'incomplete');
     report.ownershipStatus = report.petId ? 'bound' : 'unassigned';
     ensurePhylumUnits(state, report);
     maybeInvalidateUnits(state, report);
@@ -1201,6 +1215,7 @@
 
   function setReportStatus(report, nextStatus) {
     if (!report) return;
+    if (nextStatus === 'unassigned') nextStatus = 'incomplete';
     if (report.status !== nextStatus) {
       report.status = nextStatus;
       report.statusChangedAt = nowIso();
@@ -1443,7 +1458,9 @@
       tr.status = 'voided';
       tr.updatedAt = nowIso();
     }
-    appendOperationRecord(state, { type: 'void', reportId: report.id, reason: report.voidReason });
+    appendOperationRecord(state, {
+      type: 'void', reportId: report.id, reason: report.voidReason, actor: '运营专员'
+    });
     syncReportDerived(state, report);
     return report;
   }
@@ -1484,8 +1501,9 @@
 
   function generateReportInternal(state, tr, params) {
     params = params || {};
+    if (!tr.petId) throw new Error('送检记录必须已关联宠物，不能生成未挂宠物的报告');
     var reportId = bumpIds(state, 'reports', 'report');
-    var status = tr.petId ? 'incomplete' : 'unassigned';
+    var status = 'incomplete';
     var report = {
       id: reportId,
       reportNumber: params.reportNumber || ('RPT-' + reportId.replace('report-', '')),
@@ -1918,7 +1936,7 @@
 
     var state = {
       meta: {
-        version: 17,
+        version: 18,
         disclaimer: '',
         dataStatuses: DATA_STATUSES.slice(),
         reportStatuses: REPORT_STATUSES.slice(),
@@ -1940,7 +1958,7 @@
         { id: 'pet-002', userId: 'user-001', name: '阿黄', breed: '金毛寻回犬', age: 5, gender: 'male', species: 'dog', storeId: 'store-002', claimStatus: 'bound', createdAt: ts },
         { id: 'pet-003', userId: 'user-002', name: '咪咪', breed: '布偶猫', age: 2, gender: 'female', species: 'cat', storeId: null, claimStatus: 'bound', opsCreated: true, createdAt: ts },
         { id: 'pet-004', userId: null, name: '旺仔', breed: '柯基', age: 4, gender: 'male', species: 'dog', storeId: 'store-001', claimStatus: 'unassigned', opsCreated: true, createdAt: ts },
-        { id: 'pet-005', userId: null, name: '豆豆', breed: '中华田园猫', age: 1, gender: 'female', species: 'cat', storeId: 'store-001', claimStatus: 'unassigned', opsCreated: true, createdAt: ts },
+        { id: 'pet-005', userId: 'user-002', name: '豆豆', breed: '中华田园猫', age: 1, gender: 'female', species: 'cat', storeId: 'store-001', claimStatus: 'bound', opsCreated: true, createdAt: ts },
         { id: 'pet-006', userId: 'user-004', name: '豆包', breed: '橘猫', age: 2.5, gender: 'male', species: 'cat', storeId: 'store-001', claimStatus: 'bound', createdAt: ts }
       ],
       categories: [
@@ -1963,14 +1981,14 @@
         { id: 'batch-007', fileName: '检测结果导入_豆包.xlsx', status: 'success', totalRows: 12, successRows: 12, failedRows: 0, errors: [], testRecordIds: ['tr-010'], createdAt: '2025-08-27T10:00:00.000Z' }
       ],
       testRecords: [
-        { id: 'tr-001', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-PARTIAL-001', sampleNumber: 'SAMPLE-PARTIAL-001', sampleType: 'feces', testDate: '2025-08-22', status: 'pending_result', importBatchId: null, claimStatus: 'bound', label: 'SAMPLE-PARTIAL-001', createdAt: '2025-08-22T09:15:00.000Z', updatedAt: '2025-08-22T09:15:00.000Z' },
-        { id: 'tr-002', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-FAIL-002', sampleNumber: 'SAMPLE-FAIL-002', sampleType: 'feces', testDate: '2025-08-21', status: 'pending_review', importBatchId: 'batch-002', claimStatus: 'bound', label: 'SAMPLE-FAIL-002', createdAt: '2025-08-21T11:30:00.000Z', updatedAt: '2025-08-21T11:30:00.000Z' },
-        { id: 'tr-003', petId: 'pet-003', userId: 'user-002', storeId: null, sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-REVIEW-003', sampleNumber: 'SAMPLE-REVIEW-003', sampleType: 'feces', testDate: '2025-08-23', status: 'pending_review', importBatchId: null, claimStatus: 'bound', label: 'SAMPLE-REVIEW-003', createdAt: '2025-08-23T14:00:00.000Z', updatedAt: '2025-08-23T14:00:00.000Z' },
-        { id: 'tr-004', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-001', sampleNumber: 'SAMPLE-BJ-001', sampleType: 'feces', testDate: '2025-08-20', status: 'published', importBatchId: 'batch-001', claimStatus: 'bound', label: 'SAMPLE-BJ-001', createdAt: '2025-08-20T10:00:00.000Z', updatedAt: '2025-08-24T16:00:00.000Z' },
-        { id: 'tr-006', petId: 'pet-004', userId: null, storeId: 'store-001', sourceOrgId: SECOND_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-HARLEY-006', sampleNumber: 'SAMPLE-HARLEY-006', sampleType: 'feces', testDate: '2025-08-18', status: 'published', importBatchId: 'batch-harley', claimStatus: 'unassigned', label: 'SAMPLE-HARLEY-006', createdAt: '2025-08-19T09:00:00.000Z', updatedAt: '2025-08-19T16:00:00.000Z' },
-        { id: 'tr-008', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-VOID-008', sampleNumber: 'SAMPLE-VOID-008', sampleType: 'feces', testDate: '2025-08-10', status: 'voided', importBatchId: 'batch-001', claimStatus: 'bound', label: 'SAMPLE-VOID-008', createdAt: '2025-08-10T09:00:00.000Z', updatedAt: '2025-08-12T10:00:00.000Z' },
-        { id: 'tr-009', petId: null, userId: null, storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-NEW-UNASSIGNED-009', sampleNumber: 'SAMPLE-NEW-UNASSIGNED-009', sampleType: 'feces', testDate: '2025-08-25', status: 'unassigned', importBatchId: 'batch-oscar', claimStatus: 'unassigned', label: 'SAMPLE-NEW-UNASSIGNED-009', createdAt: '2025-08-18T09:00:00.000Z', updatedAt: '2025-08-18T09:00:00.000Z' },
-        { id: 'tr-010', petId: 'pet-006', userId: 'user-004', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-007', sampleNumber: 'SAMPLE-HZ-007', sampleType: 'feces', testDate: '2025-08-27', status: 'published', importBatchId: 'batch-007', claimStatus: 'bound', label: 'SAMPLE-HZ-007', createdAt: '2025-08-27T10:00:00.000Z', updatedAt: '2025-08-27T16:00:00.000Z' }
+        { id: 'tr-001', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-PARTIAL-001', sampleNumber: 'SAMPLE-PARTIAL-001', sampleType: 'feces', testDate: '2025-08-22', status: 'pending_result', importBatchId: null, claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-PARTIAL-001', createdAt: '2025-08-22T09:15:00.000Z', updatedAt: '2025-08-22T09:15:00.000Z' },
+        { id: 'tr-002', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-FAIL-002', sampleNumber: 'SAMPLE-FAIL-002', sampleType: 'feces', testDate: '2025-08-21', status: 'pending_review', importBatchId: 'batch-002', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-FAIL-002', createdAt: '2025-08-21T11:30:00.000Z', updatedAt: '2025-08-21T11:30:00.000Z' },
+        { id: 'tr-003', petId: 'pet-003', userId: 'user-002', storeId: null, sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-REVIEW-003', sampleNumber: 'SAMPLE-REVIEW-003', sampleType: 'feces', testDate: '2025-08-23', status: 'pending_review', importBatchId: null, claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-REVIEW-003', createdAt: '2025-08-23T14:00:00.000Z', updatedAt: '2025-08-23T14:00:00.000Z' },
+        { id: 'tr-004', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-001', sampleNumber: 'SAMPLE-BJ-001', sampleType: 'feces', testDate: '2025-08-20', status: 'published', importBatchId: 'batch-001', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-BJ-001', createdAt: '2025-08-20T10:00:00.000Z', updatedAt: '2025-08-24T16:00:00.000Z' },
+        { id: 'tr-006', petId: 'pet-004', userId: null, storeId: 'store-001', sourceOrgId: SECOND_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-HARLEY-006', sampleNumber: 'SAMPLE-HARLEY-006', sampleType: 'feces', testDate: '2025-08-18', status: 'published', importBatchId: 'batch-harley', claimStatus: 'unassigned', submissionType: 'in_store', label: 'SAMPLE-HARLEY-006', createdAt: '2025-08-19T09:00:00.000Z', updatedAt: '2025-08-19T16:00:00.000Z' },
+        { id: 'tr-008', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-VOID-008', sampleNumber: 'SAMPLE-VOID-008', sampleType: 'feces', testDate: '2025-08-10', status: 'voided', importBatchId: 'batch-001', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-VOID-008', createdAt: '2025-08-10T09:00:00.000Z', updatedAt: '2025-08-12T10:00:00.000Z' },
+        { id: 'tr-009', petId: 'pet-005', userId: 'user-002', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-OSCAR-009', sampleNumber: 'SAMPLE-OSCAR-009', sampleType: 'feces', testDate: '2025-08-25', status: 'pending_review', importBatchId: 'batch-oscar', claimStatus: 'bound', submissionType: 'customer_brought', label: 'SAMPLE-OSCAR-009', createdAt: '2025-08-18T09:00:00.000Z', updatedAt: '2025-08-18T09:00:00.000Z' },
+        { id: 'tr-010', petId: 'pet-006', userId: 'user-004', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-007', sampleNumber: 'SAMPLE-HZ-007', sampleType: 'feces', testDate: '2025-08-27', status: 'published', importBatchId: 'batch-007', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-HZ-007', createdAt: '2025-08-27T10:00:00.000Z', updatedAt: '2025-08-27T16:00:00.000Z' }
       ],
       indicators: [],
       reports: [],
@@ -2060,9 +2078,9 @@
         createdAt: '2025-08-10T11:00:00.000Z'
       }),
       baseReport({
-        id: 'report-006', reportNumber: 'RPT-2025-006', externalReportNumber: 'EXT-2025-NEW-UNASSIGNED-009',
-        sampleNumber: 'SAMPLE-NEW-UNASSIGNED-009', sourceOrgId: DEFAULT_SOURCE_ORG_ID, testRecordId: 'tr-009',
-        userId: null, petId: null, reportSpecies: null, status: 'unassigned',
+        id: 'report-006', reportNumber: 'RPT-2025-006', externalReportNumber: 'EXT-2025-OSCAR-009',
+        sampleNumber: 'SAMPLE-OSCAR-009', sourceOrgId: DEFAULT_SOURCE_ORG_ID, testRecordId: 'tr-009',
+        userId: 'user-002', petId: 'pet-005', reportSpecies: 'cat', status: 'incomplete',
         statusChangedAt: '2025-08-18T09:00:00.000Z',
         createdAt: '2025-08-18T09:00:00.000Z'
       }),
@@ -2313,7 +2331,12 @@
       var report = findReport(state, reportId);
       if (!report) throw new Error('report not found: ' + reportId);
       createCorrectionDraftInternal(state, report, params);
-      appendOperationRecord(state, { type: 'correction_draft', reportId: report.id, version: report.workingVersion });
+      appendOperationRecord(state, {
+        type: 'correction_draft',
+        reportId: report.id,
+        version: report.workingVersion,
+        actor: (params && params.actor) || '审核员'
+      });
       return report;
     });
   }
@@ -2516,6 +2539,7 @@
     var sampleNo = params.sampleNumber || params.sampleNo;
     if (!externalNo && !sampleNo) return null;
     var existing = state.testRecords.find(function (tr) {
+      if (params.testRecordId && tr.id === params.testRecordId) return false;
       if ((tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID) !== sourceOrgId) return false;
       if (externalNo && tr.externalReportNumber === externalNo) return true;
       if (sampleNo && tr.sampleNumber === sampleNo) return true;
@@ -2566,8 +2590,7 @@
       tr.status = 'pending_review';
       tr.claimStatus = tr.userId ? 'bound' : 'unassigned';
     } else {
-      tr.status = 'unassigned';
-      tr.claimStatus = 'unassigned';
+      throw new Error('送检记录必须已关联宠物，不能导入后生成未挂宠物的报告');
     }
     tr.updatedAt = nowIso();
   }
@@ -2599,6 +2622,8 @@
       var pet = findPet(state, params.petId);
       if (!pet) throw new Error('宠物不存在');
       if (!pet.userId) throw new Error('该宠物尚未关联平台用户，请先在客户管理或宠物档案完成关联');
+      var submissionType = params.submissionType;
+      if (SUBMISSION_TYPES.indexOf(submissionType) < 0) throw new Error('请选择送检类型：本店送检或客户自带报告');
       var sampleNumber = params.sampleNumber != null ? String(params.sampleNumber).trim() : '';
       if (!sampleNumber) throw new Error('请填写样本编号');
       if (!params.testDate) throw new Error('请选择送检日期');
@@ -2610,7 +2635,7 @@
         externalReportNumber: params.externalReportNumber || null,
         sampleNumber: sampleNumber, sampleType: params.sampleType || 'feces',
         testDate: params.testDate, status: 'pending_result', importBatchId: null,
-        claimStatus: 'bound', label: sampleNumber, createdAt: nowIso(), updatedAt: nowIso()
+        claimStatus: 'bound', submissionType: submissionType, label: sampleNumber, createdAt: nowIso(), updatedAt: nowIso()
       };
       state.testRecords.push(record);
       return record;
@@ -2625,26 +2650,12 @@
       var batchId = bumpIds(state, 'importBatches', 'batch');
       var testRecordId = params.testRecordId;
       var record = testRecordId ? findTestRecord(state, testRecordId) : null;
+      if (!record) throw new Error('导入结果必须从已登记的送检记录发起，不做无预登记批量导入');
+      if (!record.petId) throw new Error('送检记录必须已关联宠物');
       var hasPartial = (params.indicators || []).some(function (ind) {
         return ind.dataStatus && ind.dataStatus !== 'PRESENT';
       });
       var batchStatus = hasPartial ? 'partial' : 'success';
-      if (!record) {
-        var newTrId = bumpIds(state, 'testRecords', 'tr');
-        record = {
-          id: newTrId, petId: params.petId || null, userId: params.userId || null,
-          storeId: params.storeId || null, sourceOrgId: params.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-          externalReportNumber: params.externalReportNumber || null,
-          sampleNumber: params.sampleNumber || params.sampleNo || null, sampleType: 'feces',
-          testDate: params.testDate || new Date().toISOString().slice(0, 10),
-          status: 'pending_result', importBatchId: batchId,
-          claimStatus: params.petId && params.userId ? 'bound' : 'unassigned',
-          label: params.sampleNumber || params.sampleNo || '导入成功',
-          createdAt: nowIso(), updatedAt: nowIso()
-        };
-        state.testRecords.push(record);
-        testRecordId = newTrId;
-      }
       updateTestRecordAfterImport(record, params, batchId);
       var rows = params.rows || 10;
       state.importBatches.push({
@@ -2686,20 +2697,9 @@
         }
         var partial = scenario === 'partial';
         var tr = directedRecord;
-        var trId = tr ? tr.id : bumpIds(state, 'testRecords', 'tr');
-        if (!tr) {
-          tr = {
-            id: trId, petId: file.petId || null, userId: file.userId || null, storeId: file.storeId || null,
-            sourceOrgId: file.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
-            externalReportNumber: file.externalReportNumber || ('EXT-BATCH-' + trId),
-            sampleNumber: file.sampleNumber || ('SAMPLE-BATCH-' + trId), sampleType: 'feces',
-            testDate: file.testDate || new Date().toISOString().slice(0, 10),
-            status: 'pending_result', importBatchId: batchId,
-            claimStatus: file.petId || file.userId ? 'bound' : 'unassigned',
-            label: file.sampleNumber || ('SAMPLE-BATCH-' + trId), createdAt: nowIso(), updatedAt: nowIso()
-          };
-          state.testRecords.push(tr);
-        }
+        if (!tr) throw new Error('导入结果必须从已登记的送检记录发起');
+        if (!tr.petId) throw new Error('送检记录必须已关联宠物');
+        var trId = tr.id;
         updateTestRecordAfterImport(tr, file, batchId);
         appendIndicatorsForTestRecord(state, trId, file.indicators, file);
         ensureReportForImport(state, tr, file);
@@ -2793,7 +2793,13 @@
         tr.updatedAt = nowIso();
       }
       syncReportDerived(state, report);
-      appendOperationRecord(state, { type: 'ownership_correction', reportId: report.id, correctionId: correction.id });
+      appendOperationRecord(state, {
+        type: 'ownership_correction',
+        reportId: report.id,
+        correctionId: correction.id,
+        actor: correction.actor,
+        reason: correction.reason
+      });
       return correction;
     });
   }
@@ -2952,6 +2958,8 @@
     USER_REPORT_STATUSES: USER_REPORT_STATUSES,
     VERSION_STATUSES: VERSION_STATUSES,
     VERSION_STATUS_LABELS: VERSION_STATUS_LABELS,
+    SUBMISSION_TYPES: SUBMISSION_TYPES,
+    SUBMISSION_TYPE_LABELS: SUBMISSION_TYPE_LABELS,
     UNIT_CONFIRM_STATUSES: UNIT_CONFIRM_STATUSES,
     UNIT_CONFIRM_LABELS: UNIT_CONFIRM_LABELS,
     RANGE_SOURCES: RANGE_SOURCES,

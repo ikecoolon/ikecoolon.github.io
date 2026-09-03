@@ -1425,6 +1425,8 @@ body.mk-drawer-open {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
   padding: 8px 12px;
   background: #fff;
   border-bottom: 1px solid var(--ant-border);
@@ -1775,6 +1777,12 @@ body.mk-drawer-open {
 
 .rw-source-grid p {
   margin: 0;
+}
+
+.rw-report-trace {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e2e8f0;
 }
 
 .rw-source-grid .rw-mismatch {

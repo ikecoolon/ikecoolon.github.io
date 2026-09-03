@@ -16,7 +16,7 @@ function initReportReview() {
   var expandedHits = {};
   var lastRenderedReportId = null;
 
-  var RETURN_VIEWS = ['all', 'unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
+  var RETURN_VIEWS = ['all', 'incomplete', 'pending_review', 'published', 'voided', 'pending'];
   var MISSING_STATUSES = ['MISSING_COLUMN', 'EMPTY', 'INVALID', 'NOT_APPLICABLE'];
   var HIT_STATUS_LABELS = {
     primary: '主命中',
@@ -34,10 +34,10 @@ function initReportReview() {
     { id: 'assessment', label: '综合评定', icon: 'fa-sliders' },
     { id: 'analysis', label: '分析与建议', icon: 'fa-microscope' },
     { id: 'recommendations', label: '商品推荐', icon: 'fa-box-open' },
-    { id: 'checks', label: '发布检查', icon: 'fa-clipboard-check' },
-    { id: 'versions', label: '版本与记录', icon: 'fa-clock-rotate-left' }
+    { id: 'checks', label: '发布检查', icon: 'fa-clipboard-check' }
   ];
   var VALID_MODULE_IDS = MODULES.map(function (m) { return m.id; });
+  var pendingFocusTrace = false;
 
   function isValidReviewModule(id) {
     return VALID_MODULE_IDS.indexOf(id) >= 0;
@@ -45,6 +45,10 @@ function initReportReview() {
 
   function requestedModuleFromRoute() {
     var params = (C.parseRoute().params || {});
+    if (params.module === 'versions' || params.focus === 'trace') {
+      pendingFocusTrace = true;
+      return 'source';
+    }
     return isValidReviewModule(params.module) ? params.module : null;
   }
 
@@ -246,14 +250,14 @@ function initReportReview() {
       versionView = 'working';
       document.getElementById('ver-toggle-working').classList.add('active');
       document.getElementById('ver-toggle-published').classList.remove('active');
-      renderVersionsPanel(store.getState());
+      syncPreviewVersionToggle(store.getState());
       updatePreview(store.getState());
     });
     document.getElementById('ver-toggle-published').addEventListener('click', function () {
       versionView = 'published';
       document.getElementById('ver-toggle-published').classList.add('active');
       document.getElementById('ver-toggle-working').classList.remove('active');
-      renderVersionsPanel(store.getState());
+      syncPreviewVersionToggle(store.getState());
       updatePreview(store.getState());
     });
 
@@ -358,7 +362,7 @@ function initReportReview() {
     if (report.status === 'unassigned' || report.status === 'incomplete') return 'source';
     if (report.status === 'pending_review' || stage === 'pending_review') return 'checks';
     if (report.status === 'published' && report.correctionDraftActive) return 'results';
-    if (report.status === 'published' || report.status === 'voided') return 'versions';
+    if (report.status === 'published' || report.status === 'voided') return 'source';
     return 'assessment';
   }
 
@@ -559,7 +563,8 @@ function initReportReview() {
         runWithChecks('审核通过并发布', function () {
           try {
             store.publishReport(report.id, { actor: actorLabel() });
-            activeModule = 'versions';
+            activeModule = 'source';
+            pendingFocusTrace = true;
             afterWrite('报告已审核通过并发布', 'success');
           } catch (err) {
             handleStoreError(err);
@@ -719,6 +724,95 @@ function initReportReview() {
     };
   }
 
+  function submissionTypeLabel(tr) {
+    var key = tr && tr.submissionType;
+    var map = C.SUBMISSION_TYPE_LABELS || {};
+    return map[key] || (key === 'customer_brought' ? '客户自带报告' : '本店送检');
+  }
+
+  function latestOp(ops, type) {
+    for (var i = 0; i < ops.length; i++) {
+      if (ops[i].type === type) return ops[i];
+    }
+    return null;
+  }
+
+  function renderTraceBlock(state, report) {
+    var ops = (state.operationRecords || []).filter(function (op) { return op.reportId === report.id; })
+      .sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
+    var publishOp = latestOp(ops, 'publish');
+    var voidOp = latestOp(ops, 'void');
+    var corrOp = latestOp(ops, 'correction_draft');
+    var ownOp = latestOp(ops, 'ownership_correction');
+    var pubVer = C.getPublishedReportVersion(state, report.id);
+    var workVer = C.getWorkingReportVersion(state, report.id);
+    var lines = [];
+
+    if (report.status === 'voided') {
+      lines.push('已作废' +
+        (report.voidedAt ? ' · ' + C.formatDate(report.voidedAt) : '') +
+        (voidOp && voidOp.actor ? ' · ' + voidOp.actor : '') +
+        (report.voidReason ? ' · ' + report.voidReason : ''));
+    } else if (pubVer) {
+      lines.push('当前发布版 v' + pubVer.version +
+        (pubVer.publishedAt ? ' · ' + C.formatDate(pubVer.publishedAt) : '') +
+        (publishOp && publishOp.actor ? ' · ' + publishOp.actor + ' 发布' : ''));
+    } else {
+      lines.push('尚无发布版本（用户仍见「报告处理中」）');
+    }
+
+    if (report.correctionDraftActive && workVer) {
+      lines.push('更正草稿 v' + workVer.version + ' 进行中' +
+        (workVer.createdAt ? ' · ' + C.formatDate(workVer.createdAt) : '') +
+        (corrOp && corrOp.actor ? ' · ' + corrOp.actor : '') +
+        (workVer.correctionNote ? ' · ' + workVer.correctionNote : '') +
+        '；用户仍读取已发布版本');
+    } else if (workVer) {
+      lines.push('工作版 v' + workVer.version +
+        (workVer.status ? ' · ' + (versionStatusLabels()[workVer.status] || workVer.status) : ''));
+    }
+
+    if (ownOp) {
+      lines.push('最近纠错 · ' + C.formatDate(ownOp.createdAt) +
+        (ownOp.actor ? ' · ' + ownOp.actor : ''));
+    }
+
+    return '<div id="rw-report-trace" class="rw-report-trace">' +
+      '<h4 class="text-sm font-medium text-slate-800 mb-2"><i class="fas fa-clock-rotate-left text-teal-600 mr-1"></i>本报告追溯</h4>' +
+      '<ul class="text-xs text-slate-600 space-y-1.5">' +
+      lines.map(function (line) { return '<li>' + C.escapeHtml(line) + '</li>'; }).join('') +
+      '</ul></div>';
+  }
+
+  function renderCorrectionForm(state, report) {
+    if (report.status === 'voided' || !report.petId) return '';
+    var petOptions = (state.pets || []).map(function (p) {
+      var u = C.lookupUser(state, p.userId);
+      return '<option value="' + p.id + '"' + (p.id === report.petId ? ' selected' : '') + '>' +
+        C.escapeHtml(p.name + ' · ' + (p.species === 'dog' ? '狗' : '猫') +
+          (u ? ' · ' + u.name : ' · 未关联用户')) + '</option>';
+    }).join('');
+    var userOptions = '<option value="">不指定 / 跟随宠物</option>' + (state.users || []).map(function (u) {
+      return '<option value="' + u.id + '"' + (u.id === report.userId ? ' selected' : '') + '>' +
+        C.escapeHtml(u.name) + '</option>';
+    }).join('');
+    return '<div class="mt-4 border rounded p-3 bg-slate-50" id="correction-form">' +
+      '<p class="font-medium text-sm mb-1">纠错</p>' +
+      '<p class="text-xs text-slate-500 mb-3">身份在送检登记时已确定。此处只修正归错宠物或换错用户，不是从 Excel 做归属。</p>' +
+      '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">' +
+      '<div><label class="text-xs text-slate-500">改归宠物</label>' +
+      '<select id="own-pet" class="w-full border rounded px-2 py-1 mt-0.5">' + petOptions + '</select></div>' +
+      '<div><label class="text-xs text-slate-500">换用户</label>' +
+      '<select id="own-user" class="w-full border rounded px-2 py-1 mt-0.5">' + userOptions + '</select></div>' +
+      '</div>' +
+      '<label class="text-xs text-slate-500 mt-2 block">原因（必填）</label>' +
+      '<input id="own-reason" class="w-full border rounded px-2 py-1 mt-0.5" placeholder="说明纠错原因">' +
+      '<div class="flex flex-wrap gap-2 mt-2">' +
+      '<button type="button" id="btn-correct-pet" class="btn-secondary px-3 py-1.5 rounded text-sm">改归宠物</button>' +
+      '<button type="button" id="btn-correct-user" class="btn-secondary px-3 py-1.5 rounded text-sm">换用户</button>' +
+      '</div></div>';
+  }
+
   function renderSourcePanel(state, report) {
     var tr = C.lookupTestRecord(state, report.testRecordId);
     var user = C.lookupUser(state, report.userId);
@@ -746,75 +840,80 @@ function initReportReview() {
     var html =
       '<div class="rw-source-grid">' +
       '<p><span class="text-slate-500">报告号</span><br>' + C.escapeHtml(report.reportNumber) + '</p>' +
-      '<p><span class="text-slate-500">送检</span><br><code class="text-xs">' + C.escapeHtml(report.testRecordId) + '</code></p>' +
+      '<p><span class="text-slate-500">送检</span><br><code class="text-xs">' + C.escapeHtml(report.testRecordId || '—') + '</code></p>' +
+      '<p><span class="text-slate-500">送检类型</span><br>' + C.escapeHtml(submissionTypeLabel(tr)) + '</p>' +
       '<p><span class="text-slate-500">外部报告号</span><br>' + C.escapeHtml(externalReportNumber) + '</p>' +
       '<p><span class="text-slate-500">样本号</span><br>' + C.escapeHtml(sampleNumber) + '</p>' +
       '<p><span class="text-slate-500">机构</span><br>' + C.escapeHtml(testingOrg) + '</p>' +
       '<p><span class="text-slate-500">宠物</span><br>' + C.escapeHtml(pet ? pet.name + ' / ' + (pet.breed || '') : '—') + '</p>' +
-      '<p><span class="text-slate-500">用户</span><br>' + C.escapeHtml(user ? user.name : '—') + '</p>' +
-      '<p><span class="text-slate-500">归属</span><br>' + C.escapeHtml(C.OWNERSHIP_STATUS_LABELS[report.ownershipStatus] || report.ownershipStatus || '—') + '</p>' +
+      '<p><span class="text-slate-500">用户</span><br>' + C.escapeHtml(user ? user.name : '未关联用户') + '</p>' +
       '<p><span class="text-slate-500">导入文件</span><br>' + C.escapeHtml(fileName) + '</p>' +
       '<p><span class="text-slate-500">上传时间</span><br>' + C.escapeHtml(uploadedAt) + '</p>' +
       '<p><span class="text-slate-500">模板识别</span><br>' + C.escapeHtml(tpl.resultLabel) +
       ' · sheet ' + C.escapeHtml(tpl.sheet) +
       ' · 模板 ' + C.escapeHtml(tpl.templateId) + '</p>' +
       speciesWarn +
-      '</div>';
-
-    if (report.status === 'unassigned' && isEditable(report)) {
-      html += '<div class="mt-4 border rounded p-3 bg-slate-50" id="ownership-form">' +
-        '<p class="font-medium text-sm mb-2">归属到宠物</p>' +
-        '<label class="text-xs text-slate-500">宠物</label>' +
-        '<select id="own-pet" class="w-full border rounded px-2 py-1 mt-0.5 mb-2">' +
-        '<option value="">请选择宠物</option>' +
-        (state.pets || []).map(function (p) {
-          var u = C.lookupUser(state, p.userId);
-          return '<option value="' + p.id + '">' + C.escapeHtml(p.name + ' · ' + (p.species === 'dog' ? '狗' : '猫') +
-            (u ? ' · ' + u.name : ' · 未关联用户')) + '</option>';
-        }).join('') + '</select>' +
-        '<p id="own-species-hint" class="hidden rw-mismatch mb-2"></p>' +
-        '<label class="text-xs text-slate-500">用户（可选）</label>' +
-        '<select id="own-user" class="w-full border rounded px-2 py-1 mt-0.5 mb-2">' +
-        '<option value="">不指定 / 跟随宠物</option>' +
-        (state.users || []).map(function (u) {
-          return '<option value="' + u.id + '">' + C.escapeHtml(u.name) + '</option>';
-        }).join('') + '</select>' +
-        '<button type="button" id="btn-assign-ownership" class="btn-primary px-3 py-1.5 rounded text-sm">绑定归属</button>' +
-        '</div>';
-    }
+      '</div>' +
+      renderCorrectionForm(state, report) +
+      renderTraceBlock(state, report);
 
     document.getElementById('source-panel').innerHTML = html;
   }
 
   function handleSourceChange(e) {
     if (e.target.id !== 'own-pet') return;
-    var state = store.getState();
-    var report = C.lookupReport(state, currentReportId);
-    var pet = C.lookupPet(state, e.target.value);
-    var hint = document.getElementById('own-species-hint');
+    var pet = C.lookupPet(store.getState(), e.target.value);
     var userSel = document.getElementById('own-user');
     if (userSel && pet && pet.userId) userSel.value = pet.userId;
-    if (!hint) return;
-    if (pet && report && report.reportSpecies && pet.species !== report.reportSpecies) {
-      hint.classList.remove('hidden');
-      hint.textContent = '所选宠物物种与报告物种不一致。';
-    } else {
-      hint.classList.add('hidden');
-      hint.textContent = '';
-    }
   }
 
   function handleSourceClick(e) {
-    if (!e.target.closest('#btn-assign-ownership')) return;
-    var petId = document.getElementById('own-pet') && document.getElementById('own-pet').value;
-    var userId = document.getElementById('own-user') && document.getElementById('own-user').value;
-    if (!petId) {
-      C.toast('请选择宠物', 'warning');
+    var correctPet = e.target.closest('#btn-correct-pet');
+    var correctUser = e.target.closest('#btn-correct-user');
+    if (!correctPet && !correctUser) return;
+    var reasonEl = document.getElementById('own-reason');
+    var reason = reasonEl ? String(reasonEl.value || '').trim() : '';
+    if (!reason) {
+      C.toast('请填写纠错原因', 'warning');
       return;
     }
+    var state = store.getState();
+    var report = C.lookupReport(state, currentReportId);
     try {
-      store.assignReportOwnership({ reportId: currentReportId, petId: petId, userId: userId || undefined });
-      afterWrite('已绑定归属', 'success');
+      if (correctPet) {
+        var petId = document.getElementById('own-pet') && document.getElementById('own-pet').value;
+        if (!petId) {
+          C.toast('请选择宠物', 'warning');
+          return;
+        }
+        var pet = C.lookupPet(state, petId);
+        var userId = (document.getElementById('own-user') && document.getElementById('own-user').value) ||
+          (pet && pet.userId) || report.userId;
+        if (!userId) {
+          C.toast('目标宠物未关联用户，请同时选择用户', 'warning');
+          return;
+        }
+        store.correctOwnership({
+          reportId: currentReportId,
+          petId: petId,
+          userId: userId,
+          reason: reason,
+          actor: actorLabel()
+        });
+        afterWrite('已改归宠物', 'success');
+        return;
+      }
+      var nextUserId = document.getElementById('own-user') && document.getElementById('own-user').value;
+      if (!report.petId) {
+        C.toast('当前报告未关联宠物', 'warning');
+        return;
+      }
+      store.updateOpsPet(report.petId, {
+        userId: nextUserId || null,
+        reason: reason,
+        actor: actorLabel()
+      });
+      afterWrite('已更换关联用户', 'success');
     } catch (err) {
       handleStoreError(err);
     }
@@ -1450,51 +1549,17 @@ function initReportReview() {
     }
   }
 
-  function renderVersionsPanel(state) {
+  function syncPreviewVersionToggle(state) {
     var report = C.lookupReport(state, currentReportId);
-    if (!report) return;
-    var workVer = C.getWorkingReportVersion(state, report.id);
-    var pubVer = C.getPublishedReportVersion(state, report.id);
     var toggleWrap = document.getElementById('versions-toggle-wrap');
-    var showToggle = report.status === 'published' && report.correctionDraftActive;
+    if (!toggleWrap) return;
+    var showToggle = !!(report && report.status === 'published' && report.correctionDraftActive);
     toggleWrap.classList.toggle('hidden', !showToggle);
     if (!showToggle) versionView = 'working';
-
-    var ver = versionView === 'published' && pubVer ? pubVer : workVer;
-    var label = versionView === 'published' ? '发布版' : '工作版';
-    var vLabels = versionStatusLabels();
-
-    document.getElementById('versions-content').innerHTML = ver
-      ? '<div class="border rounded p-3 ' + (versionView === 'published' ? 'bg-emerald-50/40' : 'bg-indigo-50/40') + '">' +
-        '<h4 class="font-medium mb-2">' + label + ' v' + ver.version + '</h4>' +
-        '<p>' + C.statusBadge(ver.status, vLabels) +
-        (ver.healthLevel ? ' · 等级 ' + C.escapeHtml(ver.healthLevel) : '') +
-        (ver.healthScore != null ? ' · 分 ' + ver.healthScore : '') + '</p>' +
-        (ver.summary ? '<p class="text-slate-600 mt-2">' + C.escapeHtml(ver.summary) + '</p>' : '') +
-        (ver.publishedAt ? '<p class="text-xs text-slate-400 mt-2">发布于 ' + C.formatDate(ver.publishedAt) + '</p>' : '') +
-        (ver.correctionNote ? '<p class="text-xs text-indigo-600 mt-1">' + C.escapeHtml(ver.correctionNote) + '</p>' : '') +
-        '</div>' +
-        '<div class="mt-3"><h4 class="font-medium text-sm mb-2">版本时间线</h4>' +
-        report.versions.slice().sort(function (a, b) { return b.version - a.version; }).map(function (v) {
-          var isPub = v.version === report.publishedVersion;
-          return '<div class="border-l-4 ' + (isPub ? 'border-emerald-500' : 'border-slate-200') + ' pl-3 py-1.5 text-xs">' +
-            '<span class="font-medium">v' + v.version + '</span> ' + C.statusBadge(v.status, vLabels) +
-            (isPub ? ' <span class="text-emerald-700">用户可见</span>' : '') +
-            '</div>';
-        }).join('') + '</div>'
-      : '<p class="text-slate-500">无版本信息</p>';
-
-    var ops = (state.operationRecords || []).filter(function (op) { return op.reportId === report.id; })
-      .sort(function (a, b) { return (b.createdAt || '').localeCompare(a.createdAt || ''); });
-    document.getElementById('operation-log').innerHTML = ops.length
-      ? ops.map(function (op) {
-        return '<div class="border-b border-slate-100 py-1.5">' +
-          C.formatDate(op.createdAt) + ' · <code>' + C.escapeHtml(op.type) + '</code>' +
-          (op.reason ? ' — ' + C.escapeHtml(op.reason) : '') +
-          (op.actor ? ' <span class="text-slate-400">(' + C.escapeHtml(op.actor) + ')</span>' : '') +
-          '</div>';
-      }).join('')
-      : '<p class="text-slate-500">暂无操作记录</p>';
+    var workingBtn = document.getElementById('ver-toggle-working');
+    var publishedBtn = document.getElementById('ver-toggle-published');
+    if (workingBtn) workingBtn.classList.toggle('active', versionView !== 'published');
+    if (publishedBtn) publishedBtn.classList.toggle('active', versionView === 'published');
   }
 
   function getPreviewFormValues() {
@@ -1818,13 +1883,21 @@ function initReportReview() {
     renderIndicatorsPanel(state);
     renderAnalysisPanel(state, report);
     renderRecommendationsPanel(state, report);
-    renderVersionsPanel(state);
+    syncPreviewVersionToggle(state);
 
     lastChecks = C.buildPublicationChecks(state, report.id);
     renderModuleNav(lastChecks);
     renderChecksPanel(lastChecks);
     switchModule(activeModule);
     updatePreview(state);
+
+    if (pendingFocusTrace) {
+      pendingFocusTrace = false;
+      var traceEl = document.getElementById('rw-report-trace');
+      if (traceEl && typeof traceEl.scrollIntoView === 'function') {
+        traceEl.scrollIntoView({ block: 'nearest' });
+      }
+    }
 
     if (C.enhanceDom) C.enhanceDom(document.getElementById('report-review'));
   }

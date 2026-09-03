@@ -306,7 +306,7 @@
   function isReportInReviewQueue(report) {
     if (!report || report.status === 'voided') return false;
     if (report.correctionDraftActive) return true;
-    return report.status === 'unassigned' || report.status === 'incomplete' || report.status === 'pending_review';
+    return report.status === 'incomplete' || report.status === 'pending_review';
   }
 
   function validateAssessmentInput(params) {
@@ -586,6 +586,10 @@
     updatePlatformUser: updatePlatformUser,
     updateOpsPet: updateOpsPet,
     OWNERSHIP_STATUS_LABELS: OWNERSHIP_STATUS_LABELS,
+    SUBMISSION_TYPE_LABELS: {
+      in_store: '本店送检',
+      customer_brought: '客户自带报告'
+    },
     getCurrentIndicators: getCurrentIndicators,
     TEST_STATUS_LABELS: TEST_STATUS_LABELS,
     REPORT_STATUS_LABELS: REPORT_STATUS_LABELS,

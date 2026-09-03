@@ -72,19 +72,6 @@
                     <div id="checks-summary" class="text-sm mb-3 p-3 rounded border border-slate-100 bg-slate-50"></div>
                     <div id="checks-panel" class="text-sm space-y-2"></div>
                 </section>
-
-                <section id="module-versions" class="rw-module-panel hidden" data-module="versions">
-                    <h3 class="rw-panel-title"><i class="fas fa-clock-rotate-left text-teal-600 mr-1"></i>版本与记录</h3>
-                    <div id="versions-toggle-wrap" class="hidden mb-3">
-                        <div class="rw-version-toggle inline-flex rounded-md border border-slate-200 overflow-hidden text-sm">
-                            <button type="button" id="ver-toggle-working" class="rw-ver-toggle-btn active px-3 py-1.5">工作版</button>
-                            <button type="button" id="ver-toggle-published" class="rw-ver-toggle-btn px-3 py-1.5">发布版</button>
-                        </div>
-                    </div>
-                    <div id="versions-content" class="text-sm space-y-3 mb-4"></div>
-                    <h4 class="font-medium text-slate-700 text-sm mb-2">操作记录</h4>
-                    <div id="operation-log" class="text-xs text-slate-600 space-y-1"></div>
-                </section>
             </div>
         </div>
 
@@ -93,6 +80,12 @@
         <aside id="rw-preview-pane" class="rw-preview-pane">
             <div class="rw-preview-header">
                 <span class="rw-preview-label"><i class="fas fa-mobile-screen mr-1"></i>小程序报告预览</span>
+                <div id="versions-toggle-wrap" class="hidden">
+                    <div class="rw-version-toggle inline-flex rounded-md border border-slate-200 overflow-hidden text-xs">
+                        <button type="button" id="ver-toggle-working" class="rw-ver-toggle-btn active px-2 py-1">工作版</button>
+                        <button type="button" id="ver-toggle-published" class="rw-ver-toggle-btn px-2 py-1">发布版</button>
+                    </div>
+                </div>
                 <div class="flex gap-1">
                     <button type="button" id="btn-preview-collapse" class="rw-preview-icon-btn" title="收起预览">
                         <i class="fas fa-angles-right"></i>

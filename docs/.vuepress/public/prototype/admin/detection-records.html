@@ -46,7 +46,7 @@
                         <th class="px-3 py-2 text-left font-medium">机构</th>
                         <th class="px-3 py-2 text-left font-medium">样本编号</th>
                         <th class="px-3 py-2 text-left font-medium">送检日</th>
-                        <th class="px-3 py-2 text-left font-medium">绑定来源</th>
+                        <th class="px-3 py-2 text-left font-medium">送检类型</th>
                         <th class="px-3 py-2 text-left font-medium">状态</th>
                         <th class="px-3 py-2 text-left font-medium">操作</th>
                     </tr>
@@ -60,8 +60,21 @@
     <div id="register-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center z-50 p-4">
         <div class="bg-white p-6 rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <h4 class="text-lg font-medium mb-1">登记送检</h4>
-            <p class="text-sm text-slate-500 mb-4">仅登记待导入结果的送检记录，不创建报告。需先确认平台用户并创建已关联宠物。</p>
+            <p class="text-sm text-slate-500 mb-4">先选定已关联用户的宠物，再登记送检。本店送检与客户自带报告走同一条管道：登记后在该行上导入结果，不先导入再选宠物。</p>
             <form id="register-form" class="space-y-4 text-sm">
+                <fieldset>
+                    <legend class="block font-medium mb-1">送检类型 <span class="text-red-500">*</span></legend>
+                    <div class="flex flex-col gap-2">
+                        <label class="inline-flex items-start gap-2">
+                            <input type="radio" name="reg-submission-type" id="reg-type-in-store" value="in_store" required checked class="mt-1">
+                            <span><span class="font-medium">本店送检</span><span class="block text-xs text-slate-500">本店已登记样本，等待实验室交付 Excel。</span></span>
+                        </label>
+                        <label class="inline-flex items-start gap-2">
+                            <input type="radio" name="reg-submission-type" id="reg-type-customer" value="customer_brought" class="mt-1">
+                            <span><span class="font-medium">客户自带报告</span><span class="block text-xs text-slate-500">客户已在他处检测并带来文件；仍须先选定宠物并登记，再在该行导入。</span></span>
+                        </label>
+                    </div>
+                </fieldset>
                 <div>
                     <label class="block font-medium mb-1" for="reg-pet-id">已关联用户的宠物 <span class="text-red-500">*</span></label>
                     <select id="reg-pet-id" class="w-full border rounded px-3 py-2" required></select>

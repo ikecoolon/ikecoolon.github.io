@@ -17,7 +17,7 @@ function initDetectionRecords() {
   var regStoreId = document.getElementById('reg-store-id');
   var viewTabs = document.querySelectorAll('.dr-view-tab');
 
-  var RETURN_VIEWS = ['all', 'unassigned', 'incomplete', 'pending_review', 'published', 'voided', 'pending'];
+  var RETURN_VIEWS = ['all', 'incomplete', 'pending_review', 'published', 'voided', 'pending'];
   var VALID_VIEWS = ['pending_result', 'import_failed', 'all'];
   var STAGE_LABELS = {
     pending_result: '待导入结果',
@@ -186,7 +186,8 @@ function initDetectionRecords() {
         sampleNumber: regSampleNumber.value.trim(),
         testDate: regTestDate.value,
         storeId: regStoreId.value || null,
-        sourceOrgId: regStoreId.value ? null : store.DEFAULT_SOURCE_ORG_ID
+        sourceOrgId: regStoreId.value ? null : store.DEFAULT_SOURCE_ORG_ID,
+        submissionType: (registerForm.querySelector('input[name="reg-submission-type"]:checked') || {}).value
       });
       C.toast('送检记录已登记，状态为待导入结果', 'success');
       closeRegisterModal();
@@ -362,9 +363,9 @@ function initDetectionRecords() {
   render(store.getState());
   handleRouteParams();
 
-  function claimLabel(status) {
-    var map = { bound: '已绑定', unclaimed: '待认领', claimed: '认领码', pre_bound: '门店预绑', unassigned: '未绑定' };
-    return map[status] || status;
+  function submissionTypeLabel(tr) {
+    var map = C.SUBMISSION_TYPE_LABELS || { in_store: '本店送检', customer_brought: '客户自带报告' };
+    return map[tr.submissionType] || map.in_store;
   }
 
   function buildActions(tr, state) {
@@ -437,7 +438,7 @@ function initDetectionRecords() {
         '<td class="px-3 py-2">' + C.escapeHtml(st ? st.name : '—') + '</td>' +
         '<td class="px-3 py-2 font-mono text-xs">' + C.escapeHtml(tr.sampleNumber || '—') + '</td>' +
         '<td class="px-3 py-2">' + C.escapeHtml(tr.testDate) + '</td>' +
-        '<td class="px-3 py-2">' + claimLabel(tr.claimStatus) + '</td>' +
+        '<td class="px-3 py-2">' + C.escapeHtml(submissionTypeLabel(tr)) + '</td>' +
         '<td class="px-3 py-2">' + stageBadge(stage) + '</td>' +
         '<td class="px-3 py-2 whitespace-nowrap">' + buildActions(tr, state) + '</td></tr>';
     }).join('');
