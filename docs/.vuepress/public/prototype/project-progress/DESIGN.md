@@ -42,7 +42,7 @@ seed 2fc4dc8e · grounded direction rank 1 · 工程总控墙
 - 缓冲率 20% 单独计算（49 × 20% = 9.8 人日 / 78.4 人时，第 10–11 周虚线区），不摊入任何任务；含缓冲合计 58.8 人日 / 470.4 人时。
 - 人时由 `workdays × meta.hoursPerWorkday` 派生；`script.js` 集中格式化，不在 HTML 或页面逻辑中硬编码汇总数字。
 - 分类与总体进度均为研发任务 `progress` 的简单平均；`progress = 100` 自动视为已完成；前置事项与范围待确认不参与任何统计。
-- 维护方式：只改 `data.js` 中任务的 `progress / status / startWeek / endWeek`；前置事项的 `status / expectedWeek / active`（条件成立时）；可选 `meta.projectStartDate` 设定默认开始日期。
+- 维护方式见 `docs/rules/project-progress.md`。原型或业务设计更新：只改 `data.js` 中研发任务的 `name` / `group` / `workdays`；功能增删时允许增删任务并为新任务补齐渲染字段。代码提交：只改任务的 `progress` / `status`。前置事项仅在条件成立或甲方交付时改 `status` / `expectedWeek` / `active`。可选 `meta.projectStartDate` 设定默认开始日期。不得改 `index.html` / `styles.css` / `script.js`，不得改待甲方预备清单结构、范围待确认、缓冲率、泳道和周次标尺，除非明确要求。
 
 ## 项目开始日期与工作日换算
 

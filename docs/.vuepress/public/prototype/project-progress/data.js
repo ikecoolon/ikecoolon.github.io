@@ -1,18 +1,26 @@
 /*
  * 项目进度管理 · 唯一数据源
- * 维护方式：只需修改任务的 progress / status / startWeek / endWeek，
- * 以及前置事项的 status / expectedWeek，页面所有统计自动重算。
+ * 维护分两条路径，详见 docs/rules/project-progress.md。
+ *
+ * 原型或业务设计更新：只改研发任务的 name / group / workdays；
+ * 功能增删时允许增删任务，并为新任务补齐渲染字段（id/lane/owner/dependencyIds/startWeek/endWeek）。
+ * 不得因原型更新改既有任务的 progress / status。
+ * 不得改 index.html / styles.css / script.js。
+ * 不得改待甲方预备、范围待确认、缓冲率、泳道和周次标尺，除非明确要求。
+ *
+ * 代码提交：只更新任务的 progress / status。progress 为 0-100 整数；progress = 100 自动视为已完成。
+ * 前置事项仅在条件成立或甲方交付时改 status / expectedWeek / active。
+ * 可选 meta.projectStartDate 设定默认开始日期。页面所有统计自动重算。
+ *
  * 约定：8 小时 = 1 人日，每周 5 个工作日，缓冲率 20% 单独计算。
- * progress 为人工填写的 0-100 整数；progress = 100 自动视为已完成。
  * 范围待确认与甲方前置事项不参与工作量与进度统计。
  *
  * 待甲方预备：14 条 prerequisites（账号与资质 5 / 技术资源 3 / 合规发布 2 / 微信支付 4）。
  * active=true 表示当前适用，共 10 条；active=false 为条件项（4 条），条件成立时改 active=true 再维护 status。
  * 顶部「待甲方预备」只统计 active=true 且 status≠complete；条件项显示「条件待确认」，不计入欠缺。
- * 维护前置事项：status（incomplete/complete）、expectedWeek、active（条件成立时）。
  *
- * 口径：1 前端 + 1 后端并行；每人带 AI 辅助；估期含联调、不含自测。
- * 基于 pet-eden 成熟框架（管理端壳、登录权限、文件、商城已有），只估健康报告增量；商城不改造。
+ * 口径：1 前端 + 1 后端并行；产品设计已完成；后端负责实施；每人带 AI 辅助，估期按可交付压准。
+ * 估期含联调、不含自测。基于 pet-eden 成熟框架（管理端壳、登录权限、文件、商城已有），只估健康报告增量；商城不改造。
  *
  * 分组小计（人日）：产品设计 2 / PC 管理端 18 / 小程序 8 / 后端 16 / 部署 5，合计 49 人日（392 人时）。
  * 含 20% 缓冲：9.8 人日（78.4 人时），总计 58.8 人日（470.4 人时）。
@@ -92,206 +100,20 @@ window.PROJECT_PROGRESS_DATA = {
     { id: 'ops-06', lane: 'deploy', group: '部署', name: '验收与发布', owner: '全员', workdays: 0.5, startWeek: 9, endWeek: 9, progress: 0, status: 'not-started', dependencyIds: ['ops-04', 'ops-05'] }
   ],
   prerequisites: [
-    {
-      id: 'pre-mp-account',
-      title: '小程序主体、管理员与 AppID/AppSecret',
-      category: '账号与资质',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 1,
-      status: 'incomplete',
-      completionCriteria: '最终运营主体账号已注册；管理员可登录；AppID 已提供；AppSecret 仅通过安全方式交给后端；真实 code2Session 可调用',
-      sourceLabel: '微信开放文档：开始',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/getstart.html',
-      affectedTaskIds: ['mp-01', 'mp-07', 'ops-04']
-    },
-    {
-      id: 'pre-mp-certification',
-      title: '微信认证状态',
-      category: '账号与资质',
-      requirementLevel: '条件项',
-      condition: '本 AppID 支付或能力要求认证时',
-      active: false,
-      ownerRole: '甲方',
-      expectedWeek: 1,
-      status: 'incomplete',
-      completionCriteria: '后台显示认证有效；若不需要认证，形成「不适用」结论及依据，不能长期显示为未完成',
-      sourceLabel: '微信支付：开发接入准备',
-      sourceUrl: 'https://pay.wechatpay.cn/doc/v3/merchant/4015459512',
-      affectedTaskIds: ['mp-01', 'mp-07', 'ops-06']
-    },
-    {
-      id: 'pre-mp-members',
-      title: '开发者与体验成员权限',
-      category: '账号与资质',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 1,
-      status: 'incomplete',
-      completionCriteria: '开发者能上传开发版；产品、测试和甲方验收人员能打开体验版；发布敏感权限只给指定人员',
-      sourceLabel: '微信开放文档：协同工作和发布',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/release.html',
-      affectedTaskIds: ['mp-07', 'ops-04', 'ops-06']
-    },
-    {
-      id: 'pre-mp-category',
-      title: '服务类目与专项资质确认',
-      category: '账号与资质',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 1,
-      status: 'incomplete',
-      completionCriteria: '类目与真实宠物微生物组报告功能已获平台确认；所需许可证、合作协议或承诺材料已上传并通过；未把「基因检测」类目直接套用为既定结论',
-      sourceLabel: '微信开放文档：服务类目所需资质材料',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/product/material/',
-      affectedTaskIds: ['mp-02', 'mp-03', 'mp-04', 'mp-07', 'ops-06']
-    },
-    {
-      id: 'pre-mp-filing',
-      title: '小程序备案',
-      category: '账号与资质',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 1,
-      status: 'incomplete',
-      completionCriteria: '主体、负责人、专项材料与短信核验完成；后台取得小程序备案号',
-      sourceLabel: '微信开放文档：小程序备案操作指引',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/product/record_guidelines.html',
-      affectedTaskIds: ['mp-07', 'ops-06']
-    },
-    {
-      id: 'pre-server',
-      title: '测试/生产服务器、数据库与运维联系人',
-      category: '技术资源',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 1,
-      status: 'incomplete',
-      completionCriteria: '可公网访问的环境和数据库已交付；技术联系人明确；具备部署、日志、备份和恢复所需权限',
-      sourceLabel: '微信开放文档：网络',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html',
-      affectedTaskIds: ['ops-01', 'ops-04', 'ops-05']
-    },
-    {
-      id: 'pre-domain',
-      title: '域名、ICP、DNS 与 HTTPS',
-      category: '技术资源',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 6,
-      status: 'incomplete',
-      completionCriteria: '域名可控；ICP 备案可查；DNS 指向目标环境；HTTPS 证书有效、域名匹配、链完整',
-      sourceLabel: '微信开放文档：网络',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html',
-      affectedTaskIds: ['ops-02', 'ops-04', 'ops-05']
-    },
-    {
-      id: 'pre-mp-server-domains',
-      title: '小程序服务器域名配置',
-      category: '技术资源',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 6,
-      status: 'incomplete',
-      completionCriteria: 'request 合法域名已配置并真机验证；按实际功能补充 downloadFile，仅在确有上传/Socket 时补充对应域名',
-      sourceLabel: '微信开放文档：网络',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html',
-      affectedTaskIds: ['mp-01', 'mp-02', 'mp-03', 'mp-04', 'mp-05', 'mp-06', 'mp-07', 'ops-02', 'ops-04']
-    },
-    {
-      id: 'pre-mp-privacy',
-      title: '隐私保护指引与用户权利联系人',
-      category: '合规发布',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 6,
-      status: 'incomplete',
-      completionCriteria: '个人信息清单、用途、保存期限、第三方、删除/更正渠道、联系方式已确认；后台指引与提审代码实际接口一致并通过审核',
-      sourceLabel: '微信开放文档：用户隐私保护指引填写说明',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/user-privacy/',
-      affectedTaskIds: ['mp-01', 'mp-02', 'mp-03', 'mp-07', 'ops-06']
-    },
-    {
-      id: 'pre-mp-review',
-      title: '审核资料、测试账号与发布负责人',
-      category: '合规发布',
-      requirementLevel: '仅上线前核验',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 8,
-      status: 'incomplete',
-      completionCriteria: '名称/头像/简介/类目一致；审核人员可通过测试账号或测试数据体验宠物与完整报告；无测试占位；提审和发布负责人已确认',
-      sourceLabel: '微信开放文档：常见拒绝情形',
-      sourceUrl: 'https://developers.weixin.qq.com/miniprogram/product/reject.html',
-      affectedTaskIds: ['mp-02', 'mp-03', 'mp-04', 'mp-07', 'ops-04', 'ops-06']
-    },
-    {
-      id: 'pre-pay-path',
-      title: '商城支付承接方式确认',
-      category: '微信支付',
-      requirementLevel: '必需',
-      active: true,
-      ownerRole: '甲方',
-      expectedWeek: 1,
-      status: 'incomplete',
-      completionCriteria: '书面确认「同 AppID 复用商城支付 / 跳转独立商城小程序 / 新增当前 AppID 直接支付」之一，并记录目标商城 AppID 和商户号；范围与产品设计一致',
-      sourceLabel: '本项目业务设计',
-      sourceUrl: 'https://ikecoolon.github.io/docs/product-design/pet-health-report-business-design.html',
-      affectedTaskIds: ['mp-06', 'mp-07', 'ops-04', 'ops-06']
-    },
-    {
-      id: 'pre-pay-merchant',
-      title: '商户号与 JSAPI/小程序支付权限',
-      category: '微信支付',
-      requirementLevel: '条件项',
-      condition: '本 AppID 直接支付',
-      active: false,
-      ownerRole: '甲方',
-      expectedWeek: 1,
-      status: 'incomplete',
-      completionCriteria: '新申请：入驻、账户验证、审核、签约和权限开通完成；复用：现有商户号主体、费率、风险状态、JSAPI 权限核验通过，不重复申请',
-      sourceLabel: '微信支付：开发接入准备',
-      sourceUrl: 'https://pay.wechatpay.cn/doc/v3/merchant/4015459512',
-      affectedTaskIds: ['mp-06', 'mp-07', 'ops-04']
-    },
-    {
-      id: 'pre-pay-binding-security',
-      title: '商户号绑定 AppID 与支付安全参数',
-      category: '微信支付',
-      requirementLevel: '条件项',
-      condition: '本 AppID 直接支付',
-      active: false,
-      ownerRole: '甲方',
-      expectedWeek: 6,
-      status: 'incomplete',
-      completionCriteria: '当前 AppID 绑定已由双方后台确认；技术账号已配置；商户 API 私钥/证书、序列号、APIv3 密钥及微信支付公钥方案安全交付，未进入前端或公开仓库',
-      sourceLabel: '微信支付：开发必要参数说明',
-      sourceUrl: 'https://pay.wechatpay.cn/doc/v3/merchant/4013070756',
-      affectedTaskIds: ['mp-06', 'mp-07', 'ops-04', 'ops-05']
-    },
-    {
-      id: 'pre-pay-callback-test',
-      title: '支付回调与真实支付退款闭环',
-      category: '微信支付',
-      requirementLevel: '条件项',
-      condition: '本 AppID 直接支付',
-      active: false,
-      ownerRole: '甲方',
-      expectedWeek: 8,
-      status: 'incomplete',
-      completionCriteria: '公网 HTTPS 支付/退款通知可达；防火墙/WAF 不拦截；真实小额支付、查单、支付通知、退款、退款通知/查询全部通过并留存结果',
-      sourceLabel: '微信支付：支付成功回调',
-      sourceUrl: 'https://pay.wechatpay.cn/doc/v3/merchant/4012791902',
-      affectedTaskIds: ['mp-06', 'mp-07', 'ops-04', 'ops-05', 'ops-06']
-    }
+    { id: 'pre-mp-account', title: '小程序主体、管理员与 AppID/AppSecret', category: '账号与资质', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 1, status: 'incomplete', completionCriteria: '最终运营主体账号已注册；管理员可登录；AppID 已提供；AppSecret 仅通过安全方式交给后端；真实 code2Session 可调用', sourceLabel: '微信开放文档：开始', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/getstart.html', affectedTaskIds: ['mp-01', 'mp-07', 'ops-04'] },
+    { id: 'pre-mp-certification', title: '微信认证状态', category: '账号与资质', requirementLevel: '条件项', condition: '本 AppID 支付或能力要求认证时', active: false, ownerRole: '甲方', expectedWeek: 1, status: 'incomplete', completionCriteria: '后台显示认证有效；若不需要认证，形成「不适用」结论及依据，不能长期显示为未完成', sourceLabel: '微信支付：开发接入准备', sourceUrl: 'https://pay.wechatpay.cn/doc/v3/merchant/4015459512', affectedTaskIds: ['mp-01', 'mp-07', 'ops-06'] },
+    { id: 'pre-mp-members', title: '开发者与体验成员权限', category: '账号与资质', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 1, status: 'incomplete', completionCriteria: '开发者能上传开发版；产品、测试和甲方验收人员能打开体验版；发布敏感权限只给指定人员', sourceLabel: '微信开放文档：协同工作和发布', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/release.html', affectedTaskIds: ['mp-07', 'ops-04', 'ops-06'] },
+    { id: 'pre-mp-category', title: '服务类目与专项资质确认', category: '账号与资质', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 1, status: 'incomplete', completionCriteria: '类目与真实宠物微生物组报告功能已获平台确认；所需许可证、合作协议或承诺材料已上传并通过；未把「基因检测」类目直接套用为既定结论', sourceLabel: '微信开放文档：服务类目所需资质材料', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/product/material/', affectedTaskIds: ['mp-02', 'mp-03', 'mp-04', 'mp-07', 'ops-06'] },
+    { id: 'pre-mp-filing', title: '小程序备案', category: '账号与资质', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 1, status: 'incomplete', completionCriteria: '主体、负责人、专项材料与短信核验完成；后台取得小程序备案号', sourceLabel: '微信开放文档：小程序备案操作指引', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/product/record_guidelines.html', affectedTaskIds: ['mp-07', 'ops-06'] },
+    { id: 'pre-server', title: '测试/生产服务器、数据库与运维联系人', category: '技术资源', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 1, status: 'incomplete', completionCriteria: '可公网访问的环境和数据库已交付；技术联系人明确；具备部署、日志、备份和恢复所需权限', sourceLabel: '微信开放文档：网络', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html', affectedTaskIds: ['ops-01', 'ops-04', 'ops-05'] },
+    { id: 'pre-domain', title: '域名、ICP、DNS 与 HTTPS', category: '技术资源', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 6, status: 'incomplete', completionCriteria: '域名可控；ICP 备案可查；DNS 指向目标环境；HTTPS 证书有效、域名匹配、链完整', sourceLabel: '微信开放文档：网络', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html', affectedTaskIds: ['ops-02', 'ops-04', 'ops-05'] },
+    { id: 'pre-mp-server-domains', title: '小程序服务器域名配置', category: '技术资源', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 6, status: 'incomplete', completionCriteria: 'request 合法域名已配置并真机验证；按实际功能补充 downloadFile，仅在确有上传/Socket 时补充对应域名', sourceLabel: '微信开放文档：网络', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html', affectedTaskIds: ['mp-01', 'mp-02', 'mp-03', 'mp-04', 'mp-05', 'mp-06', 'mp-07', 'ops-02', 'ops-04'] },
+    { id: 'pre-mp-privacy', title: '隐私保护指引与用户权利联系人', category: '合规发布', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 6, status: 'incomplete', completionCriteria: '个人信息清单、用途、保存期限、第三方、删除/更正渠道、联系方式已确认；后台指引与提审代码实际接口一致并通过审核', sourceLabel: '微信开放文档：用户隐私保护指引填写说明', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/dev/framework/user-privacy/', affectedTaskIds: ['mp-01', 'mp-02', 'mp-03', 'mp-07', 'ops-06'] },
+    { id: 'pre-mp-review', title: '审核资料、测试账号与发布负责人', category: '合规发布', requirementLevel: '仅上线前核验', active: true, ownerRole: '甲方', expectedWeek: 8, status: 'incomplete', completionCriteria: '名称/头像/简介/类目一致；审核人员可通过测试账号或测试数据体验宠物与完整报告；无测试占位；提审和发布负责人已确认', sourceLabel: '微信开放文档：常见拒绝情形', sourceUrl: 'https://developers.weixin.qq.com/miniprogram/product/reject.html', affectedTaskIds: ['mp-02', 'mp-03', 'mp-04', 'mp-07', 'ops-04', 'ops-06'] },
+    { id: 'pre-pay-path', title: '商城支付承接方式确认', category: '微信支付', requirementLevel: '必需', active: true, ownerRole: '甲方', expectedWeek: 1, status: 'incomplete', completionCriteria: '书面确认「同 AppID 复用商城支付 / 跳转独立商城小程序 / 新增当前 AppID 直接支付」之一，并记录目标商城 AppID 和商户号；范围与产品设计一致', sourceLabel: '本项目业务设计', sourceUrl: 'https://ikecoolon.github.io/docs/product-design/pet-health-report-business-design.html', affectedTaskIds: ['mp-06', 'mp-07', 'ops-04', 'ops-06'] },
+    { id: 'pre-pay-merchant', title: '商户号与 JSAPI/小程序支付权限', category: '微信支付', requirementLevel: '条件项', condition: '本 AppID 直接支付', active: false, ownerRole: '甲方', expectedWeek: 1, status: 'incomplete', completionCriteria: '新申请：入驻、账户验证、审核、签约和权限开通完成；复用：现有商户号主体、费率、风险状态、JSAPI 权限核验通过，不重复申请', sourceLabel: '微信支付：开发接入准备', sourceUrl: 'https://pay.wechatpay.cn/doc/v3/merchant/4015459512', affectedTaskIds: ['mp-06', 'mp-07', 'ops-04'] },
+    { id: 'pre-pay-binding-security', title: '商户号绑定 AppID 与支付安全参数', category: '微信支付', requirementLevel: '条件项', condition: '本 AppID 直接支付', active: false, ownerRole: '甲方', expectedWeek: 6, status: 'incomplete', completionCriteria: '当前 AppID 绑定已由双方后台确认；技术账号已配置；商户 API 私钥/证书、序列号、APIv3 密钥及微信支付公钥方案安全交付，未进入前端或公开仓库', sourceLabel: '微信支付：开发必要参数说明', sourceUrl: 'https://pay.wechatpay.cn/doc/v3/merchant/4013070756', affectedTaskIds: ['mp-06', 'mp-07', 'ops-04', 'ops-05'] },
+    { id: 'pre-pay-callback-test', title: '支付回调与真实支付退款闭环', category: '微信支付', requirementLevel: '条件项', condition: '本 AppID 直接支付', active: false, ownerRole: '甲方', expectedWeek: 8, status: 'incomplete', completionCriteria: '公网 HTTPS 支付/退款通知可达；防火墙/WAF 不拦截；真实小额支付、查单、支付通知、退款、退款通知/查询全部通过并留存结果', sourceLabel: '微信支付：支付成功回调', sourceUrl: 'https://pay.wechatpay.cn/doc/v3/merchant/4012791902', affectedTaskIds: ['mp-06', 'mp-07', 'ops-04', 'ops-05', 'ops-06'] }
   ],
   pendingScopes: [
     { id: 'scope-core', title: '报告核心模块最低范围', note: '确认后重新评估并更新当前计划。' },
