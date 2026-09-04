@@ -21,7 +21,8 @@
     throw new Error('PetReportAnalysisEngine 不可用');
   }
 
-  var STORAGE_KEY = 'pet-report-mock-store-v4';
+  var STORAGE_KEY = 'pet-report-mock-store-v6';
+  var LEGACY_STORAGE_KEYS = ['pet-report-mock-store-v5', 'pet-report-mock-store-v3'];
   var DATA_STATUSES = ['PRESENT', 'MISSING_COLUMN', 'EMPTY', 'NOT_DETECTED', 'INVALID', 'NOT_APPLICABLE'];
   var REPORT_STATUSES = ['unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
   /** @deprecated 指向 REPORT_STATUSES */
@@ -58,11 +59,13 @@
     low: '低于参考范围', normal: '参考范围内', high: '高于参考范围', no_range: '无有效参考范围'
   };
   var RANGE_SOURCE_LABELS = { imported: '报告导入', platform: '平台配置', none: '无范围' };
+  /** 风险级别不再作为运营配置概念；仅保留存储占位，不参与裁决或商品。 */
   var RISK_LEVEL_LABELS = { low: '低', medium: '中', high: '高', notice: '仅提示' };
   var CONDITION_TYPE_LABELS = {
     LAB_NOTICE: '实验室标注',
     RANGE_STATUS: '相对有效参考范围',
     NOT_DETECTED: '未检出',
+    VALUE_THRESHOLD: '有效值门槛',
     SPECIES: '报告物种',
     OTHER_TAXON_STATUS: '其他分类单元状态'
   };
@@ -99,6 +102,16 @@
 
   function uid(prefix) {
     return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7);
+  }
+
+  function hashString(value) {
+    var hash = 2166136261;
+    var text = String(value || '');
+    for (var i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
   }
 
   function clone(obj) {
@@ -575,6 +588,36 @@
     return options || {};
   }
 
+  function migrateLegacyAnalysisRules(state) {
+    var rules = state.analysisRuleCatalog || [];
+    var activeByLineage = {};
+    rules.forEach(function (rule) {
+      var lineageId = rule.lineageId || rule.id;
+      rule.lineageId = lineageId;
+      if (rule.status === 'active') activeByLineage[lineageId] = rule;
+    });
+    rules.forEach(function (rule) {
+      if (rule.status !== 'draft') return;
+      var active = activeByLineage[rule.lineageId];
+      if (!active) {
+        rule.status = 'active';
+        activeByLineage[rule.lineageId] = rule;
+      } else {
+        rule.status = 'inactive';
+        rule.archivedReason = '兼容迁移：旧规则草稿未继续作为领域状态保留';
+      }
+    });
+    rules.forEach(function (rule, index) {
+      if (rule.status !== 'active') rule.status = 'inactive';
+      if (rule.stableOrder == null) rule.stableOrder = index + 1;
+      if (!rule.maintainer) rule.maintainer = '原型维护人未接入';
+      if (!rule.reviewStatus) rule.reviewStatus = 'prototype_unreviewed';
+      if (!rule.professionalBasis) rule.professionalBasis = '';
+      if (!rule.applicableSpecies) rule.applicableSpecies = ['cat'];
+      if (!rule.sourceTemplateIds) rule.sourceTemplateIds = [DEFAULT_SOURCE_ORG_ID, SECOND_SOURCE_ORG_ID];
+    });
+  }
+
   function ensureDomainState(state) {
     if (!state.professionalCatalog) state.professionalCatalog = defaultCatalog();
     if (!state.analysisRuleCatalog) state.analysisRuleCatalog = [];
@@ -584,6 +627,7 @@
     if (!state.ownershipCorrections) state.ownershipCorrections = [];
     if (!state.petUserAssociationChanges) state.petUserAssociationChanges = [];
     if (!state.indicators) state.indicators = [];
+    migrateLegacyAnalysisRules(state);
     backfillMissingCatalogSortOrders(state.professionalCatalog.microbiotaTaxa);
     backfillMissingCatalogSortOrders(state.professionalCatalog.testIndicators);
     backfillMissingCatalogSortOrders(state.professionalCatalog.breeds);
@@ -605,10 +649,17 @@
     if (localStorageAvailable) {
       try {
         var raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          for (var legacyIndex = 0; legacyIndex < LEGACY_STORAGE_KEYS.length; legacyIndex += 1) {
+            raw = localStorage.getItem(LEGACY_STORAGE_KEYS[legacyIndex]);
+            if (raw) break;
+          }
+        }
         if (raw) {
           var parsed = JSON.parse(raw);
           ensureDomainState(parsed);
           memoryState = parsed;
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed)); } catch (ignore) {}
           return parsed;
         }
       } catch (e) {
@@ -1003,7 +1054,13 @@
     var rules = listActiveRules(state);
     var taxa = (state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || [];
     var species = getReportSpecies(state, report);
-    var evaluated = Engine.evaluate({ rules: rules, results: results, species: species, taxa: taxa });
+    var evaluated = Engine.evaluate({
+      rules: rules,
+      results: results,
+      species: species,
+      sourceTemplateId: report.sourceOrgId || null,
+      taxa: taxa
+    });
     var engineByPhylum = {};
     (evaluated.units || []).forEach(function (u) { engineByPhylum[u.phylumKey] = u; });
 
@@ -1124,9 +1181,6 @@
     assertResultsEditable(report);
     var unit = findPhylumUnit(state, reportId, phylumKey);
     if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
-    if (unit.riskLevel === 'notice' || !String(unit.adviceDraft || '').trim()) {
-      throw new Error('该菌门无建议，不配置商品');
-    }
     var primary = params.primaryProductId || null;
     if (primary && !findProduct(state, primary)) throw new Error('商品不存在: ' + primary);
     var related = [];
@@ -1661,185 +1715,304 @@
     return bumpIds(state, 'analysisRuleCatalog', 'rule');
   }
 
-  function deactivateSiblings(state, lineageId, exceptId) {
-    (state.analysisRuleCatalog || []).forEach(function (r) {
-      if (r.lineageId === lineageId && r.id !== exceptId && r.status === 'active') r.status = 'inactive';
-    });
+  function nextRuleStableOrder(state) {
+    return (state.analysisRuleCatalog || []).reduce(function (max, rule) {
+      return Math.max(max, Number(rule.stableOrder) || 0);
+    }, 0) + 1;
   }
 
-  function saveAnalysisRuleInternal(state, rule) {
-    rule = rule || {};
-    var errors = Engine.validateRule(rule, taxaByKeyMap(state));
-    if (errors.length) throw new Error(errors.join('；'));
-    var now = nowIso();
-    var existing = rule.id ? (state.analysisRuleCatalog || []).find(function (r) { return r.id === rule.id; }) : null;
-    if (existing) {
-      Object.keys(rule).forEach(function (k) {
-        if (k === 'id' || k === 'lineageId' || k === 'createdAt') return;
-        existing[k] = clone(rule[k]);
-      });
-      existing.updatedAt = now;
-      if (existing.status === 'active') deactivateSiblings(state, existing.lineageId, existing.id);
-      return existing;
-    }
-    var created = {
-      id: rule.id || nextRuleId(state),
-      lineageId: rule.lineageId || uid('lineage'),
-      version: rule.version || 1,
-      status: rule.status || 'draft',
-      name: rule.name,
-      description: rule.description || '',
-      target: clone(rule.target),
-      conditionLogic: rule.conditionLogic || 'ALL',
-      conditions: clone(rule.conditions || []),
-      riskLevel: rule.riskLevel,
-      priority: rule.priority || 0,
-      conflictGroup: rule.conflictGroup || null,
-      output: clone(rule.output),
-      createdAt: now,
-      updatedAt: now
-    };
-    state.analysisRuleCatalog.push(created);
-    if (created.status === 'active') deactivateSiblings(state, created.lineageId, created.id);
-    return created;
-  }
-
-  function createRuleRevisionInternal(state, ruleId) {
-    var src = (state.analysisRuleCatalog || []).find(function (r) { return r.id === ruleId; });
-    if (!src) throw new Error('rule not found: ' + ruleId);
-    var maxVer = 0;
-    state.analysisRuleCatalog.forEach(function (r) {
-      if (r.lineageId === src.lineageId && r.version > maxVer) maxVer = r.version;
-    });
-    var copy = clone(src);
-    copy.id = nextRuleId(state);
-    copy.version = maxVer + 1;
-    copy.status = 'draft';
-    copy.createdAt = nowIso();
-    copy.updatedAt = nowIso();
-    state.analysisRuleCatalog.push(copy);
-    return copy;
-  }
-
-  function duplicateAnalysisRuleInternal(state, ruleId) {
-    var src = (state.analysisRuleCatalog || []).find(function (r) { return r.id === ruleId; });
-    if (!src) throw new Error('rule not found: ' + ruleId);
-    var copy = clone(src);
-    copy.id = nextRuleId(state);
-    copy.lineageId = uid('lineage');
-    copy.version = 1;
-    copy.status = 'draft';
-    copy.name = (src.name || '') + '（副本）';
-    copy.createdAt = nowIso();
-    copy.updatedAt = nowIso();
-    state.analysisRuleCatalog.push(copy);
-    return copy;
-  }
-
-  function setRuleActiveInternal(state, ruleId, active) {
-    var rule = (state.analysisRuleCatalog || []).find(function (r) { return r.id === ruleId; });
-    if (!rule) throw new Error('rule not found: ' + ruleId);
-    if (active) {
-      var errors = Engine.validateRule(rule, taxaByKeyMap(state));
-      if (errors.length) throw new Error(errors.join('；'));
-      deactivateSiblings(state, rule.lineageId, rule.id);
-      rule.status = 'active';
-    } else {
+  function archiveActiveLineageVersion(state, lineageId, exceptId, reason) {
+    (state.analysisRuleCatalog || []).forEach(function (rule) {
+      if (rule.lineageId !== lineageId || rule.id === exceptId || rule.status !== 'active') return;
       rule.status = 'inactive';
+      rule.archivedAt = nowIso();
+      rule.archivedReason = reason || '已有新版本启用';
+      rule.updatedAt = nowIso();
+    });
+  }
+
+  function activeRulesWithCandidate(state, candidate) {
+    return Engine.buildCandidateRuleSet(listActiveRules(state), candidate).rules;
+  }
+
+  function validateRuleForActivation(state, candidate) {
+    var details = Engine.validateRuleDetails(candidate, taxaByKeyMap(state));
+    if (details.length) return details;
+    var tieErrors = Engine.validateConflictTies(activeRulesWithCandidate(state, candidate));
+    tieErrors.forEach(function (message) { details.push({ field: 'conflictGroup', message: message }); });
+    return details;
+  }
+
+  function resolveSessionLineageId(state, sessionRule) {
+    if (sessionRule.lineageId) return sessionRule.lineageId;
+    if (sessionRule.basedOnRuleId) {
+      var source = (state.analysisRuleCatalog || []).find(function (rule) { return rule.id === sessionRule.basedOnRuleId; });
+      if (source && source.lineageId) return source.lineageId;
     }
-    rule.updatedAt = nowIso();
-    return rule;
+    return null;
   }
 
-  function deleteAnalysisRuleInternal(state, ruleId) {
-    var idx = (state.analysisRuleCatalog || []).findIndex(function (r) { return r.id === ruleId; });
-    if (idx < 0) throw new Error('rule not found: ' + ruleId);
-    var removed = state.analysisRuleCatalog.splice(idx, 1)[0];
-    return removed;
+  function saveAndActivateAnalysisRuleInternal(state, sessionRule, options) {
+    sessionRule = clone(sessionRule || {});
+    options = normalizeActorOptions(options);
+    var now = nowIso();
+    var lineageId = resolveSessionLineageId(state, sessionRule) || uid('lineage');
+    var versions = (state.analysisRuleCatalog || []).filter(function (rule) { return rule.lineageId === lineageId; });
+    var maxVersion = versions.reduce(function (max, rule) { return Math.max(max, Number(rule.version) || 0); }, 0);
+    var active = versions.find(function (rule) { return rule.status === 'active'; }) || null;
+    var created = {
+      id: nextRuleId(state),
+      lineageId: lineageId,
+      version: maxVersion + 1 || 1,
+      status: 'active',
+      name: sessionRule.name,
+      description: sessionRule.description || '',
+      target: clone(sessionRule.target),
+      conditionLogic: sessionRule.conditionLogic || 'ALL',
+      conditions: clone(sessionRule.conditions || []),
+      applicableSpecies: clone(sessionRule.applicableSpecies || ['cat']),
+      sourceTemplateIds: clone(sessionRule.sourceTemplateIds || []),
+      professionalBasis: sessionRule.professionalBasis || '',
+      reviewStatus: sessionRule.reviewStatus || 'prototype_unreviewed',
+      maintainer: options.actor || sessionRule.maintainer || '原型运营',
+      riskLevel: sessionRule.riskLevel || Engine.DEFAULT_RISK_PLACEHOLDER,
+      priority: Number(sessionRule.priority) || 0,
+      stableOrder: active ? active.stableOrder : nextRuleStableOrder(state),
+      conflictGroup: sessionRule.conflictGroup || null,
+      output: clone(sessionRule.output),
+      createdAt: now,
+      updatedAt: now,
+      activatedAt: now,
+      activatedBy: options.actor || '原型运营',
+      basedOnRuleId: active ? active.id : (sessionRule.basedOnRuleId || null)
+    };
+    var errors = validateRuleForActivation(state, created);
+    if (errors.length) {
+      var err = new Error(errors.map(function (item) { return item.message; }).join('；'));
+      err.validationErrors = errors;
+      throw err;
+    }
+    archiveActiveLineageVersion(state, lineageId, null, '新版本 v' + created.version + ' 已启用');
+    state.analysisRuleCatalog.push(created);
+    return {
+      rule: created,
+      previousRule: active ? clone(active) : null,
+      impact: calculateRuleChangeImpact(state, { type: 'activate', candidate: created, previousRule: active })
+    };
   }
 
-  function seedRule(spec, ts) {
+  function copyAnalysisRuleToSpeciesInternal(state, ruleId, targetSpecies, options) {
+    var source = (state.analysisRuleCatalog || []).find(function (rule) { return rule.id === ruleId; });
+    if (!source) throw new Error('rule not found: ' + ruleId);
+    var species = Engine.closedSpeciesList(targetSpecies);
+    if (species.length !== 1) throw new Error('复制目标必须是一个当前能出报告的物种');
+    var sourceSpecies = Engine.closedSpeciesList(source.applicableSpecies);
+    if (sourceSpecies[0] === species[0]) throw new Error('复制目标物种须与原谱系不同');
+    var session = clone(source);
+    session.id = null;
+    session.lineageId = null;
+    session.basedOnRuleId = null;
+    session.applicableSpecies = species;
+    var judgment = Engine.decompileJudgment(source);
+    session.name = Engine.suggestRuleName({
+      observationKind: judgment.observationKind || Engine.DEFAULT_OBSERVATION_KIND,
+      applicableSpecies: species
+    }, taxonDisplayLabel(state, source.target && source.target.taxonKey));
+    session.copiedFromLineageId = source.lineageId;
+    return saveAndActivateAnalysisRuleInternal(state, session, options);
+  }
+
+  function deactivateAnalysisRuleLineageInternal(state, lineageId, options) {
+    options = normalizeActorOptions(options);
+    var active = (state.analysisRuleCatalog || []).find(function (rule) {
+      return rule.lineageId === lineageId && rule.status === 'active';
+    });
+    if (!active) throw new Error('该规则谱系当前没有启用版本');
+    active.status = 'inactive';
+    active.archivedAt = nowIso();
+    active.archivedReason = options.reason || '规则谱系已停用';
+    active.updatedAt = nowIso();
+    return {
+      rule: active,
+      impact: calculateRuleChangeImpact(state, { type: 'deactivate', previousRule: active })
+    };
+  }
+
+  function calculateRuleChangeImpact(state, change) {
+    var counts = { incomplete: 0, pending_review: 0, correction: 0, published: 0, affectedUnpublished: 0 };
+    (state.reports || []).forEach(function (report) {
+      if (report.status === 'voided') return;
+      if (report.status === 'published' && !report.correctionDraftActive) {
+        counts.published += 1;
+        return;
+      }
+      counts.affectedUnpublished += 1;
+      if (report.correctionDraftActive) counts.correction += 1;
+      else if (report.status === 'pending_review') counts.pending_review += 1;
+      else counts.incomplete += 1;
+    });
+    return {
+      type: change.type,
+      lineageId: (change.candidate && change.candidate.lineageId) || (change.previousRule && change.previousRule.lineageId) || null,
+      fromVersion: change.previousRule ? change.previousRule.version : null,
+      toVersion: change.candidate ? change.candidate.version : null,
+      reportCounts: counts,
+      publishedReportsUnchanged: counts.published,
+      note: '已发布线上报告不会自动改变；未发布工作版本和活动更正版本需主动重新分析。'
+    };
+  }
+
+  function getRuleChangeImpactInternal(state, sessionRule, type) {
+    sessionRule = sessionRule || {};
+    var lineageId = resolveSessionLineageId(state, sessionRule);
+    var previous = (state.analysisRuleCatalog || []).find(function (rule) {
+      return rule.lineageId === lineageId && rule.status === 'active';
+    }) || null;
+    return calculateRuleChangeImpact(state, {
+      type: type || 'activate',
+      candidate: type === 'deactivate' ? null : sessionRule,
+      previousRule: previous
+    });
+  }
+
+  function seedRule(spec, ts, stableOrder) {
     var conditions = (spec.conditions || []).map(function (c, i) {
       return Object.assign({ id: spec.id + '-c' + (i + 1) }, c);
     });
     return {
       id: spec.id,
       lineageId: spec.lineageId,
-      version: 1,
-      status: spec.status || 'active',
+      version: spec.version || 1,
+      status: spec.status === 'inactive' ? 'inactive' : 'active',
       name: spec.name,
       description: spec.description || '',
       target: spec.target,
       conditionLogic: spec.conditionLogic || 'ALL',
       conditions: conditions,
-      riskLevel: spec.riskLevel,
+      applicableSpecies: spec.applicableSpecies || ['cat'],
+      sourceTemplateIds: spec.sourceTemplateIds || [DEFAULT_SOURCE_ORG_ID, SECOND_SOURCE_ORG_ID],
+      professionalBasis: spec.professionalBasis || '',
+      reviewStatus: spec.reviewStatus || 'prototype_unreviewed',
+      maintainer: spec.maintainer || '原型运营',
+      riskLevel: spec.riskLevel || Engine.DEFAULT_RISK_PLACEHOLDER,
       priority: spec.priority || 10,
+      stableOrder: stableOrder || 1,
       conflictGroup: spec.conflictGroup || null,
       output: spec.output,
       createdAt: ts,
-      updatedAt: ts
+      updatedAt: ts,
+      activatedAt: spec.status === 'inactive' ? null : ts,
+      activatedBy: spec.status === 'inactive' ? null : '原型运营'
     };
   }
 
+  function numberSeedRules(rules) {
+    return rules.map(function (rule, index) {
+      rule.stableOrder = index + 1;
+      return rule;
+    });
+  }
+
+  function splitClosedSpeciesSeeds(base, ts) {
+    return Engine.REPORTABLE_SPECIES.map(function (species) {
+      var label = Engine.SPECIES_LABELS[species] || species;
+      var spec = Object.assign({}, base, {
+        id: base.id + '-' + species,
+        lineageId: base.lineageId + '-' + species,
+        applicableSpecies: [species],
+        name: String(base.name || '').replace(/^猫和狗/, label)
+      });
+      return seedRule(spec, ts);
+    });
+  }
+
   function buildDefaultAnalysisRuleCatalog(ts) {
-    return [
-      seedRule({
-        id: 'rule-actino-low', lineageId: 'lineage-actino-low', name: '放线菌门低于参考范围',
+    var shared = [
+      {
+        id: 'rule-actino-low', lineageId: 'lineage-actino-low', name: '猫和狗 · 放线菌门 · 实验室标偏低',
+        description: '单物种谱系演示文案；未经专业审核。',
         target: { level: 'phylum', taxonKey: 'Actinobacteria' },
-        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'low' }],
-        riskLevel: 'medium', priority: 20, conflictGroup: 'actinobacteria',
-        output: { analysis: '放线菌门占比低于参考范围，可能影响肠道屏障与免疫调节。', advice: '关注日常饮食多样性，可考虑益生菌补充。' }
-      }, ts),
-      seedRule({
-        id: 'rule-firmi-normal', lineageId: 'lineage-firmi-normal', name: '厚壁菌门处于参考范围',
+        conditions: [{ type: 'LAB_NOTICE', notice: 'low' }],
+        priority: 20, conflictGroup: 'actinobacteria',
+        output: { analysis: '【演示·未审核】放线菌门被实验室标偏低，可能影响肠道屏障与免疫调节。', advice: '【演示·未审核】关注日常饮食多样性，可考虑益生菌补充。' }
+      },
+      {
+        id: 'rule-firmi-unmarked', lineageId: 'lineage-firmi-unmarked', name: '猫和狗 · 厚壁菌门 · 实验室未标注',
+        description: '单物种谱系演示文案；未经专业审核。',
         target: { level: 'phylum', taxonKey: 'Firmicutes' },
-        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'normal' }],
-        riskLevel: 'low', priority: 5, conflictGroup: 'firmicutes',
-        output: { analysis: '厚壁菌门处于参考范围内。', advice: '保持当前饮食结构即可。' }
-      }, ts),
-      seedRule({
-        id: 'rule-bactero-normal', lineageId: 'lineage-bactero-normal', name: '拟杆菌门处于参考范围',
+        conditions: [{ type: 'LAB_NOTICE', notice: 'unmarked' }],
+        priority: 5, conflictGroup: 'firmicutes',
+        output: { analysis: '【演示·未审核】厚壁菌门实验室未标注，不把它当成参考范围内。', advice: '【演示·未审核】保持当前饮食结构即可。' }
+      },
+      {
+        id: 'rule-bactero-unmarked', lineageId: 'lineage-bactero-unmarked', name: '猫和狗 · 拟杆菌门 · 实验室未标注',
+        description: '单物种谱系演示文案；未经专业审核。',
         target: { level: 'phylum', taxonKey: 'Bacteroidetes' },
-        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'normal' }],
-        riskLevel: 'low', priority: 5, conflictGroup: 'bacteroidetes',
-        output: { analysis: '拟杆菌门处于参考范围内。', advice: '继续维持饮食多样性。' }
-      }, ts),
-      seedRule({
-        id: 'rule-fuso-nd', lineageId: 'lineage-fuso-nd', name: '梭杆菌属未检出',
+        conditions: [{ type: 'LAB_NOTICE', notice: 'unmarked' }],
+        priority: 5, conflictGroup: 'bacteroidetes',
+        output: { analysis: '【演示·未审核】拟杆菌门实验室未标注。', advice: '【演示·未审核】继续维持饮食多样性。' }
+      },
+      {
+        id: 'rule-fuso-nd', lineageId: 'lineage-fuso-nd', name: '猫和狗 · 梭杆菌属 · 未检出',
+        description: '单物种谱系演示文案；未经专业审核。',
         target: { level: 'genus', taxonKey: 'Fusobacterium' },
         conditions: [{ type: 'NOT_DETECTED' }],
-        riskLevel: 'high', priority: 25, conflictGroup: 'fusobacteria',
-        output: { analysis: '梭杆菌属未检出，不可等同于偏低结论。', advice: '建议结合复检与其他指标综合判断。' }
-      }, ts),
-      seedRule({
-        id: 'rule-proteus-high', lineageId: 'lineage-proteus-high', name: 'Proteus 高于参考范围',
+        priority: 25, conflictGroup: 'fusobacteria',
+        output: { analysis: '【演示·未审核】梭杆菌属未检出，不可等同于偏低结论。', advice: '【演示·未审核】建议结合复检与其他指标综合判断。' }
+      },
+      {
+        id: 'rule-proteus-high', lineageId: 'lineage-proteus-high', name: '猫和狗 · Proteus属 · 实验室标偏高',
+        description: '单物种谱系演示文案；未经专业审核。',
         target: { level: 'genus', taxonKey: 'Proteus' },
-        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'high' }],
-        riskLevel: 'high', priority: 30, conflictGroup: 'proteobacteria-alert',
-        output: { analysis: 'Proteus 高于参考范围，变形菌门内潜在风险升高。', advice: '建议复查并关注消化道症状，必要时咨询兽医。' }
-      }, ts),
-      seedRule({
-        id: 'rule-esh-high', lineageId: 'lineage-esh-high', name: 'Escherichia-Shigella 高于参考范围',
+        conditions: [{ type: 'LAB_NOTICE', notice: 'high' }],
+        priority: 30, conflictGroup: 'proteobacteria-alert',
+        output: { analysis: '【演示·未审核】Proteus 被实验室标偏高，变形菌门内潜在风险升高。', advice: '【演示·未审核】建议复查并关注消化道症状，必要时咨询兽医。' }
+      },
+      {
+        id: 'rule-esh-high', lineageId: 'lineage-esh-high', name: '猫和狗 · Escherichia-Shigella属 · 实验室标偏高',
+        description: '单物种谱系演示文案；未经专业审核。',
         target: { level: 'genus', taxonKey: 'Escherichia-Shigella' },
-        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'high' }],
-        riskLevel: 'medium', priority: 20, conflictGroup: 'proteobacteria-alert',
-        output: { analysis: 'Escherichia-Shigella 高于参考范围。', advice: '减少易发酵零食，观察排便情况。' }
-      }, ts),
-      seedRule({
-        id: 'rule-kleb-high', lineageId: 'lineage-kleb-high', name: 'Klebsiella 高于参考范围',
+        conditions: [{ type: 'LAB_NOTICE', notice: 'high' }],
+        priority: 20, conflictGroup: 'proteobacteria-alert',
+        output: { analysis: '【演示·未审核】Escherichia-Shigella 被实验室标偏高。', advice: '【演示·未审核】减少易发酵零食，观察排便情况。' }
+      },
+      {
+        id: 'rule-kleb-high', lineageId: 'lineage-kleb-high', name: '猫和狗 · Klebsiella属 · 实验室标偏高',
+        description: '单物种谱系演示文案；未经专业审核。',
         target: { level: 'genus', taxonKey: 'Klebsiella' },
-        conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'high' }],
-        riskLevel: 'low', priority: 10, conflictGroup: 'proteobacteria-alert',
-        output: { analysis: 'Klebsiella 高于参考范围。', advice: '持续观察，必要时复查。' }
-      }, ts),
-      seedRule({
-        id: 'rule-kleb-present', lineageId: 'lineage-kleb-present', name: 'Klebsiella 无有效参考范围',
+        conditions: [{ type: 'LAB_NOTICE', notice: 'high' }],
+        priority: 10, conflictGroup: 'proteobacteria-alert',
+        output: { analysis: '【演示·未审核】Klebsiella 被实验室标偏高。', advice: '【演示·未审核】持续观察，必要时复查。' }
+      },
+      {
+        id: 'rule-kleb-present', lineageId: 'lineage-kleb-present', name: '猫和狗 · Klebsiella属 · 无有效范围',
+        description: '次要观察演示：仅在报告对该菌没有有效范围时提示。建议栏空着。未经专业审核。',
         target: { level: 'genus', taxonKey: 'Klebsiella' },
         conditions: [{ type: 'RANGE_STATUS', rangeStatus: 'no_range' }],
-        riskLevel: 'notice', priority: 1, conflictGroup: 'klebsiella-notice',
-        output: { analysis: 'Klebsiella 已检出，但本报告无有效参考范围，仅作提示。', advice: '' }
-      }, ts)
+        priority: 1, conflictGroup: 'klebsiella-notice',
+        output: { analysis: '【演示·未审核】Klebsiella 已检出，但本报告无有效参考范围。', advice: '' }
+      }
     ];
+    var rules = [];
+    shared.forEach(function (spec) {
+      splitClosedSpeciesSeeds(spec, ts).forEach(function (rule) { rules.push(rule); });
+    });
+    rules.push(seedRule({
+      id: 'rule-legacy-cross', lineageId: 'lineage-legacy-cross', name: '历史交叉条件（兼容）',
+      description: '停用的历史多观察规则，供兼容视图演示；未经专业审核。',
+      status: 'inactive',
+      target: { level: 'phylum', taxonKey: 'Firmicutes' },
+      conditionLogic: 'ALL',
+      applicableSpecies: ['cat'],
+      conditions: [
+        { type: 'LAB_NOTICE', notice: 'high' },
+        { type: 'SPECIES', species: ['cat'] },
+        { type: 'OTHER_TAXON_STATUS', taxonKey: 'Bacteroidetes', statusKind: 'LAB_NOTICE', expected: 'unmarked' }
+      ],
+      priority: 8, conflictGroup: null,
+      output: { analysis: '【演示·未审核】历史交叉条件规则，不参与当前启用集。', advice: '【演示·未审核】兼容保留，不作为新规则样例。' }
+    }, ts));
+    return numberSeedRules(rules);
   }
 
   function standardTaxonValues() {
@@ -1906,11 +2079,10 @@
   function assignDefaultProducts(state, reportId, mapping) {
     mapping = mapping || {};
     listPhylumUnits(state, reportId).forEach(function (unit) {
-      if (unit.riskLevel === 'notice' || !String(unit.adviceDraft || '').trim()) return;
       var spec = mapping[unit.phylumKey] || { primaryProductId: 'prod-001', relatedProductIds: [] };
       try {
         savePhylumUnitProductsInternal(state, reportId, unit.phylumKey, spec);
-      } catch (e) { /* notice / 无建议则跳过 */ }
+      } catch (e) { /* 商品选择失败则跳过 */ }
     });
   }
 
@@ -1936,7 +2108,7 @@
 
     var state = {
       meta: {
-        version: 18,
+        version: 19,
         disclaimer: '',
         dataStatuses: DATA_STATUSES.slice(),
         reportStatuses: REPORT_STATUSES.slice(),
@@ -2114,11 +2286,11 @@
       idPrefix: 'r2', testRecordId: 'tr-003', reportId: 'report-002',
       templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-23T14:30:00.000Z',
       overrides: {
-        Actinobacteria: { value: 18.0 },
+        Actinobacteria: { value: 18.0, labNotice: 'low' },
         Fusobacterium: { value: null, dataStatus: 'NOT_DETECTED' },
-        Proteus: { value: 3.5 },
-        'Escherichia-Shigella': { value: 6.5 },
-        Klebsiella: { value: 4.59 }
+        Proteus: { value: 3.5, labNotice: 'high' },
+        'Escherichia-Shigella': { value: 6.5, labNotice: 'high' },
+        Klebsiella: { value: 4.59, labNotice: 'high' }
       }
     });
     pushTaxonResults(state, indicators, {
@@ -2233,7 +2405,10 @@
   function reset() {
     memoryState = null;
     if (localStorageAvailable) {
-      try { localStorage.removeItem(STORAGE_KEY); } catch (e) { localStorageAvailable = false; }
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+        LEGACY_STORAGE_KEYS.forEach(function (key) { localStorage.removeItem(key); });
+      } catch (e) { localStorageAvailable = false; }
     }
     var state = buildSeedState();
     state.meta.resetAt = nowIso();
@@ -2346,52 +2521,216 @@
   function assignReportOwnership(params) {
     return commit(function (state) { return assignReportOwnershipInternal(state, params); });
   }
-  function saveAnalysisRule(rule) {
-    return commit(function (state) { return saveAnalysisRuleInternal(state, rule); });
+  function saveAndActivateAnalysisRule(sessionRule, options) {
+    return commit(function (state) { return saveAndActivateAnalysisRuleInternal(state, sessionRule, options); });
   }
-  function createRuleRevision(ruleId) {
-    return commit(function (state) { return createRuleRevisionInternal(state, ruleId); });
+  function copyAnalysisRuleToSpecies(ruleId, targetSpecies, options) {
+    return commit(function (state) { return copyAnalysisRuleToSpeciesInternal(state, ruleId, targetSpecies, options); });
   }
-  function duplicateAnalysisRule(ruleId) {
-    return commit(function (state) { return duplicateAnalysisRuleInternal(state, ruleId); });
+  function deactivateAnalysisRuleLineage(lineageId, options) {
+    return commit(function (state) { return deactivateAnalysisRuleLineageInternal(state, lineageId, options); });
   }
-  function activateAnalysisRule(ruleId) {
-    return commit(function (state) { return setRuleActiveInternal(state, ruleId, true); });
+  function getRuleChangeImpact(sessionRule, type) {
+    return clone(getRuleChangeImpactInternal(loadState(), sessionRule, type));
   }
-  function deactivateAnalysisRule(ruleId) {
-    return commit(function (state) { return setRuleActiveInternal(state, ruleId, false); });
-  }
-  function deleteAnalysisRule(ruleId) {
-    return commit(function (state) { return deleteAnalysisRuleInternal(state, ruleId); });
+  function validateAnalysisRuleDetailed(rule, includeActiveConflicts) {
+    var state = loadState();
+    var candidate = clone(rule || {});
+    candidate.lineageId = resolveSessionLineageId(state, candidate) || candidate.lineageId;
+    var errors = Engine.validateRuleDetails(candidate, taxaByKeyMap(state));
+    if (includeActiveConflicts !== false && !errors.length) {
+      Engine.validateConflictTies(activeRulesWithCandidate(state, candidate)).forEach(function (message) {
+        errors.push({ field: 'conflictGroup', message: message });
+      });
+    }
+    return errors;
   }
   function validateAnalysisRule(rule) {
-    return Engine.validateRule(rule, taxaByKeyMap(loadState()));
+    return validateAnalysisRuleDetailed(rule, true).map(function (item) { return item.message; });
   }
   function listTaxaForRuleTarget(level) {
     var taxa = (loadState().professionalCatalog && loadState().professionalCatalog.microbiotaTaxa) || [];
     return clone(taxa.filter(function (t) { return t.level === level; }));
+  }
+  function listConflictGroups() {
+    var seen = {};
+    return (loadState().analysisRuleCatalog || []).filter(function (rule) {
+      if (!rule.conflictGroup || seen[rule.conflictGroup]) return false;
+      seen[rule.conflictGroup] = true;
+      return true;
+    }).map(function (rule) { return rule.conflictGroup; }).sort();
+  }
+  function listRuleLineages() {
+    var state = loadState();
+    var groups = {};
+    (state.analysisRuleCatalog || []).forEach(function (rule) {
+      if (!groups[rule.lineageId]) groups[rule.lineageId] = [];
+      groups[rule.lineageId].push(rule);
+    });
+    return Object.keys(groups).map(function (lineageId) {
+      var versions = groups[lineageId].slice().sort(function (a, b) { return (b.version || 0) - (a.version || 0); });
+      return {
+        lineageId: lineageId,
+        active: versions.find(function (rule) { return rule.status === 'active'; }) || null,
+        history: versions.filter(function (rule) { return rule.status !== 'active'; }),
+        latest: versions[0] || null
+      };
+    }).sort(function (a, b) {
+      var ar = a.active || a.latest || {};
+      var br = b.active || b.latest || {};
+      return (Number(ar.stableOrder) || 0) - (Number(br.stableOrder) || 0) || String(ar.name || '').localeCompare(String(br.name || ''));
+    });
+  }
+  function listRuleLibraryGroups(species) {
+    var state = loadState();
+    var taxaMap = taxaByKeyMap(state);
+    var wanted = Engine.closedSpeciesList(species)[0];
+    var lineages = listRuleLineages().filter(function (lineage) {
+      var rule = lineage.active || lineage.latest || {};
+      var list = Engine.normalizeSpeciesList(rule.applicableSpecies);
+      return wanted && list.indexOf(wanted) >= 0;
+    });
+    var byPhylum = {};
+    lineages.forEach(function (lineage) {
+      var rule = lineage.active || lineage.latest || {};
+      var target = rule.target || {};
+      var taxon = taxaMap[target.taxonKey] || {};
+      var phylumKey = target.level === 'phylum' ? target.taxonKey : (taxon.parentKey || 'unclassified');
+      if (!byPhylum[phylumKey]) {
+        byPhylum[phylumKey] = {
+          phylumKey: phylumKey,
+          label: taxonDisplayLabel(state, phylumKey),
+          phylumLineages: [],
+          genera: {}
+        };
+      }
+      if (target.level === 'genus') {
+        var gk = target.taxonKey;
+        if (!byPhylum[phylumKey].genera[gk]) {
+          byPhylum[phylumKey].genera[gk] = {
+            genusKey: gk,
+            label: taxonDisplayLabel(state, gk),
+            lineages: []
+          };
+        }
+        byPhylum[phylumKey].genera[gk].lineages.push(lineage);
+      } else {
+        byPhylum[phylumKey].phylumLineages.push(lineage);
+      }
+    });
+    return Object.keys(byPhylum).sort(function (a, b) {
+      return String(byPhylum[a].label || a).localeCompare(String(byPhylum[b].label || b), 'zh');
+    }).map(function (pk) {
+      var group = byPhylum[pk];
+      group.genera = Object.keys(group.genera).sort(function (a, b) {
+        return String(group.genera[a].label || a).localeCompare(String(group.genera[b].label || b), 'zh');
+      }).map(function (gk) { return group.genera[gk]; });
+      return group;
+    });
+  }
+  function evaluateRuleSetForReport(state, report, rules) {
+    var results = getDecoratedCurrentResults(state, report);
+    var taxa = (state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || [];
+    return Engine.evaluate({
+      rules: rules,
+      results: results,
+      species: getReportSpecies(state, report),
+      sourceTemplateId: report.sourceOrgId || null,
+      taxa: taxa
+    });
+  }
+  function summarizeEvaluationDiff(current, candidate) {
+    function primaryMap(evaluation) {
+      var map = {};
+      (evaluation.units || []).forEach(function (unit) {
+        (unit.hits || []).forEach(function (hit) {
+          if (hit.combineStatus === 'primary' && !hit.excluded) map[hit.lineageId] = { hit: hit, phylumKey: unit.phylumKey };
+        });
+      });
+      return map;
+    }
+    var currentHits = primaryMap(current);
+    var candidateHits = primaryMap(candidate);
+    var added = Object.keys(candidateHits).filter(function (key) { return !currentHits[key]; });
+    var removed = Object.keys(currentHits).filter(function (key) { return !candidateHits[key]; });
+    var changedUnits = [];
+    var keys = {};
+    (current.units || []).forEach(function (unit) { keys[unit.phylumKey] = true; });
+    (candidate.units || []).forEach(function (unit) { keys[unit.phylumKey] = true; });
+    Object.keys(keys).forEach(function (phylumKey) {
+      var cu = (current.units || []).find(function (unit) { return unit.phylumKey === phylumKey; }) || { drafts: {}, riskLevel: null, hits: [] };
+      var ca = (candidate.units || []).find(function (unit) { return unit.phylumKey === phylumKey; }) || { drafts: {}, riskLevel: null, hits: [] };
+      var flags = [];
+      if ((cu.drafts.analysis || '') !== (ca.drafts.analysis || '')) flags.push('analysis');
+      if ((cu.drafts.advice || '') !== (ca.drafts.advice || '')) flags.push('advice');
+      if ((cu.hits || []).length !== (ca.hits || []).length) flags.push('hits');
+      if (flags.length) changedUnits.push({ phylumKey: phylumKey, changes: flags, current: cu, candidate: ca });
+    });
+    return { addedLineages: added, removedLineages: removed, changedUnits: changedUnits };
   }
   function previewRuleEvaluation(reportId, options) {
     options = options || {};
     var state = loadState();
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
-    var results = getDecoratedCurrentResults(state, report);
-    var rules = (state.analysisRuleCatalog || []).filter(function (r) {
-      if (options.ruleIds && options.ruleIds.length && options.ruleIds.indexOf(r.id) < 0) return false;
-      if (options.includeDrafts) return r.status === 'active' || r.status === 'draft';
-      return r.status === 'active';
-    });
-    var taxa = (state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || [];
-    return Engine.evaluate({
-      rules: rules,
-      results: results,
+    var activeRules = listActiveRules(state);
+    var sessionCandidate = options.sessionCandidate ? clone(options.sessionCandidate) : null;
+    if (sessionCandidate) sessionCandidate.lineageId = resolveSessionLineageId(state, sessionCandidate) || sessionCandidate.lineageId;
+    var candidateSet = Engine.buildCandidateRuleSet(activeRules, sessionCandidate);
+    var current = evaluateRuleSetForReport(state, report, activeRules);
+    var candidate = evaluateRuleSetForReport(state, report, candidateSet.rules);
+    var resultSignature = computeResultSignature(getDecoratedCurrentResults(state, report));
+    var candidateRulesSignature = computeRulesSignature(candidateSet.rules);
+    var createdAt = nowIso();
+    var stableSeed = [reportId, report.workingVersion, resultSignature, candidateRulesSignature].join('|');
+    return {
+      runId: 'test-' + hashString(stableSeed),
+      createdAt: createdAt,
+      reportId: reportId,
+      reportNumber: report.reportNumber || report.id,
+      workingVersion: report.workingVersion || report.currentVersion || 1,
       species: getReportSpecies(state, report),
-      taxa: taxa
-    });
+      sourceTemplateId: report.sourceOrgId || null,
+      inputSignature: hashString(stableSeed),
+      engineVersion: Engine.ENGINE_VERSION,
+      baselineRules: activeRules.map(function (rule) { return { id: rule.id, lineageId: rule.lineageId, version: rule.version, name: rule.name }; }),
+      candidateRules: candidateSet.rules.map(function (rule) { return { id: rule.id, lineageId: rule.lineageId, version: rule.version, name: rule.name, session: rule.status === 'session' }; }),
+      replacement: candidateSet.replacement,
+      current: current,
+      candidate: candidate,
+      diff: summarizeEvaluationDiff(current, candidate),
+      readOnly: true
+    };
   }
   function describeCondition(cond, rule) {
     return Engine.describeCondition(cond, rule);
+  }
+
+  function taxonDisplayLabel(state, key) {
+    var taxa = (state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || [];
+    var taxon = taxa.find(function (item) { return item.key === key; });
+    if (!taxon) return key || '目标菌';
+    return taxon.label || taxon.key;
+  }
+
+  function describeJudgmentSentenceForRule(rule) {
+    var state = loadState();
+    var key = rule && rule.target && rule.target.taxonKey;
+    return Engine.describeJudgmentSentence(rule, taxonDisplayLabel(state, key));
+  }
+
+  function explainRuleForReport(reportId, rule) {
+    var state = loadState();
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    var ctx = Engine.buildContext({
+      results: getDecoratedCurrentResults(state, report),
+      species: getReportSpecies(state, report),
+      sourceTemplateId: report.sourceOrgId || null,
+      taxa: (state.professionalCatalog && state.professionalCatalog.microbiotaTaxa) || []
+    });
+    var key = rule && rule.target && rule.target.taxonKey;
+    return Engine.explainRuleAgainstContext(rule, ctx, { taxonLabel: taxonDisplayLabel(state, key) });
   }
 
   function getWorkflowStatus(reportOrId) {
@@ -3001,16 +3340,25 @@
     createCorrectionDraft: createCorrectionDraft,
     voidReport: voidReport,
     assignReportOwnership: assignReportOwnership,
-    saveAnalysisRule: saveAnalysisRule,
-    createRuleRevision: createRuleRevision,
-    duplicateAnalysisRule: duplicateAnalysisRule,
-    activateAnalysisRule: activateAnalysisRule,
-    deactivateAnalysisRule: deactivateAnalysisRule,
-    deleteAnalysisRule: deleteAnalysisRule,
+    saveAndActivateAnalysisRule: saveAndActivateAnalysisRule,
+    copyAnalysisRuleToSpecies: copyAnalysisRuleToSpecies,
+    deactivateAnalysisRuleLineage: deactivateAnalysisRuleLineage,
+    getRuleChangeImpact: getRuleChangeImpact,
     validateAnalysisRule: validateAnalysisRule,
+    validateAnalysisRuleDetailed: validateAnalysisRuleDetailed,
     listTaxaForRuleTarget: listTaxaForRuleTarget,
+    listConflictGroups: listConflictGroups,
+    listRuleLineages: listRuleLineages,
+    listRuleLibraryGroups: listRuleLibraryGroups,
     previewRuleEvaluation: previewRuleEvaluation,
     describeCondition: describeCondition,
+    describeJudgmentSentenceForRule: describeJudgmentSentenceForRule,
+    explainRuleForReport: explainRuleForReport,
+    compileJudgment: Engine.compileJudgment,
+    decompileJudgment: Engine.decompileJudgment,
+    analyzeRuleShape: Engine.analyzeRuleShape,
+    suggestRuleName: Engine.suggestRuleName,
+    describeJudgmentSemantics: Engine.describeJudgmentSemantics,
     buildPublicationChecks: buildPublicationChecksPublic,
     getWorkflowStatus: getWorkflowStatus,
     getTodoFlags: getTodoFlags,

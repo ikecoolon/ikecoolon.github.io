@@ -1,234 +1,362 @@
 <div id="analysis-rules" class="page p-4 space-y-4">
-  <!-- 业务区切换 -->
-  <div class="flex border-b border-gray-200 bg-white rounded-t-lg px-4 pt-2">
-    <button type="button" id="tab-rules" class="ar-tab px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">
-      <i class="fas fa-sliders-h mr-1"></i>规则定义
+  <div class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950" role="note">
+    <strong>静态原型 · 浏览器本地 Mock · 非生产规则</strong>
+    <span class="ml-2">专业依据、审核状态、维护人和最近测试记录尚未接入真实服务；页面中的规则与文案均未审核，仅用于交互演示。</span>
+  </div>
+
+  <div class="ar-tabbar flex border-b border-gray-200 bg-white rounded-t-lg px-4 pt-2" role="tablist" aria-label="分析规则模块">
+    <button type="button" id="tab-rules" class="ar-tab px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600" role="tab" aria-selected="true" aria-controls="section-rules" tabindex="0">
+      <i class="fas fa-layer-group mr-1" aria-hidden="true"></i>规则库
     </button>
-    <button type="button" id="tab-test" class="ar-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-      <i class="fas fa-vial mr-1"></i>规则测试
+    <button type="button" id="tab-test" class="ar-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-gray-900" role="tab" aria-selected="false" aria-controls="section-test" tabindex="-1">
+      <i class="fas fa-flask-vial mr-1" aria-hidden="true"></i>单报告测试实验室
     </button>
   </div>
 
-  <!-- ========== 规则定义 ========== -->
-  <div id="section-rules" class="bg-white p-6 rounded-b-lg shadow-md">
-    <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-      <h3 class="text-xl font-semibold">规则定义</h3>
-      <button type="button" id="add-new-rule" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 text-sm">
-        <i class="fas fa-plus mr-1"></i>新增草稿规则
-      </button>
-    </div>
-
+  <section id="section-rules" class="bg-white p-6 rounded-b-lg shadow-md" role="tabpanel" aria-labelledby="tab-rules" tabindex="0">
     <div id="rules-list-view">
-      <div class="flex flex-col md:flex-row gap-3 mb-4">
-        <input type="text" id="search-rule" class="flex-1 shadow border rounded py-2 px-3 text-sm" placeholder="搜索规则名称、目标、条件、输出内容…">
-        <select id="filter-status" class="shadow border rounded py-2 px-3 text-sm">
-          <option value="">全部状态</option>
-          <option value="active">启用中</option>
-          <option value="draft">草稿</option>
-          <option value="inactive">已停用</option>
-        </select>
+      <div class="flex flex-wrap justify-between items-start gap-3 mb-5">
+        <div>
+          <h2 class="text-xl font-semibold">规则库</h2>
+          <p class="text-sm text-slate-600 mt-1">先选当前能出报告的物种，再按菌门和菌属查看判断。启用版只有一个；分析/建议是可复用草稿，每份报告仍须在工作台按菌门确认后才发布。</p>
+        </div>
+        <button type="button" id="add-new-rule" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
+          <i class="fas fa-plus mr-1" aria-hidden="true"></i>新增规则
+        </button>
       </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full border border-gray-200 text-sm">
-          <thead class="bg-gray-50 text-xs uppercase text-gray-500">
-            <tr>
-              <th class="px-3 py-2 text-left">规则 / 版本</th>
-              <th class="px-3 py-2 text-left">条件 (ALL/ANY)</th>
-              <th class="px-3 py-2 text-left">风险 / 优先级 / 冲突组</th>
-              <th class="px-3 py-2 text-left">输出</th>
-              <th class="px-3 py-2 text-left">状态</th>
-              <th class="px-3 py-2 text-left">操作</th>
-            </tr>
-          </thead>
-          <tbody id="rules-table-body" class="divide-y divide-gray-100">
-            <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">加载中…</td></tr>
-          </tbody>
-        </table>
+
+      <div class="mb-4">
+        <p id="library-species-label" class="block text-sm font-medium mb-2">当前物种</p>
+        <div id="library-species-switch" class="ar-species-switch" role="tablist" aria-labelledby="library-species-label"></div>
+        <p class="text-sm text-slate-600 mt-2">只列出当前能出报告的物种。今天给猫写的规则，以后乌龟能出报告也不会自动命中。</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-3 mb-5">
+        <div>
+          <label class="block text-sm font-medium mb-1" for="search-rule">搜索规则</label>
+          <input type="search" id="search-rule" class="w-full shadow border rounded py-2 px-3 text-sm" placeholder="按判断句、名称、目标、分析或建议搜索">
+        </div>
+        <div>
+          <label class="block text-sm font-medium mb-1" for="filter-status">谱系状态</label>
+          <select id="filter-status" class="w-full shadow border rounded py-2 px-3 text-sm">
+            <option value="">全部谱系</option>
+            <option value="active">当前启用</option>
+            <option value="inactive">已停用</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="rules-lineage-list" class="space-y-3" aria-live="polite">
+        <p class="py-8 text-center text-slate-600">加载中…</p>
       </div>
     </div>
 
     <div id="rules-form-view" class="hidden">
-      <div class="flex justify-between items-center mb-4">
-        <h3 id="form-title" class="text-lg font-semibold">新增草稿规则</h3>
-        <button type="button" id="back-to-rules-list" class="px-3 py-1.5 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">
-          <i class="fas fa-arrow-left mr-1"></i>返回列表
-        </button>
-      </div>
-      <form id="rule-form" class="space-y-5">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium mb-1" for="form-rule-name">规则名称 <span class="text-red-500">*</span></label>
-            <input type="text" id="form-rule-name" class="w-full border rounded py-2 px-3 text-sm" required>
-          </div>
-          <div>
-            <label class="block text-sm font-medium mb-1" for="form-conflict-group">冲突组</label>
-            <input type="text" id="form-conflict-group" class="w-full border rounded py-2 px-3 text-sm" placeholder="如 proteobacteria-alert">
-          </div>
-        </div>
+      <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
         <div>
-          <label class="block text-sm font-medium mb-1" for="form-rule-description">描述</label>
-          <textarea id="form-rule-description" class="w-full border rounded py-2 px-3 text-sm" rows="2"></textarea>
+          <h2 id="form-title" class="text-xl font-semibold">新增规则</h2>
+          <p id="form-session-note" class="text-sm text-slate-600 mt-1">本页修改只存在于当前编辑会话；取消或离开即丢弃，不会形成持久版本。</p>
+        </div>
+        <span id="dirty-indicator" class="inline-flex px-2 py-1 rounded text-xs bg-slate-100 text-slate-700">尚未修改</span>
+      </div>
+
+      <div id="form-error-summary" class="hidden rounded border border-red-300 bg-red-50 p-3 mb-4 text-sm text-red-900" role="alert" tabindex="-1">
+        <strong>请处理以下问题后再继续</strong>
+        <ul id="form-error-list" class="list-disc ml-5 mt-1"></ul>
+      </div>
+
+      <form id="rule-form" class="space-y-5" novalidate>
+        <div id="compat-banner" class="hidden rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950" role="status">
+          <strong>兼容视图。</strong> 这条含历史高级条件（物种条件、其他分类单元或组合观察），不能写成一句单观察判断。下面保留原条件，保存时不会丢掉。
         </div>
 
-        <div class="bg-slate-50 border border-slate-200 rounded-lg p-4">
-          <h4 class="font-medium text-sm mb-3">目标分类单元</h4>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <section id="sentence-editor" class="ar-form-section ar-judgment-section" aria-labelledby="section-judgment-title">
+          <h3 id="section-judgment-title" class="text-base font-semibold">判断句</h3>
+          <p class="text-sm text-slate-600 mt-1">填空完成一句临床判断。一次只选一个物种；主证据是实验室标注，不要把相对范围当默认。可选有效值门槛与状态观察同时填写时，必须两边都满足才命中。</p>
+
+          <div class="ar-judgment mt-4" role="group" aria-labelledby="section-judgment-title">
+            <p class="ar-judgment-line">
+              <span class="ar-judgment-glue">当</span>
+              <label class="ar-inline-field">
+                <span class="ar-inline-label">一个物种</span>
+                <select id="form-species-scope" class="ar-inline-control" aria-describedby="species-scope-hint error-applicable-species">
+                  <option value="cat">猫</option>
+                  <option value="dog">狗</option>
+                </select>
+              </label>
+              <span class="ar-judgment-glue">的报告里，</span>
+              <label class="ar-inline-field">
+                <span class="ar-inline-label">门/属</span>
+                <select id="form-target-level" class="ar-inline-control">
+                  <option value="phylum">菌门</option>
+                  <option value="genus">菌属</option>
+                </select>
+              </label>
+              <label class="ar-inline-field">
+                <span class="ar-inline-label">目标菌</span>
+                <select id="form-target-taxon" class="ar-inline-control" aria-describedby="error-target"></select>
+              </label>
+              <span id="observation-clause">
+                <label class="ar-inline-field">
+                  <span class="ar-inline-label">看见的状态</span>
+                  <select id="form-observation" class="ar-inline-control" aria-describedby="observation-hint error-conditions"></select>
+                </label>
+              </span>
+            </p>
+            <p class="ar-judgment-line ar-judgment-then" id="threshold-clause">
+              <label class="ar-threshold-toggle">
+                <input type="checkbox" id="form-threshold-enabled" aria-describedby="threshold-hint error-value-threshold">
+                <span>且有效值</span>
+              </label>
+              <label class="ar-inline-field" id="threshold-comparator-field">
+                <span class="ar-inline-label">比较符</span>
+                <select id="form-threshold-comparator" class="ar-inline-control">
+                  <option value="lt">低于</option>
+                  <option value="gt">高于</option>
+                  <option value="lte">≤</option>
+                  <option value="gte">≥</option>
+                </select>
+              </label>
+              <label class="ar-inline-field" id="threshold-value-field">
+                <span class="ar-inline-label">有效占比</span>
+                <span class="ar-threshold-value">
+                  <input type="number" id="form-threshold-value" class="ar-inline-control" min="0" max="100" step="0.01" placeholder="例如 5">
+                  <span class="ar-judgment-glue" aria-hidden="true">%</span>
+                </span>
+              </label>
+            </p>
+            <p class="ar-judgment-line ar-judgment-then">
+              <span class="ar-judgment-glue">→ 分析、建议</span>
+            </p>
+          </div>
+          <p id="species-scope-hint" class="text-sm text-slate-600 mt-2">封闭名单：只列出当前能出报告的物种。需要给另一物种写相同判断时，请复制成新谱系。</p>
+          <p id="observation-hint" class="text-sm text-slate-600 mt-1">默认用实验室标偏高 / 偏低 / 未标注 / 未检出。相对范围放在次要选项里：当前真实报告常常没有范围，不要当默认。</p>
+          <p id="threshold-hint" class="text-sm text-slate-600 mt-1">有效值比较的是报告当前有效占比，不是原始 Excel 展示字符串。同一个数字对所有已知检测方案生效；方法不同导致一边命中一边不中由运营承担。</p>
+          <p id="error-target" class="field-error hidden text-sm text-red-700 mt-1"></p>
+          <p id="error-applicable-species" class="field-error hidden text-sm text-red-700 mt-1"></p>
+          <p id="error-conditions" class="field-error hidden text-sm text-red-700 mt-1"></p>
+          <p id="error-value-threshold" class="field-error hidden text-sm text-red-700 mt-1"></p>
+
+          <div id="copy-lineage-banner" class="hidden rounded border border-blue-200 bg-blue-50 p-3 mt-4 text-sm text-blue-950" role="status">
+            这是复制到另一物种后的新谱系，与原规则身份分开；文案请按该物种自行改，漏改可接受。
+          </div>
+
+          <div class="mt-4">
+            <label class="block text-sm font-medium mb-1" for="form-analysis">分析 <span class="text-red-600">*</span></label>
+            <textarea id="form-analysis" class="w-full border rounded py-2 px-3 text-sm" rows="3" aria-describedby="error-analysis" placeholder="可复用草稿；每份报告仍须在工作台按菌门确认"></textarea>
+            <p id="error-analysis" class="field-error hidden text-sm text-red-700 mt-1"></p>
+          </div>
+          <div id="advice-field" class="mt-3">
+            <label class="block text-sm font-medium mb-1" for="form-advice">建议</label>
+            <textarea id="form-advice" class="w-full border rounded py-2 px-3 text-sm" rows="3" aria-describedby="form-advice-hint error-advice" placeholder="可留空。空着 = 不给建议；商品由工作台决定"></textarea>
+            <p id="error-advice" class="field-error hidden text-sm text-red-700 mt-1"></p>
+          </div>
+          <p id="form-advice-hint" class="text-sm text-slate-600 mt-2">建议栏空着 = 不给建议。规则不锁死该菌门不配商品。</p>
+
+          <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-3 items-end mt-4">
             <div>
-              <label class="block text-xs font-medium mb-1" for="form-target-level">层级 <span class="text-red-500">*</span></label>
-              <select id="form-target-level" class="w-full border rounded py-2 px-2 text-sm">
-                <option value="phylum">门</option>
-                <option value="genus">属</option>
+              <label class="block text-sm font-medium mb-1" for="form-rule-name">规则名称 <span class="text-red-600">*</span></label>
+              <input type="text" id="form-rule-name" class="w-full border rounded py-2 px-3 text-sm" aria-describedby="name-hint error-name">
+              <p id="name-hint" class="text-sm text-slate-600 mt-1">默认同判断句生成，例如「猫 · 放线菌门 · 实验室标偏低」，可以改。</p>
+              <p id="error-name" class="field-error hidden text-sm text-red-700 mt-1"></p>
+            </div>
+            <p id="form-version-source" class="text-sm text-slate-600 md:pb-7">首次保存将形成 v1 并立即启用</p>
+          </div>
+
+          <div class="ar-semantics rounded border border-slate-200 bg-slate-50 p-3 mt-4">
+            <span class="text-sm font-medium text-slate-900">系统回译</span>
+            <p id="rule-natural-summary" class="text-sm text-slate-800 mt-1">请先完成判断句。</p>
+          </div>
+        </section>
+
+        <section id="compat-editor" class="ar-form-section hidden" aria-labelledby="section-compat-title">
+          <h3 id="section-compat-title" class="text-base font-semibold">历史条件（兼容）</h3>
+          <p class="text-sm text-slate-600 mt-1">v1 主路径不再用条件行。此处只为不丢失历史数据。物种请用上方「给谁用」；不要再新增报告物种条件。</p>
+          <div class="flex flex-wrap justify-between items-center gap-2 mt-4">
+            <div class="max-w-xs">
+              <label class="block text-sm font-medium mb-1" for="logic-operator">条件组合</label>
+              <select id="logic-operator" class="w-full border rounded py-2 px-2 text-sm">
+                <option value="ALL">全部满足</option>
+                <option value="ANY">任一满足</option>
               </select>
             </div>
-            <div>
-              <label class="block text-xs font-medium mb-1" for="form-target-taxon">分类单元 <span class="text-red-500">*</span></label>
-              <select id="form-target-taxon" class="w-full border rounded py-2 px-2 text-sm"></select>
-              <p class="text-xs text-gray-500 mt-1">选项来自字典分类树，值为 key（菌门 key 为拉丁名，如 Firmicutes）</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div>
-            <label class="block text-xs font-medium mb-1" for="form-risk-level">风险等级</label>
-            <select id="form-risk-level" class="w-full border rounded py-2 px-2 text-sm"></select>
-          </div>
-          <div>
-            <label class="block text-xs font-medium mb-1" for="form-priority">优先级</label>
-            <input type="number" id="form-priority" class="w-full border rounded py-2 px-2 text-sm" value="10" min="0">
-          </div>
-          <div>
-            <label class="block text-xs font-medium mb-1" for="logic-operator">条件组合</label>
-            <select id="logic-operator" class="w-full border rounded py-2 px-2 text-sm">
-              <option value="ALL">全部满足 (ALL)</option>
-              <option value="ANY">任一满足 (ANY)</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div class="flex justify-between items-center mb-3">
-            <h4 class="font-medium text-sm">触发条件 <span class="text-gray-500 font-normal">（无脚本/表达式入口）</span></h4>
-            <button type="button" id="add-condition-btn" class="text-xs px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-              <i class="fas fa-plus mr-1"></i>添加条件
+            <button type="button" id="add-condition-btn" class="text-sm px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700">
+              <i class="fas fa-plus mr-1" aria-hidden="true"></i>添加条件
             </button>
           </div>
-          <div id="conditions-container" class="space-y-2"></div>
-          <div id="no-conditions" class="text-center py-6 text-gray-500 text-sm">
-            尚未配置条件，点击「添加条件」开始
-          </div>
-        </div>
+          <div id="conditions-container" class="space-y-2 mt-3"></div>
+          <div id="no-conditions" class="text-center py-6 text-slate-600 text-sm border border-dashed rounded mt-3">尚未配置条件</div>
+        </section>
 
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
-          <h4 class="font-medium text-sm">输出内容</h4>
-          <div>
-            <label class="block text-xs font-medium mb-1" for="form-analysis">分析 <span class="text-red-500">*</span></label>
-            <textarea id="form-analysis" class="w-full border rounded py-2 px-3 text-sm" rows="2"></textarea>
+        <details id="governance-details" class="ar-form-section">
+          <summary id="section-governance-title" class="text-base font-semibold cursor-pointer">高级 / 治理</summary>
+          <p class="text-sm text-slate-600 mt-2">冲突组与优先级不参与命中裁决。专业依据与审核信息均为原型占位。</p>
+          <div class="mt-3">
+            <label class="block text-sm font-medium mb-1" for="form-rule-description">维护说明</label>
+            <textarea id="form-rule-description" class="w-full border rounded py-2 px-3 text-sm" rows="2" placeholder="说明本次规则要解决的问题或变更原因"></textarea>
           </div>
-          <div>
-            <label class="block text-xs font-medium mb-1" for="form-advice">建议</label>
-            <textarea id="form-advice" class="w-full border rounded py-2 px-3 text-sm" rows="2"></textarea>
-            <p id="form-advice-hint" class="hidden text-xs text-amber-700 mt-1">风险为「仅提示」时不输出建议、不可配商品</p>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="form-priority">优先级</label>
+              <input type="number" id="form-priority" class="w-full border rounded py-2 px-2 text-sm" value="10" min="0">
+              <p class="text-sm text-slate-600 mt-1">不参与命中裁决；草稿按谱系稳定顺序排列。</p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1" for="form-conflict-group">冲突组</label>
+              <input type="text" id="form-conflict-group" class="w-full border rounded py-2 px-3 text-sm" list="conflict-group-options" placeholder="不互斥可留空" aria-describedby="error-conflict-group">
+              <datalist id="conflict-group-options"></datalist>
+              <p class="text-sm text-slate-600 mt-1">评估时不会据此淘汰命中；同菌多条命中全部进入草稿。</p>
+              <p id="error-conflict-group" class="field-error hidden text-sm text-red-700 mt-1"></p>
+            </div>
           </div>
-        </div>
+          <div class="mt-3">
+            <label class="block text-sm font-medium mb-1" for="form-source-template">检测方案 / 来源模板</label>
+            <select id="form-source-template" class="w-full border rounded py-2 px-2 text-sm">
+              <option value="all">当前原型全部已知模板</option>
+              <option value="ORG-LAB-GUT-001">已知模板 001（Mock）</option>
+              <option value="ORG-LAB-GUT-002">已知模板 002（Mock）</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
+            <div>
+              <label class="block text-sm font-medium mb-1" for="form-professional-basis">专业依据</label>
+              <textarea id="form-professional-basis" class="w-full border rounded py-2 px-3 text-sm" rows="2" placeholder="非必填。原型未接入；待专业确认"></textarea>
+            </div>
+            <div>
+              <span class="block text-sm font-medium mb-1">审核信息</span>
+              <div class="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">原型未接入真实审核流。本次保存仅演示版本切换，不代表专业审核通过。</div>
+            </div>
+          </div>
+        </details>
 
-        <div class="flex gap-3">
-          <button type="submit" class="px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-            <i class="fas fa-save mr-1"></i>保存草稿
-          </button>
-          <button type="button" id="cancel-form" class="px-4 py-2 bg-gray-400 text-white rounded text-sm hover:bg-gray-500">取消</button>
-        </div>
+        <section class="ar-form-section" aria-labelledby="section-save-title">
+          <h3 id="section-save-title" class="text-base font-semibold">保存与验证</h3>
+          <p class="text-sm text-slate-600 mt-1">先在测试实验室对比当前启用结果与本次未保存修改；保存时原子创建新版本并切换启用版，旧启用版自动归档。</p>
+          <div id="last-session-test" class="rounded border border-slate-200 bg-slate-50 p-3 mt-3 text-sm text-slate-700">本次编辑尚未运行候选测试。</div>
+          <div class="flex flex-wrap gap-3 mt-4">
+            <button type="button" id="preview-candidate-btn" class="px-4 py-2 border border-blue-600 text-blue-700 rounded text-sm hover:bg-blue-50">
+              <i class="fas fa-flask-vial mr-1" aria-hidden="true"></i>预览测试
+            </button>
+            <button type="submit" id="save-activate-btn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+              <i class="fas fa-circle-check mr-1" aria-hidden="true"></i>保存并启用
+            </button>
+            <button type="button" id="cancel-form" class="px-4 py-2 bg-gray-500 text-white rounded text-sm hover:bg-gray-600">取消</button>
+          </div>
+        </section>
       </form>
     </div>
-  </div>
+  </section>
 
-  <!-- ========== 规则测试（只读，不写入报告） ========== -->
-  <div id="section-test" class="bg-white p-6 rounded-b-lg shadow-md hidden">
-    <h3 class="text-xl font-semibold mb-2">规则测试</h3>
-    <p class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded p-3 mb-4">
-      <i class="fas fa-info-circle mr-1"></i>只读预览：按当前候选规则集评估命中与合成草稿，<strong>不写入报告</strong>（不新增分析运行、不改菌门分析单元）。
-    </p>
-
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+  <section id="section-test" class="bg-white p-6 rounded-b-lg shadow-md hidden" role="tabpanel" aria-labelledby="tab-test" tabindex="0">
+    <div class="flex flex-wrap justify-between gap-3 mb-4">
       <div>
-        <label class="block text-sm font-medium mb-1" for="test-report-select">选择报告</label>
+        <h2 class="text-xl font-semibold">单报告规则测试实验室</h2>
+        <p class="text-sm text-slate-600 mt-1">固定以当前全部启用规则为基线；候选只能是一个谱系的本次未保存修改。用医生语言看：这条说不说，不说是因为物种不符、状态不满足还是有效值不满足。</p>
+      </div>
+      <button type="button" id="test-edit-active-btn" class="px-3 py-2 border border-blue-600 text-blue-700 rounded text-sm">编辑一个启用规则</button>
+    </div>
+    <div class="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 mb-4" role="note">
+      <strong>只读测试。</strong> 不写报告分析运行或菌门分析单元；测试结果不会自动成为正式规则。
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_260px_160px] gap-4 items-end">
+      <div>
+        <label class="block text-sm font-medium mb-1" for="test-report-select">报告</label>
         <select id="test-report-select" class="w-full border rounded py-2 px-3 text-sm"></select>
       </div>
       <div>
-        <span class="block text-sm font-medium mb-1">候选集</span>
-        <div class="flex flex-col gap-1 text-sm pt-1">
-          <label class="inline-flex items-center">
-            <input type="radio" name="test-candidate-set" id="test-set-active" value="active" class="mr-2" checked>
-            仅当前启用
-          </label>
-          <label class="inline-flex items-center">
-            <input type="radio" name="test-candidate-set" id="test-set-drafts" value="drafts" class="mr-2">
-            启用 + 草稿
-          </label>
-        </div>
+        <label class="block text-sm font-medium mb-1" for="test-active-rule-select">直接进入时选择启用规则</label>
+        <select id="test-active-rule-select" class="w-full border rounded py-2 px-3 text-sm"></select>
       </div>
-      <div class="flex items-end">
-        <button type="button" id="test-run-btn" class="w-full px-4 py-2 bg-blue-500 text-white rounded text-sm hover:bg-blue-600">
-          <i class="fas fa-play mr-1"></i>开始测试
-        </button>
+      <button type="button" id="test-run-btn" class="w-full px-4 py-2 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
+        <i class="fas fa-play mr-1" aria-hidden="true"></i>开始测试
+      </button>
+    </div>
+    <p id="test-input-dirty" class="hidden text-sm text-amber-800 mt-2">测试输入已变化，请点击「开始测试」冻结一次新运行。</p>
+
+    <div id="test-candidate-summary" class="rounded border border-slate-200 bg-slate-50 p-3 mt-4 text-sm text-slate-700">当前没有未保存候选；测试将比较同一启用基线。</div>
+
+    <div id="test-empty" class="text-center py-10 text-slate-600 text-sm border border-dashed rounded-lg mt-4">选择报告后点击「开始测试」</div>
+    <div id="test-results" class="hidden space-y-4 mt-4" aria-live="polite" aria-atomic="false">
+      <div id="test-run-meta"></div>
+      <div id="test-diff-summary"></div>
+      <div class="flex flex-wrap gap-4 text-sm">
+        <label><input type="checkbox" id="test-only-changes"> 只看变化项</label>
+        <label><input type="checkbox" id="test-only-failures"> 只看失败项</label>
+        <button type="button" id="test-export-json" class="text-blue-700 underline underline-offset-2">导出测试 JSON</button>
       </div>
+      <div id="test-phylum-results" class="space-y-3"></div>
     </div>
+  </section>
 
-    <div class="mb-4">
-      <div class="text-sm font-medium mb-1">具体规则版本（可选）</div>
-      <p class="text-xs text-gray-500 mb-2">不勾选则测试候选集中的全部规则；勾选后仅评估所选版本。</p>
-      <div id="test-rule-checks" class="border rounded p-3 max-h-40 overflow-y-auto text-sm space-y-1 bg-gray-50"></div>
-    </div>
-
-    <div id="test-empty" class="text-center py-10 text-gray-500 text-sm border border-dashed rounded-lg">
-      选择报告后点击「开始测试」，按菌门查看命中与合成草稿
-    </div>
-    <div id="test-results" class="hidden space-y-4"></div>
-  </div>
-
-  <!-- 条件行模板 -->
   <template id="condition-template">
-    <div class="condition-item border border-gray-200 rounded bg-white p-3">
+    <div class="condition-item border border-slate-300 rounded bg-white p-3">
       <div class="flex justify-between items-center mb-2">
-        <span class="text-xs font-medium text-gray-600">条件 <span class="condition-number">1</span></span>
-        <button type="button" class="remove-condition text-red-500 hover:text-red-700 text-xs"><i class="fas fa-trash"></i></button>
+        <span class="text-sm font-medium text-slate-700">条件 <span class="condition-number">1</span></span>
+        <button type="button" class="remove-condition text-red-700 hover:text-red-900 p-1" aria-label="删除此条件"><i class="fas fa-trash" aria-hidden="true"></i></button>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-4 gap-2">
         <div>
-          <label class="block text-xs text-gray-500 mb-0.5">类型</label>
-          <select class="condition-type w-full border rounded px-2 py-1 text-xs"></select>
+          <label class="block text-sm text-slate-700 mb-1">条件类型</label>
+          <select class="condition-type w-full border rounded px-2 py-1 text-sm"></select>
+        </div>
+        <div class="condition-field-threshold-cmp hidden">
+          <label class="block text-sm text-slate-700 mb-1">有效值比较符</label>
+          <select class="condition-threshold-comparator w-full border rounded px-2 py-1 text-sm">
+            <option value="lt">低于</option>
+            <option value="gt">高于</option>
+            <option value="lte">≤</option>
+            <option value="gte">≥</option>
+          </select>
+        </div>
+        <div class="condition-field-threshold-val hidden">
+          <label class="block text-sm text-slate-700 mb-1">有效占比 %</label>
+          <input type="number" class="condition-threshold-value w-full border rounded px-2 py-1 text-sm" min="0" step="0.01">
         </div>
         <div class="condition-field-notice hidden">
-          <label class="block text-xs text-gray-500 mb-0.5">实验室标注</label>
-          <select class="condition-notice w-full border rounded px-2 py-1 text-xs"></select>
+          <label class="block text-sm text-slate-700 mb-1">实验室标注</label>
+          <select class="condition-notice w-full border rounded px-2 py-1 text-sm"></select>
         </div>
         <div class="condition-field-range hidden">
-          <label class="block text-xs text-gray-500 mb-0.5">范围状态</label>
-          <select class="condition-range-status w-full border rounded px-2 py-1 text-xs"></select>
+          <label class="block text-sm text-slate-700 mb-1">范围状态</label>
+          <select class="condition-range-status w-full border rounded px-2 py-1 text-sm"></select>
         </div>
-        <div class="condition-field-species hidden md:col-span-2">
-          <span class="block text-xs text-gray-500 mb-0.5">报告物种</span>
-          <div class="flex gap-4 pt-1 text-xs">
-            <label class="inline-flex items-center"><input type="checkbox" class="condition-species-cat mr-1" value="cat"> 猫</label>
-            <label class="inline-flex items-center"><input type="checkbox" class="condition-species-dog mr-1" value="dog"> 狗</label>
+        <fieldset class="condition-field-species hidden md:col-span-2">
+          <legend class="block text-sm text-slate-700 mb-1">报告物种（历史条件）</legend>
+          <div class="flex gap-4 pt-1 text-sm">
+            <label><input type="checkbox" class="condition-species-cat" value="cat"> 猫</label>
+            <label><input type="checkbox" class="condition-species-dog" value="dog"> 狗</label>
           </div>
-        </div>
+        </fieldset>
         <div class="condition-field-other-taxon hidden">
-          <label class="block text-xs text-gray-500 mb-0.5">其他分类单元</label>
-          <select class="condition-other-taxon w-full border rounded px-2 py-1 text-xs"></select>
+          <label class="block text-sm text-slate-700 mb-1">其他分类单元</label>
+          <select class="condition-other-taxon w-full border rounded px-2 py-1 text-sm"></select>
         </div>
         <div class="condition-field-status-kind hidden">
-          <label class="block text-xs text-gray-500 mb-0.5">状态类型</label>
-          <select class="condition-status-kind w-full border rounded px-2 py-1 text-xs">
+          <label class="block text-sm text-slate-700 mb-1">状态类型</label>
+          <select class="condition-status-kind w-full border rounded px-2 py-1 text-sm">
             <option value="LAB_NOTICE">实验室标注</option>
             <option value="RANGE_STATUS">相对有效参考范围</option>
           </select>
         </div>
         <div class="condition-field-expected hidden">
-          <label class="block text-xs text-gray-500 mb-0.5">期望值</label>
-          <select class="condition-expected w-full border rounded px-2 py-1 text-xs"></select>
+          <label class="block text-sm text-slate-700 mb-1">期望值</label>
+          <select class="condition-expected w-full border rounded px-2 py-1 text-sm"></select>
         </div>
       </div>
     </div>
   </template>
+
+  <div id="rule-confirm-dialog" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="rule-confirm-title" aria-describedby="rule-confirm-body">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+      <div class="p-5 border-b border-slate-200">
+        <h2 id="rule-confirm-title" class="text-lg font-semibold">确认规则变更</h2>
+      </div>
+      <div id="rule-confirm-body" class="p-5 text-sm text-slate-700 space-y-3"></div>
+      <div class="p-4 border-t border-slate-200 flex justify-end gap-3">
+        <button type="button" id="rule-confirm-cancel" class="px-4 py-2 border rounded text-sm">取消</button>
+        <button type="button" id="rule-confirm-ok" class="px-4 py-2 bg-blue-600 text-white rounded text-sm">确认执行</button>
+      </div>
+    </div>
+  </div>
 </div>

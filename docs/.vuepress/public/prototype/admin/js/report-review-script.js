@@ -19,8 +19,8 @@ function initReportReview() {
   var RETURN_VIEWS = ['all', 'incomplete', 'pending_review', 'published', 'voided', 'pending'];
   var MISSING_STATUSES = ['MISSING_COLUMN', 'EMPTY', 'INVALID', 'NOT_APPLICABLE'];
   var HIT_STATUS_LABELS = {
-    primary: '主命中',
-    superseded_by_conflict: '被冲突替代',
+    primary: '采用命中',
+    superseded_by_conflict: '历史冲突标记',
     excluded: '已排除'
   };
   var CORRECTION_STAGE_LABELS = {
@@ -122,10 +122,6 @@ function initReportReview() {
 
   function unitConfirmLabels() {
     return store.UNIT_CONFIRM_LABELS || { unconfirmed: '未确认', confirmed: '已确认', invalidated: '依据变化失效' };
-  }
-
-  function riskLabels() {
-    return store.RISK_LEVEL_LABELS || { low: '低', medium: '中', high: '高', notice: '仅提示' };
   }
 
   function versionStatusLabels() {
@@ -639,8 +635,8 @@ function initReportReview() {
     return (state.products || []).find(function (p) { return p.id === id; });
   }
 
-  function unitProductDisabled(unit) {
-    return unit.riskLevel === 'notice' || !String(unit.adviceDraft || '').trim();
+  function unitProductDisabled() {
+    return false;
   }
 
   function renderModuleNav(checks) {
@@ -1191,7 +1187,6 @@ function initReportReview() {
     var run = C.getLatestAnalysisRun(state, report.id);
     var readonly = !isEditable(report);
     var confirmMap = unitConfirmLabels();
-    var riskMap = riskLabels();
 
     var html = '';
     if (pending) {
@@ -1212,10 +1207,10 @@ function initReportReview() {
 
     html += units.map(function (unit) {
       var open = !!expandedHits[unit.phylumKey];
-      var risk = unit.riskLevel ? (riskMap[unit.riskLevel] || unit.riskLevel) : '—';
       var confirm = confirmMap[unit.confirmStatus] || unit.confirmStatus;
       var cardClass = 'rw-phylum-card' + (unit.confirmStatus === 'invalidated' ? ' is-invalidated' : '');
       var hits = unit.hits || [];
+      var adopted = hits.filter(function (hit) { return !hit.excluded && hit.combineStatus === 'primary'; }).length;
       var hitHtml = '';
       if (open) {
         if (!hits.length) {
@@ -1250,7 +1245,7 @@ function initReportReview() {
       return '<div class="' + cardClass + '" data-phylum-card="' + unit.phylumKey + '">' +
         '<div class="flex flex-wrap items-center gap-2 mb-2">' +
         '<h4 class="font-medium">' + C.escapeHtml(taxonLabel(state, unit.phylumKey)) + '</h4>' +
-        '<span class="text-xs px-2 py-0.5 rounded bg-slate-100">风险 ' + C.escapeHtml(risk) + '</span>' +
+        '<span class="text-xs px-2 py-0.5 rounded bg-slate-100">采用 ' + adopted + ' 条命中</span>' +
         '<span class="text-xs px-2 py-0.5 rounded ' +
         (unit.confirmStatus === 'confirmed' ? 'bg-emerald-50 text-emerald-700' :
           unit.confirmStatus === 'invalidated' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-800') +

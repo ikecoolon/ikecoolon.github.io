@@ -2,6 +2,7 @@
 'use strict';
 
 var store = require('./mock-store.js');
+var Engine = require('./analysis-engine.js');
 
 global.window = global;
 global.location = { hash: '', href: '' };
@@ -74,7 +75,7 @@ function testSeed() {
   assert(!state.healthTagProducts, 'no healthTagProducts collection');
   assert(!state.claimCodes, 'no claimCodes collection');
   assert(!state.reportAnalysisAdjustments, 'no reportAnalysisAdjustments collection');
-  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v4', 'storage key v4');
+  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v6', 'storage key v6');
   assertEqual(store.REPORT_STATUSES.join(','), 'unassigned,incomplete,pending_review,published,voided', 'five report statuses remain in model');
   assertEqual(store.OWNERSHIP_STATUSES.join(','), 'unassigned,bound', 'ownership two values');
   assert(store.WORKFLOW_STATUSES === store.REPORT_STATUSES, 'WORKFLOW_STATUSES aliases REPORT_STATUSES');
@@ -110,8 +111,8 @@ function testSeed() {
   assert(prot && prot.hits.length === 3, 'report-002 Proteobacteria has 3 hits');
   var primaries = prot.hits.filter(function (h) { return h.combineStatus === 'primary'; });
   var superseded = prot.hits.filter(function (h) { return h.combineStatus === 'superseded_by_conflict'; });
-  assertEqual(primaries.length, 1, 'report-002 Proteobacteria 1 primary');
-  assertEqual(superseded.length, 2, 'report-002 Proteobacteria 2 superseded_by_conflict');
+  assertEqual(primaries.length, 3, 'report-002 Proteobacteria 全部命中均采用');
+  assertEqual(superseded.length, 0, 'report-002 Proteobacteria 不再按风险淘汰');
   var fuso = store.getEffectiveResults('report-002').find(function (x) { return x.key === 'Fusobacterium'; });
   assertEqual(fuso.dataStatus, 'NOT_DETECTED', 'report-002 Fusobacterium 未检出');
 
@@ -290,14 +291,282 @@ function testUnitsAndEngine() {
 
   var previewRuns = store.peekState().analysisRuns.length;
   var previewUnits = JSON.stringify(store.getPhylumUnits('report-002'));
-  var preview = store.previewRuleEvaluation('report-002', { includeDrafts: false });
-  assert(preview.units && preview.units.length, 'previewRuleEvaluation 返回菌门单元');
+  var preview = store.previewRuleEvaluation('report-002');
+  assert(preview.current && preview.candidate && preview.current.units.length, 'previewRuleEvaluation 返回当前与候选结果');
+  assertEqual(preview.readOnly, true, 'preview 标明只读');
   assertEqual(store.peekState().analysisRuns.length, previewRuns, 'preview 不写入 analysisRuns');
   assert(JSON.stringify(store.getPhylumUnits('report-002')) === previewUnits, 'preview 不写入 phylumUnits');
+}
 
-  store.deactivateAnalysisRule('rule-firmi-normal');
-  assert((store.getReport('report-003').todoFlags || []).indexOf('pending_reanalysis') >= 0, '启用规则变化 → report-003 pending_reanalysis');
-  assert((store.getReport('report-001').todoFlags || []).indexOf('pending_reanalysis') < 0, '已发布无草稿的报告不打 pending_reanalysis');
+function makeEngineRule(spec) {
+  return {
+    id: spec.id,
+    lineageId: spec.lineageId || ('lineage-' + spec.id),
+    version: spec.version || 1,
+    status: spec.status || 'active',
+    name: spec.name || spec.id,
+    target: spec.target || { level: 'phylum', taxonKey: 'Firmicutes' },
+    conditionLogic: spec.conditionLogic || 'ALL',
+    conditions: spec.conditions || [{ id: spec.id + '-condition', type: 'LAB_NOTICE', notice: 'high' }],
+    applicableSpecies: spec.applicableSpecies || ['cat'],
+    sourceTemplateIds: spec.sourceTemplateIds || [store.DEFAULT_SOURCE_ORG_ID, store.SECOND_SOURCE_ORG_ID],
+    riskLevel: spec.riskLevel || 'medium',
+    priority: spec.priority == null ? 10 : spec.priority,
+    stableOrder: spec.stableOrder == null ? 1 : spec.stableOrder,
+    conflictGroup: spec.conflictGroup || null,
+    output: spec.output || { analysis: '分析-' + spec.id, advice: '建议-' + spec.id }
+  };
+}
+
+function engineContext(results, species, sourceTemplateId) {
+  return Engine.buildContext({
+    results: results,
+    species: species || 'cat',
+    sourceTemplateId: sourceTemplateId || store.DEFAULT_SOURCE_ORG_ID,
+    taxa: [
+      { key: 'Firmicutes', level: 'phylum' },
+      { key: 'Bacteroidetes', level: 'phylum' },
+      { key: 'Proteobacteria', level: 'phylum' },
+      { key: 'Actinobacteria', level: 'phylum' },
+      { key: 'Fusobacterium', level: 'genus', parentKey: 'Fusobacteria' }
+    ]
+  });
+}
+
+function testRuleLifecycleAndCandidateSet() {
+  store.reset();
+  var initial = store.getState();
+  assert(initial.analysisRuleCatalog.every(function (rule) { return rule.status === 'active' || rule.status === 'inactive'; }), '规则持久状态仅 active / inactive');
+  assert(!initial.analysisRuleCatalog.some(function (rule) { return rule.status === 'draft' || rule.status === 'session'; }), 'store 不保留规则 draft / session 状态');
+  assert(!store.saveAnalysisRule && !store.activateAnalysisRule && !store.deactivateAnalysisRule && !store.deleteAnalysisRule, '删除旧规则草稿与单版本启停 API');
+
+  var active = initial.analysisRuleCatalog.filter(function (rule) { return rule.status === 'active'; });
+  var source = active[0];
+  var sessionRevision = JSON.parse(JSON.stringify(source));
+  sessionRevision.id = 'session-revision';
+  sessionRevision.status = 'session';
+  sessionRevision.version = source.version + 1;
+  sessionRevision.output.analysis = source.output.analysis + '（会话修改）';
+  var replaced = Engine.buildCandidateRuleSet(active, sessionRevision);
+  assertEqual(replaced.rules.length, active.length, '编辑会话替换同谱系且保留规则总数');
+  assertEqual(replaced.rules.filter(function (rule) { return rule.lineageId === source.lineageId; }).length, 1, '候选集中同谱系至多一版');
+  assert(replaced.rules.some(function (rule) { return rule.id === 'session-revision'; }), '候选集中使用会话修订版');
+  assert(active.slice(1).every(function (rule) { return replaced.rules.some(function (candidate) { return candidate.lineageId === rule.lineageId; }); }), '其他启用谱系全部保留');
+  assertEqual(replaced.replacement.fromRuleId, source.id, '替换关系记录原启用规则');
+  assertEqual(replaced.replacement.isNewLineage, false, '修订候选不是新谱系');
+
+  var newSession = makeEngineRule({ id: 'session-new', lineageId: 'lineage-session-new', status: 'session', stableOrder: 999 });
+  var added = Engine.buildCandidateRuleSet(active, newSession);
+  assertEqual(added.rules.length, active.length + 1, '新规则会话临时加入启用基线');
+  assertEqual(added.replacement.isNewLineage, true, '新规则候选标记新谱系');
+  var unsavedNew = makeEngineRule({ id: null, lineageId: null, name: '未保存新规则', status: 'session', stableOrder: 1000 });
+  unsavedNew.id = null;
+  unsavedNew.lineageId = null;
+  var unsavedPreview = Engine.buildCandidateRuleSet(active, unsavedNew);
+  assertEqual(unsavedPreview.rules.length, active.length + 1, '无持久 ID 的新规则会话仍临时加入');
+  assert(/^session-new-/.test(unsavedPreview.replacement.lineageId), '无持久 ID 的新规则使用稳定会话谱系标识');
+
+  var duplicateActive = active.concat([Object.assign({}, source, { id: 'duplicate-active' })]);
+  var duplicateThrew = false;
+  try { Engine.buildCandidateRuleSet(duplicateActive, null); } catch (error) { duplicateThrew = /多个启用版本/.test(error.message); }
+  assert(duplicateThrew, '候选深模块拒绝同谱系多个启用版本');
+
+  var beforeCatalog = JSON.stringify(store.getState().analysisRuleCatalog);
+  var beforeRuns = store.peekState().analysisRuns.length;
+  var beforeUnits = JSON.stringify(store.getPhylumUnits('report-002'));
+  var preview = store.previewRuleEvaluation('report-002', { sessionCandidate: sessionRevision });
+  assertEqual(preview.baselineRules.length, active.length, '单报告测试固定使用全部启用规则基线');
+  assertEqual(preview.candidateRules.length, active.length, '编辑候选只替换同谱系');
+  assertEqual(preview.replacement.lineageId, source.lineageId, '测试运行记录替换谱系');
+  assertEqual(preview.readOnly, true, '测试运行明确只读');
+  assertEqual(store.peekState().analysisRuns.length, beforeRuns, '候选测试不写 analysisRuns');
+  assertEqual(JSON.stringify(store.getPhylumUnits('report-002')), beforeUnits, '候选测试不写 phylumUnits');
+  assertEqual(JSON.stringify(store.getState().analysisRuleCatalog), beforeCatalog, '候选测试不写规则目录');
+
+  var impactBefore = store.getRuleChangeImpact(sessionRevision, 'activate');
+  assertEqual(impactBefore.fromVersion, source.version, '保存影响预览包含原版本');
+  assertEqual(impactBefore.toVersion, sessionRevision.version, '保存影响预览包含候选版本');
+  assert(impactBefore.reportCounts.affectedUnpublished > 0, '保存影响预览包含未发布工作数量');
+  assert(impactBefore.reportCounts.published > 0, '保存影响预览包含不自动变化的已发布报告数量');
+
+  var saved = store.saveAndActivateAnalysisRule(sessionRevision, { actor: 'smoke' });
+  assertEqual(saved.rule.version, source.version + 1, '保存新版本递增版本号');
+  assertEqual(saved.rule.status, 'active', '新版本保存后立即启用');
+  var lineage = store.listRuleLineages().find(function (item) { return item.lineageId === source.lineageId; });
+  assert(lineage && lineage.active && lineage.active.id === saved.rule.id, '谱系当前启用版切换为新版本');
+  assert(lineage.history.some(function (rule) { return rule.id === source.id && rule.status === 'inactive'; }), '旧启用版本转停用归档');
+  assertEqual(lineage.active.stableOrder, source.stableOrder, '同谱系新版本继承稳定顺序');
+  assertEqual(lineage.history.filter(function (rule) { return rule.id === source.id; }).length, 1, '历史版本未物理删除');
+  assert(store.getReport('report-003').todoFlags.indexOf('pending_reanalysis') >= 0, '规则版本切换使未发布旧运行待重新分析');
+  assert(store.getReport('report-001').todoFlags.indexOf('pending_reanalysis') < 0, '已发布且无更正工作的报告不追加待重新分析');
+
+  var impactDeactivate = store.getRuleChangeImpact(lineage.active, 'deactivate');
+  assertEqual(impactDeactivate.fromVersion, lineage.active.version, '停用影响预览包含当前版本');
+  assertEqual(impactDeactivate.toVersion, null, '停用影响预览没有目标版本');
+  var deactivated = store.deactivateAnalysisRuleLineage(source.lineageId, { actor: 'smoke', reason: 'smoke 停用' });
+  assertEqual(deactivated.rule.status, 'inactive', '停用规则谱系归档当前版本');
+  var afterDeactivate = store.listRuleLineages().find(function (item) { return item.lineageId === source.lineageId; });
+  assertEqual(afterDeactivate.active, null, '停用后谱系没有启用版本');
+  assert(afterDeactivate.history.length >= 2, '停用后全部历史版本继续保留');
+  assertEqual(deactivated.impact.reportCounts.affectedUnpublished, impactDeactivate.reportCounts.affectedUnpublished, '停用执行返回一致的影响数量');
+}
+
+function testEngineConditionsAndOrdering() {
+  var ctx = engineContext([
+    { id: 'result-firmi', key: 'Firmicutes', level: 'phylum', phylumKey: 'Firmicutes', dataStatus: 'PRESENT', effectiveValue: 50, unit: '%', labNotice: 'high', rangeStatus: 'high', isCurrent: true },
+    { id: 'result-bactero', key: 'Bacteroidetes', level: 'phylum', phylumKey: 'Bacteroidetes', dataStatus: 'PRESENT', effectiveValue: 20, unit: '%', labNotice: 'unmarked', rangeStatus: 'normal', isCurrent: true },
+    { id: 'result-fuso', key: 'Fusobacterium', level: 'genus', phylumKey: 'Fusobacteria', dataStatus: 'NOT_DETECTED', effectiveValue: null, unit: '%', labNotice: 'unmarked', rangeStatus: null, isCurrent: true }
+  ], 'cat');
+
+  var labRule = makeEngineRule({ id: 'condition-lab', conditions: [{ id: 'c-lab', type: 'LAB_NOTICE', notice: 'high' }] });
+  var rangeRule = makeEngineRule({ id: 'condition-range', conditions: [{ id: 'c-range', type: 'RANGE_STATUS', rangeStatus: 'high' }] });
+  var notDetectedRule = makeEngineRule({ id: 'condition-nd', target: { level: 'genus', taxonKey: 'Fusobacterium' }, conditions: [{ id: 'c-nd', type: 'NOT_DETECTED' }] });
+  var speciesRule = makeEngineRule({ id: 'condition-species', conditions: [{ id: 'c-species', type: 'SPECIES', species: ['cat'] }] });
+  var otherRule = makeEngineRule({ id: 'condition-other', conditions: [{ id: 'c-other', type: 'OTHER_TAXON_STATUS', taxonKey: 'Bacteroidetes', statusKind: 'RANGE_STATUS', expected: 'normal' }] });
+  [labRule, rangeRule, notDetectedRule, speciesRule, otherRule].forEach(function (rule) {
+    assertEqual(Engine.evaluateRule(rule, ctx).matched, true, '条件类型 ' + rule.conditions[0].type + ' 可命中');
+  });
+
+  var allRule = makeEngineRule({
+    id: 'logic-all',
+    conditionLogic: 'ALL',
+    conditions: [
+      { id: 'all-1', type: 'LAB_NOTICE', notice: 'high' },
+      { id: 'all-2', type: 'SPECIES', species: ['dog'] }
+    ]
+  });
+  var anyRule = Object.assign({}, allRule, { id: 'logic-any', lineageId: 'lineage-logic-any', conditionLogic: 'ANY' });
+  assertEqual(Engine.evaluateRule(allRule, ctx).matched, false, 'ALL 有一项失败则不命中');
+  assertEqual(Engine.evaluateRule(anyRule, ctx).matched, true, 'ANY 有一项成功即可命中');
+
+  var failed = Engine.evaluateRule(makeEngineRule({ id: 'condition-failed', conditions: [{ id: 'failed-1', type: 'RANGE_STATUS', rangeStatus: 'low' }] }), ctx);
+  assertEqual(failed.matched, false, '不满足条件时规则未命中');
+  assert(/高于参考范围/.test(failed.conditionResults[0].message) && failed.conditionResults[0].actualValue === 'high', '未命中解释包含实际范围状态');
+  var missingTarget = Engine.evaluateRule(makeEngineRule({ id: 'target-missing', target: { level: 'phylum', taxonKey: 'Actinobacteria' } }), ctx);
+  assertEqual(missingTarget.matched, false, '目标无结果时不命中');
+  assert(/无检测结果/.test(missingTarget.reason), '目标无结果给出明确原因');
+
+  var orderedRules = [
+    makeEngineRule({ id: 'order-low', lineageId: 'order-low', stableOrder: 3, output: { analysis: 'LOW', advice: 'LOW-A' } }),
+    makeEngineRule({ id: 'order-mid', lineageId: 'order-mid', stableOrder: 2, output: { analysis: 'MID', advice: 'MID-A' } }),
+    makeEngineRule({ id: 'order-first', lineageId: 'order-first', stableOrder: 1, output: { analysis: 'FIRST', advice: 'FIRST-A' } }),
+    makeEngineRule({ id: 'order-empty-advice', lineageId: 'order-empty-advice', stableOrder: 4, output: { analysis: 'EMPTY', advice: '' } })
+  ];
+  var ordered = Engine.evaluate({ rules: orderedRules, results: ctx.results, species: ctx.species, sourceTemplateId: ctx.sourceTemplateId, taxa: Object.keys(ctx.taxaByKey).map(function (key) { return ctx.taxaByKey[key]; }) });
+  var firmi = ordered.units.find(function (unit) { return unit.phylumKey === 'Firmicutes'; });
+  assertEqual(firmi.drafts.analysis, 'FIRST\nMID\nLOW\nEMPTY', '采用命中按谱系稳定顺序合成');
+  assertEqual(firmi.drafts.advice, 'FIRST-A\nMID-A\nLOW-A', '建议栏空着不进入草稿');
+  assertEqual(firmi.hits.filter(function (hit) { return hit.combineStatus === 'primary'; }).length, 4, '同菌多条命中全部采用');
+
+  var tieRuleA = makeEngineRule({ id: 'tie-a', lineageId: 'tie-a', conflictGroup: 'same-group' });
+  var tieRuleB = makeEngineRule({ id: 'tie-b', lineageId: 'tie-b', conflictGroup: 'same-group' });
+  assertEqual(Engine.validateConflictTies([tieRuleA, tieRuleB]).length, 0, '冲突组不再阻断保存');
+  store.saveAndActivateAnalysisRule(tieRuleA, { actor: 'smoke' });
+  var tieSaveBlocked = false;
+  try { store.saveAndActivateAnalysisRule(tieRuleB, { actor: 'smoke' }); } catch (error) { tieSaveBlocked = true; }
+  assert(!tieSaveBlocked, '同冲突组两条都可保存启用');
+
+  var emptyAdvice = makeEngineRule({ id: 'empty-advice', output: { analysis: '只有分析', advice: '' } });
+  assertEqual(Engine.validateRuleDetails(emptyAdvice).length, 0, '建议可空且通过校验');
+}
+
+function testJudgmentSentenceCompileAndClinicalDefaults() {
+  store.reset();
+  var compiledDefault = Engine.compileJudgment(Engine.defaultJudgment());
+  assertEqual(compiledDefault.conditionLogic, 'ALL', '判断句编译为全部满足');
+  assertEqual(compiledDefault.conditions.length, 1, '判断句编译为单观察');
+  assertEqual(compiledDefault.conditions[0].type, 'LAB_NOTICE', '新增默认不是范围条件');
+  assertEqual(compiledDefault.conditions[0].notice, 'high', '新增默认是实验室标偏高');
+  assertEqual(compiledDefault.applicableSpecies.join(','), 'cat', '判断句默认只属于一个封闭物种');
+  assert(!compiledDefault.conditions.some(function (condition) { return condition.type === 'SPECIES'; }), '判断句不写入物种条件行');
+
+  var roundTrip = Engine.decompileJudgment(Object.assign(makeEngineRule({
+    id: 'judgment-roundtrip',
+    conditions: compiledDefault.conditions,
+    applicableSpecies: compiledDefault.applicableSpecies
+  }), { conditionLogic: compiledDefault.conditionLogic }));
+  assertEqual(roundTrip.mode, 'sentence', '单观察规则反编译为判断句');
+  assertEqual(roundTrip.observationKind, 'lab_high', '反编译观察种类正确');
+
+  var labLow = Engine.compileJudgment({ observationKind: 'lab_low', applicableSpecies: ['cat'] });
+  var noRangeCtx = engineContext([
+    { id: 'result-actino', key: 'Actinobacteria', level: 'phylum', phylumKey: 'Actinobacteria', dataStatus: 'PRESENT', effectiveValue: 18, unit: '%', labNotice: 'low', rangeStatus: 'no_range', isCurrent: true }
+  ], 'cat');
+  var labLowRule = makeEngineRule({
+    id: 'judgment-lab-low',
+    target: { level: 'phylum', taxonKey: 'Actinobacteria' },
+    conditionLogic: labLow.conditionLogic,
+    conditions: labLow.conditions,
+    applicableSpecies: labLow.applicableSpecies
+  });
+  assertEqual(Engine.evaluateRule(labLowRule, noRangeCtx).matched, true, '实验室标注可在无范围报告命中');
+  var semantics = Engine.describeJudgmentSemantics({ mode: 'sentence', observationKind: 'lab_low' });
+  assert(/没有参考范围也能说/.test(semantics) && /不要理解成参考范围偏低/.test(semantics), '人话回译说明无范围仍可命中且不是参考范围');
+
+  var notDetected = Engine.compileJudgment({ observationKind: 'not_detected', applicableSpecies: ['cat'] });
+  var ndCtx = engineContext([
+    { id: 'result-fuso', key: 'Fusobacterium', level: 'genus', phylumKey: 'Fusobacteria', dataStatus: 'NOT_DETECTED', effectiveValue: null, unit: '%', labNotice: 'unmarked', rangeStatus: null, isCurrent: true }
+  ], 'cat');
+  var ndRule = makeEngineRule({
+    id: 'judgment-nd',
+    target: { level: 'genus', taxonKey: 'Fusobacterium' },
+    riskLevel: 'notice',
+    conditionLogic: notDetected.conditionLogic,
+    conditions: notDetected.conditions,
+    applicableSpecies: notDetected.applicableSpecies,
+    output: { analysis: '【演示·未审核】未检出分析', advice: '' }
+  });
+  assertEqual(Engine.evaluateRule(ndRule, ndCtx).matched, true, '未检出观察可命中');
+  assertEqual(ndRule.output.advice, '', '建议栏空着 = 不给建议');
+  assertEqual(Engine.validateRuleDetails(ndRule).length, 0, '建议可空通过校验');
+
+  var dogCtx = engineContext(noRangeCtx.results, 'dog');
+  assertEqual(Engine.evaluateRule(labLowRule, dogCtx).matched, false, '物种不在范围不命中');
+  assert(/报告物种不在规则适用范围/.test(Engine.evaluateRule(labLowRule, dogCtx).reason), '物种不匹配给出适用范围原因');
+  var doctor = Engine.explainRuleAgainstContext(labLowRule, dogCtx, { taxonLabel: '放线菌门' });
+  assert(doctor.says === false && /物种不符/.test(doctor.missingObservation), '医生语言解释未命中是物种不符');
+
+  var advanced = Engine.decompileJudgment(makeEngineRule({
+    id: 'legacy-advanced',
+    conditionLogic: 'ALL',
+    conditions: [
+      { id: 'c1', type: 'LAB_NOTICE', notice: 'high' },
+      { id: 'c2', type: 'SPECIES', species: ['cat'] },
+      { id: 'c3', type: 'OTHER_TAXON_STATUS', taxonKey: 'Bacteroidetes', statusKind: 'LAB_NOTICE', expected: 'unmarked' }
+    ]
+  }));
+  assertEqual(advanced.mode, 'advanced', '历史多条件规则进入兼容模式');
+  assert(advanced.reasons.some(function (reason) { return /物种条件/.test(reason); }), '兼容原因包含物种条件');
+  assert(advanced.reasons.some(function (reason) { return /其他分类单元/.test(reason); }), '兼容原因包含其他分类单元');
+
+  var catalog = store.getState().analysisRuleCatalog;
+  var actino = catalog.find(function (rule) { return rule.id === 'rule-actino-low-cat'; });
+  var actinoDog = catalog.find(function (rule) { return rule.id === 'rule-actino-low-dog'; });
+  assert(actino && actino.conditions[0].type === 'LAB_NOTICE' && actino.conditions[0].notice === 'low', '演示偏低规则改为实验室标注');
+  assert(actinoDog && actino.lineageId !== actinoDog.lineageId, '猫狗共用种子已拆成两条谱系');
+  assertEqual(actino.applicableSpecies.join(','), 'cat', '猫规则只属于猫');
+  assertEqual(actinoDog.applicableSpecies.join(','), 'dog', '狗规则只属于狗');
+  assert(!catalog.filter(function (rule) { return rule.status === 'active'; }).some(function (rule) {
+    return rule.conditions.length === 1 && rule.conditions[0].type === 'RANGE_STATUS' && (rule.conditions[0].rangeStatus === 'low' || rule.conditions[0].rangeStatus === 'normal');
+  }), '启用演示规则不再默认低于/处于参考范围');
+  var legacy = catalog.find(function (rule) { return rule.id === 'rule-legacy-cross'; });
+  assert(legacy && legacy.status === 'inactive' && Engine.analyzeRuleShape(legacy).advanced, '历史交叉条件规则停用并标为高级');
+
+  var session = Object.assign({}, labLowRule, {
+    id: null,
+    lineageId: 'lineage-judgment-smoke',
+    name: '猫 · 放线菌门 · 实验室标偏低',
+    status: 'session'
+  });
+  var beforeRuns = store.peekState().analysisRuns.length;
+  var beforeUnits = JSON.stringify(store.getPhylumUnits('report-002'));
+  var preview = store.previewRuleEvaluation('report-002', { sessionCandidate: session });
+  assertEqual(preview.readOnly, true, '测试只读');
+  assertEqual(store.peekState().analysisRuns.length, beforeRuns, '判断句候选测试不写 analysisRuns');
+  assertEqual(JSON.stringify(store.getPhylumUnits('report-002')), beforeUnits, '测试不写菌门分析单元');
+  var saved = store.saveAndActivateAnalysisRule(session, { actor: 'smoke' });
+  assertEqual(saved.rule.status, 'active', '判断句保存并启用');
+  assertEqual(saved.rule.conditions[0].type, 'LAB_NOTICE', '保存后仍是实验室标注条件');
 }
 
 function testPublicationChecks() {
@@ -377,10 +646,102 @@ function testCatalogAndPicker() {
     target: { level: 'phylum', taxonKey: 'Firmicutes' },
     conditionLogic: 'ALL',
     conditions: [{ id: 'c1', type: 'RANGE_STATUS', rangeStatus: 'low' }],
+    applicableSpecies: ['cat'],
+    sourceTemplateIds: [store.DEFAULT_SOURCE_ORG_ID, store.SECOND_SOURCE_ORG_ID],
     riskLevel: 'medium',
+    priority: 31,
+    conflictGroup: 'catalog-smoke-unique',
     output: { analysis: '分析', advice: '建议' }
   });
   assert(Array.isArray(errors) && errors.length === 0, 'validateAnalysisRule 合法规则');
+  var bothSpecies = store.validateAnalysisRule({
+    name: '测试跨物种',
+    target: { level: 'phylum', taxonKey: 'Firmicutes' },
+    conditionLogic: 'ALL',
+    conditions: [{ id: 'c1', type: 'LAB_NOTICE', notice: 'high' }],
+    applicableSpecies: ['cat', 'dog'],
+    sourceTemplateIds: [store.DEFAULT_SOURCE_ORG_ID, store.SECOND_SOURCE_ORG_ID],
+    output: { analysis: '分析', advice: '建议' }
+  });
+  assert(bothSpecies.some(function (message) { return /一个当前能出报告的物种/.test(message); }), '校验拒绝跨物种共用谱系');
+}
+
+function testClosedSpeciesValueThresholdCopyAndLibrary() {
+  store.reset();
+  var compiledAnd = Engine.compileJudgment({
+    observationKind: 'lab_high',
+    applicableSpecies: ['cat'],
+    valueThreshold: { enabled: true, comparator: 'gt', threshold: 10 }
+  });
+  assertEqual(compiledAnd.conditions.length, 2, '状态+数值编译为两条 AND 条件');
+  assertEqual(compiledAnd.conditionLogic, 'ALL', '状态+数值必须全部满足');
+  assertEqual(compiledAnd.conditions[1].type, 'VALUE_THRESHOLD', '第二条件是有效值门槛');
+
+  var highCtx = engineContext([
+    { id: 'result-firmi', key: 'Firmicutes', level: 'phylum', phylumKey: 'Firmicutes', dataStatus: 'PRESENT', effectiveValue: 50, unit: '%', labNotice: 'high', rangeStatus: 'high', isCurrent: true }
+  ], 'cat');
+  var andRule = makeEngineRule({
+    id: 'and-threshold',
+    conditionLogic: compiledAnd.conditionLogic,
+    conditions: compiledAnd.conditions,
+    applicableSpecies: compiledAnd.applicableSpecies
+  });
+  assertEqual(Engine.evaluateRule(andRule, highCtx).matched, true, '状态和有效值都满足则命中');
+
+  var lowValueCtx = engineContext([
+    { id: 'result-firmi-low', key: 'Firmicutes', level: 'phylum', phylumKey: 'Firmicutes', dataStatus: 'PRESENT', effectiveValue: 4, unit: '%', labNotice: 'high', rangeStatus: 'low', isCurrent: true }
+  ], 'cat');
+  var valueMiss = Engine.evaluateRule(andRule, lowValueCtx);
+  assertEqual(valueMiss.matched, false, '状态满足但有效值不满足则不命中');
+  var doctorValue = Engine.explainRuleAgainstContext(andRule, lowValueCtx, { taxonLabel: '厚壁菌门' });
+  assert(/有效值不满足/.test(doctorValue.missingObservation), '医生语言说明有效值不满足');
+
+  var unmarkedCtx = engineContext([
+    { id: 'result-firmi-unmarked', key: 'Firmicutes', level: 'phylum', phylumKey: 'Firmicutes', dataStatus: 'PRESENT', effectiveValue: 50, unit: '%', labNotice: 'unmarked', rangeStatus: 'high', isCurrent: true }
+  ], 'cat');
+  var statusMiss = Engine.explainRuleAgainstContext(andRule, unmarkedCtx, { taxonLabel: '厚壁菌门' });
+  assert(statusMiss.says === false && /状态不满足/.test(statusMiss.missingObservation), '医生语言说明状态不满足');
+
+  var turtleCtx = engineContext(highCtx.results, 'turtle');
+  assertEqual(Engine.evaluateRule(andRule, turtleCtx).matched, false, '未列入封闭名单的物种不命中');
+  assert(/报告物种不在规则适用范围/.test(Engine.evaluateRule(andRule, turtleCtx).reason), '未来物种不会自动命中');
+
+  var allOpen = makeEngineRule({ id: 'open-all', applicableSpecies: ['all'] });
+  assertEqual(Engine.evaluateRule(allOpen, highCtx).matched, false, '禁止开放全部物种');
+  assert(Engine.validateRuleDetails(allOpen).some(function (error) { return error.field === 'applicableSpecies'; }), '开放全部物种无法保存');
+
+  var catGroups = store.listRuleLibraryGroups('cat');
+  var dogGroups = store.listRuleLibraryGroups('dog');
+  assert(catGroups.length > 0 && dogGroups.length > 0, '规则库可按物种分组');
+  var catIds = [];
+  catGroups.forEach(function (group) {
+    group.phylumLineages.forEach(function (lineage) { catIds.push(lineage.lineageId); });
+    group.genera.forEach(function (genus) {
+      genus.lineages.forEach(function (lineage) { catIds.push(lineage.lineageId); });
+    });
+  });
+  var dogIds = [];
+  dogGroups.forEach(function (group) {
+    group.phylumLineages.forEach(function (lineage) { dogIds.push(lineage.lineageId); });
+    group.genera.forEach(function (genus) {
+      genus.lineages.forEach(function (lineage) { dogIds.push(lineage.lineageId); });
+    });
+  });
+  assert(catIds.every(function (id) { return dogIds.indexOf(id) < 0; }), '一条规则只出现在它那个物种列表里');
+  var proteo = catGroups.find(function (group) { return group.phylumKey === 'Proteobacteria'; });
+  assert(proteo && proteo.genera.some(function (genus) { return genus.genusKey === 'Klebsiella' && genus.lineages.length >= 1; }), '组内再按菌属归类');
+
+  var source = store.getState().analysisRuleCatalog.find(function (rule) { return rule.id === 'rule-actino-low-cat'; });
+  var copied = store.copyAnalysisRuleToSpecies(source.id, 'dog', { actor: 'smoke' });
+  assert(copied.rule.lineageId !== source.lineageId, '复制到另一物种生成新谱系');
+  assertEqual(copied.rule.applicableSpecies.join(','), 'dog', '复制后只属于目标物种');
+  assertEqual(copied.rule.output.analysis, source.output.analysis, '复制后文案可以相同');
+  var dogActino = store.listRuleLibraryGroups('dog').reduce(function (count, group) {
+    return count + group.phylumLineages.filter(function (lineage) {
+      return lineage.active && lineage.active.target && lineage.active.target.taxonKey === 'Actinobacteria';
+    }).length;
+  }, 0);
+  assert(dogActino >= 2, '复制后狗列表里放线菌门有两条独立谱系');
 }
 
 function testDeprecatedAndLabels() {
@@ -450,9 +811,13 @@ function main() {
   testSeed();
   testStateMachine();
   testUnitsAndEngine();
+  testRuleLifecycleAndCandidateSet();
+  testEngineConditionsAndOrdering();
+  testJudgmentSentenceCompileAndClinicalDefaults();
   testPublicationChecks();
   testSnapshotFreeze();
   testCatalogAndPicker();
+  testClosedSpeciesValueThresholdCopyAndLibrary();
   testDeprecatedAndLabels();
   testIntakePipeline();
 

@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  window.__PET_ADMIN_ASSET_VERSION = '202609031';
+  window.__PET_ADMIN_ASSET_VERSION = '202609044';
   var C = window.PetAdminCommon;
   var navItems = document.querySelectorAll('#main-nav .nav-item');
   var pageContentContainer = document.getElementById('page-content-container');
@@ -116,6 +116,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function canLeaveCurrentPage() {
+    if (typeof window.__petAdminCanLeavePage !== 'function') return true;
+    return window.__petAdminCanLeavePage();
+  }
+
   function teardownPage() {
     if (typeof unsubscribe === 'function') {
       unsubscribe();
@@ -123,6 +128,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     window.__petAdminPageTeardown && window.__petAdminPageTeardown();
     window.__petAdminPageTeardown = null;
+    window.__petAdminCanLeavePage = null;
   }
 
   async function runPageInit(config) {
@@ -217,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (isMobileNav()) closeSider();
       var pageId = resolvePageId(item.dataset.page);
       if (pageId === currentPageId) return;
+      if (!canLeaveCurrentPage()) return;
       loadPage(item.dataset.page, true);
     });
   });
@@ -224,6 +231,10 @@ document.addEventListener('DOMContentLoaded', function () {
   function handleRoute() {
     var raw = rawHash() || DEFAULT_PAGE;
     if (raw === lastLoadedHash) return;
+    if (!canLeaveCurrentPage()) {
+      window.location.hash = lastLoadedHash || currentPageId || DEFAULT_PAGE;
+      return;
+    }
     var route = C.parseRoute();
     var resolved = resolvePageId(route.pageId);
     loadPage(resolved, resolved !== route.pageId);
