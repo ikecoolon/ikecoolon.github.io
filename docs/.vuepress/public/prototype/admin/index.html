@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PET 管理后台</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/antd@5.21.2/dist/reset.css" crossorigin="anonymous" />
-    <link rel="stylesheet" href="./css/antd-prototype.css?v=202609044" />
+    <link rel="stylesheet" href="./css/tokens.css?v=202609061" />
+    <link rel="stylesheet" href="./css/shell.css?v=202609061" />
+    <link rel="stylesheet" href="./css/components.css?v=202609061" />
+    <link rel="stylesheet" href="./css/antd-prototype.css?v=202609051" />
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
 </head>
@@ -26,10 +29,9 @@
                 <a class="ant-nav-item nav-item" href="#microbiota-knowledge" data-page="microbiota-knowledge"><i class="fas fa-book-open"></i>菌群科普</a>
                 <a class="ant-nav-item nav-item" href="#analysis-rules" data-page="analysis-rules"><i class="fas fa-brain"></i>分析规则</a>
 
-                <p class="ant-nav-section-title">用户与宠物</p>
-                <a class="ant-nav-item nav-item" href="#customer-management" data-page="customer-management"><i class="fas fa-users"></i>客户管理</a>
-                <a class="ant-nav-item nav-item" href="#pet-information" data-page="pet-information"><i class="fas fa-dog"></i>宠物档案</a>
-                <a class="ant-nav-item nav-item" href="#dictionary-management" data-page="dictionary-management"><i class="fas fa-book"></i>字典管理</a>
+                <p class="ant-nav-section-title">用户与数据</p>
+                <a class="ant-nav-item nav-item" href="#user-pets" data-page="user-pets"><i class="fas fa-users"></i>用户与宠物</a>
+                <a class="ant-nav-item nav-item" href="#dictionary-management" data-page="dictionary-management"><i class="fas fa-book"></i>专业基础资料</a>
             </nav>
             <div class="ant-layout-sider-footer">
                 &copy; 2025 ikecoolon
@@ -38,7 +40,7 @@
 
         <div id="sider-mask" class="ant-sider-mask" aria-hidden="true"></div>
 
-        <div class="ant-layout-main md:ml-[220px]">
+        <div class="ant-layout-main" id="admin-main">
             <header class="ant-layout-header">
                 <div class="flex items-center gap-3 min-w-0">
                     <button type="button" class="ant-sider-toggle" id="sider-toggle" aria-label="切换导航" aria-expanded="false" aria-controls="admin-sider">
@@ -46,8 +48,10 @@
                     </button>
                     <h1 id="page-title" class="ant-layout-header-title truncate"></h1>
                 </div>
-                <span class="ant-layout-header-extra">管理员</span>
+                <span class="ant-layout-header-extra" id="admin-actor-label"></span>
             </header>
+
+            <div id="admin-tabbar" role="tablist" aria-label="已打开页面"></div>
 
             <main class="ant-layout-content">
                 <div id="page-content-container"></div>
@@ -57,10 +61,14 @@
 
     <div id="toast-container" aria-live="polite"></div>
 
-    <script src="../shared/analysis-engine.js?v=202609044"></script>
-    <script src="../shared/mock-store.js?v=202609044"></script>
-    <script src="./js/admin-common.js"></script>
-    <script src="./js/dictionary-data-service.js"></script>
-    <script src="./js/script.js"></script>
+    <script src="../shared/analysis-engine.js?v=202609051"></script>
+    <script src="../shared/mock-store.js?v=202609051"></script>
+    <script src="./js/admin-permissions.js?v=202609051"></script>
+    <script src="./js/admin-session.js?v=202609051"></script>
+    <script src="./js/admin-basic-table.js?v=202609051"></script>
+    <script src="./js/admin-modal.js?v=202609051"></script>
+    <script src="./js/admin-common.js?v=202609051"></script>
+    <script src="./js/dictionary-data-service.js?v=202609051"></script>
+    <script src="./js/script.js?v=202609051"></script>
 </body>
 </html>

@@ -1,112 +1,41 @@
-<div id="dictionary-management" class="page p-4">
-    <div id="main-view" class="bg-white p-6 rounded-lg shadow-md">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+<link rel="stylesheet" href="./css/dictionary-management.css">
+<div id="dictionary-management" class="page rondo-page">
+    <div id="dm-list-view">
+        <div class="rondo-page-header">
             <div>
-                <h3 class="text-xl font-semibold">专业基础资料</h3>
-                <p class="text-sm text-gray-500 mt-1">品种字典、普通检测指标与菌群分类树统一维护，供参考范围与报告完善读取</p>
+                <h2 class="rondo-page-title">专业基础资料</h2>
+                <p class="rondo-page-desc">品种字典、普通检测指标与菌群分类树统一维护，供参考范围与报告完善读取</p>
             </div>
-            <div class="flex flex-wrap gap-2" id="catalog-list-actions">
-                <button type="button" id="batch-sort-toggle" class="ant-btn ant-btn-default">
-                    <i class="fas fa-sort mr-2"></i>批量排序
+            <div class="rondo-toolbar-actions" id="catalog-list-actions">
+                <button type="button" id="batch-sort-toggle" class="rondo-btn rondo-btn-default">
+                    <i class="fas fa-sort"></i> 批量排序
                 </button>
-                <button type="button" id="add-new-key" class="ant-btn ant-btn-primary">
-                    <i class="fas fa-plus mr-2"></i>新增
+                <button type="button" id="add-new-key" class="rondo-btn rondo-btn-primary">
+                    <i class="fas fa-plus"></i> 新增
                 </button>
             </div>
         </div>
 
-        <div id="batch-sort-toolbar" class="hidden flex flex-wrap items-center gap-2 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md catalog-sort-toolbar">
-            <span class="text-sm text-blue-800 flex-1 min-w-[12rem]">
-                <i class="fas fa-info-circle mr-1"></i>批量排序：仅可调整同级顺序，拖动行或使用上下按钮
-            </span>
-            <button type="button" id="batch-sort-renumber" class="ant-btn ant-btn-default ant-btn-sm">
-                <i class="fas fa-list-ol mr-1"></i>按当前顺序重新编号
-            </button>
-            <button type="button" id="batch-sort-save" class="ant-btn ant-btn-primary ant-btn-sm">
-                <i class="fas fa-save mr-1"></i>保存排序
-            </button>
-            <button type="button" id="batch-sort-cancel" class="ant-btn ant-btn-default ant-btn-sm">取消</button>
+        <div id="batch-sort-toolbar" class="hidden rondo-callout rondo-callout-info catalog-sort-toolbar">
+            <span class="rondo-callout-text">批量排序：仅可调整同级顺序，拖动行或使用上下按钮</span>
+            <div class="rondo-toolbar-actions">
+                <button type="button" id="batch-sort-renumber" class="rondo-btn rondo-btn-default rondo-btn-sm">
+                    <i class="fas fa-list-ol"></i> 按当前顺序重新编号
+                </button>
+                <button type="button" id="batch-sort-save" class="rondo-btn rondo-btn-primary rondo-btn-sm">
+                    <i class="fas fa-save"></i> 保存排序
+                </button>
+                <button type="button" id="batch-sort-cancel" class="rondo-btn rondo-btn-default rondo-btn-sm">取消</button>
+            </div>
         </div>
 
-        <div class="flex flex-wrap gap-2 mb-4 border-b border-gray-200 pb-3" id="catalog-tabs">
-            <button type="button" class="catalog-tab px-4 py-2 rounded-md text-sm font-medium bg-teal-600 text-white" data-tab="breeds">品种字典</button>
-            <button type="button" class="catalog-tab px-4 py-2 rounded-md text-sm font-medium bg-gray-100 text-gray-700" data-tab="indicators">普通检测指标</button>
-            <button type="button" class="catalog-tab px-4 py-2 rounded-md text-sm font-medium bg-gray-100 text-gray-700" data-tab="microbiota">菌群分类树</button>
+        <div class="rondo-segmented" id="catalog-tabs" role="tablist" aria-label="资料分类">
+            <button type="button" class="rondo-segmented-btn catalog-tab is-active" data-tab="breeds" role="tab" aria-selected="true">品种字典</button>
+            <button type="button" class="rondo-segmented-btn catalog-tab" data-tab="indicators" role="tab" aria-selected="false">普通检测指标</button>
+            <button type="button" class="rondo-segmented-btn catalog-tab" data-tab="microbiota" role="tab" aria-selected="false">菌群分类树</button>
         </div>
 
-        <div class="mb-4">
-            <input type="text" id="search-custom-key" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" placeholder="搜索编码 Key、标签名称或说明内容">
-        </div>
-
-        <div class="overflow-x-auto catalog-table-wrap">
-            <table class="ant-table min-w-full bg-white border border-gray-200" id="catalog-table">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th class="catalog-col-sort px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">序号</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">编码 Key</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">标签名称</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">说明/单位</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">父级/层级</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
-                        <th class="catalog-col-actions px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                    </tr>
-                </thead>
-                <tbody id="custom-key-table-body" class="bg-white divide-y divide-gray-200">
-                    <tr>
-                        <td colspan="7" class="px-6 py-4 text-center text-gray-500">加载中…</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div id="form-view" class="bg-white p-6 rounded-lg shadow-md hidden">
-        <div class="flex justify-between items-center mb-4">
-            <h3 id="form-title" class="text-xl font-semibold">新增资料项</h3>
-            <button type="button" id="back-to-list" class="ant-btn ant-btn-default">
-                <i class="fas fa-arrow-left mr-2"></i>返回列表
-            </button>
-        </div>
-
-        <form id="key-form" class="space-y-4">
-            <div>
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="form-custom-key">编码 Key <span class="text-red-500">*</span></label>
-                <input type="text" id="form-custom-key" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" placeholder="稳定编码，报告检测项引用" required>
-            </div>
-            <div>
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="form-custom-label">标签名称 <span class="text-red-500">*</span></label>
-                <input type="text" id="form-custom-label" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" required>
-            </div>
-            <div>
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="form-sort-order">序号</label>
-                <input type="number" id="form-sort-order" min="1" step="1" class="shadow appearance-none border rounded w-full max-w-xs py-2 px-3 text-gray-700" placeholder="留空则自动排到同级末尾">
-                <p class="text-xs text-gray-500 mt-1">正整数，同级内不可重复；留空时新增项自动取最大值 +10</p>
-            </div>
-            <div id="parent-key-field">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="form-parent-key">父级 Key</label>
-                <select id="form-parent-key" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700">
-                    <option value="">无父级（顶级）</option>
-                </select>
-            </div>
-            <div id="taxonomy-level-field" class="hidden">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="form-taxonomy-level">分类层级</label>
-                <select id="form-taxonomy-level" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700">
-                    <option value="phylum">门</option>
-                    <option value="genus">属</option>
-                </select>
-            </div>
-            <div id="standard-unit-field" class="hidden">
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="form-standard-unit">标准单位</label>
-                <input type="text" id="form-standard-unit" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" placeholder="如 %、index">
-            </div>
-            <div>
-                <label class="block text-gray-700 text-sm font-bold mb-2" for="form-custom-value">说明内容</label>
-                <textarea id="form-custom-value" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700" rows="3"></textarea>
-            </div>
-            <div class="flex space-x-4">
-                <button type="submit" id="save-key" class="ant-btn ant-btn-primary">保存</button>
-                <button type="button" id="cancel-form" class="ant-btn ant-btn-default">取消</button>
-            </div>
-        </form>
+        <div id="dm-sort-mount" class="hidden"></div>
+        <div id="dm-list-mount"></div>
     </div>
 </div>

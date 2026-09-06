@@ -1,0 +1,130 @@
+{
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "fixture": {
+    "publishedId": "report-001",
+    "otherReportId": "report-002",
+    "correctionReportId": "report-004",
+    "targetPhylum": "Firmicutes",
+    "baselinePrimary": "prod-001"
+  },
+  "passed": 22,
+  "failed": 0,
+  "total": 22,
+  "cases": [
+    {
+      "name": "fixture resolved published report",
+      "ok": true,
+      "detail": "report-001"
+    },
+    {
+      "name": "open primary product picker",
+      "ok": true,
+      "detail": "Firmicutes"
+    },
+    {
+      "name": "store products unchanged after picker select",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "save products button visible after select",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "recommendations shows unsaved tag",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "recommendations shows selected product name",
+      "ok": true,
+      "detail": "膳食纤维补充剂"
+    },
+    {
+      "name": "module switch preserves unsaved product session",
+      "ok": true,
+      "detail": "{\"saveVisible\":true,\"hasUnsavedTag\":true,\"primaryText\":\"膳食纤维补充剂\"}"
+    },
+    {
+      "name": "save updates primary product in store",
+      "ok": true,
+      "detail": "prod-003"
+    },
+    {
+      "name": "working version unchanged after product save",
+      "ok": true,
+      "detail": "2 vs 2"
+    },
+    {
+      "name": "published version unchanged after product save",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "correction flag unchanged after product save",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "other report products unchanged",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "save clears unsaved product session UI",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "correction report product picker opens",
+      "ok": true,
+      "detail": "Firmicutes"
+    },
+    {
+      "name": "professional summary unchanged in store before product save",
+      "ok": true,
+      "detail": "肠道菌群整体良好。无平台参考范围。 vs 肠道菌群整体良好。无平台参考范围。"
+    },
+    {
+      "name": "products unchanged in store before product save",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "product-only save updates store products",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "product-only save keeps professional summary",
+      "ok": true,
+      "detail": "肠道菌群整体良好。无平台参考范围。"
+    },
+    {
+      "name": "unsaved professional text remains in form after product save",
+      "ok": true,
+      "detail": "PRODUCT-ISOLATION-MARKER-1788576469480"
+    },
+    {
+      "name": "draft save persists professional summary",
+      "ok": true,
+      "detail": "PRODUCT-ISOLATION-MARKER-1788576469480"
+    },
+    {
+      "name": "draft save does not persist unsaved product session",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "product session still dirty after draft save",
+      "ok": true,
+      "detail": "{\"saveVisible\":true,\"hasUnsavedTag\":true,\"primaryText\":\"益生菌套装 A\"}"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (File not found)"
+  ],
+  "pageErrors": [],
+  "failedRequests": []
+}

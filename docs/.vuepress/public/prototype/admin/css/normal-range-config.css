@@ -1,0 +1,52 @@
+#normal-range-config .rondo-checkbox-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#normal-range-config .rondo-checkbox-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--rondo-border-color, #d9d9d9);
+  border-radius: 6px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+#normal-range-config .rondo-checkbox-card:has(.species-checkbox:checked) {
+  border-color: var(--rondo-primary, #0960bd);
+  background: rgba(9, 96, 189, 0.04);
+}
+
+#normal-range-config .rondo-form-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+#normal-range-config .rondo-basic-table-wrap {
+  overflow-x: auto;
+}
+
+#normal-range-config.nrc-readonly .rondo-form-actions [type="submit"],
+#normal-range-config.nrc-readonly #add-item-btn,
+#normal-range-config.nrc-readonly .remove-item-btn {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  #normal-range-config .rondo-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  #normal-range-config .rondo-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

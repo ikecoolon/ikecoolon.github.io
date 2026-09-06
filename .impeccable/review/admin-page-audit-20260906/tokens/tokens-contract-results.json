@@ -1,0 +1,45 @@
+{
+  "passed": [
+    {
+      "name": "tokens: 无 fallback 的 --rondo-* 均在 tokens.css 定义",
+      "ok": true,
+      "detail": "checked 10 files"
+    },
+    {
+      "name": "tokens: 桥接关键别名存在",
+      "ok": true,
+      "detail": "--rondo-radius=true --rondo-z-modal=true"
+    },
+    {
+      "name": "microbiota #mk-btn-save 圆角恢复",
+      "ok": true,
+      "detail": "borderRadius=6px"
+    },
+    {
+      "name": "microbiota #mk-btn-save 可计算样式",
+      "ok": true,
+      "detail": "{\"borderRadius\":\"6px\",\"borderTopWidth\":\"0px\",\"backgroundColor\":\"rgb(9, 96, 189)\"}"
+    },
+    {
+      "name": "analysis-rules #cancel-form 圆角恢复",
+      "ok": true,
+      "detail": "borderRadius=6px"
+    },
+    {
+      "name": "analysis-rules #cancel-form 边框恢复",
+      "ok": true,
+      "detail": "{\"borderRadius\":\"6px\",\"borderTopWidth\":\"1px\",\"borderTopStyle\":\"solid\",\"borderTopColor\":\"rgb(217, 217, 217)\"}"
+    },
+    {
+      "name": "tokens --rondo-z-modal 对齐 rondo-modal-root",
+      "ok": true,
+      "detail": "token=1100 expected=1100"
+    },
+    {
+      "name": "legacy overlay z-index 不低于壳层",
+      "ok": true,
+      "detail": "{\"token\":\"1100\",\"z\":1100,\"shellMaxZ\":0,\"shellMax\":200}"
+    }
+  ],
+  "failed": []
+}

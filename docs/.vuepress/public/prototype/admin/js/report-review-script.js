@@ -1,9 +1,20 @@
-function initReportReview() {
+function initReportReview(mountRoot, tab) {
+  var root = mountRoot || document;
+  var Session = window.PetAdminSession;
   var C = window.PetAdminCommon;
   var HEALTH_LEVEL_THEMES = { A: '雨林', B: '森林', C: '草原', D: '苔藓', E: '沙漠' };
   var store = C.store();
   var route = C.parseRoute();
-  var currentReportId = route.params.reportId || 'report-002';
+  var currentReportId = (tab && tab.params && tab.params.reportId) || route.params.reportId || 'report-002';
+  var tabActive = !tab || !Session || Session.getActiveTab() === tab;
+
+  function el(id) {
+    return root.querySelector('#' + id);
+  }
+
+  function isTabActive() {
+    return tabActive && (!tab || !Session || Session.getActiveTab() === tab);
+  }
   var formInteracting = false;
   var lastChecks = { blockers: [], warnings: [] };
   var activeModule = 'source';
@@ -15,6 +26,57 @@ function initReportReview() {
   var pickerState = { phylumKey: null, slot: 'primary', page: 1 };
   var expandedHits = {};
   var lastRenderedReportId = null;
+  var Perms = C.permissions();
+  var productSession = {};
+  var professionalBaseline = '';
+
+  function mapRolesToStore(roles) {
+    if (Perms && Perms.mapRolesToStore) return Perms.mapRolesToStore(roles);
+    return (roles || []).map(function (r) {
+      if (r === 'edit') return 'editor';
+      if (r === 'review') return 'reviewer';
+      return r;
+    });
+  }
+
+  function actorOptions() {
+    var actor = Perms ? Perms.getActor() : { id: 'admin-demo', label: '管理员', roles: ['edit', 'review'] };
+    var label = Perms ? Perms.getActorLabel() : (actor.label || '管理员');
+    var profile = Perms && Perms.getStorePermissionProfile
+      ? Perms.getStorePermissionProfile()
+      : { actorId: actor.id, actor: label, roles: mapRolesToStore(actor.roles) };
+    return {
+      actor: label,
+      actorId: profile.actorId || actor.id,
+      permissionProfile: profile
+    };
+  }
+
+  function withActorPayload(payload) {
+    var opts = actorOptions();
+    return Object.assign({}, payload || {}, {
+      actor: opts.actor,
+      actorId: opts.actorId,
+      permissionProfile: opts.permissionProfile
+    });
+  }
+
+  function actorLabel() {
+    return actorOptions().actor;
+  }
+
+  function canEditProfessionally() {
+    if (!Perms) return true;
+    if (Perms.getActor().readOnly) return false;
+    return Perms.can('edit');
+  }
+
+  function canConfigureProducts(report) {
+    if (!report || report.status === 'voided') return false;
+    if (!Perms) return true;
+    if (Perms.getActor().readOnly) return false;
+    return Perms.can('configureProducts');
+  }
 
   var RETURN_VIEWS = ['all', 'incomplete', 'pending_review', 'published', 'voided', 'pending'];
   var MISSING_STATUSES = ['MISSING_COLUMN', 'EMPTY', 'INVALID', 'NOT_APPLICABLE'];
@@ -74,7 +136,7 @@ function initReportReview() {
 
   function onResizeMove(e) {
     if (!resizing) return;
-    var workbench = document.getElementById('rw-workbench');
+    var workbench = el('rw-workbench');
     var rect = workbench.getBoundingClientRect();
     var previewWidth = Math.min(520, Math.max(280, rect.right - e.clientX));
     workbench.style.setProperty('--rw-preview-width', previewWidth + 'px');
@@ -87,25 +149,21 @@ function initReportReview() {
   }
 
   var unsub = C.subscribeDemo(function () {
+    if (!isTabActive()) return;
     if (!formInteracting) render(store.getState());
     else partialUpdate(store.getState());
   });
-  window.__petAdminPageTeardown = function () {
-    if (typeof unsub === 'function') {
-      unsub();
-      unsub = null;
-    }
-    document.removeEventListener('mousemove', onResizeMove);
-    document.removeEventListener('mouseup', onResizeEnd);
-    resizing = false;
-    if (resizer) resizer.classList.remove('is-dragging');
-  };
 
-  bindStaticEvents();
-  render(store.getState());
+  function onTabActivate() {
+    tabActive = true;
+    if (!isTabActive()) return;
+    if (!formInteracting) render(store.getState());
+    else partialUpdate(store.getState());
+    syncDirtyState();
+  }
 
-  function actorLabel() {
-    return '审核员';
+  function onTabDeactivate() {
+    tabActive = false;
   }
 
   function labNoticeLabels() {
@@ -152,7 +210,10 @@ function initReportReview() {
 
   function isEditable(report) {
     if (!report || report.status === 'voided') return false;
+    if (Perms && Perms.getActor().readOnly) return false;
     if (report.status === 'published' && !report.correctionDraftActive) return false;
+    if (isPendingReviewLike(report)) return Perms && Perms.can('review');
+    if (!canEditProfessionally()) return false;
     return true;
   }
 
@@ -162,14 +223,38 @@ function initReportReview() {
     return report.status === 'published' && correctionStage(report) === 'pending_review';
   }
 
+  function canSaveDraft(report) {
+    return !!report && isEditable(report);
+  }
+
   function canSubmit(report) {
-    if (!report) return false;
+    if (!report || !Perms || !Perms.can('submit')) return false;
     if (report.status === 'incomplete') return true;
     return report.status === 'published' && report.correctionDraftActive && correctionStage(report) === 'incomplete';
   }
 
-  function canSaveDraft(report) {
-    return !!report && isEditable(report);
+  function canWithdraw(report) {
+    if (!report || !isPendingReviewLike(report)) return false;
+    if (!Perms || !Perms.can('withdraw')) return false;
+    var actorId = Perms.getActor().id;
+    if (report.submittedByActorId && report.submittedByActorId !== actorId) return false;
+    return true;
+  }
+
+  function canReject(report) {
+    return isPendingReviewLike(report) && Perms && Perms.can('reject');
+  }
+
+  function canPublish(report) {
+    return isPendingReviewLike(report) && Perms && Perms.can('publish');
+  }
+
+  function canVoid(report) {
+    return report && report.status !== 'voided' && Perms && Perms.can('void');
+  }
+
+  function canCreateCorrection(report) {
+    return report && report.status === 'published' && !report.correctionDraftActive && Perms && Perms.can('edit');
   }
 
   function returnToReportCenter() {
@@ -196,6 +281,7 @@ function initReportReview() {
   function afterWrite(message, type) {
     formInteracting = false;
     if (message) C.toast(message, type || 'success');
+    syncDirtyState();
     render(store.getState());
   }
 
@@ -204,26 +290,31 @@ function initReportReview() {
   }
 
   function bindStaticEvents() {
-    document.getElementById('btn-go-report-center').addEventListener('click', returnToReportCenter);
+    el('btn-go-report-center').addEventListener('click', returnToReportCenter);
 
-    document.getElementById('select-report').addEventListener('change', function () {
+    el('select-report').addEventListener('change', function () {
+      if (!confirmDiscardWorkbench()) {
+        this.value = currentReportId;
+        return;
+      }
       formInteracting = false;
       currentReportId = this.value;
       selectedResultId = null;
       expandedHits = {};
       versionView = 'working';
+      resetProductSession();
       C.navigate('report-review', reviewNavParams(currentReportId));
       var state = store.getState();
       activeModule = defaultModuleForReport(C.lookupReport(state, currentReportId));
       render(state);
     });
 
-    document.getElementById('results-search').addEventListener('input', function () {
+    el('results-search').addEventListener('input', function () {
       resultsSearch = this.value.trim().toLowerCase();
       renderIndicatorsPanel(store.getState());
     });
 
-    document.getElementById('results-filters').addEventListener('click', function (e) {
+    el('results-filters').addEventListener('click', function (e) {
       var btn = e.target.closest('.rw-filter-btn');
       if (!btn) return;
       var key = btn.getAttribute('data-filter');
@@ -232,55 +323,55 @@ function initReportReview() {
       renderIndicatorsPanel(store.getState());
     });
 
-    document.getElementById('btn-supplement-result').addEventListener('click', function () {
+    el('btn-supplement-result').addEventListener('click', function () {
       openSupplementModal(store.getState());
     });
 
-    document.getElementById('rw-module-nav').addEventListener('click', function (e) {
+    el('rw-module-nav').addEventListener('click', function (e) {
       var btn = e.target.closest('[data-module-id]');
       if (!btn) return;
       switchModule(btn.getAttribute('data-module-id'));
     });
 
-    document.getElementById('ver-toggle-working').addEventListener('click', function () {
+    el('ver-toggle-working').addEventListener('click', function () {
       versionView = 'working';
-      document.getElementById('ver-toggle-working').classList.add('active');
-      document.getElementById('ver-toggle-published').classList.remove('active');
+      el('ver-toggle-working').classList.add('active');
+      el('ver-toggle-published').classList.remove('active');
       syncPreviewVersionToggle(store.getState());
       updatePreview(store.getState());
     });
-    document.getElementById('ver-toggle-published').addEventListener('click', function () {
+    el('ver-toggle-published').addEventListener('click', function () {
       versionView = 'published';
-      document.getElementById('ver-toggle-published').classList.add('active');
-      document.getElementById('ver-toggle-working').classList.remove('active');
+      el('ver-toggle-published').classList.add('active');
+      el('ver-toggle-working').classList.remove('active');
       syncPreviewVersionToggle(store.getState());
       updatePreview(store.getState());
     });
 
-    document.getElementById('btn-preview-collapse').addEventListener('click', function () {
+    el('btn-preview-collapse').addEventListener('click', function () {
       previewCollapsed = true;
-      document.getElementById('rw-preview-pane').classList.add('is-collapsed');
-      document.getElementById('rw-preview-resizer').classList.add('hidden');
-      document.getElementById('btn-preview-expand').classList.remove('hidden');
-      document.getElementById('rw-workbench').classList.add('preview-collapsed');
+      el('rw-preview-pane').classList.add('is-collapsed');
+      el('rw-preview-resizer').classList.add('hidden');
+      el('btn-preview-expand').classList.remove('hidden');
+      el('rw-workbench').classList.add('preview-collapsed');
     });
 
-    document.getElementById('btn-preview-expand').addEventListener('click', function () {
+    el('btn-preview-expand').addEventListener('click', function () {
       previewCollapsed = false;
-      document.getElementById('rw-preview-pane').classList.remove('is-collapsed');
-      document.getElementById('rw-preview-resizer').classList.remove('hidden');
-      document.getElementById('btn-preview-expand').classList.add('hidden');
-      document.getElementById('rw-workbench').classList.remove('preview-collapsed');
+      el('rw-preview-pane').classList.remove('is-collapsed');
+      el('rw-preview-resizer').classList.remove('hidden');
+      el('btn-preview-expand').classList.add('hidden');
+      el('rw-workbench').classList.remove('preview-collapsed');
     });
 
-    document.getElementById('btn-preview-drawer-open').addEventListener('click', function () {
-      document.getElementById('rw-preview-pane').classList.add('is-drawer-open');
+    el('btn-preview-drawer-open').addEventListener('click', function () {
+      el('rw-preview-pane').classList.add('is-drawer-open');
     });
-    document.getElementById('btn-preview-drawer-close').addEventListener('click', function () {
-      document.getElementById('rw-preview-pane').classList.remove('is-drawer-open');
+    el('btn-preview-drawer-close').addEventListener('click', function () {
+      el('rw-preview-pane').classList.remove('is-drawer-open');
     });
 
-    resizer = document.getElementById('rw-preview-resizer');
+    resizer = el('rw-preview-resizer');
     resizer.addEventListener('mousedown', function (e) {
       resizing = true;
       resizer.classList.add('is-dragging');
@@ -289,62 +380,66 @@ function initReportReview() {
     document.addEventListener('mousemove', onResizeMove);
     document.addEventListener('mouseup', onResizeEnd);
 
-    document.getElementById('picker-close').addEventListener('click', closeProductPicker);
-    document.getElementById('product-picker-modal').addEventListener('click', function (e) {
+    el('picker-close').addEventListener('click', closeProductPicker);
+    el('product-picker-modal').addEventListener('click', function (e) {
       if (e.target.id === 'product-picker-modal') closeProductPicker();
     });
-    document.getElementById('picker-search').addEventListener('input', function () {
+    el('picker-search').addEventListener('input', function () {
       pickerState.page = 1;
       renderProductPickerList(store.getState());
     });
-    document.getElementById('picker-category').addEventListener('change', function () {
+    el('picker-category').addEventListener('change', function () {
       pickerState.page = 1;
       renderProductPickerList(store.getState());
     });
-    document.getElementById('picker-status').addEventListener('change', function () {
+    el('picker-status').addEventListener('change', function () {
       pickerState.page = 1;
       renderProductPickerList(store.getState());
     });
-    document.getElementById('picker-pagination').addEventListener('click', function (e) {
+    el('picker-pagination').addEventListener('click', function (e) {
       var btn = e.target.closest('[data-page]');
       if (!btn) return;
       pickerState.page = parseInt(btn.getAttribute('data-page'), 10);
       renderProductPickerList(store.getState());
     });
 
-    document.getElementById('rw-preview-frame').addEventListener('click', function (e) {
+    el('rw-preview-frame').addEventListener('click', function (e) {
       var region = e.target.closest('[data-preview-focus]');
       if (!region) return;
       var focusId = region.getAttribute('data-preview-focus');
       var module = region.getAttribute('data-preview-module') || 'assessment';
       switchModule(module);
       setTimeout(function () {
-        var el = document.getElementById(focusId);
-        if (el) el.focus();
+        var targetEl = el(focusId);
+        if (targetEl) targetEl.focus();
       }, 50);
     });
 
-    document.getElementById('recommendations-panel').addEventListener('click', handleRecommendationsClick);
-    document.getElementById('analysis-panel').addEventListener('click', handleAnalysisClick);
-    document.getElementById('analysis-panel').addEventListener('focusin', function () {
-      formInteracting = true;
+    el('recommendations-panel').addEventListener('click', handleRecommendationsClick);
+    el('btn-save-products').addEventListener('click', saveProductConfiguration);
+    el('analysis-panel').addEventListener('click', handleAnalysisClick);
+    el('analysis-panel').addEventListener('focusin', function () {
+      markFormDirty();
     });
-    document.getElementById('source-panel').addEventListener('click', handleSourceClick);
-    document.getElementById('source-panel').addEventListener('change', handleSourceChange);
-    document.getElementById('indicators-list').addEventListener('click', function (e) {
+    el('assessment-form').addEventListener('input', markFormDirty);
+    el('assessment-form').addEventListener('change', markFormDirty);
+    el('analysis-panel').addEventListener('input', markFormDirty);
+    el('source-panel').addEventListener('click', handleSourceClick);
+    el('source-panel').addEventListener('change', handleSourceChange);
+    el('indicators-list').addEventListener('click', function (e) {
       var row = e.target.closest('[data-result-id]');
       if (!row) return;
       selectedResultId = row.getAttribute('data-result-id');
       renderIndicatorsPanel(store.getState());
     });
-    document.getElementById('indicator-detail').addEventListener('click', handleResultDetailClick);
+    el('indicator-detail').addEventListener('click', handleResultDetailClick);
 
-    document.getElementById('supplement-close').addEventListener('click', closeSupplementModal);
-    document.getElementById('supplement-cancel').addEventListener('click', closeSupplementModal);
-    document.getElementById('supplement-modal').addEventListener('click', function (e) {
+    el('supplement-close').addEventListener('click', closeSupplementModal);
+    el('supplement-cancel').addEventListener('click', closeSupplementModal);
+    el('supplement-modal').addEventListener('click', function (e) {
       if (e.target.id === 'supplement-modal') closeSupplementModal();
     });
-    document.getElementById('supplement-form').addEventListener('submit', function (e) {
+    el('supplement-form').addEventListener('submit', function (e) {
       e.preventDefault();
       submitSupplement();
     });
@@ -365,10 +460,10 @@ function initReportReview() {
   function switchModule(moduleId) {
     activeModule = moduleId;
     MODULES.forEach(function (m) {
-      var panel = document.getElementById('module-' + m.id);
+      var panel = el('module-' + m.id);
       if (panel) panel.classList.toggle('hidden', m.id !== moduleId);
     });
-    document.querySelectorAll('#rw-module-nav [data-module-id]').forEach(function (btn) {
+    root.querySelectorAll('#rw-module-nav [data-module-id]').forEach(function (btn) {
       btn.classList.toggle('is-active', btn.getAttribute('data-module-id') === moduleId);
     });
   }
@@ -386,8 +481,94 @@ function initReportReview() {
     return counts;
   }
 
+  function collectPhylumDraftsFromDom() {
+    var out = {};
+    (store.getPhylumUnits(currentReportId) || []).forEach(function (unit) {
+      var analysisEl = el('unit-analysis-' + unit.phylumKey);
+      var adviceEl = el('unit-advice-' + unit.phylumKey);
+      if (!analysisEl || !adviceEl) return;
+      out[unit.phylumKey] = { analysis: analysisEl.value, advice: adviceEl.value };
+    });
+    return out;
+  }
+
+  function serializeProfessionalState() {
+    return JSON.stringify({
+      assessment: collectAssessmentFromForm(),
+      phylum: collectPhylumDraftsFromDom()
+    });
+  }
+
+  function captureProfessionalBaseline() {
+    professionalBaseline = serializeProfessionalState();
+  }
+
+  function isProfessionalDirty() {
+    if (!el('assess-species')) return false;
+    return serializeProfessionalState() !== professionalBaseline;
+  }
+
+  function savedProducts(unit) {
+    return {
+      primaryProductId: unit.primaryProductId || null,
+      relatedProductIds: (unit.relatedProductIds || []).slice()
+    };
+  }
+
+  function productsEqual(a, b) {
+    if (!a || !b) return false;
+    if (a.primaryProductId !== b.primaryProductId) return false;
+    var ra = a.relatedProductIds || [];
+    var rb = b.relatedProductIds || [];
+    if (ra.length !== rb.length) return false;
+    for (var i = 0; i < ra.length; i++) {
+      if (ra[i] !== rb[i]) return false;
+    }
+    return true;
+  }
+
+  function resetProductSession() {
+    productSession = {};
+  }
+
+  function sessionProducts(phylumKey) {
+    if (productSession[phylumKey]) return productSession[phylumKey];
+    var unit = currentUnit(phylumKey);
+    if (!unit) return { primaryProductId: null, relatedProductIds: [] };
+    return savedProducts(unit);
+  }
+
+  function hasProductSessionDirty() {
+    var units = store.getPhylumUnits(currentReportId) || [];
+    for (var i = 0; i < units.length; i++) {
+      var unit = units[i];
+      if (productSession[unit.phylumKey] && !productsEqual(productSession[unit.phylumKey], savedProducts(unit))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function syncDirtyState() {
+    var dirty = isProfessionalDirty() || hasProductSessionDirty();
+    var indicator = el('rw-dirty-indicator');
+    if (indicator) indicator.classList.toggle('hidden', !dirty);
+    var productBtn = el('btn-save-products');
+    if (productBtn) productBtn.classList.toggle('hidden', !hasProductSessionDirty());
+    if (tab && Session) Session.setTabDirty(tab.id, dirty);
+  }
+
+  function confirmDiscardWorkbench() {
+    if (!isProfessionalDirty() && !hasProductSessionDirty()) return true;
+    return window.confirm('报告工作台有未保存的修改，确定离开吗？');
+  }
+
+  function markFormDirty() {
+    formInteracting = true;
+    syncDirtyState();
+  }
+
   function collectAssessmentFromForm() {
-    var el = function (id) { return document.getElementById(id); };
     var emotion = el('assess-emotion') ? el('assess-emotion').value : '';
     var immunity = el('assess-immunity') ? el('assess-immunity').value : '';
     return {
@@ -403,61 +584,78 @@ function initReportReview() {
     };
   }
 
-  function saveAssessmentFromForm(silent) {
+  function buildPhylumUnitsPayload() {
+    var patches = [];
+    (store.getPhylumUnits(currentReportId) || []).forEach(function (unit) {
+      var analysisEl = el('unit-analysis-' + unit.phylumKey);
+      var adviceEl = el('unit-advice-' + unit.phylumKey);
+      if (!analysisEl || !adviceEl) return;
+      var analysis = analysisEl.value;
+      var advice = adviceEl.value;
+      if (analysis === (unit.analysisDraft || '') && advice === (unit.adviceDraft || '')) return;
+      var patch = { phylumKey: unit.phylumKey };
+      if (analysis !== (unit.analysisDraft || '')) patch.analysis = analysis;
+      if (advice !== (unit.adviceDraft || '')) patch.advice = advice;
+      patches.push(patch);
+    });
+    return patches;
+  }
+
+  function assessmentDiffersFromStore(data, report) {
+    var workVer = C.getWorkingReportVersion(store.getState(), report.id);
+    var dims = (workVer && workVer.platformDimensions) || {};
+    var formDims = data.platformDimensions || {};
+    return (data.reportSpecies || '') !== (workVer && workVer.reportSpecies ? workVer.reportSpecies : (report.reportSpecies || '')) ||
+      (data.healthLevel || '') !== (workVer && workVer.healthLevel ? workVer.healthLevel : '') ||
+      String(data.healthScore === '' ? '' : data.healthScore) !== String(workVer && workVer.healthScore != null ? workVer.healthScore : '') ||
+      String(data.percentile === '' ? '' : data.percentile) !== String(workVer && workVer.percentile != null ? workVer.percentile : '') ||
+      (data.summary || '') !== (workVer && workVer.summary ? workVer.summary : '') ||
+      String(formDims.emotion == null ? '' : formDims.emotion) !== String(dims.emotion == null ? '' : dims.emotion) ||
+      String(formDims.immunity == null ? '' : formDims.immunity) !== String(dims.immunity == null ? '' : dims.immunity);
+  }
+
+  function persistWorkbench(silent) {
     if (!currentReportId) return false;
     var report = C.lookupReport(store.getState(), currentReportId);
     if (!report || !isEditable(report)) return true;
-    if (!document.getElementById('assess-species')) return true;
+    if (!el('assess-species')) return true;
     var data = collectAssessmentFromForm();
     var errors = C.validateAssessmentInput(data);
     if (errors.length) {
       if (!silent) C.toast(errors.join('；'), 'warning');
       return false;
     }
-    try {
-      store.saveReportAssessment(currentReportId, {
+    var phylumUnits = buildPhylumUnitsPayload();
+    var assessmentChanged = assessmentDiffersFromStore(data, report);
+    if (!assessmentChanged && !phylumUnits.length) {
+      captureProfessionalBaseline();
+      syncDirtyState();
+      return true;
+    }
+    formInteracting = true;
+    var payload = {};
+    if (assessmentChanged) {
+      payload.assessment = {
         reportSpecies: data.reportSpecies,
         healthLevel: data.healthLevel || null,
         healthScore: data.healthScore === '' ? null : Number(data.healthScore),
         percentile: data.percentile === '' ? null : Number(data.percentile),
         summary: data.summary,
         platformDimensions: data.platformDimensions
-      }, actorLabel());
+      };
+    }
+    if (phylumUnits.length) payload.phylumUnits = phylumUnits;
+    try {
+      var opts = actorOptions();
+      var actor = opts.permissionProfile || { actorId: opts.actorId, actor: opts.actor, roles: mapRolesToStore(Perms && Perms.getActor().roles) };
+      store.saveReportWorkVersion(currentReportId, payload, actor);
+      captureProfessionalBaseline();
+      syncDirtyState();
       return true;
     } catch (err) {
       if (!silent) handleStoreError(err);
       return false;
     }
-  }
-
-  function saveAllPhylumDraftsFromDom(silent) {
-    if (!currentReportId) return true;
-    var report = C.lookupReport(store.getState(), currentReportId);
-    if (!report || !isEditable(report)) return true;
-    var units = store.getPhylumUnits(currentReportId) || [];
-    var ok = true;
-    units.forEach(function (unit) {
-      var analysisEl = document.getElementById('unit-analysis-' + unit.phylumKey);
-      var adviceEl = document.getElementById('unit-advice-' + unit.phylumKey);
-      if (!analysisEl || !adviceEl) return;
-      var analysis = analysisEl.value;
-      var advice = adviceEl.value;
-      if (analysis === (unit.analysisDraft || '') && advice === (unit.adviceDraft || '')) return;
-      try {
-        store.savePhylumUnitDraft(currentReportId, unit.phylumKey, { analysis: analysis, advice: advice });
-      } catch (err) {
-        ok = false;
-        if (!silent) handleStoreError(err);
-      }
-    });
-    return ok;
-  }
-
-  function persistWorkbench(silent) {
-    formInteracting = true;
-    var okB = saveAllPhylumDraftsFromDom(silent);
-    var okA = saveAssessmentFromForm(silent);
-    return okA && okB;
   }
 
   function saveDraft() {
@@ -469,7 +667,42 @@ function initReportReview() {
       C.toast('综合评定校验未通过', 'warning');
       return;
     }
-    afterWrite('已暂存', 'success');
+    afterWrite('专业内容已暂存', 'success');
+  }
+
+  function saveProductConfiguration() {
+    var report = C.lookupReport(store.getState(), currentReportId);
+    if (!report || !canConfigureProducts(report)) {
+      C.toast('当前不可保存商品配置', 'warning');
+      return;
+    }
+    var keys = Object.keys(productSession);
+    if (!keys.length || !hasProductSessionDirty()) {
+      C.toast('没有待保存的商品修改', 'info');
+      return;
+    }
+    var keepProfessionalSession = isProfessionalDirty();
+    try {
+      keys.forEach(function (phylumKey) {
+        var sess = productSession[phylumKey];
+        var unit = currentUnit(phylumKey);
+        if (!unit || productsEqual(sess, savedProducts(unit))) return;
+        store.savePhylumUnitProducts(currentReportId, phylumKey, withActorPayload({
+          primaryProductId: sess.primaryProductId,
+          relatedProductIds: sess.relatedProductIds || []
+        }));
+      });
+      resetProductSession();
+      C.toast('商品配置已保存', 'success');
+      var state = store.getState();
+      var savedReport = C.lookupReport(state, currentReportId);
+      renderRecommendationsPanel(state, savedReport);
+      updatePreview(state);
+      if (keepProfessionalSession) formInteracting = true;
+      syncDirtyState();
+    } catch (err) {
+      handleStoreError(err);
+    }
   }
 
   function runWithChecks(actionLabel, callback) {
@@ -499,7 +732,7 @@ function initReportReview() {
   }
 
   function bindActionBar(state, report) {
-    var bar = document.getElementById('action-bar');
+    var bar = el('action-bar');
     bar.innerHTML = '';
     if (!report) return;
 
@@ -507,22 +740,23 @@ function initReportReview() {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.id = id;
-      btn.className = (cls || 'btn-secondary') + ' px-3 py-1.5 rounded-md text-sm';
-      btn.innerHTML = '<i class="fas ' + icon + ' mr-1"></i>' + label;
+      btn.className = (cls || 'ant-btn ant-btn-default ant-btn-sm') + ' rw-action-btn';
+      btn.innerHTML = '<i class="fas ' + icon + '" aria-hidden="true"></i> ' + label;
       btn.onclick = handler;
       bar.appendChild(btn);
     }
 
     if (canSaveDraft(report)) {
-      addBtn('btn-save-draft', '暂存', 'btn-secondary', 'fa-floppy-disk', saveDraft);
+      addBtn('btn-save-draft', '暂存专业内容', 'ant-btn ant-btn-default ant-btn-sm', 'fa-floppy-disk', saveDraft);
     }
 
     if (canSubmit(report)) {
-      addBtn('btn-submit', '提交审核', 'btn-primary', 'fa-paper-plane', function () {
+      addBtn('btn-submit', '提交审核', 'ant-btn ant-btn-primary ant-btn-sm', 'fa-paper-plane', function () {
         runWithChecks('提交审核', function () {
           try {
-            store.submitReport(report.id, { actor: actorLabel() });
+            store.submitReport(report.id, actorOptions());
             activeModule = 'checks';
+            captureProfessionalBaseline();
             afterWrite('已提交审核', 'success');
           } catch (err) {
             handleStoreError(err);
@@ -533,34 +767,43 @@ function initReportReview() {
       });
     }
 
-    if (isPendingReviewLike(report)) {
-      addBtn('btn-withdraw', '撤回', 'border border-slate-300 text-slate-700 hover:bg-slate-50', 'fa-arrow-rotate-left', function () {
+    if (canWithdraw(report)) {
+      addBtn('btn-withdraw', '撤回', 'ant-btn ant-btn-default ant-btn-sm', 'fa-arrow-rotate-left', function () {
         C.confirmDialog('确认撤回？送检状态不会改变。', function () {
           try {
-            store.withdrawReport(report.id, { actor: actorLabel() });
+            store.withdrawReport(report.id, actorOptions());
             activeModule = 'source';
+            captureProfessionalBaseline();
             afterWrite('已撤回', 'info');
           } catch (err) {
             handleStoreError(err);
           }
         });
       });
-      addBtn('btn-reject', '退回完善', 'border border-red-300 text-red-700 hover:bg-red-50', 'fa-undo', function () {
+    }
+
+    if (canReject(report)) {
+      addBtn('btn-reject', '退回完善', 'ant-btn ant-btn-default ant-btn-sm rw-btn-danger', 'fa-undo', function () {
         C.promptDialog('退回原因', '请填写退回原因（必填）', function (reason) {
           try {
-            store.rejectReport(report.id, reason, { actor: actorLabel() });
+            store.rejectReport(report.id, reason, actorOptions());
+            captureProfessionalBaseline();
             afterWrite('已退回待完善', 'warning');
           } catch (err) {
             handleStoreError(err);
           }
         });
       });
-      addBtn('btn-approve-publish', '审核通过并发布', 'btn-primary', 'fa-check-double', function () {
+    }
+
+    if (canPublish(report)) {
+      addBtn('btn-approve-publish', '审核通过并发布', 'ant-btn ant-btn-primary ant-btn-sm', 'fa-check-double', function () {
         runWithChecks('审核通过并发布', function () {
           try {
-            store.publishReport(report.id, { actor: actorLabel() });
+            store.publishReport(report.id, actorOptions());
             activeModule = 'source';
             pendingFocusTrace = true;
+            captureProfessionalBaseline();
             afterWrite('报告已审核通过并发布', 'success');
           } catch (err) {
             handleStoreError(err);
@@ -571,11 +814,13 @@ function initReportReview() {
       });
     }
 
-    if (report.status !== 'voided') {
-      addBtn('btn-void', '作废', 'border border-slate-300 text-slate-600 hover:bg-slate-50', 'fa-ban', function () {
+    if (canVoid(report)) {
+      addBtn('btn-void', '作废', 'ant-btn ant-btn-default ant-btn-sm', 'fa-ban', function () {
         C.promptDialog('作废原因', '请填写作废原因（必填）', function (reason) {
           try {
-            store.voidReport(report.id, reason);
+            store.voidReport(report.id, reason, actorOptions());
+            captureProfessionalBaseline();
+            resetProductSession();
             afterWrite('报告已作废', 'warning');
           } catch (err) {
             handleStoreError(err);
@@ -584,13 +829,14 @@ function initReportReview() {
       });
     }
 
-    if (report.status === 'published' && !report.correctionDraftActive) {
-      addBtn('btn-correction', '创建更正草稿', 'btn-primary', 'fa-pen-ruler', function () {
+    if (canCreateCorrection(report)) {
+      addBtn('btn-correction', '创建更正草稿', 'ant-btn ant-btn-primary ant-btn-sm', 'fa-pen-ruler', function () {
         C.promptDialog('更正说明', '请填写更正说明', function (note) {
           try {
-            store.createCorrectionDraft(report.id, { correctionNote: note });
+            store.createCorrectionDraft(report.id, { correctionNote: note, actor: actorLabel() });
             versionView = 'working';
             activeModule = 'results';
+            captureProfessionalBaseline();
             afterWrite('已创建更正草稿', 'success');
           } catch (err) {
             handleStoreError(err);
@@ -640,7 +886,7 @@ function initReportReview() {
   }
 
   function renderModuleNav(checks) {
-    var nav = document.getElementById('rw-module-nav');
+    var nav = el('rw-module-nav');
     var counts = moduleCounts(checks || lastChecks);
     nav.innerHTML = MODULES.map(function (m) {
       var c = counts[m.id] || { blockers: 0, warnings: 0 };
@@ -656,8 +902,8 @@ function initReportReview() {
   }
 
   function renderChecksPanel(checks) {
-    var panel = document.getElementById('checks-panel');
-    var summary = document.getElementById('checks-summary');
+    var panel = el('checks-panel');
+    var summary = el('checks-summary');
     if (!panel) return;
     var html = '';
     if (!checks.blockers.length && !checks.warnings.length) {
@@ -853,13 +1099,13 @@ function initReportReview() {
       renderCorrectionForm(state, report) +
       renderTraceBlock(state, report);
 
-    document.getElementById('source-panel').innerHTML = html;
+    el('source-panel').innerHTML = html;
   }
 
   function handleSourceChange(e) {
     if (e.target.id !== 'own-pet') return;
     var pet = C.lookupPet(store.getState(), e.target.value);
-    var userSel = document.getElementById('own-user');
+    var userSel = el('own-user');
     if (userSel && pet && pet.userId) userSel.value = pet.userId;
   }
 
@@ -867,7 +1113,7 @@ function initReportReview() {
     var correctPet = e.target.closest('#btn-correct-pet');
     var correctUser = e.target.closest('#btn-correct-user');
     if (!correctPet && !correctUser) return;
-    var reasonEl = document.getElementById('own-reason');
+    var reasonEl = el('own-reason');
     var reason = reasonEl ? String(reasonEl.value || '').trim() : '';
     if (!reason) {
       C.toast('请填写纠错原因', 'warning');
@@ -877,38 +1123,36 @@ function initReportReview() {
     var report = C.lookupReport(state, currentReportId);
     try {
       if (correctPet) {
-        var petId = document.getElementById('own-pet') && document.getElementById('own-pet').value;
+        var petId = el('own-pet') && el('own-pet').value;
         if (!petId) {
           C.toast('请选择宠物', 'warning');
           return;
         }
         var pet = C.lookupPet(state, petId);
-        var userId = (document.getElementById('own-user') && document.getElementById('own-user').value) ||
+        var userId = (el('own-user') && el('own-user').value) ||
           (pet && pet.userId) || report.userId;
         if (!userId) {
           C.toast('目标宠物未关联用户，请同时选择用户', 'warning');
           return;
         }
-        store.correctOwnership({
+        store.correctOwnership(withActorPayload({
           reportId: currentReportId,
           petId: petId,
           userId: userId,
-          reason: reason,
-          actor: actorLabel()
-        });
+          reason: reason
+        }));
         afterWrite('已改归宠物', 'success');
         return;
       }
-      var nextUserId = document.getElementById('own-user') && document.getElementById('own-user').value;
+      var nextUserId = el('own-user') && el('own-user').value;
       if (!report.petId) {
         C.toast('当前报告未关联宠物', 'warning');
         return;
       }
-      store.updateOpsPet(report.petId, {
+      store.updateOpsPet(report.petId, withActorPayload({
         userId: nextUserId || null,
-        reason: reason,
-        actor: actorLabel()
-      });
+        reason: reason
+      }));
       afterWrite('已更换关联用户', 'success');
     } catch (err) {
       handleStoreError(err);
@@ -922,7 +1166,7 @@ function initReportReview() {
     var readonly = !isEditable(report);
     var dis = readonly ? ' disabled' : '';
 
-    document.getElementById('assessment-form').innerHTML =
+    el('assessment-form').innerHTML =
       '<div><label class="text-xs text-slate-500">报告物种</label>' +
       '<select id="assess-species" data-preview-target="species" class="w-full border rounded px-2 py-1 mt-0.5"' + dis + '>' +
       '<option value="cat"' + (species === 'cat' ? ' selected' : '') + '>猫</option>' +
@@ -956,20 +1200,20 @@ function initReportReview() {
   function bindFormPreviewListeners() {
     var ids = ['assess-species', 'assess-level', 'assess-score', 'assess-percentile', 'assess-emotion', 'assess-immunity', 'assess-summary'];
     ids.forEach(function (id) {
-      var el = document.getElementById(id);
-      if (!el || el.getAttribute('data-rw-bound')) return;
-      el.setAttribute('data-rw-bound', '1');
-      el.addEventListener('focus', function () {
-        formInteracting = true;
-        highlightPreview(el.getAttribute('data-preview-target'));
+      var node = el(id);
+      if (!node || node.getAttribute('data-rw-bound')) return;
+      node.setAttribute('data-rw-bound', '1');
+      node.addEventListener('focus', function () {
+        markFormDirty();
+        highlightPreview(node.getAttribute('data-preview-target'));
       });
-      el.addEventListener('blur', function () {
+      node.addEventListener('blur', function () {
         clearPreviewHighlight();
       });
-      el.addEventListener('input', function () {
-        formInteracting = true;
+      node.addEventListener('input', function () {
+        markFormDirty();
         partialUpdate(store.getState());
-        highlightPreview(el.getAttribute('data-preview-target'));
+        highlightPreview(node.getAttribute('data-preview-target'));
       });
     });
   }
@@ -977,14 +1221,14 @@ function initReportReview() {
   function highlightPreview(target) {
     clearPreviewHighlight();
     if (!target) return;
-    document.querySelectorAll('[data-preview-region="' + target + '"]').forEach(function (el) {
-      el.classList.add('is-preview-highlight');
+    root.querySelectorAll('[data-preview-region="' + target + '"]').forEach(function (node) {
+      node.classList.add('is-preview-highlight');
     });
   }
 
   function clearPreviewHighlight() {
-    document.querySelectorAll('.is-preview-highlight').forEach(function (el) {
-      el.classList.remove('is-preview-highlight');
+    root.querySelectorAll('.is-preview-highlight').forEach(function (node) {
+      node.classList.remove('is-preview-highlight');
     });
   }
 
@@ -999,13 +1243,13 @@ function initReportReview() {
       return resultFilterMatch(ind);
     });
     var readonly = !isEditable(report);
-    var suppBtn = document.getElementById('btn-supplement-result');
+    var suppBtn = el('btn-supplement-result');
     if (suppBtn) suppBtn.classList.toggle('hidden', readonly);
 
-    var listEl = document.getElementById('indicators-list');
+    var listEl = el('indicators-list');
     if (!results.length) {
       listEl.innerHTML = '<p class="text-slate-500 p-2">无匹配结果</p>';
-      document.getElementById('indicator-detail').innerHTML = '';
+      el('indicator-detail').innerHTML = '';
       return;
     }
 
@@ -1084,15 +1328,15 @@ function initReportReview() {
       html += '<p class="mt-3 text-xs text-slate-400">已发布且无更正草稿，检测结果只读。</p>';
     }
 
-    document.getElementById('indicator-detail').innerHTML = html;
+    el('indicator-detail').innerHTML = html;
   }
 
   function handleResultDetailClick(e) {
     if (!e.target.closest('#btn-save-result')) return;
-    var valueEl = document.getElementById('result-edit-value');
-    var statusEl = document.getElementById('result-edit-status');
-    var noticeEl = document.getElementById('result-edit-notice');
-    var reasonEl = document.getElementById('result-edit-reason');
+    var valueEl = el('result-edit-value');
+    var statusEl = el('result-edit-status');
+    var noticeEl = el('result-edit-notice');
+    var reasonEl = el('result-edit-reason');
     var reason = reasonEl ? reasonEl.value.trim() : '';
     if (!reason) {
       C.toast('请填写修改原因', 'warning');
@@ -1106,15 +1350,14 @@ function initReportReview() {
       return;
     }
     try {
-      store.modifyResultValue({
+      store.modifyResultValue(withActorPayload({
         reportId: currentReportId,
         resultId: selectedResultId,
         value: value,
         dataStatus: nextStatus,
         labNotice: noticeEl ? noticeEl.value : undefined,
-        reason: reason,
-        actor: actorLabel()
-      });
+        reason: reason
+      }));
       afterWrite('已更新有效值', 'success');
     } catch (err) {
       handleStoreError(err);
@@ -1132,29 +1375,29 @@ function initReportReview() {
     var phylums = store.listTaxaForRuleTarget ? store.listTaxaForRuleTarget('phylum') : [];
     var genera = store.listTaxaForRuleTarget ? store.listTaxaForRuleTarget('genus') : [];
     var options = phylums.concat(genera).filter(function (t) { return t && !existing[t.key]; });
-    var sel = document.getElementById('supplement-key');
+    var sel = el('supplement-key');
     sel.innerHTML = options.length
       ? options.map(function (t) {
         return '<option value="' + C.escapeHtml(t.key) + '">' + C.escapeHtml((t.label || t.key) + ' (' + t.key + ')') + '</option>';
       }).join('')
       : '<option value="">无可用分类单元</option>';
-    document.getElementById('supplement-value').value = '';
-    document.getElementById('supplement-unit').value = '%';
-    document.getElementById('supplement-datastatus').value = 'PRESENT';
-    document.getElementById('supplement-labnotice').value = 'unmarked';
-    document.getElementById('supplement-reason').value = '';
-    document.getElementById('supplement-modal').classList.remove('hidden');
+    el('supplement-value').value = '';
+    el('supplement-unit').value = '%';
+    el('supplement-datastatus').value = 'PRESENT';
+    el('supplement-labnotice').value = 'unmarked';
+    el('supplement-reason').value = '';
+    el('supplement-modal').classList.remove('hidden');
   }
 
   function closeSupplementModal() {
-    document.getElementById('supplement-modal').classList.add('hidden');
+    el('supplement-modal').classList.add('hidden');
   }
 
   function submitSupplement() {
-    var key = document.getElementById('supplement-key').value;
-    var reason = document.getElementById('supplement-reason').value.trim();
-    var dataStatus = document.getElementById('supplement-datastatus').value;
-    var raw = document.getElementById('supplement-value').value;
+    var key = el('supplement-key').value;
+    var reason = el('supplement-reason').value.trim();
+    var dataStatus = el('supplement-datastatus').value;
+    var raw = el('supplement-value').value;
     if (!key) {
       C.toast('请选择分类单元', 'warning');
       return;
@@ -1168,8 +1411,8 @@ function initReportReview() {
         reportId: currentReportId,
         key: key,
         value: raw === '' ? null : Number(raw),
-        unit: document.getElementById('supplement-unit').value || '%',
-        labNotice: document.getElementById('supplement-labnotice').value,
+        unit: el('supplement-unit').value || '%',
+        labNotice: el('supplement-labnotice').value,
         dataStatus: dataStatus,
         reason: reason
       });
@@ -1181,7 +1424,7 @@ function initReportReview() {
   }
 
   function renderAnalysisPanel(state, report) {
-    var panel = document.getElementById('analysis-panel');
+    var panel = el('analysis-panel');
     var units = store.getPhylumUnits(report.id) || [];
     var pending = (report.todoFlags || []).indexOf('pending_reanalysis') >= 0;
     var run = C.getLatestAnalysisRun(state, report.id);
@@ -1275,13 +1518,18 @@ function initReportReview() {
   function handleAnalysisClick(e) {
     var runBtn = e.target.closest('#btn-run-analysis');
     if (runBtn) {
-      formInteracting = true;
-      saveAllPhylumDraftsFromDom(true);
       C.confirmDialog('运行分析将按当前有效结果与启用规则重算命中。人工草稿不会被覆盖。', function () {
+        formInteracting = true;
+        if (!persistWorkbench(true)) {
+          formInteracting = false;
+          C.toast('综合评定校验未通过，无法运行分析', 'warning');
+          return;
+        }
         try {
-          store.runReportAnalysis(currentReportId, { actor: actorLabel() });
+          store.runReportAnalysis(currentReportId, actorOptions());
           afterWrite('分析运行完成', 'success');
         } catch (err) {
+          formInteracting = false;
           handleStoreError(err);
         }
       });
@@ -1297,13 +1545,14 @@ function initReportReview() {
     var saveBtn = e.target.closest('.rw-save-unit-draft');
     if (saveBtn) {
       var key = saveBtn.getAttribute('data-phylum');
-      var analysisEl = document.getElementById('unit-analysis-' + key);
-      var adviceEl = document.getElementById('unit-advice-' + key);
+      var analysisEl = el('unit-analysis-' + key);
+      var adviceEl = el('unit-advice-' + key);
       try {
         store.savePhylumUnitDraft(currentReportId, key, {
           analysis: analysisEl ? analysisEl.value : '',
           advice: adviceEl ? adviceEl.value : ''
         });
+        captureProfessionalBaseline();
         afterWrite('已保存草稿（状态回到未确认）', 'success');
       } catch (err) {
         handleStoreError(err);
@@ -1313,15 +1562,16 @@ function initReportReview() {
     var confirmBtn = e.target.closest('.rw-confirm-unit');
     if (confirmBtn) {
       var ckey = confirmBtn.getAttribute('data-phylum');
-      var aEl = document.getElementById('unit-analysis-' + ckey);
-      var dEl = document.getElementById('unit-advice-' + ckey);
+      var aEl = el('unit-analysis-' + ckey);
+      var dEl = el('unit-advice-' + ckey);
       try {
         var unit = currentUnit(ckey);
         if (unit && aEl && dEl &&
             (aEl.value !== (unit.analysisDraft || '') || dEl.value !== (unit.adviceDraft || ''))) {
           store.savePhylumUnitDraft(currentReportId, ckey, { analysis: aEl.value, advice: dEl.value });
         }
-        store.confirmPhylumUnit(currentReportId, ckey, { actor: actorLabel() });
+        store.confirmPhylumUnit(currentReportId, ckey, actorOptions());
+        captureProfessionalBaseline();
         afterWrite('已确认菌门分析单元', 'success');
       } catch (err) {
         handleStoreError(err);
@@ -1365,9 +1615,13 @@ function initReportReview() {
   }
 
   function renderRecommendationsPanel(state, report) {
-    var panel = document.getElementById('recommendations-panel');
+    var panel = el('recommendations-panel');
     var units = store.getPhylumUnits(report.id) || [];
-    var readonly = !isEditable(report);
+    var productEditable = canConfigureProducts(report);
+    var productBtn = el('btn-save-products');
+    if (productBtn) {
+      productBtn.classList.toggle('hidden', !productEditable || !hasProductSessionDirty());
+    }
     if (!units.length) {
       panel.innerHTML = '<p class="text-slate-500">暂无菌门分析单元。</p>';
       return;
@@ -1376,11 +1630,13 @@ function initReportReview() {
       var disabled = unitProductDisabled(unit);
       var advice = String(unit.adviceDraft || '').trim();
       var summary = advice ? advice.slice(0, 40) + (advice.length > 40 ? '…' : '') : '（无建议）';
-      var primary = findProduct(state, unit.primaryProductId);
-      var related = (unit.relatedProductIds || []).map(function (pid, idx) {
+      var prod = sessionProducts(unit.phylumKey);
+      var sessionDirty = productSession[unit.phylumKey] && !productsEqual(productSession[unit.phylumKey], savedProducts(unit));
+      var primary = findProduct(state, prod.primaryProductId);
+      var related = (prod.relatedProductIds || []).map(function (pid, idx) {
         var p = findProduct(state, pid);
         return '<span class="rw-related-chip">' + C.escapeHtml(p ? p.name : pid) +
-          (!readonly && !disabled
+          (productEditable && !disabled
             ? ' <button type="button" class="rw-rec-remove-related" data-phylum="' + unit.phylumKey + '" data-idx="' + idx + '">&times;</button>'
             : '') +
           '</span>';
@@ -1394,16 +1650,17 @@ function initReportReview() {
           '<div><span class="text-xs text-slate-500">主推商品</span>' +
           '<div class="flex items-center gap-2 mt-0.5 flex-wrap">' +
           '<span class="text-sm">' + (primary ? C.escapeHtml(primary.name) : '<span class="text-slate-400">未选择</span>') + '</span>' +
-          (unit.primaryProductId ? availabilityTag(unit.primaryProductId) : '') +
-          (!readonly
-            ? '<button type="button" class="rw-pick-product btn-secondary px-2 py-0.5 rounded text-xs" data-phylum="' + unit.phylumKey + '" data-slot="primary">选择</button>' +
-              (primary ? '<button type="button" class="rw-clear-primary text-xs text-red-600" data-phylum="' + unit.phylumKey + '">清除</button>' : '')
+          (prod.primaryProductId ? availabilityTag(prod.primaryProductId) : '') +
+          (sessionDirty ? '<span class="rw-session-tag">未保存</span>' : '') +
+          (productEditable
+            ? '<button type="button" class="rw-pick-product ant-btn ant-btn-default ant-btn-sm" data-phylum="' + unit.phylumKey + '" data-slot="primary">选择</button>' +
+              (primary ? '<button type="button" class="rw-clear-primary ant-btn ant-btn-link ant-btn-sm" data-phylum="' + unit.phylumKey + '">清除</button>' : '')
             : '') +
           '</div></div>' +
-          '<div><span class="text-xs text-slate-500">关联商品（' + (unit.relatedProductIds || []).length + '/3）</span>' +
+          '<div><span class="text-xs text-slate-500">关联商品（' + (prod.relatedProductIds || []).length + '/3）</span>' +
           '<div class="flex flex-wrap gap-1 mt-0.5">' + (related || '<span class="text-xs text-slate-400">无</span>') +
-          (!readonly && (unit.relatedProductIds || []).length < 3
-            ? '<button type="button" class="rw-pick-product btn-secondary px-2 py-0.5 rounded text-xs" data-phylum="' + unit.phylumKey + '" data-slot="related">+ 添加</button>'
+          (productEditable && (prod.relatedProductIds || []).length < 3
+            ? '<button type="button" class="rw-pick-product ant-btn ant-btn-default ant-btn-sm" data-phylum="' + unit.phylumKey + '" data-slot="related">+ 添加</button>'
             : '') +
           '</div></div></div>';
       }
@@ -1419,6 +1676,9 @@ function initReportReview() {
   }
 
   function handleRecommendationsClick(e) {
+    var report = C.lookupReport(store.getState(), currentReportId);
+    if (!report || !canConfigureProducts(report)) return;
+
     var pickBtn = e.target.closest('.rw-pick-product');
     if (pickBtn) {
       openProductPicker(pickBtn.getAttribute('data-phylum'), pickBtn.getAttribute('data-slot'));
@@ -1428,52 +1688,55 @@ function initReportReview() {
     if (clearBtn) {
       var unit = currentUnit(clearBtn.getAttribute('data-phylum'));
       if (!unit) return;
-      try {
-        store.savePhylumUnitProducts(currentReportId, unit.phylumKey, {
-          primaryProductId: null,
-          relatedProductIds: unit.relatedProductIds || []
-        });
-        afterWrite('已清除主推商品', 'info');
-      } catch (err) {
-        handleStoreError(err);
-      }
+      var sess = sessionProducts(unit.phylumKey);
+      productSession[unit.phylumKey] = {
+        primaryProductId: null,
+        relatedProductIds: (sess.relatedProductIds || []).slice()
+      };
+      syncDirtyState();
+      renderRecommendationsPanel(store.getState(), report);
+      updatePreview(store.getState());
       return;
     }
     var removeBtn = e.target.closest('.rw-rec-remove-related');
     if (removeBtn) {
       var u2 = currentUnit(removeBtn.getAttribute('data-phylum'));
       if (!u2) return;
-      var related = (u2.relatedProductIds || []).slice();
+      var base = sessionProducts(u2.phylumKey);
+      var related = (base.relatedProductIds || []).slice();
       related.splice(parseInt(removeBtn.getAttribute('data-idx'), 10), 1);
-      try {
-        store.savePhylumUnitProducts(currentReportId, u2.phylumKey, {
-          primaryProductId: u2.primaryProductId,
-          relatedProductIds: related
-        });
-        render(store.getState());
-      } catch (err) {
-        handleStoreError(err);
-      }
+      productSession[u2.phylumKey] = {
+        primaryProductId: base.primaryProductId,
+        relatedProductIds: related
+      };
+      syncDirtyState();
+      renderRecommendationsPanel(store.getState(), report);
+      updatePreview(store.getState());
     }
   }
 
   function openProductPicker(phylumKey, slot) {
+    var report = C.lookupReport(store.getState(), currentReportId);
+    if (!report || !canConfigureProducts(report)) {
+      C.toast('当前不可配置商品', 'warning');
+      return;
+    }
     pickerState = { phylumKey: phylumKey, slot: slot, page: 1 };
-    document.getElementById('picker-title').textContent = slot === 'primary' ? '选择主推商品' : '选择关联商品';
+    el('picker-title').textContent = slot === 'primary' ? '选择主推商品' : '选择关联商品';
     var state = store.getState();
-    var catSel = document.getElementById('picker-category');
+    var catSel = el('picker-category');
     catSel.innerHTML = '<option value="">全部分类</option>' +
       (state.categories || []).map(function (c) {
         return '<option value="' + c.id + '">' + C.escapeHtml(c.name) + '</option>';
       }).join('');
-    document.getElementById('picker-search').value = '';
-    document.getElementById('picker-status').value = '';
-    document.getElementById('product-picker-modal').classList.remove('hidden');
+    el('picker-search').value = '';
+    el('picker-status').value = '';
+    el('product-picker-modal').classList.remove('hidden');
     renderProductPickerList(state);
   }
 
   function closeProductPicker() {
-    document.getElementById('product-picker-modal').classList.add('hidden');
+    el('product-picker-modal').classList.add('hidden');
   }
 
   function renderProductPickerList(state) {
@@ -1484,15 +1747,15 @@ function initReportReview() {
       (unit.relatedProductIds || []).forEach(function (id) { includeIds.push(id); });
     }
     var result = store.searchProductsForPicker(state, {
-      q: document.getElementById('picker-search').value,
-      categoryId: document.getElementById('picker-category').value || null,
-      status: document.getElementById('picker-status').value || null,
+      q: el('picker-search').value,
+      categoryId: el('picker-category').value || null,
+      status: el('picker-status').value || null,
       page: pickerState.page,
       pageSize: 8,
       includeProductIds: includeIds
     });
     var labels = productStatusLabels();
-    var list = document.getElementById('picker-list');
+    var list = el('picker-list');
     if (!result.items.length) {
       list.innerHTML = '<p class="text-slate-500 py-4 text-center">无匹配商品</p>';
     } else {
@@ -1510,7 +1773,7 @@ function initReportReview() {
       });
     }
     var totalPages = Math.max(1, Math.ceil(result.total / result.pageSize));
-    var pag = document.getElementById('picker-pagination');
+    var pag = el('picker-pagination');
     pag.innerHTML = '<span>共 ' + result.total + ' 项</span><span>' +
       (pickerState.page > 1 ? '<button type="button" data-page="' + (pickerState.page - 1) + '" class="text-teal-700 mx-1">上一页</button>' : '') +
       pickerState.page + ' / ' + totalPages +
@@ -1521,24 +1784,25 @@ function initReportReview() {
   function selectPickerProduct(productId) {
     var unit = currentUnit(pickerState.phylumKey);
     if (!unit) return;
+    var sess = sessionProducts(unit.phylumKey);
+    var next = {
+      primaryProductId: sess.primaryProductId,
+      relatedProductIds: (sess.relatedProductIds || []).slice()
+    };
     try {
       if (pickerState.slot === 'primary') {
-        store.savePhylumUnitProducts(currentReportId, unit.phylumKey, {
-          primaryProductId: productId,
-          relatedProductIds: unit.relatedProductIds || []
-        });
+        next.primaryProductId = productId;
       } else {
-        var related = (unit.relatedProductIds || []).slice();
-        if (related.indexOf(productId) < 0 && related.length < 3 && productId !== unit.primaryProductId) {
-          related.push(productId);
+        if (next.relatedProductIds.indexOf(productId) < 0 && next.relatedProductIds.length < 3 && productId !== next.primaryProductId) {
+          next.relatedProductIds.push(productId);
         }
-        store.savePhylumUnitProducts(currentReportId, unit.phylumKey, {
-          primaryProductId: unit.primaryProductId,
-          relatedProductIds: related
-        });
       }
+      productSession[unit.phylumKey] = next;
       closeProductPicker();
-      render(store.getState());
+      syncDirtyState();
+      var state = store.getState();
+      renderRecommendationsPanel(state, C.lookupReport(state, currentReportId));
+      updatePreview(state);
     } catch (err) {
       handleStoreError(err);
     }
@@ -1546,19 +1810,18 @@ function initReportReview() {
 
   function syncPreviewVersionToggle(state) {
     var report = C.lookupReport(state, currentReportId);
-    var toggleWrap = document.getElementById('versions-toggle-wrap');
+    var toggleWrap = el('versions-toggle-wrap');
     if (!toggleWrap) return;
     var showToggle = !!(report && report.status === 'published' && report.correctionDraftActive);
     toggleWrap.classList.toggle('hidden', !showToggle);
     if (!showToggle) versionView = 'working';
-    var workingBtn = document.getElementById('ver-toggle-working');
-    var publishedBtn = document.getElementById('ver-toggle-published');
+    var workingBtn = el('ver-toggle-working');
+    var publishedBtn = el('ver-toggle-published');
     if (workingBtn) workingBtn.classList.toggle('active', versionView !== 'published');
     if (publishedBtn) publishedBtn.classList.toggle('active', versionView === 'published');
   }
 
   function getPreviewFormValues() {
-    var el = function (id) { return document.getElementById(id); };
     return {
       species: el('assess-species') ? el('assess-species').value : '',
       level: el('assess-level') ? el('assess-level').value : '',
@@ -1668,11 +1931,25 @@ function initReportReview() {
     });
   }
 
+  function unitsWithSessionProducts(units) {
+    return (units || []).map(function (unit) {
+      var sess = productSession[unit.phylumKey];
+      if (!sess) return unit;
+      return Object.assign({}, unit, {
+        primaryProductId: sess.primaryProductId,
+        relatedProductIds: (sess.relatedProductIds || []).slice()
+      });
+    });
+  }
+
   function updatePreview(state) {
     var report = C.lookupReport(state, currentReportId);
     if (!report) return;
     var vals = getPreviewFormValues();
     var data = getPreviewData(state, report);
+    if (!data.fromSnapshot) {
+      data.units = unitsWithSessionProducts(data.units);
+    }
     var pet = C.lookupPet(state, report.petId);
     var petName = pet ? pet.name : 'TA';
     var species = data.fromSnapshot ? data.species : (vals.species || data.species);
@@ -1783,16 +2060,18 @@ function initReportReview() {
     html += '<div class="rw-mini-badge">' + C.escapeHtml(viewTag) + '</div>';
     html += '</div>';
 
-    var host = document.getElementById('preview-content');
+    var host = el('preview-content');
     host.innerHTML = html;
     bindPreviewReading(host);
   }
 
   function partialUpdate(state) {
+    if (!isTabActive()) return;
     lastChecks = C.buildPublicationChecks(state, currentReportId);
     renderModuleNav(lastChecks);
     renderChecksPanel(lastChecks);
     updatePreview(state);
+    syncDirtyState();
   }
 
   function statusLabelHtml(report) {
@@ -1815,10 +2094,11 @@ function initReportReview() {
   }
 
   function render(state) {
+    if (!isTabActive()) return;
     var reports = (state.reports || []).slice().sort(function (a, b) {
       return String(a.reportNumber || '').localeCompare(String(b.reportNumber || ''));
     });
-    var select = document.getElementById('select-report');
+    var select = el('select-report');
     select.innerHTML = reports.map(function (r) {
       var stage = correctionStage(r);
       var tag = r.correctionDraftActive && CORRECTION_STAGE_LABELS[stage]
@@ -1837,8 +2117,8 @@ function initReportReview() {
 
     var report = currentReportId ? C.lookupReport(state, currentReportId) : null;
     if (!report) {
-      document.getElementById('source-panel').innerHTML = '<p class="text-slate-500">请选择报告。</p>';
-      document.getElementById('action-bar').innerHTML = '';
+      el('source-panel').innerHTML = '<p class="text-slate-500">请选择报告。</p>';
+      el('action-bar').innerHTML = '';
       switchModule('source');
       return;
     }
@@ -1848,26 +2128,27 @@ function initReportReview() {
       lastRenderedReportId = report.id;
       selectedResultId = null;
       expandedHits = {};
+      resetProductSession();
       if (!(report.status === 'published' && report.correctionDraftActive)) versionView = 'working';
     }
 
-    document.getElementById('report-status-badge').innerHTML = statusLabelHtml(report);
-    document.getElementById('version-badges').innerHTML =
+    el('report-status-badge').innerHTML = statusLabelHtml(report);
+    el('version-badges').innerHTML =
       '工作版 v' + (report.workingVersion || '—') +
       ' · 发布版 v' + (report.publishedVersion != null ? report.publishedVersion : '—');
 
-    var rejectBanner = document.getElementById('reject-banner');
+    var rejectBanner = el('reject-banner');
     if (report.status === 'incomplete' && report.rejectReason) {
       rejectBanner.classList.remove('hidden');
-      document.getElementById('reject-reason-text').textContent = report.rejectReason;
+      el('reject-reason-text').textContent = report.rejectReason;
     } else {
       rejectBanner.classList.add('hidden');
     }
 
-    var corrBanner = document.getElementById('correction-banner');
+    var corrBanner = el('correction-banner');
     if (report.correctionDraftActive) {
       corrBanner.classList.remove('hidden');
-      document.getElementById('correction-pub-ver').textContent = report.publishedVersion != null ? report.publishedVersion : '—';
+      el('correction-pub-ver').textContent = report.publishedVersion != null ? report.publishedVersion : '—';
     } else {
       corrBanner.classList.add('hidden');
     }
@@ -1888,12 +2169,37 @@ function initReportReview() {
 
     if (pendingFocusTrace) {
       pendingFocusTrace = false;
-      var traceEl = document.getElementById('rw-report-trace');
+      var traceEl = el('rw-report-trace');
       if (traceEl && typeof traceEl.scrollIntoView === 'function') {
         traceEl.scrollIntoView({ block: 'nearest' });
       }
     }
 
-    if (C.enhanceDom) C.enhanceDom(document.getElementById('report-review'));
+    if (!formInteracting) captureProfessionalBaseline();
+    syncDirtyState();
+
+    if (C.enhanceDom) C.enhanceDom(root.querySelector('#report-review') || root);
   }
+
+  bindStaticEvents();
+  render(store.getState());
+
+  if (tab && typeof window.__petAdminRegisterTabHooks === 'function') {
+    window.__petAdminRegisterTabHooks(tab.id, {
+      activate: onTabActivate,
+      deactivate: onTabDeactivate,
+      canLeave: confirmDiscardWorkbench
+    });
+  }
+
+  return function teardown() {
+    if (typeof unsub === 'function') {
+      unsub();
+      unsub = null;
+    }
+    document.removeEventListener('mousemove', onResizeMove);
+    document.removeEventListener('mouseup', onResizeEnd);
+    resizing = false;
+    if (resizer) resizer.classList.remove('is-dragging');
+  };
 }

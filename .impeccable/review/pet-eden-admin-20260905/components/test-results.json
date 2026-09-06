@@ -1,0 +1,28 @@
+{
+  "passed": [
+    "search filters rows",
+    "reset restores rows",
+    "pagination next",
+    "column hidden",
+    "fullscreen on",
+    "fullscreen off",
+    "error state shown",
+    "retry after error",
+    "race: fast response wins (10 rows)",
+    "tab A state saved on owner tab",
+    "tab B state independent",
+    "tab A state persists after switch",
+    "modal focus trap cycles",
+    "modal stays open on fail",
+    "modal retains input on fail"
+  ],
+  "failed": [],
+  "consoleErrors": [],
+  "failedResources": [],
+  "screenshots": [
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/components/screenshots/component-test-1440.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/components/screenshots/component-test-390.png"
+  ],
+  "capturedAt": "2026-09-05T02:23:09.765Z",
+  "ok": true
+}

@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "passed": [
+    "用户列表加载",
+    "用户详情同页签打开",
+    "返回保留搜索",
+    "宠物视图切换",
+    "宠物详情预填 petId",
+    "用户详情新建模式预填手机号",
+    "同手机号复用同一 ID",
+    "已有资料不覆盖",
+    "登记取消无孤儿",
+    "登记成功新增宠物",
+    "登记成功新增送检记录",
+    "无 pageerror",
+    "无业务 console.error"
+  ],
+  "failed": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (File not found)"
+  ],
+  "pageErrors": []
+}

@@ -1,0 +1,79 @@
+{
+  "ranAt": "2026-09-05T02:33:40.050Z",
+  "command": "node .impeccable/review/pet-eden-admin-20260905/session/navigation-fix-test.mjs",
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "fixture": "file:///Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/session/navigation-fix-fixture.html",
+  "passed": 13,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "first report mounts via C.navigate",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "second report mounts via C.navigate (not empty shell)",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "two distinct report tabs",
+      "ok": true,
+      "detail": "tab-1788575616430-1n6fo vs tab-1788575616579-2f1e0"
+    },
+    {
+      "name": "first report tab still has content after switch back",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "second report tab retains mounted content",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "name": "same report entity reuses tab on module change",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "module param applied before UI reads",
+      "ok": true,
+      "detail": "module=source"
+    },
+    {
+      "name": "rapid C.navigate does not duplicate HTML fetch",
+      "ok": true,
+      "detail": "fetches=1"
+    },
+    {
+      "name": "rapid navigate ends with single mounted workbench",
+      "ok": true,
+      "detail": "true"
+    },
+    {
+      "name": "edit/test share one tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "activate hook sees test mode after edit→test",
+      "ok": true,
+      "detail": "{\"tabCount\":1,\"lastMode\":\"test\",\"domMode\":\"test\",\"paramsMode\":\"test\",\"mounts\":{\"tab-1788575619779-p8pxt\":1}}"
+    },
+    {
+      "name": "DOM reflects test mode from params",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "fixture single mount per tab",
+      "ok": true,
+      "detail": "{\"tab-1788575619779-p8pxt\":1}"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (File not found)"
+  ],
+  "pageErrors": []
+}

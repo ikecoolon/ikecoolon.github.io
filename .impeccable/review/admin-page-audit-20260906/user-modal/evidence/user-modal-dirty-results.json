@@ -1,0 +1,106 @@
+{
+  "ok": true,
+  "passed": [
+    {
+      "name": "@1440: 打开空 Modal 无 ownerTab 星号",
+      "detail": ""
+    },
+    {
+      "name": "@1440: 空表单取消直接关闭",
+      "detail": "roots=0"
+    },
+    {
+      "name": "@1440: 再次打开空 Modal 仍无星号",
+      "detail": ""
+    },
+    {
+      "name": "@1440: 输入后 ownerTab 星号",
+      "detail": ""
+    },
+    {
+      "name": "@1440: 有输入取消弹出确认层",
+      "detail": "roots=2"
+    },
+    {
+      "name": "@1440: 拒绝确认保留 Modal 与输入值",
+      "detail": "open=true phone=true"
+    },
+    {
+      "name": "@1440: 确认关闭后 Modal 消失",
+      "detail": ""
+    },
+    {
+      "name": "@1440: 关闭后 ownerTab 星号清除",
+      "detail": ""
+    },
+    {
+      "name": "@1024: 打开空 Modal 无 ownerTab 星号",
+      "detail": ""
+    },
+    {
+      "name": "@1024: 空表单取消直接关闭",
+      "detail": "roots=0"
+    },
+    {
+      "name": "@1024: 再次打开空 Modal 仍无星号",
+      "detail": ""
+    },
+    {
+      "name": "@1024: 输入后 ownerTab 星号",
+      "detail": ""
+    },
+    {
+      "name": "@1024: 有输入取消弹出确认层",
+      "detail": "roots=2"
+    },
+    {
+      "name": "@1024: 拒绝确认保留 Modal 与输入值",
+      "detail": "open=true phone=true"
+    },
+    {
+      "name": "@1024: 确认关闭后 Modal 消失",
+      "detail": ""
+    },
+    {
+      "name": "@1024: 关闭后 ownerTab 星号清除",
+      "detail": ""
+    },
+    {
+      "name": "@390: 打开空 Modal 无 ownerTab 星号",
+      "detail": ""
+    },
+    {
+      "name": "@390: 空表单取消直接关闭",
+      "detail": "roots=0"
+    },
+    {
+      "name": "@390: 再次打开空 Modal 仍无星号",
+      "detail": ""
+    },
+    {
+      "name": "@390: 输入后 ownerTab 星号",
+      "detail": ""
+    },
+    {
+      "name": "@390: 有输入取消弹出确认层",
+      "detail": "roots=2"
+    },
+    {
+      "name": "@390: 拒绝确认保留 Modal 与输入值",
+      "detail": "open=true phone=true"
+    },
+    {
+      "name": "@390: 确认关闭后 Modal 消失",
+      "detail": ""
+    },
+    {
+      "name": "@390: 关闭后 ownerTab 星号清除",
+      "detail": ""
+    }
+  ],
+  "failed": [],
+  "summary": {
+    "passed": 24,
+    "failed": 0
+  }
+}

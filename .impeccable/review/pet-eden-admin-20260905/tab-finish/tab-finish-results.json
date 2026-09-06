@@ -1,0 +1,65 @@
+{
+  "ranAt": "2026-09-06T01:39:13.067Z",
+  "command": "node .impeccable/review/pet-eden-admin-20260905/tab-finish/tab-finish-test.mjs",
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "playwrightModule": "/Users/zhaoyanlong/.npm/_npx/420ff84f11983ee5/node_modules/playwright",
+  "passed": 11,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "C.navigate report-center shows Chinese title",
+      "ok": true,
+      "detail": "报告中心"
+    },
+    {
+      "name": "C.navigate detection-records shows Chinese title",
+      "ok": true,
+      "detail": "送检管理"
+    },
+    {
+      "name": "C.navigate normal-range-config shows Chinese title",
+      "ok": true,
+      "detail": "指标/参考范围"
+    },
+    {
+      "name": "C.navigate analysis-rules shows Chinese title",
+      "ok": true,
+      "detail": "分析规则"
+    },
+    {
+      "name": "C.navigate report-review shows Chinese title",
+      "ok": true,
+      "detail": "报告工作台"
+    },
+    {
+      "name": "C.navigate analysis-rules edit title",
+      "ok": true,
+      "detail": "编辑分析规则"
+    },
+    {
+      "name": "edit→test shows 规则测试 title",
+      "ok": true,
+      "detail": "规则测试"
+    },
+    {
+      "name": "edit/test share one tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "pointer dismiss on dirty close keeps tab",
+      "ok": true,
+      "detail": "dirty=true"
+    },
+    {
+      "name": "tab id unchanged after dismiss",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "pointer accept on dirty close removes tab",
+      "ok": true,
+      "detail": ""
+    }
+  ]
+}

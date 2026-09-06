@@ -8,6 +8,9 @@
 - [ADR-0030：送检管理与报告中心分工](./0030-separate-test-submission-management-from-report-center.md)
 - [ADR-0031：按菌门组织分析、建议与商品](./0031-organize-analysis-advice-and-products-by-phylum.md)
 - [ADR-0032：在现有商城小程序内承载健康报告](./0032-embed-health-reports-in-the-existing-mall-mini-program.md)
+- [ADR-0033：管理端列表统一采用 BasicTable](./0033-use-basic-table-for-pet-eden-admin-lists.md)
+- [ADR-0034：宠物健康模块复用平台会员身份](./0034-reuse-member-identities-in-pet-health.md)
+- [ADR-0035：报告编制与审核采用可组合权限](./0035-separate-composable-report-permissions.md)
 
 ## 数据与发布
 

@@ -1,0 +1,332 @@
+/* Pet Eden admin — application shell */
+
+html {
+  overflow-x: hidden;
+}
+
+body.ant-layout-body {
+  margin: 0;
+  font-family: var(--ant-font-family);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ant-text);
+  background: var(--ant-bg-layout);
+  min-height: 100vh;
+}
+
+.ant-admin-root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.ant-layout-sider {
+  width: var(--rondo-sider-width);
+  min-width: var(--rondo-sider-width);
+  flex-shrink: 0;
+  background: var(--ant-sider-bg);
+  color: rgba(255, 255, 255, 0.65);
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 100;
+}
+
+.ant-layout-sider-brand {
+  height: var(--rondo-header-height);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--rondo-content-padding);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  gap: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.ant-layout-sider-brand i {
+  color: var(--rondo-primary);
+  font-size: 18px;
+}
+
+.ant-layout-sider-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0 16px;
+  min-height: 0;
+}
+
+.ant-layout-sider-footer {
+  padding: 12px var(--rondo-content-padding);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.35);
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.ant-nav-section-title {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 12px var(--rondo-content-padding) 4px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.ant-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 8px;
+  padding: 0 12px;
+  height: 40px;
+  border-radius: var(--ant-radius);
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+
+.ant-nav-item i {
+  width: 14px;
+  text-align: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.ant-nav-item:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ant-nav-item.active {
+  color: #fff;
+  background: var(--rondo-primary);
+}
+
+.ant-layout-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  margin-left: var(--rondo-sider-width);
+}
+
+.ant-layout-header {
+  height: var(--rondo-header-height);
+  min-height: var(--rondo-header-height);
+  padding: 0 var(--rondo-content-padding);
+  background: var(--ant-bg-container);
+  border-bottom: 1px solid var(--ant-border-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ant-layout-header-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ant-text);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.ant-layout-header-extra {
+  font-size: 13px;
+  color: var(--ant-text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ant-layout-content {
+  flex: 1;
+  padding: var(--rondo-content-padding);
+  background: var(--ant-bg-layout);
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.ant-sider-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ant-border);
+  border-radius: var(--ant-radius);
+  background: #fff;
+  color: var(--ant-text);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  font-family: inherit;
+}
+
+.ant-sider-mask {
+  display: none;
+}
+
+#admin-tabbar {
+  display: flex;
+  align-items: stretch;
+  height: var(--rondo-tabbar-height);
+  min-height: var(--rondo-tabbar-height);
+  background: var(--ant-bg-container);
+  border-bottom: 1px solid var(--ant-border-secondary);
+  overflow-x: auto;
+  flex-shrink: 0;
+  gap: 0;
+}
+
+.admin-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 200px;
+  height: 100%;
+  padding: 0 12px;
+  border: none;
+  border-right: 1px solid var(--ant-border-secondary);
+  background: #fafafa;
+  color: var(--ant-text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+  outline: none;
+}
+
+.admin-tab:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--rondo-primary);
+}
+
+.admin-tab:hover {
+  color: var(--ant-text);
+  background: #f0f0f0;
+}
+
+.admin-tab.is-active {
+  background: var(--ant-bg-container);
+  color: var(--rondo-primary);
+  font-weight: 500;
+  box-shadow: inset 0 2px 0 var(--rondo-primary);
+}
+
+.admin-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
+  border-radius: 2px;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.55;
+  cursor: pointer;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.admin-tab-close:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.admin-tab.is-dirty .admin-tab-label::after {
+  content: ' *';
+  color: var(--ant-warning);
+}
+
+.page-mount {
+  display: none;
+  min-height: 100%;
+}
+
+.page-mount.is-active {
+  display: block;
+}
+
+@media (max-width: 768px) {
+  .ant-layout-sider {
+    width: min(280px, 85vw);
+    min-width: 0;
+    max-width: 85vw;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 200;
+  }
+
+  .ant-layout-sider.is-open {
+    transform: translateX(0);
+  }
+
+  .ant-sider-mask {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 150;
+    background: rgba(0, 0, 0, 0.45);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .ant-sider-mask.is-visible {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  body.ant-sider-open {
+    overflow: hidden;
+  }
+
+  .ant-layout-main {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .ant-sider-toggle {
+    display: inline-flex;
+  }
+
+  .ant-layout-header-extra {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .ant-layout-sider,
+  .ant-sider-mask {
+    transition: none;
+  }
+}

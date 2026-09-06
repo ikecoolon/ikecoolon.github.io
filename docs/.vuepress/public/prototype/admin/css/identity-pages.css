@@ -1,0 +1,42 @@
+/* 用户与宠物 / 送检登记 — 页面局部样式 */
+.up-list-mount.hidden {
+  display: none;
+}
+
+.up-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.up-disabled-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 0 8px;
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--ant-error, #cf1322);
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  border-radius: 4px;
+}
+
+.up-member-note {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 6px;
+}
+
+.up-member-note strong {
+  color: #334155;
+}
+
+#dr-reg-existing-user.is-disabled {
+  border-color: #ffa39e;
+  background: #fff1f0;
+}

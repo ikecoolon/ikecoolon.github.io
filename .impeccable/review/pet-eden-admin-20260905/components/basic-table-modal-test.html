@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BasicTable + Modal 组件隔离测试</title>
+  <link rel="stylesheet" href="/docs/.vuepress/public/prototype/admin/css/tokens.css" />
+  <link rel="stylesheet" href="/docs/.vuepress/public/prototype/admin/css/components.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+  <style>
+    body { margin: 0; font-family: var(--ant-font-family); background: var(--ant-bg-layout); color: var(--ant-text); }
+    .test-shell { padding: 16px; max-width: 1200px; margin: 0 auto; }
+    .test-section { margin-bottom: 24px; }
+    .test-section h1 { font-size: 18px; margin: 0 0 8px; }
+    .test-section p { margin: 0 0 12px; color: var(--ant-text-secondary); font-size: 13px; }
+    .test-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    #test-log { font-family: ui-monospace, monospace; font-size: 12px; background: #111; color: #9ef; padding: 12px; border-radius: 8px; white-space: pre-wrap; min-height: 80px; }
+    #toast-container { position: fixed; top: 16px; right: 16px; z-index: 2000; }
+    .ant-message-notice { background: #fff; border: 1px solid #f0f0f0; padding: 8px 12px; margin-bottom: 8px; border-radius: 6px; box-shadow: var(--ant-shadow-secondary); }
+    .ant-message-error { border-color: #ffccc7; color: #cf1322; }
+  </style>
+</head>
+<body>
+  <div class="test-shell">
+    <div class="test-section">
+      <h1>BasicTable + Modal 隔离测试</h1>
+      <p>供 Playwright 断言：搜索/重置/分页/列配置/全屏/空错重试/竞态/tab 归属/Modal 键盘与失败保留。</p>
+      <div class="test-actions">
+        <button type="button" class="rondo-btn rondo-btn-default" id="btn-open-modal">打开 Modal</button>
+        <button type="button" class="rondo-btn rondo-btn-default" id="btn-open-fail-modal">打开失败保留 Modal</button>
+        <button type="button" class="rondo-btn rondo-btn-default" id="btn-switch-tab">切换至 Tab B</button>
+        <button type="button" class="rondo-btn rondo-btn-default" id="btn-race-slow">触发慢请求</button>
+        <button type="button" class="rondo-btn rondo-btn-default" id="btn-race-fast">触发快请求</button>
+        <button type="button" class="rondo-btn rondo-btn-default" id="btn-force-error">强制错误</button>
+      </div>
+    </div>
+    <div id="table-a" data-testid="table-instance-a"></div>
+    <div id="table-b" data-testid="table-instance-b" style="margin-top:24px"></div>
+    <div class="test-section" style="margin-top:24px">
+      <h1>断言日志</h1>
+      <div id="test-log" aria-live="polite"></div>
+    </div>
+  </div>
+  <div id="toast-container" aria-live="polite"></div>
+
+  <script src="/docs/.vuepress/public/prototype/admin/js/admin-session.js"></script>
+  <script src="/docs/.vuepress/public/prototype/admin/js/admin-basic-table.js"></script>
+  <script src="/docs/.vuepress/public/prototype/admin/js/admin-modal.js"></script>
+  <script src="/docs/.vuepress/public/prototype/admin/js/admin-common.js"></script>
+  <script>
+  (function () {
+    'use strict';
+
+    var logEl = document.getElementById('test-log');
+    function log(msg) {
+      logEl.textContent += msg + '\n';
+      window.__componentTestLog = (window.__componentTestLog || []).concat(msg);
+    }
+
+    var ALL_ROWS = [
+      { id: 'r1', name: 'Alpha', status: 'ok' },
+      { id: 'r2', name: 'Beta', status: 'ok' },
+      { id: 'r3', name: 'Gamma', status: 'warn' },
+      { id: 'r4', name: 'Delta', status: 'ok' },
+      { id: 'r5', name: 'Epsilon', status: 'ok' },
+      { id: 'r6', name: 'Zeta', status: 'warn' },
+      { id: 'r7', name: 'Eta', status: 'ok' },
+      { id: 'r8', name: 'Theta', status: 'ok' },
+      { id: 'r9', name: 'Iota', status: 'ok' },
+      { id: 'r10', name: 'Kappa', status: 'ok' },
+      { id: 'r11', name: 'Lambda', status: 'ok' },
+      { id: 'r12', name: 'Mu', status: 'ok' }
+    ];
+
+    var raceMode = 'normal';
+    var forceError = false;
+    var slowDelay = 1200;
+    var fastDelay = 100;
+
+    function fetchRows(query) {
+      var delay = raceMode === 'slow' ? slowDelay : (raceMode === 'fast' ? fastDelay : 200);
+      return new Promise(function (resolve, reject) {
+        setTimeout(function () {
+          if (forceError) {
+            reject(new Error('模拟加载失败'));
+            return;
+          }
+          var filtered = ALL_ROWS.filter(function (row) {
+            if (query.filters.keyword && row.name.indexOf(query.filters.keyword) < 0) return false;
+            if (query.filters.status && row.status !== query.filters.status) return false;
+            return true;
+          });
+          var start = (query.page - 1) * query.pageSize;
+          resolve({
+            rows: filtered.slice(start, start + query.pageSize),
+            total: filtered.length
+          });
+        }, delay);
+      });
+    }
+
+    var container = document.createElement('div');
+    container.id = 'page-content-container';
+    document.body.appendChild(container);
+    PetAdminSession.init({ container: container, tabbar: document.createElement('div') });
+
+    var tabA = PetAdminSession.openTab({ pageId: 'test-a', title: 'Tab A', activate: true });
+    var mountA = document.getElementById('table-a');
+    tabA.mount.appendChild(mountA);
+
+    var apiA = PetAdminBasicTable.createListPage({
+      container: mountA,
+      title: '实例 A（Tab A）',
+      stateKey: 'component-test-a',
+      searchFields: [
+        { name: 'keyword', label: '关键词', placeholder: '名称' },
+        { name: 'status', label: '状态', type: 'select', options: [
+          { value: '', label: '全部' }, { value: 'ok', label: '正常' }, { value: 'warn', label: '警告' }
+        ], advanced: true }
+      ],
+      columns: [
+        { key: 'name', dataIndex: 'name', title: '名称', sortable: true },
+        { key: 'status', dataIndex: 'status', title: '状态' },
+        { key: 'actions', title: '操作', action: true, required: true, render: function (row) {
+          return '<button type="button" class="rondo-btn rondo-btn-sm rondo-btn-default" data-row-action="view">查看</button>';
+        }}
+      ],
+      fetchData: fetchRows,
+      onRowAction: function (action) { log('row-action:' + action); }
+    });
+
+    var tabB = PetAdminSession.openTab({ pageId: 'test-b', title: 'Tab B', activate: false });
+    PetAdminSession.activateTab(tabA.id);
+    PetAdminSession.activateTab(tabB.id);
+    var mountB = document.getElementById('table-b');
+    tabB.mount.appendChild(mountB);
+
+    var apiB = PetAdminBasicTable.createListPage({
+      container: mountB,
+      title: '实例 B（Tab B）',
+      stateKey: 'component-test-b',
+      searchFields: [{ name: 'keyword', label: '关键词' }],
+      columns: [
+        { key: 'name', dataIndex: 'name', title: '名称' },
+        { key: 'actions', title: '操作', action: true, required: true, render: function () {
+          return '<button type="button" data-row-action="noop">—</button>';
+        }}
+      ],
+      fetchData: fetchRows
+    });
+
+    PetAdminSession.activateTab(tabA.id);
+
+    window.__componentTest = {
+      apiA: apiA,
+      apiB: apiB,
+      tabA: tabA,
+      tabB: tabB,
+      log: log,
+      setRaceMode: function (mode) { raceMode = mode; },
+      setForceError: function (v) { forceError = !!v; },
+      getTabState: function (tabId, key) {
+        var tab = PetAdminSession.findTab(tabId);
+        return tab && tab.listState ? tab.listState[key] : null;
+      }
+    };
+
+    document.getElementById('btn-switch-tab').addEventListener('click', function () {
+      var active = PetAdminSession.getActiveTab();
+      PetAdminSession.activateTab(active.id === tabA.id ? tabB.id : tabA.id);
+      log('switched-tab:' + PetAdminSession.getActiveTab().id);
+    });
+
+    document.getElementById('btn-race-slow').addEventListener('click', function () {
+      raceMode = 'slow';
+      apiA.reload();
+      log('race-slow-started');
+    });
+
+    document.getElementById('btn-race-fast').addEventListener('click', function () {
+      raceMode = 'fast';
+      apiA.reload();
+      log('race-fast-started');
+    });
+
+    document.getElementById('btn-force-error').addEventListener('click', function () {
+      forceError = true;
+      apiA.reload();
+      log('force-error-requested');
+    });
+
+    document.getElementById('btn-open-modal').addEventListener('click', function () {
+      PetAdminModal.open({
+        title: '测试 Modal',
+        bodyHtml: '<label class="rondo-form-field" for="modal-note">备注<textarea id="modal-note" class="rondo-input" rows="3"></textarea></label>',
+        onOk: function (close) {
+          close();
+          log('modal-ok');
+        }
+      });
+    });
+
+    document.getElementById('btn-open-fail-modal').addEventListener('click', function () {
+      PetAdminModal.open({
+        title: '失败保留',
+        bodyHtml: '<label class="rondo-form-field" for="modal-fail-input">内容<input id="modal-fail-input" class="rondo-input" value="保留文本" /></label>',
+        onOk: function () {
+          return Promise.reject(new Error('提交失败'));
+        }
+      });
+    });
+
+    log('harness-ready');
+  })();
+  </script>
+</body>
+</html>

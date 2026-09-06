@@ -1,0 +1,73 @@
+<div id="user-pets" class="page rondo-list-page" data-page-css="./css/identity-pages.css">
+    <!-- 列表视图 -->
+    <div id="up-list-view">
+        <div class="rondo-search-card">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                <div class="rondo-segmented" role="tablist" aria-label="用户与宠物视图">
+                    <button type="button" class="rondo-segmented-btn is-active" data-view="users" id="up-seg-users" aria-selected="true">平台用户</button>
+                    <button type="button" class="rondo-segmented-btn" data-view="pets" id="up-seg-pets" aria-selected="false">宠物档案</button>
+                </div>
+                <div class="flex gap-2" id="up-list-actions">
+                    <button type="button" id="up-btn-create-user" class="ant-btn ant-btn-primary ant-btn-sm">
+                        <i class="fas fa-user-plus"></i>登记平台用户
+                    </button>
+                    <button type="button" id="up-btn-register-test" class="ant-btn ant-btn-primary ant-btn-sm hidden">
+                        <i class="fas fa-vial"></i>登记送检
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="up-users-list-mount" class="up-list-mount"></div>
+        <div id="up-pets-list-mount" class="up-list-mount hidden"></div>
+    </div>
+
+    <!-- 用户详情（只读） -->
+    <div id="up-user-detail" class="hidden rondo-table-card">
+        <div class="rondo-toolbar">
+            <h2 class="rondo-toolbar-title" id="up-user-detail-title">用户详情</h2>
+            <div class="up-detail-actions">
+                <button type="button" id="up-btn-user-register" class="ant-btn ant-btn-primary ant-btn-sm">
+                    <i class="fas fa-vial"></i>登记送检
+                </button>
+                <button type="button" id="up-back-from-user" class="ant-btn ant-btn-default ant-btn-sm">
+                    <i class="fas fa-arrow-left"></i>返回列表
+                </button>
+            </div>
+        </div>
+        <div id="up-user-detail-body" class="text-sm space-y-4"></div>
+        <div class="mt-6">
+            <h3 class="text-base font-medium mb-3">名下宠物</h3>
+            <div id="up-user-pets-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+            <p id="up-user-no-pets" class="rondo-empty hidden">暂无关联宠物</p>
+        </div>
+        <div class="mt-6">
+            <h3 class="text-base font-medium mb-3">可见报告</h3>
+            <div id="up-user-reports" class="text-sm text-slate-600"></div>
+        </div>
+    </div>
+
+    <!-- 宠物详情 -->
+    <div id="up-pet-detail" class="hidden rondo-table-card">
+        <div class="rondo-toolbar">
+            <h2 class="rondo-toolbar-title" id="up-pet-detail-title">宠物详情</h2>
+            <div class="up-detail-actions">
+                <button type="button" id="up-btn-pet-register" class="ant-btn ant-btn-primary ant-btn-sm">
+                    <i class="fas fa-vial"></i>登记送检
+                </button>
+                <button type="button" id="up-back-from-pet" class="ant-btn ant-btn-default ant-btn-sm">
+                    <i class="fas fa-arrow-left"></i>返回列表
+                </button>
+            </div>
+        </div>
+        <div id="up-pet-detail-body" class="text-sm"></div>
+        <div class="mt-6">
+            <h3 class="text-base font-medium mb-3">已发布报告</h3>
+            <div id="up-pet-reports" class="rondo-basic-table-wrap"></div>
+        </div>
+        <div class="mt-6">
+            <h3 class="text-base font-medium mb-3">用户关联变更</h3>
+            <div id="up-pet-user-history" class="text-sm text-slate-600"></div>
+        </div>
+    </div>
+</div>

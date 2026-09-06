@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Pet Admin Session Lifecycle Fixture</title>
+  <link rel="stylesheet" href="../../../../docs/.vuepress/public/prototype/admin/css/tokens.css">
+  <link rel="stylesheet" href="../../../../docs/.vuepress/public/prototype/admin/css/shell.css">
+  <style>
+    body { margin: 0; font-family: system-ui, sans-serif; }
+    #harness-log { font: 12px/1.4 monospace; padding: 8px; background: #111; color: #9f9; max-height: 180px; overflow: auto; }
+    .fixture-input { width: 100%; box-sizing: border-box; }
+  </style>
+</head>
+<body>
+  <div id="admin-tabbar" role="tablist" aria-label="已打开页面"></div>
+  <div id="page-content-container"></div>
+  <div id="harness-log"></div>
+  <script src="../../../../docs/.vuepress/public/prototype/admin/js/admin-session.js"></script>
+  <script>
+    (function () {
+      var Session = window.PetAdminSession;
+      var logEl = document.getElementById('harness-log');
+      var hookLog = [];
+      var confirmResults = [];
+      var confirmIndex = 0;
+
+      window.__fixtureLog = hookLog;
+      window.__fixtureConfirmQueue = confirmResults;
+
+      window.confirm = function (msg) {
+        var answer = confirmResults[confirmIndex];
+        if (answer === undefined) answer = true;
+        confirmIndex += 1;
+        hookLog.push('confirm:' + (answer ? 'yes' : 'no') + ':' + msg);
+        return answer;
+      };
+
+      function mountPage(tab, label) {
+        tab.mount.innerHTML =
+          '<div class="fixture-page" data-label="' + label + '">' +
+          '<p class="fixture-label">' + label + '</p>' +
+          '<input id="fixture-field" class="fixture-input" type="text" value="" />' +
+          '</div>';
+      }
+
+      function registerHooks(tabId, label) {
+        window.__petAdminRegisterTabHooks = window.__petAdminRegisterTabHooks || function () {};
+        var hooks = {
+          activate: function () { hookLog.push('activate:' + label); },
+          deactivate: function () { hookLog.push('deactivate:' + label); },
+          dispose: function () { hookLog.push('dispose:' + label); },
+          canLeave: function () {
+            var tab = Session.findTab(tabId);
+            return tab && !tab.dirty;
+          }
+        };
+        return hooks;
+      }
+
+      Session.init({
+        container: document.getElementById('page-content-container'),
+        tabbar: document.getElementById('admin-tabbar'),
+        onActivate: function (tab) {
+          if (!tab) return;
+          Session.activateTab(tab.id);
+        },
+        onTabDeactivate: function (tab) {
+          tab._sessionActive = false;
+          var label = tab.mount.querySelector('.fixture-label');
+          hookLog.push('session-deactivate:' + (label ? label.textContent : tab.id));
+        },
+        onTabActivate: function (tab) {
+          tab._sessionActive = true;
+          var label = tab.mount.querySelector('.fixture-label');
+          hookLog.push('session-activate:' + (label ? label.textContent : tab.id));
+        }
+      });
+
+      window.__fixtureHarness = {
+        reset: function () {
+          hookLog.length = 0;
+          confirmIndex = 0;
+          while (Session.getTabs().length) {
+            var t = Session.getTabs()[0];
+            Session.closeTab(t.id);
+          }
+        },
+        seedTabs: function () {
+          var a = Session.openTab('report-review', { reportId: 'r-1' }, { title: '报告A', activate: true });
+          mountPage(a, 'report-A');
+          var b = Session.openTab('report-review', { reportId: 'r-2' }, { title: '报告B', activate: true });
+          mountPage(b, 'report-B');
+          a.initialized = true;
+          b.initialized = true;
+          return { a: a.id, b: b.id };
+        },
+        setInput: function (tabId, value) {
+          var tab = Session.findTab(tabId);
+          var input = tab.mount.querySelector('#fixture-field');
+          input.value = value;
+          return input.value;
+        },
+        getInput: function (tabId) {
+          var tab = Session.findTab(tabId);
+          return tab.mount.querySelector('#fixture-field').value;
+        },
+        tabbarNestedButtons: function () {
+          var tabs = document.querySelectorAll('#admin-tabbar .admin-tab');
+          for (var i = 0; i < tabs.length; i++) {
+            if (tabs[i].querySelector('button.admin-tab')) return true;
+          }
+          return false;
+        },
+        visibleLabel: function () {
+          var active = Session.getActiveTab();
+          if (!active) return null;
+          var el = active.mount.querySelector('.fixture-label');
+          return el ? el.textContent : null;
+        },
+        mountDetachedCallbackProbe: function (tabId) {
+          var tab = Session.findTab(tabId);
+          var timer = setInterval(function () {
+            if (!tab._sessionActive || tab._disposed) return;
+            var field = tab.mount.querySelector('#fixture-field');
+            if (field) field.value = 'LEAKED';
+          }, 20);
+          tab._probeTimer = timer;
+          return true;
+        },
+        stopProbe: function (tabId) {
+          var tab = Session.findTab(tabId);
+          if (tab && tab._probeTimer) clearInterval(tab._probeTimer);
+        },
+        liveFixtureFieldValue: function () {
+          var el = document.getElementById('fixture-field');
+          return el ? el.value : null;
+        }
+      };
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+{
+  "ranAt": "2026-09-06T01:39:18.128Z",
+  "command": "node .impeccable/review/pet-eden-admin-20260905/session/session-lifecycle.mjs",
+  "fixture": "file:///Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/session/session-fixture.html",
+  "passed": 18,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "analysis-rules edit/test share tab key",
+      "ok": true,
+      "detail": "analysis-rules?lineage=L1"
+    },
+    {
+      "name": "different report entities differ",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "user detail canonical strips source",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "different user ids differ",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "same report entity reuses tab",
+      "ok": true,
+      "detail": "value=draft-a"
+    },
+    {
+      "name": "switch away preserves input",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tab A state isolated",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tab B state isolated",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "active mount switches visible label",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tabbar has no button inside button",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "dirty close cancelled keeps tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "dirty close confirmed removes tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "close other blocked by dirty tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "close other succeeds when clean",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "close all blocked when dirty",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "close all succeeds after confirm",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "session activate/deactivate hooks fire on switch",
+      "ok": true,
+      "detail": "session-activate:tab-1788658757606-vjyqk|session-deactivate:report-A|session-activate:tab-1788658757607-93o4h|session-deactivate:report-B|session-activate:report-A|session-deactivate:report-A|session-activate:report-B"
+    },
+    {
+      "name": "deactivate guard stops background mount callback",
+      "ok": true,
+      "detail": "live= bg=clean"
+    }
+  ]
+}

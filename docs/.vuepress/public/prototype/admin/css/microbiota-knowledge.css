@@ -1,0 +1,70 @@
+#microbiota-knowledge .mk-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+#microbiota-knowledge .mk-sidebar {
+  position: sticky;
+  top: 8px;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+}
+
+#microbiota-knowledge .mk-tree {
+  margin-top: 8px;
+  max-height: min(60vh, 520px);
+  overflow: auto;
+}
+
+#microbiota-knowledge .mk-node.is-selected {
+  border-color: var(--rondo-primary, #0960bd);
+  background: rgba(9, 96, 189, 0.06);
+}
+
+#microbiota-knowledge .mk-main-tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#microbiota-knowledge .mk-main-tasks-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#microbiota-knowledge .mk-main-tasks-input {
+  flex: 1;
+  min-width: 0;
+}
+
+#microbiota-knowledge.mk-readonly #mk-btn-save,
+#microbiota-knowledge.mk-readonly #mk-btn-save-global,
+#microbiota-knowledge.mk-readonly #mk-main-tasks-add,
+#microbiota-knowledge.mk-readonly .mk-main-tasks-actions {
+  display: none;
+}
+
+#microbiota-knowledge.mk-readonly input:not([readonly]),
+#microbiota-knowledge.mk-readonly textarea,
+#microbiota-knowledge.mk-readonly .mk-main-tasks-input {
+  pointer-events: none;
+  background: var(--rondo-fill-quaternary, #f5f5f5);
+}
+
+body.mk-drawer-open {
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  #microbiota-knowledge .mk-layout {
+    grid-template-columns: 1fr;
+  }
+
+  #microbiota-knowledge .mk-sidebar {
+    position: static;
+    max-height: none;
+  }
+}

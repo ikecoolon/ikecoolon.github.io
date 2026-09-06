@@ -807,6 +807,209 @@ function testIntakePipeline() {
   assertEqual(store.getReport(report2.id).status !== 'unassigned', true, '导入不进入待归属');
 }
 
+function testPermissionsUsersAndProducts() {
+  store.reset();
+
+  var created = store.createPlatformUser({ phone: '19900001111', name: '甲用户', address: '地址甲' });
+  var duplicate = store.createPlatformUser({ phone: '19900001111', name: '乙用户', address: '地址乙' });
+  assertEqual(duplicate.id, created.id, 'duplicate phone returns same id');
+  var storedDup = store.peekState().users.find(function (u) { return u.id === created.id; });
+  assertEqual(storedDup.name, '甲用户', 'duplicate phone does not overwrite name');
+  assertEqual(storedDup.address, '地址甲', 'duplicate phone does not overwrite address');
+
+  store.commit(function (state) {
+    state.users.push({
+      id: 'user-disabled-smoke',
+      name: '停用用户',
+      phone: '18800000000',
+      disabled: true,
+      createdAt: '2025-09-01T00:00:00.000Z'
+    });
+  });
+  var revived = store.createPlatformUser({ phone: '18800000000', name: '试图启用' });
+  assertEqual(revived.disabled, true, 'disabled user not re-enabled');
+  assertEqual(revived.name, '停用用户', 'disabled user name unchanged on duplicate phone');
+
+  var petCountBefore = store.peekState().pets.length;
+  var registered = store.registerTest({
+    newPet: { name: '原子新宠', species: 'cat', breed: '测试猫' },
+    userId: 'user-001',
+    testDate: '2025-09-03',
+    storeId: 'store-001',
+    submissionType: 'in_store',
+    sampleNumber: ''
+  });
+  assertEqual(store.peekState().pets.length, petCountBefore + 1, 'registerTest with newPet creates pet atomically');
+  assertEqual(registered.sampleNumber, '', 'registerTest allows empty sample number');
+  var newPet = store.peekState().pets.find(function (p) { return p.id === registered.petId; });
+  assert(newPet && newPet.name === '原子新宠', 'new pet linked to test record');
+
+  var petCountAfterSuccess = store.peekState().pets.length;
+  try {
+    store.registerTest({
+      newPet: { name: '孤儿宠' },
+      userId: 'user-001',
+      testDate: '2025-09-03',
+      storeId: 'store-001'
+    });
+    assert(false, 'registerTest newPet failure should throw');
+  } catch (err) {
+    assert(/送检类型/.test(err.message), 'registerTest failure rolls back orphan pet');
+  }
+  assertEqual(store.peekState().pets.length, petCountAfterSuccess, 'no orphan pets after registerTest failure');
+
+  store.setActorFixture({ actorId: 'admin-demo', roles: ['editor', 'reviewer'] });
+  store.savePhylumUnitProducts('report-007', 'Actinobacteria', { primaryProductId: 'prod-003', relatedProductIds: [] });
+  var unit007 = store.getPhylumUnits('report-007').find(function (u) { return u.phylumKey === 'Actinobacteria'; });
+  assertEqual(unit007.primaryProductId, 'prod-003', 'product save on published report without correction');
+
+  store.reset();
+  store.commit(function (state) {
+    var report = state.reports.find(function (r) { return r.id === 'report-002'; });
+    report.submittedByActorId = 'editor-a';
+  });
+  store.setActorFixture({ actorId: 'editor-b', roles: ['editor'] });
+  var withdrawBlocked = false;
+  try {
+    store.withdrawReport('report-002', { actorId: 'editor-b' });
+  } catch (err) {
+    withdrawBlocked = /提交人|撤回/.test(err.message);
+  }
+  assert(withdrawBlocked, 'withdraw by non-submitter fails');
+
+  store.reset();
+  store.setActorFixture({ actorId: 'readonly-1', roles: ['readonly'] });
+  var submitBlocked = false;
+  try {
+    store.submitReport('report-003', { actorId: 'readonly-1' });
+  } catch (err) {
+    submitBlocked = /权限/.test(err.message);
+  }
+  assert(submitBlocked, 'readonly cannot submit');
+  store.setActorFixture(null);
+}
+
+function prepareReportForPublish(reportId) {
+  store.reset();
+  store.withdrawReport(reportId, { actor: 'smoke', actorId: 'admin-demo' });
+  store.runReportAnalysis(reportId, { actor: 'smoke' });
+  var units = store.getPhylumUnits(reportId);
+  units.forEach(function (unit) {
+    store.confirmPhylumUnit(reportId, unit.phylumKey, { actor: 'smoke' });
+  });
+  var report = store.getReport(reportId);
+  store.saveReportAssessment(reportId, {
+    reportSpecies: report.reportSpecies || 'cat',
+    healthLevel: 'B',
+    healthScore: 80,
+    percentile: 50,
+    summary: 'smoke summary',
+    platformDimensions: { emotion: 70, immunity: 75 }
+  }, { actor: 'smoke', actorId: 'admin-demo' });
+}
+
+function testDomainAtomicityAndPermissions() {
+  store.reset();
+  store.setActorFixture({ actorId: 'admin-editor', roles: ['editor'] });
+  var editorBlocked = false;
+  try {
+    store.savePhylumUnitDraft('report-002', 'Proteobacteria', { analysis: '编制员不可改待审核' });
+  } catch (err) {
+    editorBlocked = /待审核|权限/.test(err.message);
+  }
+  assert(editorBlocked, 'editor cannot save draft on pending_review report');
+
+  store.reset();
+  store.setActorFixture({ actorId: 'admin-reviewer', roles: ['reviewer'] });
+  store.savePhylumUnitDraft('report-002', 'Proteobacteria', { analysis: '审核员可修订待审核', advice: '建议' });
+  var protReview = store.getPhylumUnits('report-002').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assertEqual(protReview.analysisDraft, '审核员可修订待审核', 'reviewer can save draft on pending_review');
+
+  store.reset();
+  store.setActorFixture({ actorId: 'admin-reviewer', roles: ['reviewer'] });
+  var reviewerIncompleteBlocked = false;
+  try {
+    store.savePhylumUnitDraft('report-003', 'Proteobacteria', { analysis: '审核员不可改待完善' });
+  } catch (err) {
+    reviewerIncompleteBlocked = /权限/.test(err.message);
+  }
+  assert(reviewerIncompleteBlocked, 'reviewer cannot save draft on incomplete report');
+
+  store.reset();
+  var protBefore = store.getPhylumUnits('report-003').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  var beforeAnalysis = protBefore ? protBefore.analysisDraft : '';
+  var beforeScore = store.getReport('report-003').versions[0].healthScore;
+  try {
+    store.saveReportWorkVersion('report-003', {
+      assessment: { healthScore: 999 },
+      phylumUnits: [{ phylumKey: 'Proteobacteria', analysis: '不应写入' }]
+    }, { actorId: 'admin-demo' });
+    assert(false, 'invalid work version should throw');
+  } catch (err) {
+    assert(/综合分/.test(err.message), 'work version validates assessment before write');
+  }
+  var protAfter = store.getPhylumUnits('report-003').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assertEqual(protAfter.analysisDraft, beforeAnalysis, 'work version failure leaves phylum drafts unchanged');
+  assertEqual(store.getReport('report-003').versions[0].healthScore, beforeScore, 'work version failure leaves assessment unchanged');
+
+  store.reset();
+  store.saveReportWorkVersion('report-003', {
+    assessment: { healthLevel: 'C', healthScore: 66, summary: '原子暂存' },
+    phylumUnits: [{ phylumKey: 'Proteobacteria', analysis: '原子分析', advice: '原子建议' }]
+  }, { actorId: 'admin-demo' });
+  var saved = store.getReport('report-003');
+  assertEqual(saved.versions[0].healthScore, 66, 'work version saves assessment atomically');
+  var protSaved = store.getPhylumUnits('report-003').find(function (u) { return u.phylumKey === 'Proteobacteria'; });
+  assertEqual(protSaved.analysisDraft, '原子分析', 'work version saves phylum drafts atomically');
+
+  store.reset();
+  var r7 = store.getReport('report-007');
+  var snapBefore = JSON.stringify(store.getPublishedVersionSnapshot('report-007'));
+  var unitBefore = store.getPhylumUnits('report-007').find(function (u) { return u.phylumKey === 'Actinobacteria'; });
+  var draftBefore = unitBefore.analysisDraft;
+  store.setActorFixture({ actorId: 'admin-demo', roles: ['editor', 'reviewer'] });
+  store.savePhylumUnitProducts('report-007', 'Actinobacteria', { primaryProductId: 'prod-001', relatedProductIds: [] });
+  var unitAfter = store.getPhylumUnits('report-007').find(function (u) { return u.phylumKey === 'Actinobacteria'; });
+  assertEqual(unitAfter.analysisDraft, draftBefore, 'product save does not change professional draft');
+  assertEqual(JSON.stringify(store.getPublishedVersionSnapshot('report-007')), snapBefore, 'product save does not change published snapshot');
+  assertEqual(r7.correctionDraftActive, false, 'product save does not create correction draft');
+
+  store.reset();
+  var voidedBlocked = false;
+  try {
+    store.savePhylumUnitProducts('report-005', 'Proteobacteria', { primaryProductId: 'prod-001' });
+  } catch (err) {
+    voidedBlocked = /作废/.test(err.message);
+  }
+  assert(voidedBlocked, 'voided report cannot configure products');
+
+  prepareReportForPublish('report-002');
+  store.setActorFixture({ actorId: 'admin-dual', roles: ['editor', 'reviewer'] });
+  store.submitReport('report-002', { actorId: 'admin-dual', actor: '双权限' });
+  assertEqual(store.getReport('report-002').submittedByActorId, 'admin-dual', 'dual submits with stable actorId');
+  store.publishReport('report-002', { actorId: 'admin-dual', actor: '双权限' });
+  assertEqual(store.getReport('report-002').status, 'published', 'dual can publish own submission');
+
+  store.reset();
+  store.createCorrectionDraft('report-001', { correctionNote: 'smoke correction' });
+  assertEqual(store.getCorrectionDraftStage('report-001'), 'incomplete', 'correction draft starts incomplete');
+  store.setActorFixture({ actorId: 'admin-editor', roles: ['editor'] });
+  store.savePhylumUnitDraft('report-001', 'Actinobacteria', { analysis: '更正编制', advice: '' });
+  store.getPhylumUnits('report-001').forEach(function (unit) {
+    store.confirmPhylumUnit('report-001', unit.phylumKey, { actor: 'editor' });
+  });
+  store.submitReport('report-001', { actorId: 'admin-editor' });
+  assertEqual(store.getCorrectionDraftStage('report-001'), 'pending_review', 'correction submit enters pending_review stage');
+  store.setActorFixture({ actorId: 'admin-reviewer', roles: ['reviewer'] });
+  store.publishReport('report-001', { actorId: 'admin-reviewer' });
+  assertEqual(store.getReport('report-001').status, 'published', 'correction publish keeps published status');
+  assertEqual(store.getReport('report-001').correctionDraftActive, false, 'correction publish clears draft flag');
+
+  store.setActorFixture('editor');
+  assertEqual(store.peekState().meta.version, store.getState().meta.version, 'setActorFixture accepts profile key');
+  store.setActorFixture(null);
+}
+
 function main() {
   testSeed();
   testStateMachine();
@@ -820,6 +1023,8 @@ function main() {
   testClosedSpeciesValueThresholdCopyAndLibrary();
   testDeprecatedAndLabels();
   testIntakePipeline();
+  testPermissionsUsersAndProducts();
+  testDomainAtomicityAndPermissions();
 
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   if (failed) process.exit(1);

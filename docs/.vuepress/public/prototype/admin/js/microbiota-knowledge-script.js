@@ -1,40 +1,144 @@
-function initMicrobiotaKnowledge() {
+function initMicrobiotaKnowledge(mountRoot, tab) {
+  var root = mountRoot || document;
   var C = window.PetAdminCommon;
+  var Perms = window.PetAdminPermissions;
+  var Session = window.PetAdminSession;
   if (!C) return;
+
+  var pageEl = root.querySelector('#microbiota-knowledge');
+  if (!pageEl) return;
+
+  var cssLink = root.querySelector('link[href*="microbiota-knowledge.css"]');
+  if (cssLink && !document.getElementById('pet-admin-microbiota-knowledge-css')) {
+    var headLink = document.createElement('link');
+    headLink.id = 'pet-admin-microbiota-knowledge-css';
+    headLink.rel = 'stylesheet';
+    headLink.href = cssLink.getAttribute('href');
+    document.head.appendChild(headLink);
+  }
 
   var PREVIEW_PET = '小花';
   var PREVIEW_THEME = '草原';
   var PREVIEW_STATUS_KEY = 'low';
 
   var selectedKey = '';
-  var formInteracting = false;
+  var nodeDirty = false;
+  var drawerDirty = false;
+  var tabActive = true;
   var previewRaf = 0;
   var drawerOpen = false;
   var drawerReturnFocus = null;
+  var presentationBaseline = null;
 
-  var searchInput = document.getElementById('mk-search');
-  var treeEl = document.getElementById('mk-tree');
-  var editorEl = document.getElementById('mk-editor');
-  var previewEl = document.getElementById('mk-preview');
-  var globalSummaryEl = document.getElementById('mk-global-summary');
-  var presLowInput = document.getElementById('mk-pres-low');
-  var presNormalInput = document.getElementById('mk-pres-normal');
-  var presHighInput = document.getElementById('mk-pres-high');
-  var drawerRoot = document.getElementById('mk-drawer-root');
+  var searchInput = root.querySelector('#mk-search');
+  var treeEl = root.querySelector('#mk-tree');
+  var editorEl = root.querySelector('#mk-editor');
+  var previewEl = root.querySelector('#mk-preview');
+  var globalSummaryEl = root.querySelector('#mk-global-summary');
+  var presLowInput = root.querySelector('#mk-pres-low');
+  var presNormalInput = root.querySelector('#mk-pres-normal');
+  var presHighInput = root.querySelector('#mk-pres-high');
+  var drawerRoot = root.querySelector('#mk-drawer-root');
   var drawerPanel = drawerRoot ? drawerRoot.querySelector('.ant-drawer') : null;
-  var phylumFields = document.getElementById('mk-phylum-fields');
-  var genusFields = document.getElementById('mk-genus-fields');
-  var sceneCopyLabel = document.getElementById('mk-scene-copy-label');
-  var mainTasksListEl = document.getElementById('mk-main-tasks-list');
-  var mainTasksEmptyEl = document.getElementById('mk-main-tasks-empty');
-  var mainTasksAddBtn = document.getElementById('mk-main-tasks-add');
+  var phylumFields = root.querySelector('#mk-phylum-fields');
+  var genusFields = root.querySelector('#mk-genus-fields');
+  var sceneCopyLabel = root.querySelector('#mk-scene-copy-label');
+  var mainTasksListEl = root.querySelector('#mk-main-tasks-list');
+  var mainTasksEmptyEl = root.querySelector('#mk-main-tasks-empty');
+  var mainTasksAddBtn = root.querySelector('#mk-main-tasks-add');
 
   var route = C.parseRoute();
   if (route.params && route.params.taxon) {
     selectedKey = route.params.taxon;
   }
+  if (tab && tab.pageState && tab.pageState.mkSearch) {
+    searchInput.value = tab.pageState.mkSearch;
+  }
+
+  function canEditCatalog() {
+    return Perms ? Perms.can('edit_catalog') : true;
+  }
+
+  function syncReadOnly() {
+    pageEl.classList.toggle('mk-readonly', !canEditCatalog());
+    var saveBtn = root.querySelector('#mk-btn-save');
+    var saveGlobalBtn = root.querySelector('#mk-btn-save-global');
+    if (saveBtn) saveBtn.disabled = !canEditCatalog();
+    if (saveGlobalBtn) saveGlobalBtn.disabled = !canEditCatalog();
+    if (mainTasksAddBtn) mainTasksAddBtn.disabled = !canEditCatalog();
+  }
+
+  function syncTabDirty() {
+    var dirty = !!(nodeDirty || drawerDirty);
+    if (tab && Session && Session.setTabDirty) {
+      Session.setTabDirty(tab.id, dirty);
+    } else if (typeof window.__petAdminSetTabDirty === 'function') {
+      window.__petAdminSetTabDirty(dirty);
+    }
+  }
+
+  function setNodeDirty(dirty) {
+    nodeDirty = !!dirty;
+    syncTabDirty();
+  }
+
+  function setDrawerDirty(dirty) {
+    drawerDirty = !!dirty;
+    syncTabDirty();
+  }
+
+  function getNodeDrafts() {
+    if (!tab) return {};
+    tab.pageState = tab.pageState || {};
+    if (!tab.pageState.mkNodeDrafts) tab.pageState.mkNodeDrafts = {};
+    return tab.pageState.mkNodeDrafts;
+  }
+
+  function persistTabState() {
+    if (!tab || !Session) return;
+    Session.updateTabState(tab.id, { pageState: tab.pageState });
+  }
+
+  function persistNodeDraft(key) {
+    if (!key || !tab) return;
+    var taxa = getTaxa();
+    var taxon = findTaxon(taxa, key);
+    if (!taxon) return;
+    var isPhylum = taxon.level === 'phylum';
+    getNodeDrafts()[key] = {
+      latinName: el('mk-latin-name').value,
+      edu: readFormEdu(isPhylum),
+      mainTaskValues: readMainTaskValues()
+    };
+    persistTabState();
+  }
+
+  function clearNodeDraft(key) {
+    if (!key || !tab || !tab.pageState || !tab.pageState.mkNodeDrafts) return;
+    delete tab.pageState.mkNodeDrafts[key];
+    persistTabState();
+  }
+
+  function getPresentationDraft() {
+    if (!tab || !tab.pageState) return null;
+    return tab.pageState.mkPresentationDraft || null;
+  }
+
+  function persistPresentationDraft() {
+    if (!tab) return;
+    tab.pageState = tab.pageState || {};
+    tab.pageState.mkPresentationDraft = readFormPresentation();
+    persistTabState();
+  }
+
+  function clearPresentationDraft() {
+    if (!tab || !tab.pageState) return;
+    delete tab.pageState.mkPresentationDraft;
+    persistTabState();
+  }
 
   bindEvents();
+  syncReadOnly();
 
   if (!selectedKey) {
     var initialTaxa = getTaxa();
@@ -51,27 +155,33 @@ function initMicrobiotaKnowledge() {
       unsub = store.subscribe(onStoreTick);
     }
   }
-  window.__petAdminPageTeardown = function () {
-    unsub();
-    closeDrawer(false);
-  };
-
   renderTree();
   refreshGlobalSummary();
   loadPresentationIntoForm();
   loadSelectedIntoForm();
 
   function onStoreTick() {
+    if (!tabActive) return;
+    if (tab && Session && Session.getActiveTab() !== tab) return;
     renderTree();
-    refreshGlobalSummary();
-    if (!formInteracting && !drawerOpen) {
+    if (!drawerOpen) {
+      refreshGlobalSummary();
+    }
+    if (!nodeDirty && !drawerOpen) {
       loadPresentationIntoForm();
       loadSelectedIntoForm();
+    } else if (!nodeDirty) {
+      updatePreview();
     }
   }
 
   function bindEvents() {
     searchInput.addEventListener('input', function () {
+      if (tab) {
+        tab.pageState = tab.pageState || {};
+        tab.pageState.mkSearch = searchInput.value;
+        persistTabState();
+      }
       renderTree();
     });
 
@@ -81,9 +191,9 @@ function initMicrobiotaKnowledge() {
       selectTaxon(btn.getAttribute('data-taxon-key'));
     });
 
-    document.getElementById('mk-btn-save').addEventListener('click', saveCurrentNode);
-    document.getElementById('mk-btn-open-global').addEventListener('click', openDrawer);
-    document.getElementById('mk-btn-save-global').addEventListener('click', saveGlobalSettings);
+    root.querySelector('#mk-btn-save').addEventListener('click', saveCurrentNode);
+    root.querySelector('#mk-btn-open-global').addEventListener('click', openDrawer);
+    root.querySelector('#mk-btn-save-global').addEventListener('click', saveGlobalSettings);
 
     if (drawerRoot) {
       drawerRoot.querySelectorAll('[data-mk-drawer-close]').forEach(function (btn) {
@@ -93,18 +203,27 @@ function initMicrobiotaKnowledge() {
 
     document.addEventListener('keydown', onDocumentKeydown);
 
-    editorEl.addEventListener('focusin', function () { formInteracting = true; });
-    editorEl.addEventListener('input', schedulePreviewUpdate);
+    editorEl.addEventListener('input', onEditorInput);
 
     bindMainTasksEvents();
 
     if (drawerRoot) {
-      drawerRoot.addEventListener('focusin', function () { formInteracting = true; });
-      drawerRoot.addEventListener('input', function () {
-        formInteracting = true;
-        schedulePreviewUpdate();
-      });
+      drawerRoot.addEventListener('input', onDrawerInput);
     }
+  }
+
+  function onEditorInput() {
+    if (!canEditCatalog()) return;
+    persistNodeDraft(selectedKey);
+    setNodeDirty(true);
+    schedulePreviewUpdate();
+  }
+
+  function onDrawerInput() {
+    if (!canEditCatalog()) return;
+    persistPresentationDraft();
+    setDrawerDirty(true);
+    schedulePreviewUpdate();
   }
 
   function onDocumentKeydown(e) {
@@ -114,7 +233,6 @@ function initMicrobiotaKnowledge() {
   }
 
   function schedulePreviewUpdate() {
-    formInteracting = true;
     if (previewRaf) cancelAnimationFrame(previewRaf);
     previewRaf = requestAnimationFrame(function () {
       previewRaf = 0;
@@ -122,10 +240,18 @@ function initMicrobiotaKnowledge() {
     });
   }
 
+  function confirmDiscard(message) {
+    return window.confirm(message || '当前修改尚未保存，确定放弃吗？');
+  }
+
   function openDrawer() {
     if (!drawerRoot) return;
+    if (nodeDirty && !confirmDiscard('节点科普尚未保存，打开全局设置将保留当前编辑。确定继续吗？')) {
+      return;
+    }
     drawerReturnFocus = document.activeElement;
     loadPresentationIntoForm();
+    presentationBaseline = JSON.stringify(readFormPresentation());
     drawerOpen = true;
     drawerRoot.hidden = false;
     drawerRoot.setAttribute('aria-hidden', 'false');
@@ -135,15 +261,22 @@ function initMicrobiotaKnowledge() {
 
   function closeDrawer(restoreFocus) {
     if (!drawerRoot || !drawerOpen) return;
+    if (drawerDirty) {
+      if (!confirmDiscard('全局场景词尚未保存，确定关闭吗？')) return;
+      loadPresentationIntoForm();
+      clearPresentationDraft();
+      setDrawerDirty(false);
+    }
     drawerOpen = false;
     drawerRoot.hidden = true;
     drawerRoot.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('mk-drawer-open');
-    formInteracting = false;
+    presentationBaseline = null;
     if (restoreFocus && drawerReturnFocus && typeof drawerReturnFocus.focus === 'function') {
       drawerReturnFocus.focus();
     }
     drawerReturnFocus = null;
+    updatePreview();
   }
 
   function getSvc() {
@@ -297,23 +430,54 @@ function initMicrobiotaKnowledge() {
 
   function selectTaxon(key) {
     if (key === selectedKey) return;
+    if (nodeDirty && !confirmDiscard('当前节点科普尚未保存，确定切换分类吗？')) {
+      return;
+    }
+    if (nodeDirty) {
+      clearNodeDraft(selectedKey);
+    } else {
+      persistNodeDraft(selectedKey);
+    }
     selectedKey = key;
-    formInteracting = false;
-    syncHash(key);
+    setNodeDirty(false);
+    syncRoute(key);
     markTreeSelection();
     loadSelectedIntoForm();
   }
 
-  function syncHash(taxonKey) {
-    var hash = 'microbiota-knowledge';
-    if (taxonKey) hash += '?taxon=' + encodeURIComponent(taxonKey);
-    if (history.replaceState) {
-      history.replaceState(null, '', '#' + hash);
+  function syncRoute(taxonKey) {
+    if (taxonKey) {
+      C.navigate('microbiota-knowledge', { taxon: taxonKey });
+    } else {
+      C.navigate('microbiota-knowledge', {});
     }
   }
 
+  function handleRoute() {
+    var route = C.parseRoute();
+    if (route.pageId !== 'microbiota-knowledge') return;
+    var nextKey = route.params.taxon || selectedKey;
+    if (nextKey && nextKey !== selectedKey) {
+      if (nodeDirty && !confirmDiscard('当前节点科普尚未保存，确定切换分类吗？')) {
+        syncRoute(selectedKey);
+        return;
+      }
+      if (nodeDirty) clearNodeDraft(selectedKey);
+      selectedKey = nextKey;
+      setNodeDirty(false);
+      markTreeSelection();
+      loadSelectedIntoForm();
+    }
+  }
+
+  function onHashChange() {
+    if (tab && Session && Session.getActiveTab() !== tab) return;
+    handleRoute();
+  }
+  window.addEventListener('hashchange', onHashChange);
+
   function el(id) {
-    return document.getElementById(id);
+    return root.querySelector('#' + id);
   }
 
   function setLevelFields(isPhylum) {
@@ -331,6 +495,22 @@ function initMicrobiotaKnowledge() {
     }
   }
 
+  function applyDraftToForm(draft, taxon) {
+    var isPhylum = taxon.level === 'phylum';
+    el('mk-latin-name').value = draft.latinName || '';
+    setLevelFields(isPhylum);
+    var edu = draft.edu || {};
+    el('mk-scene-copy').value = edu.sceneCopy || '';
+    el('mk-intro-text').value = edu.introText || '';
+    var tasks = Array.isArray(draft.mainTaskValues)
+      ? draft.mainTaskValues.slice()
+      : (Array.isArray(edu.mainTasks) ? edu.mainTasks.slice() : []);
+    renderMainTasksList(tasks);
+    el('mk-appearance-text').value = edu.appearanceText || '';
+    el('mk-function-text').value = edu.functionText || '';
+    el('mk-hint').value = edu.hint || '';
+  }
+
   function loadSelectedIntoForm() {
     var taxa = getTaxa();
     var taxon = findTaxon(taxa, selectedKey);
@@ -341,7 +521,7 @@ function initMicrobiotaKnowledge() {
     }
     if (editorEl) editorEl.classList.remove('opacity-50');
 
-    var edu = eduOf(taxon);
+    var draft = getNodeDrafts()[selectedKey];
     var isPhylum = taxon.level === 'phylum';
     var levelLabel = isPhylum ? '门' : '属';
 
@@ -349,7 +529,6 @@ function initMicrobiotaKnowledge() {
     el('mk-level-badge').textContent = levelLabel;
     el('mk-level-badge').className = 'inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ' +
       (isPhylum ? 'bg-teal-50 text-teal-800' : 'bg-sky-50 text-sky-800');
-    el('mk-latin-name').value = taxon.latinName || '';
     el('mk-key').value = taxon.key || '';
     setLevelFields(isPhylum);
 
@@ -363,13 +542,21 @@ function initMicrobiotaKnowledge() {
       parentLine.classList.add('hidden');
     }
 
-    el('mk-scene-copy').value = edu.sceneCopy || '';
-    el('mk-intro-text').value = edu.introText || '';
-    var tasks = Array.isArray(edu.mainTasks) ? edu.mainTasks.slice() : [];
-    renderMainTasksList(tasks);
-    el('mk-appearance-text').value = edu.appearanceText || '';
-    el('mk-function-text').value = edu.functionText || '';
-    el('mk-hint').value = edu.hint || '';
+    if (draft) {
+      applyDraftToForm(draft, taxon);
+      setNodeDirty(true);
+    } else {
+      var edu = eduOf(taxon);
+      el('mk-latin-name').value = taxon.latinName || '';
+      el('mk-scene-copy').value = edu.sceneCopy || '';
+      el('mk-intro-text').value = edu.introText || '';
+      var tasks = Array.isArray(edu.mainTasks) ? edu.mainTasks.slice() : [];
+      renderMainTasksList(tasks);
+      el('mk-appearance-text').value = edu.appearanceText || '';
+      el('mk-function-text').value = edu.functionText || '';
+      el('mk-hint').value = edu.hint || '';
+      setNodeDirty(false);
+    }
     updatePreview(taxon);
   }
 
@@ -383,6 +570,7 @@ function initMicrobiotaKnowledge() {
     input.className = 'ant-input mk-main-tasks-input text-sm';
     input.placeholder = '主要工作内容';
     input.value = value;
+    if (!canEditCatalog()) input.disabled = true;
 
     var actions = document.createElement('div');
     actions.className = 'mk-main-tasks-actions';
@@ -446,6 +634,7 @@ function initMicrobiotaKnowledge() {
   }
 
   function addMainTaskRow(focus) {
+    if (!canEditCatalog()) return;
     var values = readMainTaskValues();
     values.push('');
     renderMainTasksList(values);
@@ -454,10 +643,11 @@ function initMicrobiotaKnowledge() {
       var last = inputs[inputs.length - 1];
       if (last) last.focus();
     }
-    schedulePreviewUpdate();
+    onEditorInput();
   }
 
   function moveMainTaskRow(index, delta) {
+    if (!canEditCatalog()) return;
     var values = readMainTaskValues();
     var newIndex = index + delta;
     if (newIndex < 0 || newIndex >= values.length) return;
@@ -465,14 +655,15 @@ function initMicrobiotaKnowledge() {
     values[index] = values[newIndex];
     values[newIndex] = tmp;
     renderMainTasksList(values);
-    schedulePreviewUpdate();
+    onEditorInput();
   }
 
   function deleteMainTaskRow(index) {
+    if (!canEditCatalog()) return;
     var values = readMainTaskValues();
     values.splice(index, 1);
     renderMainTasksList(values);
-    schedulePreviewUpdate();
+    onEditorInput();
   }
 
   function bindMainTasksEvents() {
@@ -502,6 +693,7 @@ function initMicrobiotaKnowledge() {
           deleteMainTaskRow(index);
         }
       });
+      mainTasksListEl.addEventListener('input', onEditorInput);
     }
   }
 
@@ -542,6 +734,10 @@ function initMicrobiotaKnowledge() {
   }
 
   function saveCurrentNode() {
+    if (!canEditCatalog()) {
+      C.toast('当前账号无编辑科普模板的权限', 'warning');
+      return;
+    }
     var taxa = getTaxa();
     var taxon = findTaxon(taxa, selectedKey);
     if (!taxon) {
@@ -558,36 +754,38 @@ function initMicrobiotaKnowledge() {
       latinName: el('mk-latin-name').value.trim(),
       edu: readFormEdu(isPhylum)
     };
-    formInteracting = true;
     try {
       saveFn(taxon.key, patch);
-      formInteracting = false;
+      clearNodeDraft(selectedKey);
+      setNodeDirty(false);
       C.toast('当前节点科普模板已保存', 'success');
       renderTree();
       loadSelectedIntoForm();
     } catch (err) {
-      formInteracting = false;
       C.toast((err && err.message) || '保存失败，请检查填写后重试', 'error');
     }
   }
 
   function saveGlobalSettings() {
+    if (!canEditCatalog()) {
+      C.toast('当前账号无编辑科普模板的权限', 'warning');
+      return;
+    }
     var savePresentationFn = resolveSavePresentation();
     if (!savePresentationFn) {
       C.toast('全局设置保存接口不可用（saveMicrobiotaPresentation 未就绪）', 'error');
       return;
     }
     var presentationPatch = readFormPresentation();
-    formInteracting = true;
     try {
       savePresentationFn(presentationPatch);
-      formInteracting = false;
+      clearPresentationDraft();
+      setDrawerDirty(false);
       C.toast('全局场景词已保存', 'success');
       refreshGlobalSummary();
       closeDrawer(false);
       updatePreview();
     } catch (err) {
-      formInteracting = false;
       C.toast((err && err.message) || '保存失败，请检查填写后重试', 'error');
     }
   }
@@ -622,11 +820,14 @@ function initMicrobiotaKnowledge() {
 
   function loadPresentationIntoForm() {
     if (!presLowInput || !presNormalInput || !presHighInput) return;
-    var pres = readPresentationFromStore();
+    var pres = getPresentationDraft() || readPresentationFromStore();
     presLowInput.value = pres.low || '';
     presNormalInput.value = pres.normal || '';
     presHighInput.value = pres.high || '';
     refreshGlobalSummary(pres);
+    if (getPresentationDraft()) {
+      setDrawerDirty(true);
+    }
   }
 
   function readFormPresentation() {
@@ -741,6 +942,56 @@ function initMicrobiotaKnowledge() {
 
     previewEl.innerHTML = html;
   }
+
+  function onTabActivate() {
+    tabActive = true;
+    syncReadOnly();
+    handleRoute();
+    renderTree();
+    if (!nodeDirty && !drawerOpen) {
+      loadSelectedIntoForm();
+    }
+  }
+
+  function onTabDeactivate() {
+    if (nodeDirty) persistNodeDraft(selectedKey);
+    if (drawerDirty) persistPresentationDraft();
+    tabActive = false;
+  }
+
+  function onTabDispose() {
+    if (drawerOpen) closeDrawer(false);
+    if (tab && tab.pageState) {
+      delete tab.pageState.mkNodeDrafts;
+      delete tab.pageState.mkPresentationDraft;
+      if (Session) Session.updateTabState(tab.id, { pageState: tab.pageState });
+    }
+    setNodeDirty(false);
+    setDrawerDirty(false);
+  }
+
+  function onTabCanLeave() {
+    if (nodeDirty && !confirmDiscard('当前节点科普尚未保存，确定离开吗？')) return false;
+    if (drawerDirty && !confirmDiscard('全局场景词尚未保存，确定离开吗？')) return false;
+    return true;
+  }
+
+  if (tab && typeof window.__petAdminRegisterTabHooks === 'function') {
+    window.__petAdminRegisterTabHooks(tab.id, {
+      activate: onTabActivate,
+      deactivate: onTabDeactivate,
+      dispose: onTabDispose,
+      canLeave: onTabCanLeave
+    });
+  }
+
+  handleRoute();
+
+  return function teardown() {
+    unsub();
+    closeDrawer(false);
+    window.removeEventListener('hashchange', onHashChange);
+  };
 }
 
 window.initMicrobiotaKnowledge = initMicrobiotaKnowledge;

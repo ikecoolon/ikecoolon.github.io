@@ -1,0 +1,166 @@
+{
+  "passed": [
+    {
+      "name": "microbiota #mk-latin-name 有边框",
+      "ok": true,
+      "detail": "{\"borderTopWidth\":\"1px\",\"borderTopColor\":\"rgb(217, 217, 217)\",\"borderRadius\":\"6px\",\"height\":\"32px\",\"backgroundColor\":\"rgb(255, 255, 255)\",\"boxShadow\":\"none\"}"
+    },
+    {
+      "name": "microbiota #mk-latin-name 圆角 6px",
+      "ok": true,
+      "detail": "6px"
+    },
+    {
+      "name": "microbiota #mk-key 有边框",
+      "ok": true,
+      "detail": "{\"borderTopWidth\":\"1px\",\"borderTopColor\":\"rgb(217, 217, 217)\",\"borderRadius\":\"6px\",\"height\":\"32px\",\"backgroundColor\":\"rgb(250, 250, 250)\",\"boxShadow\":\"none\"}"
+    },
+    {
+      "name": "microbiota #mk-key 圆角 6px",
+      "ok": true,
+      "detail": "6px"
+    },
+    {
+      "name": "microbiota #mk-scene-copy 有边框",
+      "ok": true,
+      "detail": "{\"borderTopWidth\":\"1px\",\"borderTopColor\":\"rgb(217, 217, 217)\",\"borderRadius\":\"6px\",\"height\":\"32px\",\"backgroundColor\":\"rgb(255, 255, 255)\",\"boxShadow\":\"none\"}"
+    },
+    {
+      "name": "microbiota #mk-scene-copy 圆角 6px",
+      "ok": true,
+      "detail": "6px"
+    },
+    {
+      "name": "microbiota #mk-intro-text 有边框",
+      "ok": true,
+      "detail": "{\"borderTopWidth\":\"1px\",\"borderTopColor\":\"rgb(217, 217, 217)\",\"borderRadius\":\"6px\",\"height\":\"70px\",\"backgroundColor\":\"rgb(255, 255, 255)\",\"boxShadow\":\"none\"}"
+    },
+    {
+      "name": "microbiota #mk-intro-text 圆角 6px",
+      "ok": true,
+      "detail": "6px"
+    },
+    {
+      "name": "microbiota #mk-hint 有边框",
+      "ok": true,
+      "detail": "{\"borderTopWidth\":\"1px\",\"borderTopColor\":\"rgb(217, 217, 217)\",\"borderRadius\":\"6px\",\"height\":\"50px\",\"backgroundColor\":\"rgb(255, 255, 255)\",\"boxShadow\":\"none\"}"
+    },
+    {
+      "name": "microbiota #mk-hint 圆角 6px",
+      "ok": true,
+      "detail": "6px"
+    },
+    {
+      "name": "microbiota #mk-key readonly 背景",
+      "ok": true,
+      "detail": "rgb(250, 250, 250)"
+    },
+    {
+      "name": "microbiota legacy focus 边框主色",
+      "ok": true,
+      "detail": "rgb(9, 96, 189)"
+    },
+    {
+      "name": "microbiota legacy focus 外发光",
+      "ok": true,
+      "detail": "rgba(9, 96, 189, 0.1) 0px 0px 0px 2px"
+    },
+    {
+      "name": "microbiota ant-input focus 态",
+      "ok": true,
+      "detail": "rgb(12, 98, 189) | rgba(9, 96, 189, 0.1) 0px 0px 0px 1.96709px"
+    },
+    {
+      "name": "normal-range 列表标题字重",
+      "ok": true,
+      "detail": "600"
+    },
+    {
+      "name": "normal-range 列表标题字号",
+      "ok": true,
+      "detail": "15px"
+    },
+    {
+      "name": "dictionary 行操作非白底",
+      "ok": true,
+      "detail": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "name": "dictionary 行操作透明边框",
+      "ok": true,
+      "detail": "rgba(0, 0, 0, 0)"
+    },
+    {
+      "name": "dictionary 行操作链接高度",
+      "ok": true,
+      "detail": "22px"
+    },
+    {
+      "name": "dictionary 行操作间距",
+      "ok": true,
+      "detail": "8px"
+    },
+    {
+      "name": "normal-range 列表标题字重复验",
+      "ok": true,
+      "detail": "600"
+    },
+    {
+      "name": "normal-range 表单 ant-input 边框",
+      "ok": true,
+      "detail": "{\"borderTopWidth\":\"1px\",\"borderTopColor\":\"rgb(217, 217, 217)\",\"borderRadius\":\"6px\",\"height\":\"32px\",\"backgroundColor\":\"rgb(255, 255, 255)\",\"boxShadow\":\"none\"}"
+    },
+    {
+      "name": "normal-range ant-input focus",
+      "ok": true,
+      "detail": "rgb(12, 98, 189) | rgba(9, 96, 189, 0.1) 0px 0px 0px 1.96693px"
+    },
+    {
+      "name": "analysis-rules legacy 输入边框",
+      "ok": true,
+      "detail": "{\"borderTopWidth\":\"1px\",\"borderTopColor\":\"rgb(217, 217, 217)\",\"borderRadius\":\"6px\",\"height\":\"auto\",\"backgroundColor\":\"rgb(255, 255, 255)\",\"boxShadow\":\"none\"}"
+    },
+    {
+      "name": "analysis-rules 列表标题字重",
+      "ok": true,
+      "detail": "600"
+    },
+    {
+      "name": "workbench modal ant-input 边框",
+      "ok": true,
+      "detail": "{\"borderTopWidth\":\"1px\",\"borderTopColor\":\"rgb(217, 217, 217)\",\"borderRadius\":\"6px\",\"height\":\"32px\",\"backgroundColor\":\"rgb(255, 255, 255)\",\"boxShadow\":\"none\"}"
+    },
+    {
+      "name": "workbench modal ant-input 圆角",
+      "ok": true,
+      "detail": "6px"
+    },
+    {
+      "name": "workbench modal ant-input focus",
+      "ok": true,
+      "detail": "rgb(17, 101, 190) | rgba(9, 96, 189, 0.098) 0px 0px 0px 1.92103px"
+    },
+    {
+      "name": "report preview rw-mini-app 仍在",
+      "ok": true,
+      "detail": "{\"exists\":true,\"display\":\"block\",\"htmlLen\":8607,\"touchedByAntInputRule\":false}"
+    },
+    {
+      "name": "rw-mini-app 内无 ant-input 污染",
+      "ok": true,
+      "detail": "false"
+    }
+  ],
+  "failed": [],
+  "console": [
+    {
+      "type": "warning",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (File not found)"
+    }
+  ],
+  "pageerrors": []
+}

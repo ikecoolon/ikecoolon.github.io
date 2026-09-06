@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-05T00:00:00+08:00",
+  "title": "Design System: Pet Eden Admin",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Rondo 主蓝" },
+      "bg-layout": { "role": "neutral", "displayName": "浅灰工作区" },
+      "bg-container": { "role": "neutral", "displayName": "白色内容面" }
+    },
+    "typographyMeta": {
+      "body": { "displayName": "紧凑正文", "purpose": "列表、输入与管理端正文。" },
+      "mono": { "displayName": "等宽编号", "purpose": "表格中的编号。" }
+    },
+    "shadows": [
+      { "name": "ant-shadow", "value": "0 1px 2px 0 rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px 0 rgba(0, 0, 0, 0.02)", "purpose": "已有轻阴影 token。" },
+      { "name": "ant-shadow-secondary", "value": "0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 9px 28px 8px rgba(0, 0, 0, 0.05)", "purpose": "列配置、下拉菜单与 Modal。" },
+      { "name": "fixed-column", "value": "-6px 0 8px -6px rgba(0, 0, 0, 0.12)", "purpose": "表格右侧固定操作列的边界。" }
+    ],
+    "motion": [
+      { "name": "advanced-chevron", "value": "transform 0.15s ease", "purpose": "高级筛选箭头随展开状态转动。" }
+    ],
+    "breakpoints": [
+      { "name": "shell-mobile-max", "value": "768px" },
+      { "name": "search-three-columns-min", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "主按钮", "kind": "button", "refersTo": "button-primary",
+      "description": "主要操作；默认与悬停来自共享按钮。",
+      "html": "<button class=\"ds-primary\">保存</button>",
+      "css": ".ds-primary{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--ant-primary);border-radius:var(--ant-radius);background:var(--ant-primary);color:var(--ant-bg-container);font-family:var(--ant-font-family);font-size:13px;line-height:1.5;padding:4px 15px;cursor:pointer}.ds-primary:hover{background:var(--ant-primary-hover);border-color:var(--ant-primary-hover)}"
+    },
+    {
+      "name": "次要按钮", "kind": "button", "refersTo": "button-default",
+      "description": "白底描边的次要操作。",
+      "html": "<button class=\"ds-default\">重置</button>",
+      "css": ".ds-default{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--ant-border);border-radius:var(--ant-radius);background:var(--ant-bg-container);color:var(--ant-text);font-family:var(--ant-font-family);font-size:13px;line-height:1.5;padding:4px 15px;cursor:pointer}.ds-default:hover{color:var(--ant-primary);border-color:var(--ant-primary)}"
+    },
+    {
+      "name": "输入框", "kind": "input", "refersTo": "input",
+      "description": "紧凑输入；焦点取自现有管理端输入焦点规则。",
+      "html": "<label class=\"ds-field\">宠物名称 <input class=\"ds-input\" placeholder=\"请输入宠物名称\"></label>",
+      "css": ".ds-field{font-family:var(--ant-font-family);font-size:13px;color:var(--ant-text-secondary)}.ds-input{border:1px solid var(--ant-border);border-radius:var(--ant-radius);padding:4px 11px;font-family:var(--ant-font-family);font-size:13px;line-height:1.5;color:var(--ant-text);background:var(--ant-bg-container)}.ds-input:focus{border-color:var(--rondo-primary);outline:0;box-shadow:0 0 0 2px rgba(9,96,189,0.1)}"
+    },
+    {
+      "name": "应用页签", "kind": "nav", "refersTo": "application-tab",
+      "description": "白底活动项、主色顶部线和键盘焦点。",
+      "html": "<nav aria-label=\"已打开页面\"><button class=\"ds-tab ds-active\" aria-current=\"page\">报告中心</button><button class=\"ds-tab\">送检管理</button></nav>",
+      "css": ".ds-tab{display:inline-flex;align-items:center;gap:8px;max-width:200px;height:38px;padding:0 12px;border:0;border-right:1px solid var(--ant-border-secondary);background:#fafafa;color:var(--ant-text-secondary);font-family:var(--ant-font-family);font-size:13px;cursor:pointer;white-space:nowrap;outline:none}.ds-tab:hover{color:var(--ant-text);background:#f0f0f0}.ds-tab.ds-active{background:var(--ant-bg-container);color:var(--rondo-primary);font-weight:500;box-shadow:inset 0 2px 0 var(--rondo-primary)}.ds-tab:focus-visible{box-shadow:inset 0 0 0 2px var(--rondo-primary)}"
+    },
+    {
+      "name": "中性标签", "kind": "chip", "refersTo": "tag-default",
+      "description": "文本化辅助状态，无交互。",
+      "html": "<span class=\"ds-tag\">已归档</span>",
+      "css": ".ds-tag{display:inline-flex;align-items:center;padding:2px 8px;border-radius:4px;font-family:var(--ant-font-family);font-size:12px;background:var(--ant-bg-layout);color:var(--ant-text-secondary)}"
+    },
+    {
+      "name": "内容面板", "kind": "card", "refersTo": "panel",
+      "description": "标准搜索与内容容器，无装饰性抬升。",
+      "html": "<section class=\"ds-panel\">报告信息</section>",
+      "css": ".ds-panel{background:var(--ant-bg-container);border:1px solid var(--ant-border-secondary);border-radius:var(--ant-radius-lg);padding:var(--rondo-content-padding);font-family:var(--ant-font-family);font-size:13px;color:var(--ant-text)}"
+    }
+  ],
+  "narrative": {
+    "northStar": "熟悉的 Rondo 浅色后台",
+    "overview": "保留 Pet Eden 品牌，以标准导航、紧凑表单和 BasicTable 帮助运营完成送检、编制与审核。蓝色标识主动作和当前上下文，白色内容容器与浅灰工作区建立层次。\n\n本规范仅作用于 `docs/.vuepress/public/prototype/admin/` 的管理界面。工作台内的小程序预览及 `mini-program/` 保持自己的等级主题和样式，不继承本规范。静态 HTML / JavaScript 复现真实 Rondo 的可见契约，不要求引入 Vue 或替换技术栈。",
+    "keyCharacteristics": ["标准、紧凑、一致。", "浅色工作区与蓝色主动作。", "搜索、表格与编辑上下文分层。"],
+    "rules": [],
+    "dos": ["Do 沿用 Pet Eden 品牌和真实 Rondo 的标准组件语义。", "Do 使用 ListPage + BasicTable/useTable 可见契约并保留表格容器内滚动。", "Do 用共享 tokens 和显式组件类统一静态及动态节点。"],
+    "donts": ["Don't 引入 VXE 表格规范或重建一套管理端视觉语言。", "Don't 让管理端样式覆盖小程序预览或 mini-program 等级主题。", "Don't 将本设计规范或旧 review 的通过声明当作本次验收证据。"]
+  }
+}

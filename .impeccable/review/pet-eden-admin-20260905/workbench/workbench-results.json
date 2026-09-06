@@ -1,0 +1,78 @@
+{
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "passed": 12,
+  "failed": 0,
+  "total": 12,
+  "cases": [
+    {
+      "name": "tab B holds its own summary",
+      "ok": true,
+      "detail": "TAB-B-UNIQUE-SUMMARY-002"
+    },
+    {
+      "name": "tab A dirty after edit",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "tab A keeps its summary after switch",
+      "ok": true,
+      "detail": "TAB-A-UNIQUE-SUMMARY-003"
+    },
+    {
+      "name": "switch to B again preserves B draft",
+      "ok": true,
+      "detail": "TAB-B-UNIQUE-SUMMARY-002"
+    },
+    {
+      "name": "store update on inactive tab does not clobber active DOM",
+      "ok": true,
+      "detail": "TAB-B-UNIQUE-SUMMARY-002"
+    },
+    {
+      "name": "tab A still dirty before save",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "atomic save clears professional dirty",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "save persisted summary to store",
+      "ok": true,
+      "detail": "TAB-A-UNIQUE-SUMMARY-003"
+    },
+    {
+      "name": "editor cannot edit pending_review report",
+      "ok": true,
+      "detail": "true"
+    },
+    {
+      "name": "reviewer can edit pending_review report",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "responsive screenshots captured",
+      "ok": true,
+      "detail": "workbench-assessment-1440.png, workbench-assessment-1280.png, workbench-assessment-1024.png, workbench-assessment-390.png"
+    },
+    {
+      "name": "edit area and preview both present",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (File not found)"
+  ],
+  "pageErrors": [],
+  "screenshots": [
+    "workbench-assessment-1024.png",
+    "workbench-assessment-1280.png",
+    "workbench-assessment-1440.png",
+    "workbench-assessment-390.png"
+  ]
+}

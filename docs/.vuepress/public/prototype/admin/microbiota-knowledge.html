@@ -1,44 +1,44 @@
-<div id="microbiota-knowledge" class="page space-y-4">
-    <div class="bg-white rounded-lg border border-slate-200 p-5">
-        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+<link rel="stylesheet" href="./css/microbiota-knowledge.css">
+<div id="microbiota-knowledge" class="page rondo-page">
+    <div class="rondo-panel">
+        <div class="rondo-page-header">
             <div class="min-w-0 flex-1">
-                <h2 class="text-lg font-semibold text-slate-800 mb-1">
-                    <i class="fas fa-book-open text-teal-600 mr-2"></i>菌群科普模板
+                <h2 class="rondo-page-title">
+                    <i class="fas fa-book-open" aria-hidden="true"></i> 菌群科普模板
                 </h2>
-                <p class="text-sm text-slate-600 leading-relaxed">
+                <p class="rondo-page-desc">
                     本页维护门/属节点的<strong>结构化科普字段</strong>；<strong>不新增、不删除</strong>分类。
                     参考范围请到「指标 / 参考范围」维护；结果解释与总体建议请到「分析规则 / 报告审核」维护。
                     门–属关系请到
-                    <a href="#dictionary-management" data-page="dictionary-management" class="text-teal-700 hover:underline">字典管理 → 菌群分类树</a>。
+                    <a href="#dictionary-management" data-page="dictionary-management" class="rondo-link">专业基础资料 → 菌群分类树</a>。
                 </p>
             </div>
-            <div class="shrink-0 flex flex-col items-stretch sm:items-end gap-2">
-                <button type="button" id="mk-btn-open-global" class="ant-btn ant-btn-default text-sm">
-                    <i class="fas fa-sliders mr-1"></i>全局场景词设置
+            <div class="rondo-toolbar-actions">
+                <button type="button" id="mk-btn-open-global" class="rondo-btn rondo-btn-default">
+                    <i class="fas fa-sliders"></i> 全局场景词设置
                 </button>
-                <p id="mk-global-summary" class="text-xs text-slate-500 text-left sm:text-right leading-relaxed max-w-xs" aria-live="polite"></p>
+                <p id="mk-global-summary" class="rondo-form-hint" aria-live="polite"></p>
             </div>
         </div>
     </div>
 
-    <div class="flex flex-col md:flex-row gap-4 items-start">
-        <aside class="w-full md:w-[280px] md:max-w-[280px] shrink-0 bg-white rounded-lg border border-slate-200 p-4 md:sticky md:top-4">
-            <label class="block text-xs font-medium text-slate-500 mb-1" for="mk-search">分类树</label>
-            <div class="relative mb-3">
-                <i class="fas fa-search absolute left-2.5 top-2.5 text-slate-400 text-xs"></i>
-                <input type="search" id="mk-search" autocomplete="off"
-                    class="w-full border border-slate-300 rounded-md py-1.5 pl-7 pr-2 text-sm"
+    <div class="mk-layout">
+        <aside class="mk-sidebar rondo-panel">
+            <label class="rondo-form-label" for="mk-search">分类树</label>
+            <div class="rondo-search-input-wrap">
+                <i class="fas fa-search" aria-hidden="true"></i>
+                <input type="search" id="mk-search" autocomplete="off" class="rondo-input ant-input"
                     placeholder="搜索门、属、学名或编码">
             </div>
-            <div id="mk-tree" class="space-y-0.5 max-h-[60vh] overflow-y-auto text-sm"></div>
-            <p class="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400 leading-relaxed">
-                门–属关系在字典管理中维护；本页只编辑面向用户的科普模板。
+            <div id="mk-tree" class="mk-tree"></div>
+            <p class="rondo-form-hint">
+                门–属关系在专业基础资料中维护；本页只编辑面向用户的科普模板。
             </p>
         </aside>
 
-        <div class="flex-1 min-w-0 space-y-4">
-            <div id="mk-editor" class="space-y-4">
-                <section class="bg-white rounded-lg border border-slate-200 p-5">
+        <div class="mk-main">
+            <div id="mk-editor" class="mk-editor">
+                <section class="rondo-panel">
                     <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
                         <div class="min-w-0">
                             <div class="flex items-center gap-2 flex-wrap">

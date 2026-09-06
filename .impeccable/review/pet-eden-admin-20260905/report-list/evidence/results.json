@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-09-05T02:44:59.116Z",
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "passed": [
+    "fixture: 至少两份报告",
+    "初始表格有数据行",
+    "状态标签计数格式正确",
+    "搜索过滤生效",
+    "页大小变更写入 tab listState",
+    "过滤后仍有主操作按钮",
+    "进入报告工作台有内容",
+    "返回保留搜索词",
+    "返回保留页大小",
+    "搜索后待处理计数仍更新",
+    "第一份报告页签仍存在",
+    "同列表打开两报告页签不串数据",
+    "更多菜单键盘 Esc 关闭",
+    "切换搜索区可用",
+    "刷新后仍有数据",
+    "列配置面板可打开",
+    "全屏开启",
+    "全屏关闭",
+    "390px 操作列在视口内可达"
+  ],
+  "failed": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (File not found)"
+  ],
+  "pageErrors": [],
+  "failedResources": [],
+  "ok": true
+}

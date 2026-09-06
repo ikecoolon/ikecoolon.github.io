@@ -1,6 +1,19 @@
-function initReportCenter() {
+function initReportCenter(mountRoot, tab) {
+  var root = mountRoot || document;
   var C = window.PetAdminCommon;
+  var BT = window.PetAdminBasicTable;
+  var Session = window.PetAdminSession;
+  var Perms = window.PetAdminPermissions;
   var store = C.store();
+
+  var cssLink = root.querySelector('link[href*="report-center.css"]');
+  if (cssLink && !document.getElementById('pet-admin-report-center-css')) {
+    var headLink = document.createElement('link');
+    headLink.id = 'pet-admin-report-center-css';
+    headLink.rel = 'stylesheet';
+    headLink.href = cssLink.getAttribute('href');
+    document.head.appendChild(headLink);
+  }
 
   var VIEW_LABELS = {
     pending: '待处理',
@@ -14,22 +27,40 @@ function initReportCenter() {
   var PENDING_STATUSES = ['incomplete', 'pending_review'];
   var QUEUE_SORT_VIEWS = ['pending', 'incomplete', 'pending_review'];
   var SPECIES_LABEL = { cat: '猫', dog: '狗', 猫: '猫', 狗: '狗' };
+  var STATE_KEY = 'report-center';
 
   var currentView = 'pending';
-  var filterState = {};
   var openMoreMenuId = null;
+  var listApi = null;
+  var allRowsCache = [];
+  var tabActive = true;
 
-  var viewTabs = document.querySelectorAll('.rc-view-tab');
-  var filterForm = document.getElementById('rc-filter-form');
-  var listTitle = document.getElementById('rc-list-title');
-  var resultCount = document.getElementById('rc-result-count');
-  var listEl = document.getElementById('rc-list');
-  var emptyEl = document.getElementById('rc-empty');
-  var advancedToggle = document.getElementById('rc-advanced-toggle');
-  var advancedPanel = document.getElementById('rc-advanced-filters');
+  var viewTabs = root.querySelectorAll('.rc-view-tab');
+  var listContainer = root.querySelector('#rc-list-table');
 
-  var unsub = store.subscribe(function () { render(store.getState()); });
-  window.__petAdminPageTeardown = function () { unsub(); };
+  function getOwnerTab() {
+    if (tab && Session && Session.findTab) {
+      return Session.findTab(tab.id) || tab;
+    }
+    return Session && Session.getActiveTab && Session.getActiveTab();
+  }
+
+  function getSavedListState() {
+    if (!Session) return {};
+    var ownerTab = getOwnerTab();
+    if (!ownerTab || !ownerTab.listState) return {};
+    return ownerTab.listState[STATE_KEY] || {};
+  }
+
+  function saveViewState(view) {
+    if (!Session) return;
+    var ownerTab = getOwnerTab();
+    if (!ownerTab) return;
+    if (!ownerTab.listState) ownerTab.listState = {};
+    var prev = ownerTab.listState[STATE_KEY] || {};
+    ownerTab.listState[STATE_KEY] = Object.assign({}, prev, { view: view });
+    Session.updateTabState(ownerTab.id, { listState: ownerTab.listState });
+  }
 
   function pickFirst(obj, keys) {
     if (!obj) return '';
@@ -69,7 +100,6 @@ function initReportCenter() {
         pickFirst(testRecord, ['sampleNumber', 'sampleNo', 'label']) ||
         ''
       ).trim();
-      var todoFlags = report.todoFlags || [];
       var correctionStage = typeof store.getCorrectionDraftStage === 'function'
         ? store.getCorrectionDraftStage(report)
         : null;
@@ -92,21 +122,10 @@ function initReportCenter() {
         correctionDraftActive: !!report.correctionDraftActive,
         correctionStage: correctionStage,
         rejectReason: report.rejectReason || null,
-        todoFlagCount: todoFlags.length,
         statusChangedAt: report.statusChangedAt || report.updatedAt || report.createdAt || '',
         updatedAt: report.updatedAt || report.createdAt || ''
       };
     });
-  }
-
-  function readFiltersFromForm() {
-    return {
-      search: (document.getElementById('rc-q-search').value || '').trim().toLowerCase(),
-      storeName: (document.getElementById('rc-q-store').value || '').trim().toLowerCase(),
-      species: document.getElementById('rc-q-species').value,
-      dateFrom: document.getElementById('rc-q-date-from').value,
-      dateTo: document.getElementById('rc-q-date-to').value
-    };
   }
 
   function matchesSearch(row, search) {
@@ -121,13 +140,15 @@ function initReportCenter() {
     return haystack.indexOf(search) >= 0;
   }
 
-  function applyCommonFilters(rows) {
+  function applyCommonFilters(rows, filters) {
+    var search = (filters.search || '').trim().toLowerCase();
+    var storeName = (filters.storeName || '').trim().toLowerCase();
     return rows.filter(function (row) {
-      if (!matchesSearch(row, filterState.search)) return false;
-      if (filterState.storeName && row.sourceName.toLowerCase().indexOf(filterState.storeName) < 0) return false;
-      if (filterState.species && row.species !== filterState.species) return false;
-      if (filterState.dateFrom && row.testDate && row.testDate < filterState.dateFrom) return false;
-      if (filterState.dateTo && row.testDate && row.testDate > filterState.dateTo) return false;
+      if (!matchesSearch(row, search)) return false;
+      if (storeName && row.sourceName.toLowerCase().indexOf(storeName) < 0) return false;
+      if (filters.species && row.species !== filters.species) return false;
+      if (filters.dateFrom && row.testDate && row.testDate < filters.dateFrom) return false;
+      if (filters.dateTo && row.testDate && row.testDate > filters.dateTo) return false;
       return true;
     });
   }
@@ -144,8 +165,17 @@ function initReportCenter() {
     return QUEUE_SORT_VIEWS.indexOf(view) >= 0;
   }
 
-  function sortRows(rows, view) {
+  function sortRows(rows, view, query) {
     var sorted = rows.slice();
+    if (query && query.sortField) {
+      var field = query.sortField;
+      var asc = query.sortOrder !== 'desc';
+      sorted.sort(function (a, b) {
+        var cmp = String(a[field] || '').localeCompare(String(b[field] || ''));
+        return asc ? cmp : -cmp;
+      });
+      return sorted;
+    }
     if (isPendingSortView(view)) {
       sorted.sort(function (a, b) {
         return String(a.statusChangedAt).localeCompare(String(b.statusChangedAt));
@@ -167,91 +197,141 @@ function initReportCenter() {
   }
 
   function updateTabCounts(filteredRows) {
-    document.querySelectorAll('.rc-tab-count').forEach(function (el) {
+    root.querySelectorAll('.rc-tab-count').forEach(function (el) {
       var view = el.getAttribute('data-count-for');
       var count = countForView(filteredRows, view);
       el.textContent = count ? '(' + count + ')' : '';
     });
   }
 
+  function isPendingReviewLikeRow(row) {
+    if (row.status === 'pending_review') return true;
+    return row.correctionDraftActive && row.correctionStage === 'pending_review';
+  }
+
+  function canEditRow(row) {
+    if (!Perms || (Perms.getActor && Perms.getActor().readOnly)) return false;
+    if (row.status === 'voided') return false;
+    if (row.status === 'published' && !row.correctionDraftActive) return false;
+    if (isPendingReviewLikeRow(row)) return false;
+    return Perms.can('edit');
+  }
+
+  function canReviewRow(row) {
+    if (!Perms || !isPendingReviewLikeRow(row)) return false;
+    return Perms.can('review');
+  }
+
+  function canVoidRow(row) {
+    return row.status !== 'voided' && row.reportId && Perms && Perms.can('void');
+  }
+
+  function canCreateCorrectionRow(row) {
+    return row.status === 'published' && !row.correctionDraftActive && row.reportId && Perms && Perms.can('edit');
+  }
+
+  function primaryActionForRow(row) {
+    if (row.correctionDraftActive) {
+      if (row.correctionStage === 'pending_review') {
+        return canReviewRow(row)
+          ? { label: '审核更正', primary: true }
+          : { label: '查看', primary: false };
+      }
+      return canEditRow(row)
+        ? { label: '处理更正', primary: true }
+        : { label: '查看', primary: false };
+    }
+    if (row.status === 'incomplete') {
+      return canEditRow(row)
+        ? { label: '完善', primary: true }
+        : { label: '查看', primary: false };
+    }
+    if (row.status === 'pending_review') {
+      return canReviewRow(row)
+        ? { label: '审核', primary: true }
+        : { label: '查看', primary: false };
+    }
+    if (row.status === 'voided') {
+      return { label: '追溯', primary: false };
+    }
+    return { label: '查看', primary: false };
+  }
+
   function statusCell(row) {
     var html = C.statusBadge(row.status, C.REPORT_STATUS_LABELS);
     if (row.correctionDraftActive) {
       var sub = row.correctionStage === 'pending_review' ? '更正中·待审核' : '更正中·待完善';
-      html += ' <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-indigo-100 text-indigo-800">' +
-        C.escapeHtml(sub) + '</span>';
+      html += '<span class="rondo-tag-sub">' + C.escapeHtml(sub) + '</span>';
     }
     if (row.rejectReason && row.status === 'incomplete') {
-      html += ' <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-red-100 text-red-700">已退回</span>';
-    }
-    if (row.todoFlagCount) {
-      html += ' <span class="inline-flex items-center justify-center ml-0.5 min-w-[1rem] h-4 px-0.5 rounded-full bg-amber-500 text-white text-[10px] leading-none" title="待办 ' +
-        row.todoFlagCount + '">' + row.todoFlagCount + '</span>';
+      html += '<span class="rondo-tag-sub rondo-tag-danger-sub">已退回</span>';
     }
     return html;
   }
 
-  function userPetCell(row) {
-    return '<div class="text-slate-800">' + C.escapeHtml(row.userName) + '</div>' +
-      '<div class="text-xs text-slate-500">' + C.escapeHtml(row.petName) + '</div>';
-  }
-
-  function primaryAction(row) {
-    var label = '查看';
-    if (row.correctionDraftActive) {
-      label = row.correctionStage === 'pending_review' ? '审核更正' : '处理更正';
-    } else if (row.status === 'incomplete') {
-      label = '完善';
-    } else if (row.status === 'pending_review') {
-      label = '审核';
-    } else if (row.status === 'voided') {
-      label = '追溯';
-    }
-    if (!row.reportId) return '';
-    return '<button type="button" class="btn-primary px-3 py-1 rounded text-xs rc-action" data-action="review" data-report-id="' +
-      C.escapeHtml(row.reportId) + '">' + label + '</button>';
-  }
-
   function moreMenuItems(row) {
     var items = [];
-    if (row.testRecordId) {
-      items.push({ action: 'records', label: '查看送检记录' });
-    }
-    if (row.reportId) {
-      items.push({ action: 'versions', label: '版本' });
-    }
-    if (row.status !== 'voided' && row.reportId) {
-      items.push({ action: 'void', label: '作废' });
-    }
-    if (row.status === 'published' && !row.correctionDraftActive && row.reportId) {
-      items.push({ action: 'correction', label: '创建更正草稿' });
-    }
+    if (row.testRecordId) items.push({ action: 'records', label: '查看送检记录' });
+    if (row.reportId) items.push({ action: 'versions', label: '版本' });
+    if (canVoidRow(row)) items.push({ action: 'void', label: '作废' });
+    if (canCreateCorrectionRow(row)) items.push({ action: 'correction', label: '创建更正草稿' });
     return items;
   }
 
-  function buildMoreMenu(row) {
+  function buildActionsHtml(row) {
+    var html = '';
+    if (row.reportId) {
+      var primary = primaryActionForRow(row);
+      var btnClass = primary.primary ? 'ant-btn ant-btn-primary ant-btn-sm' : 'ant-btn ant-btn-default ant-btn-sm';
+      html += '<button type="button" class="' + btnClass + '" data-row-action="review">' +
+        C.escapeHtml(primary.label) + '</button> ';
+    }
     var items = moreMenuItems(row);
-    if (!items.length) return '';
+    if (!items.length) return html || '—';
     var menuId = 'rc-more-' + row.id;
     var open = openMoreMenuId === menuId;
-    return '<div class="relative inline-block rc-more-wrap" data-menu-id="' + C.escapeHtml(menuId) + '">' +
-      '<button type="button" class="btn-secondary px-2 py-1 rounded text-xs rc-more-toggle" data-menu-id="' + C.escapeHtml(menuId) + '">更多 <i class="fas fa-chevron-down text-[10px]"></i></button>' +
-      '<div class="rc-more-menu absolute right-0 mt-1 min-w-[10rem] bg-white border border-slate-200 rounded-md shadow-lg z-10 text-xs' + (open ? '' : ' hidden') + '" data-menu-id="' + C.escapeHtml(menuId) + '">' +
-      items.map(function (item) {
-        return '<button type="button" class="block w-full text-left px-3 py-2 hover:bg-slate-50 rc-action" data-action="' + item.action +
-          '" data-report-id="' + C.escapeHtml(row.reportId) +
-          '" data-test-record-id="' + C.escapeHtml(row.testRecordId || '') + '">' + C.escapeHtml(item.label) + '</button>';
-      }).join('') +
-      '</div></div>';
+    html += '<span class="rondo-dropdown" data-menu-id="' + C.escapeHtml(menuId) + '">' +
+      '<button type="button" class="ant-btn ant-btn-default ant-btn-sm rondo-more-toggle" data-row-action="toggle-more" data-menu-id="' +
+      C.escapeHtml(menuId) + '" aria-haspopup="menu" aria-expanded="' + (open ? 'true' : 'false') + '">更多 <i class="fas fa-chevron-down"></i></button>';
+    if (open) {
+      html += '<div class="rondo-dropdown-menu is-fixed" role="menu">';
+      items.forEach(function (item) {
+        html += '<button type="button" class="rondo-dropdown-item" role="menuitem" data-row-action="' + item.action + '">' +
+          C.escapeHtml(item.label) + '</button>';
+      });
+      html += '</div>';
+    }
+    html += '</span>';
+    return html;
   }
 
-  function buildActions(row) {
-    return '<div class="flex items-center justify-end gap-2">' + primaryAction(row) + buildMoreMenu(row) + '</div>';
+  function reportIdentityCell(row) {
+    var primary = C.escapeHtml(row.reportNumber);
+    var secondary = row.sampleNumber ? C.escapeHtml(row.sampleNumber) : '';
+    if (row.externalReportNumber && row.externalReportNumber !== row.reportNumber) {
+      secondary = secondary
+        ? secondary + ' · ' + C.escapeHtml(row.externalReportNumber)
+        : C.escapeHtml(row.externalReportNumber);
+    }
+    var link = row.testRecordId
+      ? '<div class="rondo-cell-sub"><button type="button" class="ant-btn ant-btn-link ant-btn-sm" data-row-action="records">查看送检信息</button></div>'
+      : '';
+    return '<div>' + primary + (secondary ? '<div class="rondo-cell-sub rondo-cell-mono">' + secondary + '</div>' : '') + link + '</div>';
   }
 
-  function testRecordLink(row) {
-    if (!row.testRecordId) return '';
-    return '<div class="mt-1"><button type="button" class="text-teal-600 hover:underline text-xs rc-action" data-action="records">查看送检信息</button></div>';
+  function repositionOpenMenu() {
+    if (!openMoreMenuId) return;
+    var wrap = root.querySelector('[data-menu-id="' + openMoreMenuId + '"]');
+    if (!wrap) return;
+    var btn = wrap.querySelector('.rondo-more-toggle');
+    var menu = wrap.querySelector('.rondo-dropdown-menu');
+    if (!btn || !menu) return;
+    var rect = btn.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.top = Math.round(rect.bottom + 4) + 'px';
+    menu.style.right = Math.round(window.innerWidth - rect.right) + 'px';
+    menu.style.left = 'auto';
+    menu.style.minWidth = Math.max(rect.width, 160) + 'px';
   }
 
   function withReturnView(params) {
@@ -260,41 +340,41 @@ function initReportCenter() {
     return next;
   }
 
-  function reportIdentity(row) {
-    var primary = C.escapeHtml(row.reportNumber);
-    var secondary = row.sampleNumber ? C.escapeHtml(row.sampleNumber) : '';
-    if (row.externalReportNumber && row.externalReportNumber !== row.reportNumber) {
-      secondary = secondary ? secondary + ' · ' + C.escapeHtml(row.externalReportNumber) : C.escapeHtml(row.externalReportNumber);
-    }
-    return '<div class="font-medium text-slate-800">' + primary + '</div>' +
-      (secondary ? '<div class="text-xs text-slate-500 font-mono mt-0.5">' + secondary + '</div>' : '');
-  }
-
   function setActiveView(view) {
     currentView = view || 'pending';
-    viewTabs.forEach(function (tab) {
-      var active = tab.dataset.view === currentView;
-      tab.classList.toggle('bg-teal-600', active);
-      tab.classList.toggle('text-white', active);
-      tab.classList.toggle('border-teal-600', active);
-      tab.classList.toggle('border-slate-200', !active);
-      tab.classList.toggle('text-slate-600', !active);
-      tab.setAttribute('aria-selected', active ? 'true' : 'false');
+    viewTabs.forEach(function (tabEl) {
+      var active = tabEl.dataset.view === currentView;
+      tabEl.setAttribute('aria-selected', active ? 'true' : 'false');
+      tabEl.classList.toggle('ant-tabs-tab-active', active);
     });
-    listTitle.textContent = (VIEW_LABELS[currentView] || currentView) + '报告';
+    saveViewState(currentView);
+    var titleEl = root.querySelector('.rondo-list-page-title');
+    if (titleEl) titleEl.textContent = (VIEW_LABELS[currentView] || currentView) + '报告';
   }
 
   function syncViewFromRoute() {
     var route = C.parseRoute();
-    var view = route.params.view || route.params.status || 'pending';
-    if (view === 'pending_result') view = 'pending';
-    if (view === 'unassigned' || !VIEW_LABELS[view]) view = 'pending';
-    setActiveView(view);
+    var routeView = route.params.view || route.params.status;
+    if (routeView) {
+      if (routeView === 'pending_result') routeView = 'pending';
+      if (routeView === 'unassigned' || !VIEW_LABELS[routeView]) routeView = null;
+      if (routeView) {
+        setActiveView(routeView);
+        return;
+      }
+    }
+    var saved = getSavedListState();
+    if (saved.view && VIEW_LABELS[saved.view]) {
+      setActiveView(saved.view);
+      return;
+    }
+    setActiveView('pending');
   }
 
   function updateRouteView(view) {
     var route = C.parseRoute();
     var params = Object.assign({}, route.params);
+    delete params.returnView;
     if (view === 'pending') {
       delete params.view;
       delete params.status;
@@ -318,22 +398,32 @@ function initReportCenter() {
       C.navigate('detection-records', withReturnView({ testRecordId: row.testRecordId }));
       return;
     }
-    if (action === 'void' && row.reportId) {
+    if (action === 'void') {
+      if (!canVoidRow(row)) {
+        C.toast('当前账号无权限执行此操作', 'error');
+        return;
+      }
       C.promptDialog('作废报告', '请填写作废原因', function (reason) {
         try {
           store.voidReport(row.reportId, reason);
           C.toast('报告已作废', 'success');
+          if (listApi) listApi.reload();
         } catch (err) {
           C.toast(err.message || '作废失败', 'error');
         }
       });
       return;
     }
-    if (action === 'correction' && row.reportId) {
+    if (action === 'correction') {
+      if (!canCreateCorrectionRow(row)) {
+        C.toast('当前账号无权限执行此操作', 'error');
+        return;
+      }
       C.promptDialog('创建更正草稿', '请填写更正说明', function (note) {
         try {
           store.createCorrectionDraft(row.reportId, { correctionNote: note });
           C.toast('已创建更正草稿', 'success');
+          if (listApi) listApi.reload();
         } catch (err) {
           C.toast(err.message || '创建更正草稿失败', 'error');
         }
@@ -341,128 +431,208 @@ function initReportCenter() {
     }
   }
 
-  function bindRowActions(rows) {
-    listEl.querySelectorAll('.rc-action').forEach(function (btn) {
-      btn.onclick = function (e) {
-        e.stopPropagation();
-        var card = btn.closest('.rc-card');
-        var idx = card ? Number(card.getAttribute('data-row-index')) : -1;
-        if (idx < 0 || !rows[idx]) return;
-        openMoreMenuId = null;
-        handleAction(btn.dataset.action, rows[idx]);
-      };
+  function setupAdvancedFilters() {
+    var searchForm = listContainer.querySelector('.rondo-search-form');
+    if (!searchForm) return;
+    ['species', 'dateFrom', 'dateTo'].forEach(function (name) {
+      var input = searchForm.querySelector('[name="' + name + '"]');
+      if (!input) return;
+      var field = input.closest('.rondo-search-form-field');
+      if (field) field.classList.add('is-advanced');
     });
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'rondo-search-advanced-toggle';
+    toggle.setAttribute('aria-expanded', 'false');
+    toggle.innerHTML = '<i class="fas fa-chevron-right rc-advanced-chevron" aria-hidden="true"></i>高级筛选';
+    var actions = searchForm.querySelector('.rondo-search-form-actions');
+    searchForm.insertBefore(toggle, actions);
+    toggle.addEventListener('click', function () {
+      var expanded = toggle.getAttribute('aria-expanded') === 'true';
+      expanded = !expanded;
+      toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      searchForm.classList.toggle('is-advanced-open', expanded);
+    });
+  }
 
-    listEl.querySelectorAll('.rc-more-toggle').forEach(function (btn) {
-      btn.onclick = function (e) {
-        e.stopPropagation();
-        var menuId = btn.getAttribute('data-menu-id');
+  listApi = BT.createListPage({
+    container: listContainer,
+    title: '待处理报告',
+    stateKey: STATE_KEY,
+    ownerTabId: tab && tab.id,
+    searchFields: [
+      { name: 'search', label: '关键词', placeholder: '报告号 / 外部报告号 / 样本号 / 手机号 / 宠物名' },
+      { name: 'storeName', label: '来源机构', placeholder: '机构名称' },
+      {
+        name: 'species',
+        label: '物种',
+        type: 'select',
+        options: [
+          { value: '', label: '全部物种' },
+          { value: '猫', label: '猫' },
+          { value: '狗', label: '狗' }
+        ]
+      },
+      { name: 'dateFrom', label: '检测日期起', type: 'date' },
+      { name: 'dateTo', label: '检测日期止', type: 'date' }
+    ],
+    columns: [
+      { key: 'reportNumber', title: '报告标识', dataIndex: 'reportNumber', required: true, render: reportIdentityCell },
+      {
+        key: 'userPet',
+        title: '用户 / 宠物',
+        render: function (row) {
+          return '<div>' + C.escapeHtml(row.userName) + '<div class="rondo-cell-sub">' + C.escapeHtml(row.petName) + '</div></div>';
+        }
+      },
+      { key: 'sourceName', title: '来源', dataIndex: 'sourceName', ellipsis: true },
+      { key: 'status', title: '状态', render: function (row) { return statusCell(row); } },
+      {
+        key: 'updatedAt',
+        title: '更新时间',
+        dataIndex: 'updatedAt',
+        sortable: true,
+        render: function (row) { return C.escapeHtml(C.formatDate(row.updatedAt)); }
+      },
+      { key: 'actions', title: '操作', action: true, render: buildActionsHtml }
+    ],
+    rowKey: 'id',
+    fetchData: function (query) {
+      var state = store.getState();
+      allRowsCache = buildRows(state);
+      var filtered = applyCommonFilters(allRowsCache, query.filters || {});
+      updateTabCounts(filtered);
+      var viewRows = sortRows(
+        filtered.filter(function (row) { return matchesView(row, currentView); }),
+        currentView,
+        query
+      );
+      var total = viewRows.length;
+      var start = (query.page - 1) * query.pageSize;
+      var pageRows = viewRows.slice(start, start + query.pageSize);
+      return Promise.resolve({ rows: pageRows, total: total }).then(function (result) {
+        if (openMoreMenuId) {
+          setTimeout(repositionOpenMenu, 0);
+        }
+        return result;
+      });
+    },
+    onRowAction: function (action, row) {
+      if (action === 'toggle-more') {
+        var menuId = 'rc-more-' + row.id;
         openMoreMenuId = openMoreMenuId === menuId ? null : menuId;
-        render(store.getState());
-      };
-    });
-  }
-
-  function render(state) {
-    syncViewFromRoute();
-    var allRows = buildRows(state);
-    var filteredRows = applyCommonFilters(allRows);
-    updateTabCounts(filteredRows);
-
-    var rows = sortRows(
-      filteredRows.filter(function (row) { return matchesView(row, currentView); }),
-      currentView
-    );
-
-    resultCount.textContent = '共 ' + rows.length + ' 条';
-
-    if (!rows.length) {
-      listEl.innerHTML = '';
-      emptyEl.classList.remove('hidden');
-      return;
+        listApi.reload();
+        return;
+      }
+      openMoreMenuId = null;
+      handleAction(action, row);
     }
-    emptyEl.classList.add('hidden');
+  });
 
-    listEl.innerHTML = rows.map(function (row, index) {
-      return '<article class="rc-card border border-slate-200 rounded-lg px-3 py-2.5 hover:border-slate-300 hover:bg-slate-50/50" data-row-index="' + index + '">' +
-        '<div class="rc-card-grid grid grid-cols-1 sm:grid-cols-12 gap-2 sm:gap-3 items-center text-sm">' +
-        '<div class="sm:col-span-3">' + reportIdentity(row) + '</div>' +
-        '<div class="sm:col-span-2">' + userPetCell(row) + '</div>' +
-        '<div class="sm:col-span-2 text-slate-700">' + C.escapeHtml(row.sourceName) + testRecordLink(row) + '</div>' +
-        '<div class="sm:col-span-2">' + statusCell(row) + '</div>' +
-        '<div class="sm:col-span-1 text-slate-600 text-xs">' + C.escapeHtml(C.formatDate(row.updatedAt)) + '</div>' +
-        '<div class="sm:col-span-2">' + buildActions(row) + '</div>' +
-        '</div></article>';
-    }).join('');
+  setupAdvancedFilters();
+  syncViewFromRoute();
+  setActiveView(currentView);
 
-    bindRowActions(rows);
-  }
-
-  viewTabs.forEach(function (tab) {
-    tab.addEventListener('click', function () {
-      var view = tab.dataset.view;
+  viewTabs.forEach(function (tabEl) {
+    tabEl.addEventListener('click', function () {
+      var view = tabEl.dataset.view;
       setActiveView(view);
       updateRouteView(view);
       openMoreMenuId = null;
-      render(store.getState());
+      listApi.setPage(1);
     });
-  });
-
-  filterForm.addEventListener('submit', function (e) {
-    e.preventDefault();
-    filterState = readFiltersFromForm();
-    openMoreMenuId = null;
-    render(store.getState());
-  });
-
-  document.getElementById('rc-btn-reset').addEventListener('click', function () {
-    filterForm.reset();
-    filterState = {};
-    openMoreMenuId = null;
-    render(store.getState());
-  });
-
-  filterForm.querySelectorAll('input, select').forEach(function (el) {
-    el.addEventListener('change', function () {
-      filterState = readFiltersFromForm();
-      openMoreMenuId = null;
-      render(store.getState());
-    });
-  });
-
-  advancedToggle.addEventListener('click', function () {
-    var expanded = advancedToggle.getAttribute('aria-expanded') === 'true';
-    expanded = !expanded;
-    advancedToggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-    advancedPanel.classList.toggle('hidden', !expanded);
-    var chevron = advancedToggle.querySelector('.rc-advanced-chevron');
-    if (chevron) chevron.classList.toggle('rotate-90', expanded);
   });
 
   function onHashChange() {
-    if (C.parseRoute().pageId === 'report-center') {
+    if (C.parseRoute().pageId !== 'report-center') return;
+    if (!tabActive) return;
+    if (tab && Session && Session.getActiveTab() !== tab) return;
+    openMoreMenuId = null;
+    syncViewFromRoute();
+    listApi.reload();
+  }
+
+  function onDocumentClick(e) {
+    if (!openMoreMenuId) return;
+    if (e.target.closest('.rondo-dropdown')) return;
+    openMoreMenuId = null;
+    listApi.reload();
+  }
+
+  function onDocumentKeydown(e) {
+    if (!openMoreMenuId) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
       openMoreMenuId = null;
-      render(store.getState());
+      listApi.reload();
+      return;
+    }
+    var wrap = root.querySelector('[data-menu-id="' + openMoreMenuId + '"]');
+    if (!wrap) return;
+    var items = Array.prototype.slice.call(wrap.querySelectorAll('.rondo-dropdown-item'));
+    if (!items.length) return;
+    var focused = document.activeElement;
+    var idx = items.indexOf(focused);
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      var next = idx < 0 ? 0 : Math.min(idx + 1, items.length - 1);
+      items[next].focus();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      var prev = idx <= 0 ? items.length - 1 : idx - 1;
+      items[prev].focus();
+    } else if (e.key === 'Enter' && idx >= 0) {
+      e.preventDefault();
+      items[idx].click();
     }
   }
 
-  function onDocumentClick() {
-    if (openMoreMenuId) {
-      openMoreMenuId = null;
-      render(store.getState());
-    }
+  function onWindowResize() {
+    if (openMoreMenuId) repositionOpenMenu();
   }
+
+  var unsub = store.subscribe(function () {
+    if (!tabActive) return;
+    if (tab && Session && Session.getActiveTab() !== tab) return;
+    listApi.reload();
+  });
 
   window.addEventListener('hashchange', onHashChange);
   document.addEventListener('click', onDocumentClick);
+  document.addEventListener('keydown', onDocumentKeydown);
+  window.addEventListener('resize', onWindowResize);
 
-  filterState = readFiltersFromForm();
-  render(store.getState());
+  function onTabActivate() {
+    tabActive = true;
+    syncViewFromRoute();
+    if (listApi) listApi.reload();
+  }
 
-  var prevTeardown = window.__petAdminPageTeardown;
-  window.__petAdminPageTeardown = function () {
-    if (typeof prevTeardown === 'function') prevTeardown();
+  function onTabDeactivate() {
+    tabActive = false;
+    openMoreMenuId = null;
+  }
+
+  function onTabDispose() {
+    openMoreMenuId = null;
+    if (listApi && listApi.destroy) listApi.destroy();
+  }
+
+  if (tab && typeof window.__petAdminRegisterTabHooks === 'function') {
+    window.__petAdminRegisterTabHooks(tab.id, {
+      activate: onTabActivate,
+      deactivate: onTabDeactivate,
+      dispose: onTabDispose,
+      canLeave: function () { return true; }
+    });
+  }
+
+  return function teardown() {
+    unsub();
     window.removeEventListener('hashchange', onHashChange);
     document.removeEventListener('click', onDocumentClick);
+    document.removeEventListener('keydown', onDocumentKeydown);
+    window.removeEventListener('resize', onWindowResize);
+    if (listApi && listApi.destroy) listApi.destroy();
   };
 }

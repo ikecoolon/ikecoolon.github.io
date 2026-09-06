@@ -1,0 +1,13 @@
+{
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "out": "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/browser-confirm-20260906",
+  "smokeOnly": false,
+  "passed": [],
+  "failed": [
+    "page.goto: net::ERR_EMPTY_RESPONSE at http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html#report-center\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html#report-center\", waiting until \"domcontentloaded\"\u001b[22m\n"
+  ],
+  "externalFailures": [],
+  "capturedAt": "2026-09-06T02:14:43.029Z",
+  "error": "page.goto: net::ERR_EMPTY_RESPONSE at http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html#report-center\nCall log:\n\u001b[2m  - navigating to \"http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html#report-center\", waiting until \"domcontentloaded\"\u001b[22m\n",
+  "ok": false
+}

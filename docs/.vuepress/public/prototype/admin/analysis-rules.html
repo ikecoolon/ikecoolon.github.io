@@ -1,63 +1,35 @@
-<div id="analysis-rules" class="page p-4 space-y-4">
-  <div class="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950" role="note">
+<link rel="stylesheet" href="./css/analysis-rules.css">
+<div id="analysis-rules" class="page rondo-page">
+  <div class="rondo-callout rondo-callout-warning" role="note">
     <strong>静态原型 · 浏览器本地 Mock · 非生产规则</strong>
-    <span class="ml-2">专业依据、审核状态、维护人和最近测试记录尚未接入真实服务；页面中的规则与文案均未审核，仅用于交互演示。</span>
+    <span>专业依据、审核状态、维护人和最近测试记录尚未接入真实服务；页面中的规则与文案均未审核，仅用于交互演示。</span>
   </div>
 
-  <div class="ar-tabbar flex border-b border-gray-200 bg-white rounded-t-lg px-4 pt-2" role="tablist" aria-label="分析规则模块">
-    <button type="button" id="tab-rules" class="ar-tab px-4 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600" role="tab" aria-selected="true" aria-controls="section-rules" tabindex="0">
-      <i class="fas fa-layer-group mr-1" aria-hidden="true"></i>规则库
+  <div id="ar-workbench-tabs" class="ar-tabbar rondo-segmented is-list-only" role="tablist" aria-label="分析规则模块">
+    <button type="button" id="tab-rules" class="rondo-segmented-btn ar-tab is-active" role="tab" aria-selected="true" aria-controls="section-rules" tabindex="0">
+      <i class="fas fa-layer-group" aria-hidden="true"></i> 规则库 / 编辑
     </button>
-    <button type="button" id="tab-test" class="ar-tab px-4 py-2 text-sm font-medium border-b-2 border-transparent text-gray-600 hover:text-gray-900" role="tab" aria-selected="false" aria-controls="section-test" tabindex="-1">
-      <i class="fas fa-flask-vial mr-1" aria-hidden="true"></i>单报告测试实验室
+    <button type="button" id="tab-test" class="rondo-segmented-btn ar-tab" role="tab" aria-selected="false" aria-controls="section-test" tabindex="-1">
+      <i class="fas fa-flask-vial" aria-hidden="true"></i> 单报告测试实验室
     </button>
   </div>
 
-  <section id="section-rules" class="bg-white p-6 rounded-b-lg shadow-md" role="tabpanel" aria-labelledby="tab-rules" tabindex="0">
+  <section id="section-rules" class="rondo-panel" role="tabpanel" aria-labelledby="tab-rules" tabindex="0">
     <div id="rules-list-view">
-      <div class="flex flex-wrap justify-between items-start gap-3 mb-5">
-        <div>
-          <h2 class="text-xl font-semibold">规则库</h2>
-          <p class="text-sm text-slate-600 mt-1">先选当前能出报告的物种，再按菌门和菌属查看判断。启用版只有一个；分析/建议是可复用草稿，每份报告仍须在工作台按菌门确认后才发布。</p>
-        </div>
-        <button type="button" id="add-new-rule" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
-          <i class="fas fa-plus mr-1" aria-hidden="true"></i>新增规则
-        </button>
-      </div>
-
-      <div class="mb-4">
-        <p id="library-species-label" class="block text-sm font-medium mb-2">当前物种</p>
-        <div id="library-species-switch" class="ar-species-switch" role="tablist" aria-labelledby="library-species-label"></div>
-        <p class="text-sm text-slate-600 mt-2">只列出当前能出报告的物种。今天给猫写的规则，以后乌龟能出报告也不会自动命中。</p>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-3 mb-5">
-        <div>
-          <label class="block text-sm font-medium mb-1" for="search-rule">搜索规则</label>
-          <input type="search" id="search-rule" class="w-full shadow border rounded py-2 px-3 text-sm" placeholder="按判断句、名称、目标、分析或建议搜索">
-        </div>
-        <div>
-          <label class="block text-sm font-medium mb-1" for="filter-status">谱系状态</label>
-          <select id="filter-status" class="w-full shadow border rounded py-2 px-3 text-sm">
-            <option value="">全部谱系</option>
-            <option value="active">当前启用</option>
-            <option value="inactive">已停用</option>
-          </select>
-        </div>
-      </div>
-
-      <div id="rules-lineage-list" class="space-y-3" aria-live="polite">
-        <p class="py-8 text-center text-slate-600">加载中…</p>
-      </div>
+      <div id="ar-list-mount"></div>
+      <div id="rules-lineage-list" class="hidden" aria-live="polite"></div>
     </div>
 
     <div id="rules-form-view" class="hidden">
-      <div class="flex flex-wrap justify-between items-start gap-3 mb-4">
+      <div class="rondo-page-header">
         <div>
-          <h2 id="form-title" class="text-xl font-semibold">新增规则</h2>
-          <p id="form-session-note" class="text-sm text-slate-600 mt-1">本页修改只存在于当前编辑会话；取消或离开即丢弃，不会形成持久版本。</p>
+          <h2 id="form-title" class="rondo-page-title">新增规则</h2>
+          <p id="form-session-note" class="rondo-page-desc">本页修改只存在于当前编辑会话；取消或离开即丢弃，不会形成持久版本。</p>
         </div>
-        <span id="dirty-indicator" class="inline-flex px-2 py-1 rounded text-xs bg-slate-100 text-slate-700">尚未修改</span>
+        <div class="rondo-toolbar-actions">
+          <span id="dirty-indicator" class="rondo-tag rondo-tag-default">尚未修改</span>
+          <button type="button" id="ar-back-to-list" class="rondo-btn rondo-btn-default">返回列表</button>
+        </div>
       </div>
 
       <div id="form-error-summary" class="hidden rounded border border-red-300 bg-red-50 p-3 mb-4 text-sm text-red-900" role="alert" tabindex="-1">
@@ -247,15 +219,18 @@
     </div>
   </section>
 
-  <section id="section-test" class="bg-white p-6 rounded-b-lg shadow-md hidden" role="tabpanel" aria-labelledby="tab-test" tabindex="0">
-    <div class="flex flex-wrap justify-between gap-3 mb-4">
+  <section id="section-test" class="rondo-panel hidden" role="tabpanel" aria-labelledby="tab-test" tabindex="0">
+    <div class="rondo-page-header">
       <div>
-        <h2 class="text-xl font-semibold">单报告规则测试实验室</h2>
-        <p class="text-sm text-slate-600 mt-1">固定以当前全部启用规则为基线；候选只能是一个谱系的本次未保存修改。用医生语言看：这条说不说，不说是因为物种不符、状态不满足还是有效值不满足。</p>
+        <h2 class="rondo-page-title">单报告规则测试实验室</h2>
+        <p class="rondo-page-desc">固定以当前全部启用规则为基线；候选只能是一个谱系的本次未保存修改。用医生语言看：这条说不说，不说是因为物种不符、状态不满足还是有效值不满足。</p>
       </div>
-      <button type="button" id="test-edit-active-btn" class="px-3 py-2 border border-blue-600 text-blue-700 rounded text-sm">编辑一个启用规则</button>
+      <div class="rondo-toolbar-actions">
+        <button type="button" id="ar-back-to-edit" class="rondo-btn rondo-btn-default">返回编辑</button>
+        <button type="button" id="test-edit-active-btn" class="rondo-btn rondo-btn-default">编辑一个启用规则</button>
+      </div>
     </div>
-    <div class="rounded border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950 mb-4" role="note">
+    <div class="rondo-callout rondo-callout-warning" role="note">
       <strong>只读测试。</strong> 不写报告分析运行或菌门分析单元；测试结果不会自动成为正式规则。
     </div>
 
@@ -348,7 +323,7 @@
   </template>
 
   <div id="rule-confirm-dialog" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="rule-confirm-title" aria-describedby="rule-confirm-body">
-    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full">
+    <div class="ar-confirm-panel bg-white rounded-lg shadow-xl max-w-lg w-full" tabindex="-1">
       <div class="p-5 border-b border-slate-200">
         <h2 id="rule-confirm-title" class="text-lg font-semibold">确认规则变更</h2>
       </div>

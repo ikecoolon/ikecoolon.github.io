@@ -1,0 +1,28 @@
+Pet Eden Mock 领域验收 · 2026-09-05
+
+命令:
+  node --check docs/.vuepress/public/prototype/shared/mock-store.js
+  node --check docs/.vuepress/public/prototype/shared/mock-store-smoke.js
+  node --check docs/.vuepress/public/prototype/admin/js/admin-permissions.js
+  node docs/.vuepress/public/prototype/shared/mock-store-smoke.js
+  node .impeccable/review/pet-eden-admin-20260905/domain/mock-domain-smoke.js
+  node docs/.vuepress/public/prototype/admin/js/admin-domain-smoke.js
+  git diff --check -- mock-store.js mock-store-smoke.js admin-permissions.js
+
+结果:
+  mock-store-smoke.js: 291 passed, 0 failed
+  domain/mock-domain-smoke.js: 21 passed, 0 failed
+  admin-domain-smoke.js: 15 passed, 0 failed
+  git diff --check: 通过
+
+覆盖摘要:
+  - 四角色 fixture（default/editor/reviewer/readonly）+ 双权限自审发布
+  - withdraw 提交人 actorId 校验（UI + store）
+  - 待审核编制禁止 / 审核可修订
+  - saveReportWorkVersion 原子暂存与失败回滚
+  - 已发布商品保存不泄漏专业草稿、不建更正、快照不变
+  - 已作废不可配商品
+  - 同手机号复用、禁用不启用、registerTest 原子/回滚
+  - 更正草稿提交→发布全流程
+  - 未知权限 action 默认拒绝
+  - localStorage 不污染默认 fixture

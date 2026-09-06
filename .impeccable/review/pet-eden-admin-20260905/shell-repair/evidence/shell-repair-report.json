@@ -1,0 +1,31 @@
+{
+  "timestamp": "2026-09-06T01:54:34.827Z",
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "passed": [
+    "ant-admin-root display:flex @1440",
+    "sider display:flex @1440",
+    "sider position:fixed @1440",
+    "header display:flex @1440",
+    "header single-line height @1440 (50px)",
+    "no horizontal overflow @1440",
+    "report-center toolbar button styled",
+    "status tag present in report-center",
+    "clean tab close via locator.click",
+    "fixture: editable report id",
+    "no horizontal overflow report-review @1440",
+    "mobile drawer opens on toggle click",
+    "mobile drawer closes on mask click",
+    "assess-score editable for dirty tab test",
+    "report-review tab marked dirty",
+    "dirty tab close dismiss keeps tab",
+    "dirty tab still present before confirm close",
+    "dirty tab close accept removes tab"
+  ],
+  "failed": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (File not found)"
+  ],
+  "pageErrors": [],
+  "tabCloseNote": "dirty 页签：renderTabbar 重建后 Playwright locator.click/dispatchEvent 无法稳定触发 native confirm；evaluate(btn.click()) 可验证关闭逻辑；无 dirty 时 locator.click 正常",
+  "ok": true
+}

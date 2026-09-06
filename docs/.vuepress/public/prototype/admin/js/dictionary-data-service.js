@@ -11,6 +11,14 @@
     return global.PetReportMockStore;
   }
 
+  function assertCatalogEditPermission() {
+    var st = storeApi();
+    if (st && typeof st.assertCatalogEditPermission === 'function') {
+      return st.assertCatalogEditPermission();
+    }
+    throw new Error('当前账号无权限编辑专业配置');
+  }
+
   function adminCommon() {
     return global.PetAdminCommon;
   }
@@ -482,6 +490,7 @@
   }
 
   function commitCatalog(mutator) {
+    assertCatalogEditPermission();
     var st = storeApi();
     if (!st || !st.updateProfessionalCatalog) return null;
     return st.updateProfessionalCatalog(function (catalog, state) {
@@ -757,6 +766,7 @@
   }
 
   function saveTaxonEdu(key, patch) {
+    assertCatalogEditPermission();
     var st = storeApi();
     if (!st || typeof st.saveTaxonEdu !== 'function') return null;
     return st.saveTaxonEdu(key, patch);
@@ -771,6 +781,7 @@
   }
 
   function saveMicrobiotaPresentation(patch) {
+    assertCatalogEditPermission();
     var st = storeApi();
     if (st && typeof st.saveMicrobiotaPresentation === 'function') {
       return st.saveMicrobiotaPresentation(patch);

@@ -1,0 +1,10 @@
+{
+  "slug": "pet-eden-admin-20260905",
+  "primary_target": "docs/.vuepress/public/prototype/admin/index.html",
+  "asset_version": "202609051",
+  "contract": "docs/product-design/pet-health-admin-implementation-plan.md",
+  "direction_surface": ".impeccable/surfaces/docs-vuepress-public-prototype-admin-index-html.md",
+  "verdict": "prototype-shippable",
+  "screenshots": ".impeccable/review/pet-eden-admin-20260905/screenshots/",
+  "excludes": ["mini-program", "real pet-eden repo", "wiki", "CONTEXT.md", "PRODUCT.md", "docs/adr", "docs/prd"]
+}

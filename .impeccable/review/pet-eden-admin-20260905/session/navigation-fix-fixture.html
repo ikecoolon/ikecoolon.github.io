@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>Navigation fix — activate param timing</title>
+  <style>body { margin: 0; font-family: system-ui, sans-serif; }</style>
+</head>
+<body>
+  <div id="admin-tabbar"></div>
+  <div id="page-content-container"></div>
+  <script src="../../../../docs/.vuepress/public/prototype/admin/js/admin-session.js"></script>
+  <script>
+    (function () {
+      var Session = window.PetAdminSession;
+      var container = document.getElementById('page-content-container');
+      var activateLog = [];
+      var mountCounts = {};
+
+      function buildHash(pageId, params) {
+        var keys = params ? Object.keys(params).sort() : [];
+        if (!keys.length) return pageId;
+        return pageId + '?' + keys.map(function (k) {
+          return encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+        }).join('&');
+      }
+
+      function mountTab(tab) {
+        mountCounts[tab.id] = (mountCounts[tab.id] || 0) + 1;
+        tab.mount.innerHTML =
+          '<div class="rules-fixture" data-mode="' + (tab.params.mode || 'list') + '">' +
+          '<span class="mode-label">' + (tab.params.mode || 'list') + '</span></div>';
+        tab.initialized = true;
+      }
+
+      var mountPromises = {};
+
+      function ensureTabMounted(tab) {
+        if (tab.initialized) return Promise.resolve();
+        if (mountPromises[tab.id]) return mountPromises[tab.id];
+        mountPromises[tab.id] = Promise.resolve().then(function () {
+          mountTab(tab);
+        }).finally(function () { delete mountPromises[tab.id]; });
+        return mountPromises[tab.id];
+      }
+
+      function runActivateHook(tab) {
+        activateLog.push({
+          mode: tab.params.mode,
+          lineage: tab.params.lineage,
+          hash: tab.hash
+        });
+        var el = tab.mount.querySelector('.mode-label');
+        if (el) el.textContent = tab.params.mode || 'list';
+      }
+
+      function activateTabSession(tab) {
+        Session.activateTab(tab.id);
+      }
+
+      async function loadPage(pageId, params) {
+        params = params || {};
+        var tabKey = Session.buildTabKey(pageId, params);
+        var hash = buildHash(pageId, params);
+        var existing = Session.findTabByKey(tabKey);
+        if (existing) {
+          var wasActive = Session.getActiveTab() === existing;
+          existing.params = Object.assign({}, existing.params, params);
+          existing.hash = hash;
+          activateTabSession(existing);
+          if (!existing.initialized) {
+            await ensureTabMounted(existing);
+          } else if (wasActive) {
+            runActivateHook(existing);
+          }
+          return existing;
+        }
+        var tab = Session.ensureTab(pageId, params, pageId);
+        tab.hash = hash;
+        tab.tabKey = tabKey;
+        activateTabSession(tab);
+        if (!tab.initialized) await ensureTabMounted(tab);
+        return tab;
+      }
+
+      function navigate(pageId, params) {
+        params = params || {};
+        Session.openTab({ pageId: pageId, params: params, title: pageId });
+        window.location.hash = buildHash(pageId, params);
+      }
+
+      Session.init({
+        container: container,
+        tabbar: document.getElementById('admin-tabbar'),
+        onActivate: function (tab) {
+          if (!tab) return;
+          var wasActive = Session.getActiveTab() === tab;
+          activateTabSession(tab);
+          if (!tab.initialized) {
+            ensureTabMounted(tab);
+          } else if (wasActive) {
+            runActivateHook(tab);
+          }
+        },
+        onTabActivate: function (tab) {
+          runActivateHook(tab);
+        }
+      });
+
+      window.addEventListener('hashchange', function () {
+        var raw = (window.location.hash || '').replace(/^#/, '');
+        var q = raw.indexOf('?');
+        var pageId = q >= 0 ? raw.slice(0, q) : raw;
+        var params = {};
+        if (q >= 0) {
+          raw.slice(q + 1).split('&').forEach(function (pair) {
+            var kv = pair.split('=');
+            if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || '');
+          });
+        }
+        loadPage(pageId, params);
+      });
+
+      window.__navFixHarness = {
+        navigate: navigate,
+        loadPage: loadPage,
+        getActivateLog: function () { return activateLog.slice(); },
+        getMountCounts: function () { return Object.assign({}, mountCounts); },
+        reset: function () {
+          activateLog.length = 0;
+          mountCounts = {};
+          while (Session.getTabs().length) Session.closeTab(Session.getTabs()[0].id);
+        }
+      };
+    })();
+  </script>
+</body>
+</html>

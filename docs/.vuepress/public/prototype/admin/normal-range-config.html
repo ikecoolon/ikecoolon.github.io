@@ -1,105 +1,38 @@
-<div id="normal-range-config" class="page space-y-6">
-    <div id="main-view">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-900">平台参考范围方案</h2>
-                <p class="text-gray-600 mt-1">按检测方案成套维护参考范围；适用物种须显式勾选，新物种不会自动继承</p>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-3">
-                <button id="add-scheme-btn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    <i class="fas fa-plus mr-2"></i>新增方案
-                </button>
-                <button id="batch-import-btn" type="button" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                    <i class="fas fa-upload mr-2"></i>导入方案
-                </button>
-            </div>
-        </div>
+<link rel="stylesheet" href="./css/normal-range-config.css">
 
-        <div class="bg-white p-4 rounded-lg shadow-sm border mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2" for="filter-species">适用物种</label>
-                    <select id="filter-species" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">全部物种</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2" for="filter-status">状态</label>
-                    <select id="filter-status" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
-                        <option value="">全部状态</option>
-                        <option value="active">启用</option>
-                        <option value="draft">草稿</option>
-                        <option value="disabled">停用</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2" for="filter-template">检测模板</label>
-                    <input type="text" id="filter-template" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="模板 ID">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2" for="filter-name">方案名称</label>
-                    <input type="text" id="filter-name" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" placeholder="搜索方案名称">
-                </div>
-            </div>
-            <div class="mt-4 flex space-x-3">
-                <button id="search-btn" type="button" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
-                    <i class="fas fa-search mr-2"></i>筛选
-                </button>
-                <button id="reset-filter-btn" type="button" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">
-                    <i class="fas fa-undo mr-2"></i>重置
-                </button>
-            </div>
-        </div>
-
-        <div class="bg-white rounded-lg shadow-sm border overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="min-w-full divide-y divide-gray-200">
-                    <thead class="bg-gray-50">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">方案名称</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">检测模板</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">适用物种</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">专业依据</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">范围项</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">版本</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">状态</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody id="table-body" class="bg-white divide-y divide-gray-200"></tbody>
-                </table>
-            </div>
-        </div>
+<div id="normal-range-config" class="page rondo-page">
+    <div id="nrc-list-view">
+        <div id="nrc-list-mount"></div>
     </div>
 
-    <div id="form-view" class="hidden">
-        <div class="flex items-center justify-between mb-6">
+    <div id="nrc-form-view" class="hidden">
+        <div class="rondo-page-header">
             <div>
-                <h2 class="text-2xl font-bold text-gray-900" id="form-title">新增参考范围方案</h2>
-                <p class="text-gray-600 mt-1">一次选择多个适用物种，并在下方表格维护整套指标范围</p>
+                <h2 class="rondo-page-title" id="form-title">新增参考范围方案</h2>
+                <p class="rondo-page-desc">一次选择多个适用物种，并在下方表格维护整套指标范围</p>
             </div>
-            <button id="back-to-list-btn" type="button" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                <i class="fas fa-arrow-left mr-2"></i>返回列表
+            <button id="back-to-list-btn" type="button" class="rondo-btn rondo-btn-default">
+                <i class="fas fa-arrow-left"></i> 返回列表
             </button>
         </div>
 
-        <form id="scheme-form" class="bg-white p-6 rounded-lg shadow-sm border space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="scheme-name">方案名称 <span class="text-red-500">*</span></label>
-                    <input type="text" id="scheme-name" required class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+        <form id="scheme-form" class="rondo-panel rondo-form">
+            <div class="rondo-form-grid">
+                <div class="rondo-form-field">
+                    <label class="rondo-form-label" for="scheme-name">方案名称 <span class="rondo-required">*</span></label>
+                    <input type="text" id="scheme-name" required class="rondo-input ant-input">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="scheme-template">检测模板 ID <span class="text-red-500">*</span></label>
-                    <input type="text" id="scheme-template" required placeholder="如 ORG-LAB-GUT-001" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <div class="rondo-form-field">
+                    <label class="rondo-form-label" for="scheme-template">检测模板 ID <span class="rondo-required">*</span></label>
+                    <input type="text" id="scheme-template" required placeholder="如 ORG-LAB-GUT-001" class="rondo-input ant-input">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="scheme-method">检测方法</label>
-                    <input type="text" id="scheme-method" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <div class="rondo-form-field">
+                    <label class="rondo-form-label" for="scheme-method">检测方法</label>
+                    <input type="text" id="scheme-method" class="rondo-input ant-input">
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="scheme-status">状态</label>
-                    <select id="scheme-status" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <div class="rondo-form-field">
+                    <label class="rondo-form-label" for="scheme-status">状态</label>
+                    <select id="scheme-status" class="rondo-select ant-select-native">
                         <option value="draft">草稿</option>
                         <option value="active">启用</option>
                         <option value="disabled">停用</option>
@@ -107,45 +40,45 @@
                 </div>
             </div>
 
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">适用物种 <span class="text-red-500">*</span></label>
-                <p class="text-xs text-gray-500 mb-2">从宠物分类字典读取；须显式勾选，新增物种不会自动继承本方案。</p>
-                <div id="species-checkboxes" class="flex flex-wrap gap-3"></div>
+            <div class="rondo-form-field">
+                <label class="rondo-form-label">适用物种 <span class="rondo-required">*</span></label>
+                <p class="rondo-form-hint">从宠物分类字典读取；须显式勾选，新增物种不会自动继承本方案。</p>
+                <div id="species-checkboxes" class="rondo-checkbox-group"></div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="scheme-evidence-type">依据类型</label>
-                    <select id="scheme-evidence-type" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            <div class="rondo-form-grid">
+                <div class="rondo-form-field">
+                    <label class="rondo-form-label" for="scheme-evidence-type">依据类型</label>
+                    <select id="scheme-evidence-type" class="rondo-select ant-select-native">
                         <option value="literature">文献</option>
                         <option value="internal">内部研究</option>
                     </select>
                 </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1" for="scheme-evidence-ref">专业依据 <span class="text-red-500">*</span></label>
-                    <input type="text" id="scheme-evidence-ref" required placeholder="检测机构内部参考范围" class="w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                <div class="rondo-form-field">
+                    <label class="rondo-form-label" for="scheme-evidence-ref">专业依据 <span class="rondo-required">*</span></label>
+                    <input type="text" id="scheme-evidence-ref" required placeholder="检测机构内部参考范围" class="rondo-input ant-input">
                 </div>
             </div>
 
-            <div>
-                <div class="flex items-center justify-between mb-3">
-                    <h3 class="text-lg font-medium text-gray-900">范围项</h3>
-                    <button type="button" id="add-item-btn" class="text-sm text-blue-600 hover:text-blue-800">
-                        <i class="fas fa-plus mr-1"></i>添加范围项
+            <div class="rondo-form-section">
+                <div class="rondo-form-section-header">
+                    <h3 class="rondo-form-section-title">范围项</h3>
+                    <button type="button" id="add-item-btn" class="rondo-btn rondo-btn-link">
+                        <i class="fas fa-plus"></i> 添加范围项
                     </button>
                 </div>
-                <div class="overflow-x-auto border rounded-lg">
-                    <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
+                <div class="rondo-basic-table-wrap">
+                    <table class="rondo-basic-table rondo-table-sm ant-table">
+                        <thead>
                             <tr>
-                                <th class="px-3 py-2 text-left">指标</th>
-                                <th class="px-3 py-2 text-left">类型</th>
-                                <th class="px-3 py-2 text-left">层级</th>
-                                <th class="px-3 py-2 text-left">最小</th>
-                                <th class="px-3 py-2 text-left">最大</th>
-                                <th class="px-3 py-2 text-left">单位</th>
-                                <th class="px-3 py-2 text-left">备注</th>
-                                <th class="px-3 py-2"></th>
+                                <th>指标</th>
+                                <th>类型</th>
+                                <th>层级</th>
+                                <th>最小</th>
+                                <th>最大</th>
+                                <th>单位</th>
+                                <th>备注</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="items-body"></tbody>
@@ -153,40 +86,12 @@
                 </div>
             </div>
 
-            <div class="flex space-x-4">
-                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    <i class="fas fa-save mr-2"></i>保存方案
+            <div class="rondo-form-actions">
+                <button type="submit" class="rondo-btn rondo-btn-primary">
+                    <i class="fas fa-save"></i> 保存方案
                 </button>
-                <button type="button" id="cancel-form-btn" class="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                    取消
-                </button>
+                <button type="button" id="cancel-form-btn" class="rondo-btn rondo-btn-default">取消</button>
             </div>
         </form>
     </div>
-
-    <div id="import-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-        <div class="relative top-20 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">导入完整参考范围方案</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2" for="import-file">选择 CSV 文件</label>
-                    <input type="file" id="import-file" accept=".csv,.xlsx,.xls" class="w-full border border-gray-300 rounded-md px-3 py-2">
-                </div>
-                <div class="text-sm text-gray-600">
-                    <p class="mb-2">CSV 表头（第一行）：</p>
-                    <p class="text-xs font-mono break-all">schemeName,templateId,methodName,species,evidenceType,evidenceRef,status,targetType,targetKey,taxonomyLevel,minValue,maxValue,unit,notes</p>
-                    <p class="text-xs mt-2 text-gray-500">同一 schemeName + templateId 的多行将合并为一个方案；species 列可逗号分隔多个物种 key（如 cat,dog）。</p>
-                </div>
-                <button type="button" id="download-template-btn" class="text-blue-600 hover:text-blue-800 text-sm">
-                    <i class="fas fa-download mr-1"></i>下载模板
-                </button>
-            </div>
-            <div class="flex space-x-3 mt-6">
-                <button type="button" id="confirm-import-btn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">确认导入</button>
-                <button type="button" id="cancel-import-btn" class="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600">取消</button>
-            </div>
-        </div>
-    </div>
 </div>
-
-<script src="./js/dictionary-data-service.js"></script>

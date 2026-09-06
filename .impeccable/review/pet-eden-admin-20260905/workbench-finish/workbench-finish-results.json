@@ -1,0 +1,75 @@
+{
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html#report-review?reportId=report-003",
+  "passed": 12,
+  "failed": 0,
+  "total": 12,
+  "cases": [
+    {
+      "name": "screenshots captured",
+      "ok": true,
+      "detail": "report-review-1440.png, report-review-1024.png, report-review-390.png, report-review-1280.png"
+    },
+    {
+      "name": "1440 grid has preview column",
+      "ok": true,
+      "detail": "204px 818px"
+    },
+    {
+      "name": "1440 center content visible",
+      "ok": true,
+      "detail": "{\"gridCols\":\"204px 818px\",\"centerWidth\":818,\"summaryVisible\":true,\"previewVisible\":true,\"pageContainer\":\"inline-size\"}"
+    },
+    {
+      "name": "container on .rw-page not workbench",
+      "ok": true,
+      "detail": "inline-size"
+    },
+    {
+      "name": "390 single-column grid",
+      "ok": true,
+      "detail": "356px"
+    },
+    {
+      "name": "390 horizontal nav",
+      "ok": true,
+      "detail": "row"
+    },
+    {
+      "name": "390 center content visible",
+      "ok": true,
+      "detail": "{\"gridCols\":\"356px\",\"navFlexDir\":\"row\",\"centerWidth\":356,\"summaryVisible\":true,\"toggleDisplay\":\"flex\",\"moduleCount\":6}"
+    },
+    {
+      "name": "390 all 6 modules reachable",
+      "ok": true,
+      "detail": "6"
+    },
+    {
+      "name": "390 preview toggle visible",
+      "ok": true,
+      "detail": "flex"
+    },
+    {
+      "name": "preview drawer opens on click",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "preview drawer closes on click",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "1280x520 content visible",
+      "ok": true,
+      "detail": "{\"centerWidth\":818,\"summaryVisible\":true}"
+    }
+  ],
+  "screenshots": [
+    "report-review-1024.png",
+    "report-review-1280.png",
+    "report-review-1440.png",
+    "report-review-390-drawer-open.png",
+    "report-review-390.png"
+  ]
+}

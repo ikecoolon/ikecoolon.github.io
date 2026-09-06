@@ -1,0 +1,76 @@
+{
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "at": "2026-09-05T02:36:15.948Z",
+  "passed": 9,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "fixture: 至少一个参考范围方案",
+      "ok": true,
+      "detail": "rrs-cat-gut-001"
+    },
+    {
+      "name": "切页返回保留编辑输入",
+      "ok": true,
+      "detail": "猫科肠道菌群检测-会话标记"
+    },
+    {
+      "name": "不同方案会话隔离",
+      "ok": true,
+      "detail": "猫科肠道菌群检测-会话标记"
+    },
+    {
+      "name": "校验失败保留方案名称",
+      "ok": true,
+      "detail": "验收失败保留"
+    },
+    {
+      "name": "校验失败保留范围输入",
+      "ok": true,
+      "detail": "90"
+    },
+    {
+      "name": "校验失败不半保存",
+      "ok": true,
+      "detail": "true"
+    },
+    {
+      "name": "导入 Modal Esc 关闭",
+      "ok": true,
+      "detail": "true"
+    },
+    {
+      "name": "只读账号无新增按钮",
+      "ok": true,
+      "detail": "0"
+    },
+    {
+      "name": "只读账号保存禁用",
+      "ok": true,
+      "detail": "true"
+    }
+  ],
+  "console": [
+    {
+      "type": "warning",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (File not found)"
+    },
+    {
+      "type": "warning",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+    },
+    {
+      "type": "warning",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+    }
+  ],
+  "pageerrors": [],
+  "screenshots": [
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/ranges/edit-1280.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/ranges/edit-390.png"
+  ]
+}

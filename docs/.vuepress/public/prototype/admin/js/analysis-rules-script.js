@@ -1,8 +1,29 @@
-function initAnalysisRules() {
+function initAnalysisRules(mountRoot, tab) {
+  var root = mountRoot || document;
   var C = window.PetAdminCommon;
+  var BT = window.PetAdminBasicTable;
+  var Session = window.PetAdminSession;
+  var Perms = window.PetAdminPermissions;
   var store = C && C.store ? C.store() : null;
   var Engine = window.PetReportAnalysisEngine;
-  if (!C || !store || !Engine) return;
+  if (!C || !store || !Engine || !BT) return;
+
+  var pageLink = root.querySelector('link[href*="analysis-rules.css"]');
+  if (pageLink && !document.querySelector('link[data-ar-page-css]')) {
+    var cssLink = document.createElement('link');
+    cssLink.rel = 'stylesheet';
+    cssLink.href = pageLink.getAttribute('href');
+    cssLink.setAttribute('data-ar-page-css', '1');
+    document.head.appendChild(cssLink);
+    pageLink.remove();
+  }
+
+  var ruleWorkSessions = window.__petAdminRuleWorkSessions || (window.__petAdminRuleWorkSessions = {});
+  var currentWorkKey = '__new__';
+  var listApi = null;
+  var tabActive = true;
+  var viewMode = 'edit';
+  var formReadOnly = false;
 
   var LEVEL_LABELS = { phylum: '菌门', genus: '菌属' };
   var STATUS_LABELS = { active: '当前启用', inactive: '停用 / 归档' };
@@ -22,18 +43,147 @@ function initAnalysisRules() {
   var nameTouched = false;
   var copyingToNewLineage = false;
 
-  function byId(id) { return document.getElementById(id); }
+  function byId(id) { return root.querySelector('#' + id); }
   function state() { return store.getState(); }
   function escapeHtml(value) { return C.escapeHtml ? C.escapeHtml(value) : String(value || ''); }
   function formatDate(value) { return C.formatDate ? C.formatDate(value) : value || '—'; }
   function uid(prefix) { return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 7); }
 
+  function resolveWorkKey(rule) {
+    if (rule && rule.__copyToSpecies) return '__new__';
+    if (rule && rule.lineageId) return rule.lineageId;
+    if (rule && rule.id) return 'rule:' + rule.id;
+    return '__new__';
+  }
+
+  function navigateRules(params) {
+    params = params || {};
+    var hash = C.buildHash('analysis-rules', params);
+    if (tab && Session) {
+      tab.params = Object.assign({}, params);
+      tab.hash = hash;
+      if (params.mode === 'edit') tab.title = '编辑分析规则';
+      else if (params.mode === 'test') tab.title = '规则测试';
+      else tab.title = '分析规则';
+      if (typeof Session.renderTabbar === 'function') Session.renderTabbar();
+    }
+    var routeOverride = { pageId: 'analysis-rules', params: params };
+    var current = (window.location.hash || '').replace(/^#/, '');
+    var route = C.parseRoute();
+    var stayOnRules = route.pageId === 'analysis-rules';
+    if (stayOnRules && (dirty || params.mode === 'test' || params.mode === 'edit')) {
+      if (current !== hash) history.replaceState(null, '', '#' + hash);
+      handleRoute(routeOverride);
+      return;
+    }
+    if (current !== hash) window.location.hash = hash;
+    else handleRoute(routeOverride);
+  }
+
+  function lineageParamToKey(param) {
+    if (!param || param === '__new__') return '__new__';
+    return param;
+  }
+
+  function persistWorkSession(key) {
+    key = key || currentWorkKey;
+    ruleWorkSessions[key] = {
+      sessionCandidate: sessionCandidate,
+      editingSource: editingSource,
+      dirty: dirty,
+      formBaseline: formBaseline,
+      frozenTestRun: frozenTestRun,
+      testInputDirty: testInputDirty,
+      selectedReportId: selectedReportId,
+      editorMode: editorMode,
+      nameTouched: nameTouched,
+      copyingToNewLineage: copyingToNewLineage,
+      librarySpecies: librarySpecies
+    };
+    currentWorkKey = key;
+  }
+
+  function restoreWorkSession(key) {
+    var ws = ruleWorkSessions[key];
+    if (!ws) return false;
+    sessionCandidate = ws.sessionCandidate || null;
+    editingSource = ws.editingSource || null;
+    dirty = !!ws.dirty;
+    formBaseline = ws.formBaseline || '';
+    frozenTestRun = ws.frozenTestRun || null;
+    testInputDirty = !!ws.testInputDirty;
+    selectedReportId = ws.selectedReportId || selectedReportId;
+    editorMode = ws.editorMode || 'sentence';
+    nameTouched = !!ws.nameTouched;
+    copyingToNewLineage = !!ws.copyingToNewLineage;
+    if (ws.librarySpecies) librarySpecies = ws.librarySpecies;
+    currentWorkKey = key;
+    setDirty(dirty);
+    return true;
+  }
+
+  function clearWorkSession(key) {
+    if (key) delete ruleWorkSessions[key];
+  }
+
+  function canSaveRule() {
+    return !Perms || Perms.can('save_rule');
+  }
+
+  function ensurePersisted(nextKey) {
+    if (currentWorkKey && currentWorkKey !== nextKey) persistWorkSession(currentWorkKey);
+  }
+
+  function resolveRuleForLineageKey(lineageKey) {
+    if (!lineageKey || lineageKey === '__new__') return null;
+    if (lineageKey.indexOf('rule:') === 0) {
+      var historicalId = lineageKey.slice(5);
+      return (state().analysisRuleCatalog || []).find(function (item) { return item.id === historicalId; }) || null;
+    }
+    var lineage = store.listRuleLineages().find(function (item) { return item.lineageId === lineageKey; });
+    return lineage && (lineage.active || lineage.latest) || null;
+  }
+
+  function isHistoricalLineageKey(lineageKey) {
+    return !!(lineageKey && lineageKey.indexOf('rule:') === 0);
+  }
+
+  function syncWorkbenchTabs(mode) {
+    if (!tabRules || !tabTest) return;
+    var isTest = mode === 'test';
+    tabRules.classList.toggle('is-active', !isTest);
+    tabTest.classList.toggle('is-active', isTest);
+    tabRules.setAttribute('aria-selected', isTest ? 'false' : 'true');
+    tabTest.setAttribute('aria-selected', isTest ? 'true' : 'false');
+    tabRules.tabIndex = isTest ? -1 : 0;
+    tabTest.tabIndex = isTest ? 0 : -1;
+  }
+
+  function applyView(mode) {
+    var isList = mode === 'list';
+    var isEdit = mode === 'edit';
+    var isTest = mode === 'test';
+    rulesListView.classList.toggle('hidden', !isList);
+    rulesFormView.classList.toggle('hidden', !isEdit);
+    sectionRules.classList.toggle('hidden', isTest);
+    sectionTest.classList.toggle('hidden', !isTest);
+    if (workbenchTabs) workbenchTabs.classList.toggle('is-list-only', isList);
+    if (tabRules && tabTest) {
+      tabRules.classList.toggle('hidden', isList);
+      tabTest.classList.toggle('hidden', isList);
+    }
+    if (!isList) syncWorkbenchTabs(isTest ? 'test' : 'edit');
+  }
+
+  var workbenchTabs = byId('ar-workbench-tabs');
   var tabRules = byId('tab-rules');
   var tabTest = byId('tab-test');
+  var confirmPanel = root.querySelector('.ar-confirm-panel');
   var sectionRules = byId('section-rules');
   var sectionTest = byId('section-test');
   var rulesListView = byId('rules-list-view');
   var rulesFormView = byId('rules-form-view');
+  var listMount = byId('ar-list-mount');
   var lineageList = byId('rules-lineage-list');
   var searchInput = byId('search-rule');
   var filterStatus = byId('filter-status');
@@ -226,10 +376,110 @@ function initAnalysisRules() {
     return hay.indexOf(query) >= 0;
   }
 
+  function flattenLineageRows() {
+    var groups = store.listRuleLibraryGroups(librarySpecies) || [];
+    var rows = [];
+    groups.forEach(function (group) {
+      (group.phylumLineages || []).forEach(function (lineage) {
+        rows.push({ groupLabel: '菌门 · ' + group.label, lineage: lineage });
+      });
+      (group.genera || []).forEach(function (genus) {
+        (genus.lineages || []).forEach(function (lineage) {
+          rows.push({ groupLabel: '菌属 · ' + genus.label, lineage: lineage });
+        });
+      });
+    });
+    return rows;
+  }
+
+  function initListPage() {
+    if (!listMount || listApi) return;
+    listApi = BT.createListPage({
+      container: listMount,
+      title: '规则库',
+      stateKey: 'analysis-rules-list',
+      searchFields: [
+        { name: 'query', label: '搜索', placeholder: '判断句、名称、目标、分析或建议' },
+        { name: 'status', label: '谱系状态', type: 'select', options: [
+          { value: '', label: '全部谱系' },
+          { value: 'active', label: '当前启用' },
+          { value: 'inactive', label: '已停用' }
+        ]},
+        { name: 'species', label: '物种', type: 'select', options: (Engine.REPORTABLE_SPECIES || ['cat', 'dog']).map(function (sp) {
+          return { value: sp, label: Engine.SPECIES_LABELS[sp] || sp };
+        })}
+      ],
+      toolbarActions: [
+        { label: '新增规则', variant: 'primary', onClick: function () { showForm(null); } }
+      ],
+      columns: [
+        { title: '规则名称', dataIndex: 'name', sortable: true },
+        { title: '分组', dataIndex: 'groupLabel' },
+        { title: '判断句', dataIndex: 'sentence', ellipsis: true },
+        { title: '目标', dataIndex: 'targetText' },
+        { title: '版本', dataIndex: 'versionText' },
+        { title: '状态', dataIndex: 'statusHtml', render: function (row) { return row.statusHtml; } },
+        { title: '操作', key: 'actions', action: true, render: function (row) {
+          var html = '';
+          if (row.active) {
+            html += '<button type="button" class="rondo-btn rondo-btn-link" data-row-action="edit" data-id="' + escapeHtml(row.ruleId) + '">编辑并测试</button>';
+            if (row.copySpecies) {
+              html += '<button type="button" class="rondo-btn rondo-btn-link" data-row-action="copy" data-id="' + escapeHtml(row.ruleId) + '" data-species="' + escapeHtml(row.copySpecies) + '">' + escapeHtml(row.copyLabel) + '</button>';
+            }
+            html += '<button type="button" class="rondo-btn rondo-btn-link" data-row-action="deactivate" data-lineage="' + escapeHtml(row.lineageId) + '">停用</button>';
+          } else {
+            html += '<button type="button" class="rondo-btn rondo-btn-link" data-row-action="edit" data-id="' + escapeHtml(row.ruleId) + '">基于归档版新建</button>';
+          }
+          return html;
+        }}
+      ],
+      rowKey: 'lineageId',
+      fetchData: function (query) {
+        var filters = query.filters || {};
+        if (filters.species) librarySpecies = filters.species;
+        var statusFilter = filters.status || '';
+        var q = String(filters.query || '').trim().toLowerCase();
+        var rows = flattenLineageRows().filter(function (entry) {
+          var lineage = entry.lineage;
+          var status = lineage.active ? 'active' : 'inactive';
+          if (statusFilter && status !== statusFilter) return false;
+          return matchesLibraryQuery(lineage, q);
+        }).map(function (entry) {
+          var lineage = entry.lineage;
+          var rule = currentRule(lineage);
+          var target = rule.target || {};
+          var active = !!lineage.active;
+          var others = Engine.otherReportableSpecies(rule.applicableSpecies || []);
+          return {
+            lineageId: lineage.lineageId,
+            ruleId: rule.id,
+            active: active,
+            name: rule.name || '未命名规则',
+            groupLabel: entry.groupLabel,
+            sentence: store.describeJudgmentSentenceForRule(rule),
+            targetText: (LEVEL_LABELS[target.level] || '—') + ' · ' + taxonLabel(target.taxonKey),
+            versionText: 'v' + (rule.version || 1),
+            statusHtml: '<span class="ant-tag ' + (active ? 'ant-tag-success' : 'ant-tag-default') + '">' + STATUS_LABELS[active ? 'active' : 'inactive'] + '</span>',
+            copySpecies: active && others[0] ? others[0] : '',
+            copyLabel: active && others[0] ? ('复制到' + (Engine.SPECIES_LABELS[others[0]] || others[0])) : ''
+          };
+        });
+        var total = rows.length;
+        var start = (query.page - 1) * query.pageSize;
+        return { rows: rows.slice(start, start + query.pageSize), total: total };
+      },
+      onRowAction: function (action, row) {
+        if (action === 'edit') editRuleById(row.ruleId);
+        if (action === 'copy') requestCopyToSpecies(row.ruleId, row.copySpecies);
+        if (action === 'deactivate') requestDeactivate(row.lineageId);
+      }
+    });
+  }
+
   function renderLineages() {
     renderSpeciesSwitch();
-    var query = String(searchInput.value || '').trim().toLowerCase();
-    var statusFilter = filterStatus.value;
+    var query = String((searchInput && searchInput.value) || '').trim().toLowerCase();
+    var statusFilter = filterStatus ? filterStatus.value : '';
     var groups = store.listRuleLibraryGroups(librarySpecies) || [];
     var filteredGroups = groups.map(function (group) {
       function keep(lineage) {
@@ -438,21 +688,215 @@ function initAnalysisRules() {
   function setDirty(value) {
     dirty = !!value;
     var indicator = byId('dirty-indicator');
-    indicator.textContent = dirty ? '有未保存修改' : '尚未修改';
-    indicator.className = 'inline-flex px-2 py-1 rounded text-xs ' + (dirty ? 'bg-amber-100 text-amber-900' : 'bg-slate-100 text-slate-700');
+    if (indicator) {
+      indicator.textContent = dirty ? '有未保存修改' : '尚未修改';
+      indicator.className = 'rondo-tag ' + (dirty ? 'rondo-tag-warning' : 'rondo-tag-default');
+    }
+    if (tab && Session && typeof Session.setTabDirty === 'function') {
+      Session.setTabDirty(tab.id, dirty);
+    } else if (typeof window.__petAdminSetTabDirty === 'function') {
+      window.__petAdminSetTabDirty(dirty);
+    }
   }
 
   function markDirty() {
-    if (rulesFormView.classList.contains('hidden')) return;
+    if (rulesFormView.classList.contains('hidden') || formReadOnly) return;
     setDirty(serializeForm() !== formBaseline);
     sessionCandidate = collectCandidate();
     testInputDirty = true;
     syncTestInputDirty();
+    persistWorkSession(currentWorkKey);
   }
 
   function confirmDiscard() {
     if (!dirty) return true;
     return window.confirm('本次规则修改尚未保存。离开后将丢弃当前编辑会话，是否继续？');
+  }
+
+  function updateLastSessionTestLabel() {
+    var label = byId('last-session-test');
+    if (!label) return;
+    if (frozenTestRun) {
+      label.textContent = '最近测试：' + frozenTestRun.runId + ' · ' + formatDate(frozenTestRun.createdAt) + ' · ' + frozenTestRun.diff.changedUnits.length + ' 个菌门发生变化。';
+      return;
+    }
+    label.textContent = '本次编辑尚未运行候选测试。';
+  }
+
+  function syncFormReadOnly() {
+    formReadOnly = viewMode === 'readonly' || !canSaveRule();
+    ruleForm.classList.toggle('is-readonly', formReadOnly);
+    var saveBtn = byId('save-activate-btn');
+    var previewBtn = byId('preview-candidate-btn');
+    var addCondBtn = byId('add-condition-btn');
+    if (saveBtn) saveBtn.disabled = formReadOnly;
+    if (previewBtn) previewBtn.disabled = formReadOnly;
+    if (addCondBtn) addCondBtn.disabled = formReadOnly;
+    Array.from(ruleForm.querySelectorAll('input, select, textarea, button')).forEach(function (element) {
+      if (element.id === 'cancel-form' || element.id === 'ar-back-to-list' || element.closest('#rule-confirm-dialog')) return;
+      if (element.id === 'save-activate-btn' || element.id === 'preview-candidate-btn' || element.id === 'add-condition-btn') return;
+      if (element.classList.contains('remove-condition')) {
+        element.disabled = formReadOnly;
+        return;
+      }
+      if (element.tagName === 'BUTTON') return;
+      element.disabled = formReadOnly;
+    });
+  }
+
+  function applyFormChrome(rule) {
+    copyingToNewLineage = !!(rule && rule.__copyToSpecies);
+    byId('copy-lineage-banner').classList.toggle('hidden', !copyingToNewLineage);
+    if (rule) {
+      byId('form-title').textContent = copyingToNewLineage
+        ? '复制到另一物种（新谱系）'
+        : (viewMode === 'readonly'
+          ? '查看历史版本（只读）'
+          : (rule.status === 'active' ? '编辑启用规则' : '基于归档版本新建'));
+      byId('form-version-source').textContent = copyingToNewLineage
+        ? '保存后形成独立新谱系 v1 并立即启用，与原规则身份分开'
+        : (viewMode === 'readonly'
+          ? '只读查看 v' + (rule.version || 1) + '；不会写入或启用'
+          : ('基于 ' + rule.name + ' v' + rule.version + '；保存后形成 v' + (rule.version + 1) + ' 并启用'));
+    } else {
+      byId('form-title').textContent = '新增规则';
+      byId('form-version-source').textContent = '首次保存将形成 v1 并立即启用';
+    }
+    syncFormReadOnly();
+  }
+
+  function populateFormFromCandidate(candidate) {
+    if (!candidate) return;
+    clearErrors();
+    conditionsContainer.innerHTML = '';
+    conditionCounter = 0;
+    fillConflictGroups();
+    byId('form-rule-name').value = candidate.name || '';
+    byId('form-rule-description').value = candidate.description || '';
+    formTargetLevel.value = candidate.target && candidate.target.level === 'genus' ? 'genus' : 'phylum';
+    fillTargetTaxon(formTargetLevel.value, candidate.target && candidate.target.taxonKey);
+    setSpeciesScope(candidate.applicableSpecies);
+    var templates = candidate.sourceTemplateIds || [];
+    byId('form-source-template').value = templates.length > 1 ? 'all' : (templates[0] || 'all');
+    byId('form-professional-basis').value = candidate.professionalBasis || '';
+    byId('logic-operator').value = candidate.conditionLogic || 'ALL';
+    byId('form-priority').value = candidate.priority == null ? 10 : candidate.priority;
+    byId('form-conflict-group').value = candidate.conflictGroup || '';
+    byId('form-analysis').value = candidate.output && candidate.output.analysis || '';
+    formAdvice.value = candidate.output && candidate.output.advice || '';
+    var judgment = Engine.decompileJudgment(candidate);
+    editorMode = judgment.mode === 'advanced' ? 'advanced' : 'sentence';
+    if (editorMode === 'sentence') {
+      fillObservation(judgment.observationKind || Engine.DEFAULT_OBSERVATION_KIND);
+      setValueThreshold(judgment.valueThreshold);
+    } else {
+      fillObservation(Engine.DEFAULT_OBSERVATION_KIND);
+      (candidate.conditions || []).forEach(addCondition);
+      setValueThreshold(null);
+    }
+    syncEditorMode();
+    syncAdvice();
+    updateNaturalSummary();
+  }
+
+  function initFormFromRule(rule) {
+    clearErrors();
+    editingSource = rule || null;
+    conditionsContainer.innerHTML = '';
+    conditionCounter = 0;
+    fillConflictGroups();
+    fillObservation(Engine.DEFAULT_OBSERVATION_KIND);
+    nameTouched = false;
+    copyingToNewLineage = !!(rule && rule.__copyToSpecies);
+    viewMode = isHistoricalLineageKey(currentWorkKey) ? 'readonly' : 'edit';
+    if (rule) {
+      var judgment = Engine.decompileJudgment(rule);
+      editorMode = judgment.mode === 'advanced' ? 'advanced' : 'sentence';
+      byId('form-rule-name').value = rule.name || '';
+      byId('form-rule-description').value = rule.description || '';
+      formTargetLevel.value = rule.target && rule.target.level === 'genus' ? 'genus' : 'phylum';
+      fillTargetTaxon(formTargetLevel.value, rule.target && rule.target.taxonKey);
+      setSpeciesScope(rule.applicableSpecies);
+      var templates = rule.sourceTemplateIds || [];
+      byId('form-source-template').value = templates.length > 1 ? 'all' : (templates[0] || 'all');
+      byId('form-professional-basis').value = rule.professionalBasis || '';
+      byId('logic-operator').value = rule.conditionLogic || 'ALL';
+      byId('form-priority').value = rule.priority == null ? 10 : rule.priority;
+      byId('form-conflict-group').value = rule.conflictGroup || '';
+      byId('form-analysis').value = rule.output && rule.output.analysis || '';
+      formAdvice.value = rule.output && rule.output.advice || '';
+      if (editorMode === 'sentence') {
+        formObservation.value = judgment.observationKind || Engine.DEFAULT_OBSERVATION_KIND;
+        setValueThreshold(judgment.valueThreshold);
+        nameTouched = (rule.name || '') !== suggestedNameFromForm();
+      } else {
+        (rule.conditions || []).forEach(addCondition);
+        setValueThreshold(null);
+        nameTouched = true;
+      }
+    } else {
+      editorMode = 'sentence';
+      ruleForm.reset();
+      formTargetLevel.value = 'phylum';
+      fillTargetTaxon('phylum');
+      fillObservation(Engine.DEFAULT_OBSERVATION_KIND);
+      formSpeciesScope.value = librarySpecies === 'dog' ? 'dog' : 'cat';
+      byId('form-source-template').value = 'all';
+      byId('logic-operator').value = 'ALL';
+      byId('form-priority').value = 10;
+      setValueThreshold(null);
+      updateGeneratedName();
+    }
+    applyFormChrome(rule);
+    syncEditorMode();
+    syncAdvice();
+    updateNaturalSummary();
+    formBaseline = serializeForm();
+    sessionCandidate = collectCandidate();
+    setDirty(false);
+    frozenTestRun = null;
+    testInputDirty = false;
+    updateLastSessionTestLabel();
+  }
+
+  function openEditForLineage(lineageKey, opts) {
+    opts = opts || {};
+    lineageKey = lineageParamToKey(lineageKey);
+    ensurePersisted(lineageKey);
+    currentWorkKey = lineageKey;
+    var restored = !opts.forceFresh && restoreWorkSession(lineageKey);
+    var rule = editingSource || resolveRuleForLineageKey(lineageKey);
+    viewMode = isHistoricalLineageKey(lineageKey) ? 'readonly' : 'edit';
+
+    applyView('edit');
+    if (restored && sessionCandidate) {
+      if (!editingSource && rule) editingSource = rule;
+      populateFormFromCandidate(sessionCandidate);
+      applyFormChrome(editingSource || rule);
+      setDirty(dirty);
+      syncTestInputDirty();
+      updateLastSessionTestLabel();
+    } else if (lineageKey === '__new__') {
+      initFormFromRule(null);
+    } else if (rule) {
+      initFormFromRule(rule);
+    } else {
+      applyView('list');
+      if (listApi) listApi.reload();
+      return false;
+    }
+    persistWorkSession(lineageKey);
+    if (!opts.skipNavigate) {
+      var route = C.parseRoute();
+      if (route.params.mode !== 'edit' || lineageParamToKey(route.params.lineage) !== lineageKey) {
+        navigateRules({ mode: 'edit', lineage: lineageKey });
+      }
+    }
+    window.setTimeout(function () {
+      if (formReadOnly) return;
+      (editorMode === 'sentence' ? formSpeciesScope : byId('form-rule-name')).focus();
+    }, 0);
+    return true;
   }
 
   function clearErrors() {
@@ -521,104 +965,119 @@ function initAnalysisRules() {
   }
 
   function showForm(rule) {
-    rulesListView.classList.add('hidden');
-    rulesFormView.classList.remove('hidden');
-    clearErrors();
-    editingSource = rule || null;
-    conditionsContainer.innerHTML = '';
-    conditionCounter = 0;
-    fillConflictGroups();
-    fillObservation(Engine.DEFAULT_OBSERVATION_KIND);
-    nameTouched = false;
-    copyingToNewLineage = !!(rule && rule.__copyToSpecies);
-    byId('copy-lineage-banner').classList.toggle('hidden', !copyingToNewLineage);
-    if (rule) {
-      var judgment = Engine.decompileJudgment(rule);
-      editorMode = judgment.mode === 'advanced' ? 'advanced' : 'sentence';
-      byId('form-title').textContent = copyingToNewLineage
-        ? '复制到另一物种（新谱系）'
-        : (rule.status === 'active' ? '编辑启用规则' : '基于归档版本新建');
-      byId('form-version-source').textContent = copyingToNewLineage
-        ? '保存后形成独立新谱系 v1 并立即启用，与原规则身份分开'
-        : ('基于 ' + rule.name + ' v' + rule.version + '；保存后形成 v' + (rule.version + 1) + ' 并启用');
-      byId('form-rule-name').value = rule.name || '';
-      byId('form-rule-description').value = rule.description || '';
-      formTargetLevel.value = rule.target && rule.target.level === 'genus' ? 'genus' : 'phylum';
-      fillTargetTaxon(formTargetLevel.value, rule.target && rule.target.taxonKey);
-      setSpeciesScope(rule.applicableSpecies);
-      var templates = rule.sourceTemplateIds || [];
-      byId('form-source-template').value = templates.length > 1 ? 'all' : (templates[0] || 'all');
-      byId('form-professional-basis').value = rule.professionalBasis || '';
-      byId('logic-operator').value = rule.conditionLogic || 'ALL';
-      byId('form-priority').value = rule.priority == null ? 10 : rule.priority;
-      byId('form-conflict-group').value = rule.conflictGroup || '';
-      byId('form-analysis').value = rule.output && rule.output.analysis || '';
-      formAdvice.value = rule.output && rule.output.advice || '';
-      if (editorMode === 'sentence') {
-        formObservation.value = judgment.observationKind || Engine.DEFAULT_OBSERVATION_KIND;
-        setValueThreshold(judgment.valueThreshold);
-        nameTouched = (rule.name || '') !== suggestedNameFromForm();
-      } else {
-        (rule.conditions || []).forEach(addCondition);
-        setValueThreshold(null);
-        nameTouched = true;
-      }
-    } else {
-      editorMode = 'sentence';
-      byId('form-title').textContent = '新增规则';
-      byId('form-version-source').textContent = '首次保存将形成 v1 并立即启用';
-      ruleForm.reset();
-      formTargetLevel.value = 'phylum';
-      fillTargetTaxon('phylum');
-      fillObservation(Engine.DEFAULT_OBSERVATION_KIND);
-      formSpeciesScope.value = librarySpecies === 'dog' ? 'dog' : 'cat';
-      byId('form-source-template').value = 'all';
-      byId('logic-operator').value = 'ALL';
-      byId('form-priority').value = 10;
-      setValueThreshold(null);
-      updateGeneratedName();
+    var key = resolveWorkKey(rule);
+    ensurePersisted(key);
+    currentWorkKey = key;
+    if (ruleWorkSessions[key] && ruleWorkSessions[key].sessionCandidate) {
+      if (rule) editingSource = rule;
+      openEditForLineage(key, { forceFresh: false });
+      return;
     }
-    syncEditorMode();
-    syncAdvice();
-    updateNaturalSummary();
-    formBaseline = serializeForm();
-    sessionCandidate = collectCandidate();
-    setDirty(false);
-    frozenTestRun = null;
-    byId('last-session-test').textContent = '本次编辑尚未运行候选测试。';
+    editingSource = rule || null;
+    initFormFromRule(rule);
+    persistWorkSession(key);
+    var route = C.parseRoute();
+    if (route.params.mode !== 'edit' || lineageParamToKey(route.params.lineage) !== key) {
+      navigateRules({ mode: 'edit', lineage: key });
+    }
+    applyView('edit');
     window.setTimeout(function () {
+      if (formReadOnly) return;
       (editorMode === 'sentence' ? formSpeciesScope : byId('form-rule-name')).focus();
     }, 0);
   }
 
   function showList(force) {
     if (!force && !confirmDiscard()) return;
+    persistWorkSession(currentWorkKey);
+    if (force || dirty) clearWorkSession(currentWorkKey);
     setDirty(false);
     editingSource = null;
     sessionCandidate = null;
     copyingToNewLineage = false;
-    rulesFormView.classList.add('hidden');
-    rulesListView.classList.remove('hidden');
-    renderLineages();
+    frozenTestRun = null;
+    testInputDirty = false;
+    currentWorkKey = '__new__';
+    applyView('list');
+    navigateRules({});
+    if (listApi) listApi.reload();
+  }
+
+  function showTestView() {
+    if (!rulesFormView.classList.contains('hidden') && !formReadOnly) {
+      sessionCandidate = collectCandidate();
+      persistWorkSession(currentWorkKey);
+    }
+    applyView('test');
+    navigateRules({ mode: 'test', lineage: currentWorkKey });
+    refreshTestControls();
+    if (frozenTestRun && !testInputDirty) renderFrozenTest(frozenTestRun);
+  }
+
+  function handleRoute(routeOverride) {
+    var route = routeOverride || C.parseRoute();
+    if (route.pageId !== 'analysis-rules') return;
+    var mode = route.params.mode || 'list';
+    var lineageKey = lineageParamToKey(route.params.lineage);
+
+    if (mode === 'test') {
+      if (lineageKey !== currentWorkKey) ensurePersisted(lineageKey);
+      if (!ruleWorkSessions[lineageKey] && lineageKey !== '__new__') {
+        var seedRule = resolveRuleForLineageKey(lineageKey);
+        if (!seedRule) {
+          applyView('list');
+          if (listApi) listApi.reload();
+          return;
+        }
+        currentWorkKey = lineageKey;
+        editingSource = seedRule;
+        initFormFromRule(seedRule);
+        persistWorkSession(lineageKey);
+      } else if (!restoreWorkSession(lineageKey)) {
+        if (lineageKey === '__new__') {
+          currentWorkKey = lineageKey;
+          initFormFromRule(null);
+          persistWorkSession(lineageKey);
+        } else {
+          openEditForLineage(lineageKey, { skipNavigate: true, forceFresh: !ruleWorkSessions[lineageKey] });
+        }
+      } else if (!sessionCandidate && lineageKey !== '__new__') {
+        populateFormFromCandidate(collectCandidate());
+      }
+      applyView('test');
+      refreshTestControls();
+      if (frozenTestRun && !testInputDirty) renderFrozenTest(frozenTestRun);
+      return;
+    }
+
+    if (mode === 'edit') {
+      if (!rulesFormView.classList.contains('hidden') && lineageKey === currentWorkKey && !sectionTest.classList.contains('hidden')) {
+        applyView('edit');
+        return;
+      }
+      if (lineageKey === currentWorkKey && !rulesFormView.classList.contains('hidden') && sectionTest.classList.contains('hidden')) {
+        applyView('edit');
+        return;
+      }
+      openEditForLineage(lineageKey);
+      return;
+    }
+
+    applyView('list');
+    if (listApi) listApi.reload();
   }
 
   function switchTab(name) {
-    if (name === 'test' && !rulesFormView.classList.contains('hidden')) {
-      sessionCandidate = collectCandidate();
+    if (name === 'test') {
+      showTestView();
+      return;
     }
-    var rulesActive = name === 'rules';
-    [tabRules, tabTest].forEach(function (tab, index) {
-      var selected = rulesActive ? index === 0 : index === 1;
-      tab.setAttribute('aria-selected', selected ? 'true' : 'false');
-      tab.setAttribute('tabindex', selected ? '0' : '-1');
-      tab.classList.toggle('border-blue-600', selected);
-      tab.classList.toggle('text-blue-600', selected);
-      tab.classList.toggle('border-transparent', !selected);
-      tab.classList.toggle('text-gray-600', !selected);
-    });
-    sectionRules.classList.toggle('hidden', !rulesActive);
-    sectionTest.classList.toggle('hidden', rulesActive);
-    if (!rulesActive) refreshTestControls();
+    if (name === 'rules' || name === 'edit') {
+      navigateRules({ mode: 'edit', lineage: currentWorkKey });
+      openEditForLineage(currentWorkKey, { skipNavigate: true });
+      return;
+    }
+    handleRoute();
   }
 
   function testableReports() { return (state().reports || []).filter(function (report) { return report.status !== 'voided'; }); }
@@ -775,12 +1234,13 @@ function initAnalysisRules() {
 
   function renderFrozenTest(run) {
     frozenTestRun = run;
+    persistWorkSession(currentWorkKey);
     testEmpty.classList.add('hidden');
     testResults.classList.remove('hidden');
     renderRunMeta(run);
     renderDiffSummary(run);
     renderPhylumResults(run);
-    byId('last-session-test').textContent = '最近测试：' + run.runId + ' · ' + formatDate(run.createdAt) + ' · ' + run.diff.changedUnits.length + ' 个菌门发生变化。';
+    updateLastSessionTestLabel();
     testResults.setAttribute('aria-label', '测试完成，' + run.diff.changedUnits.length + ' 个菌门发生变化');
   }
 
@@ -789,7 +1249,8 @@ function initAnalysisRules() {
     if (sessionCandidate) {
       var errors = validateCandidate(sessionCandidate);
       if (errors.length) {
-        switchTab('rules');
+        switchTab('edit');
+        openEditForLineage(currentWorkKey, { skipNavigate: true });
         showErrors(errors);
         return;
       }
@@ -838,7 +1299,8 @@ function initAnalysisRules() {
     byId('rule-confirm-body').innerHTML = bodyHtml;
     confirmDialog.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
-    confirmCancel.focus();
+    if (confirmPanel) confirmPanel.focus();
+    else confirmCancel.focus();
   }
 
   function closeImpactDialog() {
@@ -860,6 +1322,10 @@ function initAnalysisRules() {
   }
 
   function requestSave() {
+    if (!canSaveRule()) {
+      C.toast && C.toast('当前账号无保存规则的权限', 'warning');
+      return;
+    }
     var candidate = collectCandidate();
     sessionCandidate = candidate;
     var errors = validateCandidate(candidate);
@@ -889,6 +1355,7 @@ function initAnalysisRules() {
         closeImpactDialog();
         C.toast && C.toast('规则谱系已停用，历史版本已保留', 'success');
         renderLineages();
+        if (listApi) listApi.reload();
       } catch (error) {
         closeImpactDialog();
         C.toast && C.toast(error.message || String(error), 'error');
@@ -907,6 +1374,7 @@ function initAnalysisRules() {
         librarySpecies = species;
         C.toast && C.toast('已复制为新谱系，可再按该物种改文案', 'success');
         renderLineages();
+        if (listApi) listApi.reload();
       } catch (error) {
         closeImpactDialog();
         C.toast && C.toast(error.message || String(error), 'error');
@@ -916,18 +1384,26 @@ function initAnalysisRules() {
 
   function editRuleById(ruleId) {
     var rule = (state().analysisRuleCatalog || []).find(function (item) { return item.id === ruleId; });
-    if (rule) {
-      switchTab('rules');
-      showForm(rule);
+    if (!rule) return;
+    var key = resolveWorkKey(rule);
+    if (ruleWorkSessions[key] && ruleWorkSessions[key].sessionCandidate) {
+      openEditForLineage(key);
+      return;
     }
+    showForm(rule);
   }
 
   function previewCandidate() {
+    if (!canSaveRule()) {
+      C.toast && C.toast('当前账号无编辑规则的权限', 'warning');
+      return;
+    }
     sessionCandidate = collectCandidate();
     var errors = validateCandidate(sessionCandidate);
     if (errors.length) { showErrors(errors); return; }
+    persistWorkSession(currentWorkKey);
     testInputDirty = true;
-    switchTab('test');
+    showTestView();
     runTest();
   }
 
@@ -945,7 +1421,7 @@ function initAnalysisRules() {
       return;
     }
     if (event.key !== 'Tab') return;
-    var focusable = Array.from(confirmDialog.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled])'));
+    var focusable = Array.from(confirmDialog.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), .ar-confirm-panel'));
     if (!focusable.length) return;
     var first = focusable[0];
     var last = focusable[focusable.length - 1];
@@ -953,18 +1429,24 @@ function initAnalysisRules() {
     else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
   }
 
-  tabRules.addEventListener('click', function () { switchTab('rules'); });
-  tabTest.addEventListener('click', function () { switchTab('test'); });
-  [tabRules, tabTest].forEach(function (tab) {
-    tab.addEventListener('keydown', function (event) {
-      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-      event.preventDefault();
-      var next = tab === tabRules ? tabTest : tabRules;
-      next.focus();
-      next.click();
+  if (tabRules) tabRules.addEventListener('click', function () { switchTab('rules'); });
+  if (tabTest) tabTest.addEventListener('click', function () { switchTab('test'); });
+  if (tabRules && tabTest) {
+    [tabRules, tabTest].forEach(function (tabBtn) {
+      tabBtn.addEventListener('keydown', function (event) {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        event.preventDefault();
+        var next = tabBtn === tabRules ? tabTest : tabRules;
+        next.focus();
+        next.click();
+      });
     });
+  }
+  byId('ar-back-to-list').addEventListener('click', function () { showList(false); });
+  byId('ar-back-to-edit').addEventListener('click', function () {
+    switchTab('edit');
   });
-  byId('add-new-rule').addEventListener('click', function () { showForm(null); });
+
   byId('cancel-form').addEventListener('click', function () { showList(false); });
   byId('preview-candidate-btn').addEventListener('click', previewCandidate);
   byId('add-condition-btn').addEventListener('click', function () { addCondition(); markDirty(); updateNaturalSummary(); });
@@ -1008,15 +1490,7 @@ function initAnalysisRules() {
   ruleForm.addEventListener('input', function () { markDirty(); updateNaturalSummary(); });
   ruleForm.addEventListener('change', function () { markDirty(); updateNaturalSummary(); });
   ruleForm.addEventListener('submit', function (event) { event.preventDefault(); requestSave(); });
-  searchInput.addEventListener('input', renderLineages);
-  filterStatus.addEventListener('change', renderLineages);
-  byId('library-species-switch').addEventListener('click', function (event) {
-    var button = event.target.closest('[data-species]');
-    if (!button) return;
-    librarySpecies = button.dataset.species;
-    renderLineages();
-  });
-  lineageList.addEventListener('click', function (event) {
+  if (lineageList) lineageList.addEventListener('click', function (event) {
     var button = event.target.closest('button');
     if (!button) return;
     if (button.classList.contains('rule-edit')) editRuleById(button.dataset.id);
@@ -1037,22 +1511,73 @@ function initAnalysisRules() {
   window.addEventListener('beforeunload', onBeforeUnload);
 
   var unsubscribe = C.subscribeDemo ? C.subscribeDemo(function () {
-    if (!rulesListView.classList.contains('hidden')) renderLineages();
+    if (tab && Session && Session.getActiveTab() !== tab) return;
+    if (!rulesListView.classList.contains('hidden')) {
+      if (listApi) listApi.reload();
+      else renderLineages();
+    }
     if (!sectionTest.classList.contains('hidden')) refreshTestControls();
   }) : function () {};
 
-  window.__petAdminCanLeavePage = function () { return confirmDiscard(); };
-  window.__petAdminPageTeardown = function () {
-    unsubscribe();
-    document.removeEventListener('keydown', onDialogKeydown);
-    window.removeEventListener('beforeunload', onBeforeUnload);
-    window.__petAdminCanLeavePage = null;
+  function onHashChange() {
+    if (tab && Session && Session.getActiveTab() !== tab) return;
+    handleRoute();
+  }
+  window.addEventListener('hashchange', onHashChange);
+
+  function onTabActivate() {
+    tabActive = true;
+    handleRoute();
+  }
+
+  function onTabDeactivate() {
+    if (!rulesListView.classList.contains('hidden')) {
+      tabActive = false;
+      return;
+    }
+    persistWorkSession(currentWorkKey);
+    tabActive = false;
+  }
+
+  function onTabDispose() {
+    var key = tab && tab.params && tab.params.lineage ? lineageParamToKey(tab.params.lineage) : currentWorkKey;
+    clearWorkSession(key);
+  }
+
+  function onTabCanLeave() {
+    if (!dirty) return true;
+    if (!confirmDiscard()) return false;
+    clearWorkSession(currentWorkKey);
+    setDirty(false);
+    return true;
+  }
+
+  if (tab && typeof window.__petAdminRegisterTabHooks === 'function') {
+    window.__petAdminRegisterTabHooks(tab.id, {
+      activate: onTabActivate,
+      deactivate: onTabDeactivate,
+      dispose: onTabDispose,
+      canLeave: onTabCanLeave
+    });
+  }
+
+  window.__petAdminOpenRuleLineage = function (lineageKey) {
+    openEditForLineage(lineageParamToKey(lineageKey));
   };
 
   fillTargetTaxon('phylum');
   fillObservation(Engine.DEFAULT_OBSERVATION_KIND);
   setValueThreshold(null);
-  renderLineages();
+  syncFormReadOnly();
+  initListPage();
   refreshTestControls();
-  switchTab('rules');
+  handleRoute();
+
+  return function teardown() {
+    delete window.__petAdminOpenRuleLineage;
+    unsubscribe();
+    document.removeEventListener('keydown', onDialogKeydown);
+    window.removeEventListener('beforeunload', onBeforeUnload);
+    window.removeEventListener('hashchange', onHashChange);
+  };
 }

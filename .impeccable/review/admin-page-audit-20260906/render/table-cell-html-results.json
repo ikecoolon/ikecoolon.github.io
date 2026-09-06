@@ -1,0 +1,101 @@
+{
+  "base": "http://127.0.0.1:8766/docs/.vuepress/public/prototype/admin/index.html",
+  "passed": 16,
+  "failed": 0,
+  "results": {
+    "passed": [
+      {
+        "name": "normal-range: 无字面 span",
+        "ok": true,
+        "detail": "{\"cellCount\":16,\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":2,\"literalSpanSamples\":[],\"literalNbspSamples\":[]}"
+      },
+      {
+        "name": "normal-range: 存在 ant-tag",
+        "ok": true,
+        "detail": "count=2"
+      },
+      {
+        "name": "analysis-rules: 无字面 span",
+        "ok": true,
+        "detail": "{\"cellCount\":63,\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":9,\"literalSpanSamples\":[],\"literalNbspSamples\":[]}"
+      },
+      {
+        "name": "analysis-rules: 存在 ant-tag",
+        "ok": true,
+        "detail": "count=9"
+      },
+      {
+        "name": "dictionary-breeds: 无字面 span",
+        "ok": true,
+        "detail": "{\"cellCount\":70,\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"literalSpanSamples\":[],\"literalNbspSamples\":[]}"
+      },
+      {
+        "name": "dictionary-breeds: 无字面 nbsp 缩进",
+        "ok": true,
+        "detail": "{\"cellCount\":70,\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"literalSpanSamples\":[],\"literalNbspSamples\":[]}"
+      },
+      {
+        "name": "dictionary-breeds: 存在 ant-tag",
+        "ok": true,
+        "detail": "count=10"
+      },
+      {
+        "name": "dictionary-breeds: 树缩进可辨",
+        "ok": true,
+        "detail": "{\"levels\":[0,16,32],\"hasHierarchy\":true}"
+      },
+      {
+        "name": "dictionary-indicators: 无字面 span",
+        "ok": true,
+        "detail": "{\"cellCount\":28,\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"literalSpanSamples\":[],\"literalNbspSamples\":[]}"
+      },
+      {
+        "name": "dictionary-indicators: 无字面 nbsp 缩进",
+        "ok": true,
+        "detail": "{\"cellCount\":28,\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"literalSpanSamples\":[],\"literalNbspSamples\":[]}"
+      },
+      {
+        "name": "dictionary-indicators: 存在 ant-tag",
+        "ok": true,
+        "detail": "count=4"
+      },
+      {
+        "name": "dictionary-microbiota: 无字面 span",
+        "ok": true,
+        "detail": "{\"cellCount\":70,\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"literalSpanSamples\":[],\"literalNbspSamples\":[]}"
+      },
+      {
+        "name": "dictionary-microbiota: 无字面 nbsp 缩进",
+        "ok": true,
+        "detail": "{\"cellCount\":70,\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"literalSpanSamples\":[],\"literalNbspSamples\":[]}"
+      },
+      {
+        "name": "dictionary-microbiota: 存在 ant-tag",
+        "ok": true,
+        "detail": "count=10"
+      },
+      {
+        "name": "dictionary-microbiota: 树缩进可辨",
+        "ok": true,
+        "detail": "{\"levels\":[0,16],\"hasHierarchy\":true}"
+      },
+      {
+        "name": "dictionary: 动态文本 escape 机制有效",
+        "ok": true,
+        "detail": "{\"escapedOk\":true,\"escapedSample\":\"&lt;img src=x onerror=1&gt;\"}"
+      }
+    ],
+    "failed": [],
+    "console": [
+      {
+        "type": "warning",
+        "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+      },
+      {
+        "type": "error",
+        "text": "Failed to load resource: the server responded with a status of 404 (File not found)"
+      }
+    ],
+    "pageerrors": []
+  }
+}

@@ -1,76 +1,14 @@
-<div id="report-center" class="page space-y-4">
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="flex flex-wrap gap-2 mb-4" id="rc-view-tabs" role="tablist" aria-label="报告状态视图">
-            <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="pending" aria-selected="true">待处理 <span class="rc-tab-count" data-count-for="pending"></span></button>
-            <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="all">全部 <span class="rc-tab-count" data-count-for="all"></span></button>
-            <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="incomplete">待完善 <span class="rc-tab-count" data-count-for="incomplete"></span></button>
-            <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="pending_review">待审核 <span class="rc-tab-count" data-count-for="pending_review"></span></button>
-            <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="published">已发布 <span class="rc-tab-count" data-count-for="published"></span></button>
-            <button type="button" class="rc-view-tab px-3 py-1.5 rounded-md text-sm border border-slate-200 text-slate-600 hover:bg-slate-50" data-view="voided">已作废 <span class="rc-tab-count" data-count-for="voided"></span></button>
+<link rel="stylesheet" href="./css/report-center.css">
+<div id="report-center" class="page rondo-list-page">
+    <div class="rondo-search-card">
+        <div class="rondo-view-tabs ant-tabs-nav" id="rc-view-tabs" role="tablist" aria-label="报告状态视图">
+            <button type="button" class="rc-view-tab ant-tabs-tab" data-view="pending" aria-selected="true">待处理 <span class="rc-tab-count" data-count-for="pending"></span></button>
+            <button type="button" class="rc-view-tab ant-tabs-tab" data-view="all">全部 <span class="rc-tab-count" data-count-for="all"></span></button>
+            <button type="button" class="rc-view-tab ant-tabs-tab" data-view="incomplete">待完善 <span class="rc-tab-count" data-count-for="incomplete"></span></button>
+            <button type="button" class="rc-view-tab ant-tabs-tab" data-view="pending_review">待审核 <span class="rc-tab-count" data-count-for="pending_review"></span></button>
+            <button type="button" class="rc-view-tab ant-tabs-tab" data-view="published">已发布 <span class="rc-tab-count" data-count-for="published"></span></button>
+            <button type="button" class="rc-view-tab ant-tabs-tab" data-view="voided">已作废 <span class="rc-tab-count" data-count-for="voided"></span></button>
         </div>
-
-        <form id="rc-filter-form" class="space-y-3 text-sm">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
-                <label class="flex flex-col gap-1 lg:col-span-2">
-                    <span class="text-slate-600">关键词</span>
-                    <input type="search" id="rc-q-search" class="border border-slate-300 rounded-md py-1.5 px-2" placeholder="报告号 / 外部报告号 / 样本号 / 手机号 / 宠物名">
-                </label>
-                <label class="flex flex-col gap-1">
-                    <span class="text-slate-600">来源机构</span>
-                    <input type="search" id="rc-q-store" class="border border-slate-300 rounded-md py-1.5 px-2" placeholder="机构名称">
-                </label>
-            </div>
-
-            <div id="rc-advanced-filters" class="hidden border-t border-slate-100 pt-3">
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    <label class="flex flex-col gap-1">
-                        <span class="text-slate-600">物种</span>
-                        <select id="rc-q-species" class="border border-slate-300 rounded-md py-1.5 px-2 bg-white">
-                            <option value="">全部物种</option>
-                            <option value="猫">猫</option>
-                            <option value="狗">狗</option>
-                        </select>
-                    </label>
-                    <label class="flex flex-col gap-1">
-                        <span class="text-slate-600">检测日期起</span>
-                        <input type="date" id="rc-q-date-from" class="border border-slate-300 rounded-md py-1.5 px-2">
-                    </label>
-                    <label class="flex flex-col gap-1">
-                        <span class="text-slate-600">检测日期止</span>
-                        <input type="date" id="rc-q-date-to" class="border border-slate-300 rounded-md py-1.5 px-2">
-                    </label>
-                </div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3">
-                <button type="button" id="rc-advanced-toggle" class="text-teal-600 hover:text-teal-700 text-sm inline-flex items-center gap-1" aria-expanded="false" aria-controls="rc-advanced-filters">
-                    <i class="fas fa-chevron-right text-xs rc-advanced-chevron transition-transform" aria-hidden="true"></i>
-                    高级筛选
-                </button>
-                <div class="flex items-center gap-2">
-                    <button type="submit" class="btn-primary px-4 py-1.5 rounded-md text-sm">查询</button>
-                    <button type="button" id="rc-btn-reset" class="btn-secondary px-4 py-1.5 rounded-md text-sm">重置</button>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <div class="bg-white rounded-lg border border-slate-200 p-4">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
-            <h2 class="text-base font-semibold text-slate-800" id="rc-list-title">待处理报告</h2>
-            <span class="text-sm text-slate-500" id="rc-result-count"></span>
-        </div>
-
-        <div class="rc-card-grid rc-card-grid-header hidden sm:grid grid-cols-12 gap-3 px-3 py-2 text-xs font-medium text-slate-500 border-b border-slate-100 mb-1">
-            <div class="col-span-3">报告标识</div>
-            <div class="col-span-2">用户 / 宠物</div>
-            <div class="col-span-2">来源</div>
-            <div class="col-span-2">状态</div>
-            <div class="col-span-1">更新时间</div>
-            <div class="col-span-2 text-right">操作</div>
-        </div>
-
-        <div id="rc-list" class="space-y-2"></div>
-        <p id="rc-empty" class="hidden text-center text-slate-500 py-10">当前视图下暂无报告</p>
+        <div id="rc-list-table"></div>
     </div>
 </div>

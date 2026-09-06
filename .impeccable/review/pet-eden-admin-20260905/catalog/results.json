@@ -1,0 +1,84 @@
+{
+  "timestamp": "2026-09-05T02:40:50.677Z",
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "summary": {
+    "passed": 13,
+    "failed": 0
+  },
+  "passed": [
+    {
+      "name": "fixture: 专业资料项",
+      "ok": true,
+      "detail": 1
+    },
+    {
+      "name": "fixture: 菌门节点",
+      "ok": true,
+      "detail": "Firmicutes"
+    },
+    {
+      "name": "fixture: 菌属节点",
+      "ok": true,
+      "detail": "Bacteroides"
+    },
+    {
+      "name": "catalog: 切换普通检测指标 tab",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "catalog: 校验失败保留弹窗",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "catalog: 新建保存成功关闭 Modal",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "catalog: 批量排序进入并取消",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "catalog: 只读账号禁用新增",
+      "ok": true,
+      "detail": "true"
+    },
+    {
+      "name": "microbiota: 编辑后页签 dirty",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "microbiota: 切节点后加载属级内容",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "microbiota: 保存后清除 dirty",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "microbiota: 页签切换保留未保存",
+      "ok": true,
+      "detail": "页签往返未保存"
+    },
+    {
+      "name": "microbiota: 只读隐藏保存按钮",
+      "ok": true,
+      "detail": ""
+    }
+  ],
+  "failed": [],
+  "pageerrors": [],
+  "resourceFailed": [],
+  "screenshots": [
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/catalog/catalog-list-1280.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/catalog/catalog-readonly-390.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/catalog/microbiota-phylum-1280.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/catalog/microbiota-readonly-390.png"
+  ]
+}

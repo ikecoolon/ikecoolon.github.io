@@ -1,0 +1,2894 @@
+{
+  "base": "http://127.0.0.1:8766/docs/.vuepress/public/prototype/admin/index.html",
+  "startedAt": "2026-09-06T02:32:54.958Z",
+  "viewports": [
+    "1440",
+    "1024",
+    "390"
+  ],
+  "targets": [
+    "menu-detection-records",
+    "menu-report-center",
+    "menu-normal-range-config",
+    "menu-microbiota-knowledge",
+    "menu-analysis-rules",
+    "menu-user-pets",
+    "menu-dictionary-management",
+    "route-nrc-edit-new",
+    "route-ar-edit",
+    "route-ar-test",
+    "route-up-user-detail",
+    "route-up-pet-detail",
+    "route-up-pets-view",
+    "route-report-review",
+    "modal-detection-register",
+    "modal-user-create",
+    "modal-dict-add-key",
+    "dict-tab-indicators",
+    "dict-tab-microbiota",
+    "wb-module-source",
+    "wb-module-results",
+    "wb-module-assessment",
+    "wb-module-analysis",
+    "wb-module-recommendations",
+    "wb-module-checks"
+  ],
+  "pages": [
+    {
+      "id": "menu-detection-records",
+      "hash": "#detection-records",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/menu-detection-records-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-detection-records@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-detection-records@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-detection-records@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":1,\"samples\":[]}"
+              },
+              {
+                "name": "menu-detection-records@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":1,\"samples\":[]}"
+              },
+              {
+                "name": "menu-detection-records@1440: 存在 ant-tag",
+                "detail": "count=1"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": [
+            "Failed to load resource: the server responded with a status of 404 (File not found)"
+          ]
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/menu-detection-records-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-detection-records@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-detection-records@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-detection-records@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":1,\"samples\":[]}"
+              },
+              {
+                "name": "menu-detection-records@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":1,\"samples\":[]}"
+              },
+              {
+                "name": "menu-detection-records@1024: 存在 ant-tag",
+                "detail": "count=1"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/menu-detection-records-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-detection-records@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-detection-records@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-detection-records@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-detection-records@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":1,\"samples\":[]}"
+              },
+              {
+                "name": "menu-detection-records@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":1,\"samples\":[]}"
+              },
+              {
+                "name": "menu-detection-records@390: 存在 ant-tag",
+                "detail": "count=1"
+              }
+            ],
+            "failed": [
+              {
+                "name": "menu-detection-records@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":70}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "menu-report-center",
+      "hash": "#report-center",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/menu-report-center-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-report-center@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-report-center@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-report-center@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "menu-report-center@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "menu-report-center@1440: 存在 ant-tag",
+                "detail": "count=4"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/menu-report-center-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-report-center@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-report-center@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-report-center@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "menu-report-center@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "menu-report-center@1024: 存在 ant-tag",
+                "detail": "count=4"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/menu-report-center-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-report-center@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-report-center@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-report-center@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-report-center@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "menu-report-center@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "menu-report-center@390: 存在 ant-tag",
+                "detail": "count=4"
+              }
+            ],
+            "failed": [
+              {
+                "name": "menu-report-center@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-report-center-search\",\"width\":53},{\"id\":\"rondo-search-report-center-storeName\",\"width\":53}],\"all\":[{\"id\":\"rondo-search-report-center-search\",\"width\":53},{\"id\":\"rondo-search-report-center-storeName\",\"width\":53}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "menu-normal-range-config",
+      "hash": "#normal-range-config",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/menu-normal-range-config-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-normal-range-config@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-normal-range-config@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-normal-range-config@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":2,\"samples\":[]}"
+              },
+              {
+                "name": "menu-normal-range-config@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":2,\"samples\":[]}"
+              },
+              {
+                "name": "menu-normal-range-config@1440: 存在 ant-tag",
+                "detail": "count=2"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/menu-normal-range-config-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-normal-range-config@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-normal-range-config@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-normal-range-config@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":2,\"samples\":[]}"
+              },
+              {
+                "name": "menu-normal-range-config@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":2,\"samples\":[]}"
+              },
+              {
+                "name": "menu-normal-range-config@1024: 存在 ant-tag",
+                "detail": "count=2"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/menu-normal-range-config-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-normal-range-config@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-normal-range-config@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-normal-range-config@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-normal-range-config@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":2,\"samples\":[]}"
+              },
+              {
+                "name": "menu-normal-range-config@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":2,\"samples\":[]}"
+              },
+              {
+                "name": "menu-normal-range-config@390: 存在 ant-tag",
+                "detail": "count=2"
+              }
+            ],
+            "failed": [
+              {
+                "name": "menu-normal-range-config@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-normal-range-schemes-template\",\"width\":70},{\"id\":\"rondo-search-normal-range-schemes-name\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-normal-range-schemes-template\",\"width\":70},{\"id\":\"rondo-search-normal-range-schemes-name\",\"width\":70}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "menu-microbiota-knowledge",
+      "hash": "#microbiota-knowledge",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/menu-microbiota-knowledge-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-microbiota-knowledge@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-microbiota-knowledge@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-microbiota-knowledge@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-microbiota-knowledge@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-microbiota-knowledge@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/menu-microbiota-knowledge-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-microbiota-knowledge@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-microbiota-knowledge@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-microbiota-knowledge@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-microbiota-knowledge@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-microbiota-knowledge@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/menu-microbiota-knowledge-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-microbiota-knowledge@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-microbiota-knowledge@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-microbiota-knowledge@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-microbiota-knowledge@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-microbiota-knowledge@390: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": [
+              {
+                "name": "menu-microbiota-knowledge@390: 390 搜索宽度",
+                "detail": "无搜索区，跳过"
+              }
+            ]
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "menu-analysis-rules",
+      "hash": "#analysis-rules",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/menu-analysis-rules-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-analysis-rules@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-analysis-rules@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-analysis-rules@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":9,\"samples\":[]}"
+              },
+              {
+                "name": "menu-analysis-rules@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":9,\"samples\":[]}"
+              },
+              {
+                "name": "menu-analysis-rules@1440: 存在 ant-tag",
+                "detail": "count=9"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/menu-analysis-rules-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-analysis-rules@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-analysis-rules@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-analysis-rules@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":9,\"samples\":[]}"
+              },
+              {
+                "name": "menu-analysis-rules@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":9,\"samples\":[]}"
+              },
+              {
+                "name": "menu-analysis-rules@1024: 存在 ant-tag",
+                "detail": "count=9"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/menu-analysis-rules-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-analysis-rules@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-analysis-rules@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-analysis-rules@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-analysis-rules@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":9,\"samples\":[]}"
+              },
+              {
+                "name": "menu-analysis-rules@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":9,\"samples\":[]}"
+              },
+              {
+                "name": "menu-analysis-rules@390: 存在 ant-tag",
+                "detail": "count=9"
+              }
+            ],
+            "failed": [
+              {
+                "name": "menu-analysis-rules@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-analysis-rules-list-query\",\"width\":45}],\"all\":[{\"id\":\"rondo-search-analysis-rules-list-query\",\"width\":45}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "menu-user-pets",
+      "hash": "#user-pets?view=users",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/menu-user-pets-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-user-pets@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-user-pets@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-user-pets@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              },
+              {
+                "name": "menu-user-pets@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              }
+            ],
+            "failed": [
+              {
+                "name": "menu-user-pets@1440: 存在 ant-tag",
+                "detail": "count=0"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/menu-user-pets-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-user-pets@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-user-pets@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-user-pets@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              },
+              {
+                "name": "menu-user-pets@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              }
+            ],
+            "failed": [
+              {
+                "name": "menu-user-pets@1024: 存在 ant-tag",
+                "detail": "count=0"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/menu-user-pets-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-user-pets@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-user-pets@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-user-pets@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-user-pets@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              },
+              {
+                "name": "menu-user-pets@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              }
+            ],
+            "failed": [
+              {
+                "name": "menu-user-pets@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":70}]}"
+              },
+              {
+                "name": "menu-user-pets@390: 存在 ant-tag",
+                "detail": "count=0"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "menu-dictionary-management",
+      "hash": "#dictionary-management",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/menu-dictionary-management-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-dictionary-management@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-dictionary-management@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-dictionary-management@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "menu-dictionary-management@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "menu-dictionary-management@1440: 存在 ant-tag",
+                "detail": "count=10"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/menu-dictionary-management-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-dictionary-management@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-dictionary-management@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-dictionary-management@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "menu-dictionary-management@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "menu-dictionary-management@1024: 存在 ant-tag",
+                "detail": "count=10"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/menu-dictionary-management-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "menu-dictionary-management@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-dictionary-management@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "menu-dictionary-management@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "menu-dictionary-management@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "menu-dictionary-management@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "menu-dictionary-management@390: 存在 ant-tag",
+                "detail": "count=10"
+              }
+            ],
+            "failed": [
+              {
+                "name": "menu-dictionary-management@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":70}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "route-nrc-edit-new",
+      "hash": "#normal-range-config?edit=new",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/route-nrc-edit-new-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-nrc-edit-new@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-nrc-edit-new@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-nrc-edit-new@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-nrc-edit-new@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-nrc-edit-new@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/route-nrc-edit-new-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-nrc-edit-new@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-nrc-edit-new@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-nrc-edit-new@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-nrc-edit-new@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-nrc-edit-new@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/route-nrc-edit-new-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-nrc-edit-new@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-nrc-edit-new@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-nrc-edit-new@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-nrc-edit-new@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-nrc-edit-new@390: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": [
+              {
+                "name": "route-nrc-edit-new@390: 390 搜索宽度",
+                "detail": "非双列或无字段，跳过"
+              }
+            ]
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "route-ar-edit",
+      "hash": "#analysis-rules?mode=edit&lineage=lineage-actino-low-cat",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/route-ar-edit-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-ar-edit@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-edit@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-edit@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-edit@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-edit@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/route-ar-edit-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-ar-edit@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-edit@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-edit@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-edit@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-edit@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/route-ar-edit-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-ar-edit@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-edit@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-edit@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-edit@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-edit@390: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": [
+              {
+                "name": "route-ar-edit@390: 390 搜索宽度",
+                "detail": "非双列或无字段，跳过"
+              }
+            ]
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "route-ar-test",
+      "hash": "#analysis-rules?mode=test&lineage=lineage-actino-low-cat",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/route-ar-test-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-ar-test@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-test@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-test@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-test@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-test@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/route-ar-test-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-ar-test@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-test@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-test@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-test@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-test@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/route-ar-test-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-ar-test@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-test@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-ar-test@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-test@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-ar-test@390: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [],
+            "skipped": [
+              {
+                "name": "route-ar-test@390: 390 搜索宽度",
+                "detail": "非双列或无字段，跳过"
+              }
+            ]
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "route-up-user-detail",
+      "hash": "#user-pets?detail=user&id=user-001",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/route-up-user-detail-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-user-detail@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-user-detail@1440: 可见输入抽检",
+                "detail": "无可检输入"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-user-detail@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "缺少页头标题"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/route-up-user-detail-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-user-detail@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-user-detail@1024: 可见输入抽检",
+                "detail": "无可检输入"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-user-detail@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "缺少页头标题"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/route-up-user-detail-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-user-detail@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-user-detail@390: 可见输入抽检",
+                "detail": "无可检输入"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-user-detail@390: 列表/页头/Modal 非裸渲染",
+                "detail": "缺少页头标题"
+              }
+            ],
+            "skipped": [
+              {
+                "name": "route-up-user-detail@390: 390 搜索宽度",
+                "detail": "无搜索区，跳过"
+              }
+            ]
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "route-up-pet-detail",
+      "hash": "#user-pets?detail=pet&id=pet-001",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/route-up-pet-detail-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-pet-detail@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pet-detail@1440: 可见输入抽检",
+                "detail": "无可检输入"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-pet-detail@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "缺少页头标题"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/route-up-pet-detail-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-pet-detail@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pet-detail@1024: 可见输入抽检",
+                "detail": "无可检输入"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-pet-detail@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "缺少页头标题"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/route-up-pet-detail-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-pet-detail@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pet-detail@390: 可见输入抽检",
+                "detail": "无可检输入"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-pet-detail@390: 列表/页头/Modal 非裸渲染",
+                "detail": "缺少页头标题"
+              }
+            ],
+            "skipped": [
+              {
+                "name": "route-up-pet-detail@390: 390 搜索宽度",
+                "detail": "无搜索区，跳过"
+              }
+            ]
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "route-up-pets-view",
+      "hash": "#user-pets?view=pets",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/route-up-pets-view-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-pets-view@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pets-view@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pets-view@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              },
+              {
+                "name": "route-up-pets-view@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-pets-view@1440: 存在 ant-tag",
+                "detail": "count=0"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/route-up-pets-view-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-pets-view@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pets-view@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pets-view@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              },
+              {
+                "name": "route-up-pets-view@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-pets-view@1024: 存在 ant-tag",
+                "detail": "count=0"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/route-up-pets-view-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-up-pets-view@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pets-view@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-up-pets-view@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "route-up-pets-view@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              },
+              {
+                "name": "route-up-pets-view@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":0,\"samples\":[]}"
+              }
+            ],
+            "failed": [
+              {
+                "name": "route-up-pets-view@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-user-pets-pets-search\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-user-pets-pets-search\",\"width\":70}]}"
+              },
+              {
+                "name": "route-up-pets-view@390: 存在 ant-tag",
+                "detail": "count=0"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "route-report-review",
+      "hash": "#report-review?reportId=report-003",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/route-report-review-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-report-review@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-report-review@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-report-review@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@1440: 预览有内容",
+                "detail": "len=8607"
+              },
+              {
+                "name": "route-report-review@1440: 预览未套管理端 shell",
+                "detail": "{\"exists\":true,\"htmlLen\":8607,\"hasAdminRoot\":false,\"antInputCount\":0,\"display\":\"block\",\"fontFamily\":\"-apple-system, \\\"system-ui\\\", \\\"Segoe UI\\\", Roboto, \\\"Helvetica Neue\\\", Arial, sans-serif\"}"
+              },
+              {
+                "name": "route-report-review@1440: 预览内无 ant-input 污染",
+                "detail": "count=0"
+              },
+              {
+                "name": "route-report-review@1440: 工作台六模块导航",
+                "detail": "count=6"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/route-report-review-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-report-review@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-report-review@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-report-review@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@1024: 预览有内容",
+                "detail": "len=8607"
+              },
+              {
+                "name": "route-report-review@1024: 预览未套管理端 shell",
+                "detail": "{\"exists\":true,\"htmlLen\":8607,\"hasAdminRoot\":false,\"antInputCount\":0,\"display\":\"block\",\"fontFamily\":\"-apple-system, \\\"system-ui\\\", \\\"Segoe UI\\\", Roboto, \\\"Helvetica Neue\\\", Arial, sans-serif\"}"
+              },
+              {
+                "name": "route-report-review@1024: 预览内无 ant-input 污染",
+                "detail": "count=0"
+              },
+              {
+                "name": "route-report-review@1024: 工作台六模块导航",
+                "detail": "count=6"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/route-report-review-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "route-report-review@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "route-report-review@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "route-report-review@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "route-report-review@390: 预览有内容",
+                "detail": "len=8607"
+              },
+              {
+                "name": "route-report-review@390: 预览未套管理端 shell",
+                "detail": "{\"exists\":true,\"htmlLen\":8607,\"hasAdminRoot\":false,\"antInputCount\":0,\"display\":\"block\",\"fontFamily\":\"-apple-system, \\\"system-ui\\\", \\\"Segoe UI\\\", Roboto, \\\"Helvetica Neue\\\", Arial, sans-serif\"}"
+              },
+              {
+                "name": "route-report-review@390: 预览内无 ant-input 污染",
+                "detail": "count=0"
+              },
+              {
+                "name": "route-report-review@390: 工作台六模块导航",
+                "detail": "count=6"
+              }
+            ],
+            "failed": [],
+            "skipped": [
+              {
+                "name": "route-report-review@390: 390 搜索宽度",
+                "detail": "无搜索区，跳过"
+              }
+            ]
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "modal-detection-register",
+      "hash": "#detection-records?action=register",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/modal-detection-register-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-detection-register@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-detection-register@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-detection-register@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/modal-detection-register-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-detection-register@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-detection-register@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-detection-register@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/modal-detection-register-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-detection-register@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-detection-register@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-detection-register: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-detection-register@390: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              },
+              {
+                "name": "modal-detection-register@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":70}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "modal-user-create",
+      "hash": "#user-pets?view=users",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/modal-user-create-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-user-create@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-user-create@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-user-create@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-user-create@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-user-create@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              },
+              {
+                "name": "modal-user-create: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/modal-user-create-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-user-create@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-user-create@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-user-create@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-user-create@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-user-create@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              },
+              {
+                "name": "modal-user-create: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/modal-user-create-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-user-create@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-user-create@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-user-create@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-user-create@390: 可见 input/select 有边框",
+                "detail": "[]"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-user-create@390: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              },
+              {
+                "name": "modal-user-create@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":70}]}"
+              },
+              {
+                "name": "modal-user-create: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "modal-dict-add-key",
+      "hash": "#dictionary-management",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/modal-dict-add-key-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-dict-add-key@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-dict-add-key@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-dict-add-key@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-dict-add-key: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-dict-add-key@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              },
+              {
+                "name": "modal-dict-add-key@1440: 单行 input 高度≤40px",
+                "detail": "[{\"id\":\"dm-modal-key\",\"kind\":\"tall-input\",\"h\":80},{\"id\":\"dm-modal-label\",\"kind\":\"tall-input\",\"h\":80},{\"id\":\"dm-modal-value\",\"kind\":\"tall-input\",\"h\":80}]"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/modal-dict-add-key-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-dict-add-key@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-dict-add-key@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-dict-add-key@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-dict-add-key: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-dict-add-key@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              },
+              {
+                "name": "modal-dict-add-key@1024: 单行 input 高度≤40px",
+                "detail": "[{\"id\":\"dm-modal-key\",\"kind\":\"tall-input\",\"h\":80},{\"id\":\"dm-modal-label\",\"kind\":\"tall-input\",\"h\":80},{\"id\":\"dm-modal-value\",\"kind\":\"tall-input\",\"h\":80}]"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/modal-dict-add-key-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "modal-dict-add-key@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "modal-dict-add-key@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-dict-add-key@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "modal-dict-add-key: Modal 取消关闭",
+                "detail": "cancel click"
+              }
+            ],
+            "failed": [
+              {
+                "name": "modal-dict-add-key@390: 列表/页头/Modal 非裸渲染",
+                "detail": "Modal 内边距异常"
+              },
+              {
+                "name": "modal-dict-add-key@390: 单行 input 高度≤40px",
+                "detail": "[{\"id\":\"dm-modal-key\",\"kind\":\"tall-input\",\"h\":80},{\"id\":\"dm-modal-label\",\"kind\":\"tall-input\",\"h\":80},{\"id\":\"dm-modal-value\",\"kind\":\"tall-input\",\"h\":80}]"
+              },
+              {
+                "name": "modal-dict-add-key@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":70}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "dict-tab-indicators",
+      "hash": "#dictionary-management",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/dict-tab-indicators-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "dict-tab-indicators@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-indicators@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-indicators@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-indicators@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-indicators@1440: 存在 ant-tag",
+                "detail": "count=4"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/dict-tab-indicators-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "dict-tab-indicators@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-indicators@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-indicators@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-indicators@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-indicators@1024: 存在 ant-tag",
+                "detail": "count=4"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/dict-tab-indicators-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "dict-tab-indicators@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-indicators@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-indicators@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-indicators@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-indicators@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":4,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-indicators@390: 存在 ant-tag",
+                "detail": "count=4"
+              }
+            ],
+            "failed": [
+              {
+                "name": "dict-tab-indicators@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-dictionary-indicators-q\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-dictionary-indicators-q\",\"width\":70}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "dict-tab-microbiota",
+      "hash": "#dictionary-management",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/dict-tab-microbiota-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "dict-tab-microbiota@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-microbiota@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-microbiota@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@1440: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-microbiota@1440: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-microbiota@1440: 存在 ant-tag",
+                "detail": "count=10"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/dict-tab-microbiota-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "dict-tab-microbiota@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-microbiota@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-microbiota@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@1024: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-microbiota@1024: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-microbiota@1024: 存在 ant-tag",
+                "detail": "count=10"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/dict-tab-microbiota-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "dict-tab-microbiota@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-microbiota@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "dict-tab-microbiota@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "dict-tab-microbiota@390: 无字面 span",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-microbiota@390: 无字面 nbsp",
+                "detail": "{\"literalSpanCount\":0,\"literalNbspCount\":0,\"antTagCount\":10,\"samples\":[]}"
+              },
+              {
+                "name": "dict-tab-microbiota@390: 存在 ant-tag",
+                "detail": "count=10"
+              }
+            ],
+            "failed": [
+              {
+                "name": "dict-tab-microbiota@390: 390 双列搜索字段宽度≥100px",
+                "detail": "{\"narrow\":[{\"id\":\"rondo-search-dictionary-microbiota-q\",\"width\":70}],\"all\":[{\"id\":\"rondo-search-dictionary-microbiota-q\",\"width\":70}]}"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "wb-module-source",
+      "hash": "#report-review?reportId=report-003",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/wb-module-source-1440.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "wb-module-source@1440: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "wb-module-source@1440: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "wb-module-source@1440: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@1440: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@1440: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@1440: 预览有内容",
+                "detail": "len=8607"
+              },
+              {
+                "name": "wb-module-source@1440: 预览未套管理端 shell",
+                "detail": "{\"exists\":true,\"htmlLen\":8607,\"hasAdminRoot\":false,\"antInputCount\":0,\"display\":\"block\",\"fontFamily\":\"-apple-system, \\\"system-ui\\\", \\\"Segoe UI\\\", Roboto, \\\"Helvetica Neue\\\", Arial, sans-serif\"}"
+              },
+              {
+                "name": "wb-module-source@1440: 预览内无 ant-input 污染",
+                "detail": "count=0"
+              },
+              {
+                "name": "wb-module-source@1440: 模块按钮激活",
+                "detail": "source"
+              },
+              {
+                "name": "wb-module-source@1440: 模块面板有内容",
+                "detail": "{\"active\":true,\"panelVisible\":true,\"panelLen\":2466}"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/wb-module-source-1024.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "wb-module-source@1024: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "wb-module-source@1024: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "wb-module-source@1024: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@1024: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@1024: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@1024: 预览有内容",
+                "detail": "len=8607"
+              },
+              {
+                "name": "wb-module-source@1024: 预览未套管理端 shell",
+                "detail": "{\"exists\":true,\"htmlLen\":8607,\"hasAdminRoot\":false,\"antInputCount\":0,\"display\":\"block\",\"fontFamily\":\"-apple-system, \\\"system-ui\\\", \\\"Segoe UI\\\", Roboto, \\\"Helvetica Neue\\\", Arial, sans-serif\"}"
+              },
+              {
+                "name": "wb-module-source@1024: 预览内无 ant-input 污染",
+                "detail": "count=0"
+              },
+              {
+                "name": "wb-module-source@1024: 模块按钮激活",
+                "detail": "source"
+              },
+              {
+                "name": "wb-module-source@1024: 模块面板有内容",
+                "detail": "{\"active\":true,\"panelVisible\":true,\"panelLen\":2466}"
+              }
+            ],
+            "failed": [],
+            "skipped": []
+          },
+          "loadError": null,
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/wb-module-source-390.png",
+          "assertions": {
+            "passed": [
+              {
+                "name": "wb-module-source@390: 列表/页头/Modal 非裸渲染",
+                "detail": "ok"
+              },
+              {
+                "name": "wb-module-source@390: 无整页横向溢出",
+                "detail": "ok"
+              },
+              {
+                "name": "wb-module-source@390: 单行 input 高度≤40px",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@390: 单行 input 高度≥28px",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@390: 可见 input/select 有边框",
+                "detail": "[]"
+              },
+              {
+                "name": "wb-module-source@390: 预览有内容",
+                "detail": "len=8607"
+              },
+              {
+                "name": "wb-module-source@390: 预览未套管理端 shell",
+                "detail": "{\"exists\":true,\"htmlLen\":8607,\"hasAdminRoot\":false,\"antInputCount\":0,\"display\":\"block\",\"fontFamily\":\"-apple-system, \\\"system-ui\\\", \\\"Segoe UI\\\", Roboto, \\\"Helvetica Neue\\\", Arial, sans-serif\"}"
+              },
+              {
+                "name": "wb-module-source@390: 预览内无 ant-input 污染",
+                "detail": "count=0"
+              },
+              {
+                "name": "wb-module-source@390: 模块按钮激活",
+                "detail": "source"
+              },
+              {
+                "name": "wb-module-source@390: 模块面板有内容",
+                "detail": "{\"active\":true,\"panelVisible\":true,\"panelLen\":2466}"
+              }
+            ],
+            "failed": [],
+            "skipped": [
+              {
+                "name": "wb-module-source@390: 390 搜索宽度",
+                "detail": "无搜索区，跳过"
+              }
+            ]
+          },
+          "loadError": null,
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "wb-module-results",
+      "hash": "#report-review?reportId=report-003",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/wb-module-results-1440.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-results@1440: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#results-search') to be visible\n    43 × locator resolved to hidden <input type=\"search\" aria-label=\"搜索结果\" id=\"results-search\" placeholder=\"搜索名称…\" class=\"ant-input rw-results-search\"/>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#results-search') to be visible\n    43 × locator resolved to hidden <input type=\"search\" aria-label=\"搜索结果\" id=\"results-search\" placeholder=\"搜索名称…\" class=\"ant-input rw-results-search\"/>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/wb-module-results-1024.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-results@1024: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#results-search') to be visible\n    43 × locator resolved to hidden <input type=\"search\" aria-label=\"搜索结果\" id=\"results-search\" placeholder=\"搜索名称…\" class=\"ant-input rw-results-search\"/>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#results-search') to be visible\n    43 × locator resolved to hidden <input type=\"search\" aria-label=\"搜索结果\" id=\"results-search\" placeholder=\"搜索名称…\" class=\"ant-input rw-results-search\"/>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/wb-module-results-390.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-results@390: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#results-search') to be visible\n    43 × locator resolved to hidden <input type=\"search\" aria-label=\"搜索结果\" id=\"results-search\" placeholder=\"搜索名称…\" class=\"ant-input rw-results-search\"/>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#results-search') to be visible\n    43 × locator resolved to hidden <input type=\"search\" aria-label=\"搜索结果\" id=\"results-search\" placeholder=\"搜索名称…\" class=\"ant-input rw-results-search\"/>\n",
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "wb-module-assessment",
+      "hash": "#report-review?reportId=report-003",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/wb-module-assessment-1440.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-assessment@1440: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#assessment-form') to be visible\n    43 × locator resolved to hidden <form id=\"assessment-form\" class=\"rw-assessment-form\">…</form>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#assessment-form') to be visible\n    43 × locator resolved to hidden <form id=\"assessment-form\" class=\"rw-assessment-form\">…</form>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/wb-module-assessment-1024.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-assessment@1024: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#assessment-form') to be visible\n    43 × locator resolved to hidden <form id=\"assessment-form\" class=\"rw-assessment-form\">…</form>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#assessment-form') to be visible\n    43 × locator resolved to hidden <form id=\"assessment-form\" class=\"rw-assessment-form\">…</form>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/wb-module-assessment-390.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-assessment@390: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#assessment-form') to be visible\n    43 × locator resolved to hidden <form id=\"assessment-form\" class=\"rw-assessment-form\">…</form>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#assessment-form') to be visible\n    43 × locator resolved to hidden <form id=\"assessment-form\" class=\"rw-assessment-form\">…</form>\n",
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "wb-module-analysis",
+      "hash": "#report-review?reportId=report-003",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/wb-module-analysis-1440.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-analysis@1440: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#analysis-panel') to be visible\n    43 × locator resolved to hidden <div id=\"analysis-panel\" class=\"rw-panel-body\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#analysis-panel') to be visible\n    43 × locator resolved to hidden <div id=\"analysis-panel\" class=\"rw-panel-body\">…</div>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/wb-module-analysis-1024.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-analysis@1024: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#analysis-panel') to be visible\n    43 × locator resolved to hidden <div id=\"analysis-panel\" class=\"rw-panel-body\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#analysis-panel') to be visible\n    43 × locator resolved to hidden <div id=\"analysis-panel\" class=\"rw-panel-body\">…</div>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/wb-module-analysis-390.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-analysis@390: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#analysis-panel') to be visible\n    43 × locator resolved to hidden <div id=\"analysis-panel\" class=\"rw-panel-body\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#analysis-panel') to be visible\n    43 × locator resolved to hidden <div id=\"analysis-panel\" class=\"rw-panel-body\">…</div>\n",
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "wb-module-recommendations",
+      "hash": "#report-review?reportId=report-003",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/wb-module-recommendations-1440.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-recommendations@1440: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#recommendations-panel') to be visible\n    43 × locator resolved to hidden <div class=\"rw-panel-body\" id=\"recommendations-panel\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#recommendations-panel') to be visible\n    43 × locator resolved to hidden <div class=\"rw-panel-body\" id=\"recommendations-panel\">…</div>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/wb-module-recommendations-1024.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-recommendations@1024: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#recommendations-panel') to be visible\n    43 × locator resolved to hidden <div class=\"rw-panel-body\" id=\"recommendations-panel\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#recommendations-panel') to be visible\n    43 × locator resolved to hidden <div class=\"rw-panel-body\" id=\"recommendations-panel\">…</div>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/wb-module-recommendations-390.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-recommendations@390: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#recommendations-panel') to be visible\n    43 × locator resolved to hidden <div class=\"rw-panel-body\" id=\"recommendations-panel\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#recommendations-panel') to be visible\n    43 × locator resolved to hidden <div class=\"rw-panel-body\" id=\"recommendations-panel\">…</div>\n",
+          "consoleErrors": []
+        }
+      ]
+    },
+    {
+      "id": "wb-module-checks",
+      "hash": "#report-review?reportId=report-003",
+      "viewports": [
+        {
+          "viewport": "1440",
+          "screenshot": "screenshots/wb-module-checks-1440.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-checks@1440: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#checks-panel') to be visible\n    43 × locator resolved to hidden <div id=\"checks-panel\" class=\"rw-panel-body\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#checks-panel') to be visible\n    43 × locator resolved to hidden <div id=\"checks-panel\" class=\"rw-panel-body\">…</div>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "1024",
+          "screenshot": "screenshots/wb-module-checks-1024.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-checks@1024: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#checks-panel') to be visible\n    43 × locator resolved to hidden <div id=\"checks-panel\" class=\"rw-panel-body\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#checks-panel') to be visible\n    43 × locator resolved to hidden <div id=\"checks-panel\" class=\"rw-panel-body\">…</div>\n",
+          "consoleErrors": []
+        },
+        {
+          "viewport": "390",
+          "screenshot": "screenshots/wb-module-checks-390.png",
+          "assertions": {
+            "passed": [],
+            "failed": [
+              {
+                "name": "wb-module-checks@390: 页面加载",
+                "detail": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#checks-panel') to be visible\n    43 × locator resolved to hidden <div id=\"checks-panel\" class=\"rw-panel-body\">…</div>\n"
+              }
+            ],
+            "skipped": []
+          },
+          "loadError": "TimeoutError: page.waitForSelector: Timeout 20000ms exceeded.\nCall log:\n  - waiting for locator('#checks-panel') to be visible\n    43 × locator resolved to hidden <div id=\"checks-panel\" class=\"rw-panel-body\">…</div>\n",
+          "consoleErrors": []
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "passed": 378,
+    "failed": 54,
+    "skipped": 8,
+    "screenshots": 75,
+    "targets": 25
+  },
+  "finishedAt": "2026-09-06T02:40:59.179Z"
+}

@@ -1,0 +1,1002 @@
+{
+  "passed": [
+    {
+      "name": "detection-records@375: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "detection-records@375: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":309}]}"
+    },
+    {
+      "name": "detection-records@375: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"fieldDirection\":\"column\",\"labelTop\":220,\"controlTop\":247,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":309,\"fieldWidth\":309,\"searchInnerWidth\":309}]"
+    },
+    {
+      "name": "detection-records@375: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "detection-records@375: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "detection-records@375: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"controlWidth\":309,\"searchInnerWidth\":309}]"
+    },
+    {
+      "name": "detection-records@390: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "detection-records@390: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":324}]}"
+    },
+    {
+      "name": "detection-records@390: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"fieldDirection\":\"column\",\"labelTop\":220,\"controlTop\":247,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":324,\"fieldWidth\":324,\"searchInnerWidth\":324}]"
+    },
+    {
+      "name": "detection-records@390: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "detection-records@390: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "detection-records@390: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"controlWidth\":324,\"searchInnerWidth\":324}]"
+    },
+    {
+      "name": "detection-records@414: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "detection-records@414: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":348}]}"
+    },
+    {
+      "name": "detection-records@414: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"fieldDirection\":\"column\",\"labelTop\":220,\"controlTop\":247,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":348,\"fieldWidth\":348,\"searchInnerWidth\":348}]"
+    },
+    {
+      "name": "detection-records@414: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "detection-records@414: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "detection-records@414: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"controlWidth\":348,\"searchInnerWidth\":348}]"
+    },
+    {
+      "name": "detection-records@430: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "detection-records@430: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":364}]}"
+    },
+    {
+      "name": "detection-records@430: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"fieldDirection\":\"column\",\"labelTop\":220,\"controlTop\":247,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":364,\"fieldWidth\":364,\"searchInnerWidth\":364}]"
+    },
+    {
+      "name": "detection-records@430: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "detection-records@430: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "detection-records@430: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"controlWidth\":364,\"searchInnerWidth\":364}]"
+    },
+    {
+      "name": "detection-records@640: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "detection-records@640: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-detection-records-search\",\"width\":574}]}"
+    },
+    {
+      "name": "detection-records@640: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"fieldDirection\":\"column\",\"labelTop\":220,\"controlTop\":247,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":574,\"fieldWidth\":574,\"searchInnerWidth\":574}]"
+    },
+    {
+      "name": "detection-records@640: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "detection-records@640: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "detection-records@640: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-detection-records-search\",\"controlWidth\":574,\"searchInnerWidth\":574}]"
+    },
+    {
+      "name": "report-center@375: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "report-center@375: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-report-center-search\",\"width\":275},{\"id\":\"rondo-search-report-center-storeName\",\"width\":275}]}"
+    },
+    {
+      "name": "report-center@375: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"fieldDirection\":\"column\",\"labelTop\":267,\"controlTop\":295,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":275,\"fieldWidth\":275,\"searchInnerWidth\":275},{\"id\":\"rondo-search-report-center-storeName\",\"fieldDirection\":\"column\",\"labelTop\":335,\"controlTop\":362,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":275,\"fieldWidth\":275,\"searchInnerWidth\":275},{\"id\":\"rondo-search-report-center-species\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":275},{\"id\":\"rondo-search-report-center-dateFrom\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":275},{\"id\":\"rondo-search-report-center-dateTo\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":275}]"
+    },
+    {
+      "name": "report-center@375: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-storeName\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-species\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateFrom\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateTo\",\"labelHeight\":0}]"
+    },
+    {
+      "name": "report-center@375: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-storeName\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateFrom\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateTo\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "report-center@375: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"controlWidth\":275,\"searchInnerWidth\":275},{\"id\":\"rondo-search-report-center-storeName\",\"controlWidth\":275,\"searchInnerWidth\":275},{\"id\":\"rondo-search-report-center-species\",\"controlWidth\":0,\"searchInnerWidth\":275},{\"id\":\"rondo-search-report-center-dateFrom\",\"controlWidth\":0,\"searchInnerWidth\":275},{\"id\":\"rondo-search-report-center-dateTo\",\"controlWidth\":0,\"searchInnerWidth\":275}]"
+    },
+    {
+      "name": "report-center@390: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "report-center@390: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-report-center-search\",\"width\":290},{\"id\":\"rondo-search-report-center-storeName\",\"width\":290}]}"
+    },
+    {
+      "name": "report-center@390: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"fieldDirection\":\"column\",\"labelTop\":267,\"controlTop\":295,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":290,\"fieldWidth\":290,\"searchInnerWidth\":290},{\"id\":\"rondo-search-report-center-storeName\",\"fieldDirection\":\"column\",\"labelTop\":335,\"controlTop\":362,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":290,\"fieldWidth\":290,\"searchInnerWidth\":290},{\"id\":\"rondo-search-report-center-species\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":290},{\"id\":\"rondo-search-report-center-dateFrom\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":290},{\"id\":\"rondo-search-report-center-dateTo\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":290}]"
+    },
+    {
+      "name": "report-center@390: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-storeName\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-species\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateFrom\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateTo\",\"labelHeight\":0}]"
+    },
+    {
+      "name": "report-center@390: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-storeName\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateFrom\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateTo\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "report-center@390: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"controlWidth\":290,\"searchInnerWidth\":290},{\"id\":\"rondo-search-report-center-storeName\",\"controlWidth\":290,\"searchInnerWidth\":290},{\"id\":\"rondo-search-report-center-species\",\"controlWidth\":0,\"searchInnerWidth\":290},{\"id\":\"rondo-search-report-center-dateFrom\",\"controlWidth\":0,\"searchInnerWidth\":290},{\"id\":\"rondo-search-report-center-dateTo\",\"controlWidth\":0,\"searchInnerWidth\":290}]"
+    },
+    {
+      "name": "report-center@414: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "report-center@414: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-report-center-search\",\"width\":314},{\"id\":\"rondo-search-report-center-storeName\",\"width\":314}]}"
+    },
+    {
+      "name": "report-center@414: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"fieldDirection\":\"column\",\"labelTop\":267,\"controlTop\":295,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":314,\"fieldWidth\":314,\"searchInnerWidth\":314},{\"id\":\"rondo-search-report-center-storeName\",\"fieldDirection\":\"column\",\"labelTop\":335,\"controlTop\":362,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":314,\"fieldWidth\":314,\"searchInnerWidth\":314},{\"id\":\"rondo-search-report-center-species\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":314},{\"id\":\"rondo-search-report-center-dateFrom\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":314},{\"id\":\"rondo-search-report-center-dateTo\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":314}]"
+    },
+    {
+      "name": "report-center@414: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-storeName\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-species\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateFrom\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateTo\",\"labelHeight\":0}]"
+    },
+    {
+      "name": "report-center@414: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-storeName\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateFrom\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateTo\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "report-center@414: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"controlWidth\":314,\"searchInnerWidth\":314},{\"id\":\"rondo-search-report-center-storeName\",\"controlWidth\":314,\"searchInnerWidth\":314},{\"id\":\"rondo-search-report-center-species\",\"controlWidth\":0,\"searchInnerWidth\":314},{\"id\":\"rondo-search-report-center-dateFrom\",\"controlWidth\":0,\"searchInnerWidth\":314},{\"id\":\"rondo-search-report-center-dateTo\",\"controlWidth\":0,\"searchInnerWidth\":314}]"
+    },
+    {
+      "name": "report-center@430: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "report-center@430: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-report-center-search\",\"width\":330},{\"id\":\"rondo-search-report-center-storeName\",\"width\":330}]}"
+    },
+    {
+      "name": "report-center@430: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"fieldDirection\":\"column\",\"labelTop\":267,\"controlTop\":295,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":330,\"fieldWidth\":330,\"searchInnerWidth\":330},{\"id\":\"rondo-search-report-center-storeName\",\"fieldDirection\":\"column\",\"labelTop\":335,\"controlTop\":362,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":330,\"fieldWidth\":330,\"searchInnerWidth\":330},{\"id\":\"rondo-search-report-center-species\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":330},{\"id\":\"rondo-search-report-center-dateFrom\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":330},{\"id\":\"rondo-search-report-center-dateTo\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":330}]"
+    },
+    {
+      "name": "report-center@430: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-storeName\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-species\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateFrom\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateTo\",\"labelHeight\":0}]"
+    },
+    {
+      "name": "report-center@430: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-storeName\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateFrom\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateTo\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "report-center@430: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"controlWidth\":330,\"searchInnerWidth\":330},{\"id\":\"rondo-search-report-center-storeName\",\"controlWidth\":330,\"searchInnerWidth\":330},{\"id\":\"rondo-search-report-center-species\",\"controlWidth\":0,\"searchInnerWidth\":330},{\"id\":\"rondo-search-report-center-dateFrom\",\"controlWidth\":0,\"searchInnerWidth\":330},{\"id\":\"rondo-search-report-center-dateTo\",\"controlWidth\":0,\"searchInnerWidth\":330}]"
+    },
+    {
+      "name": "report-center@640: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "report-center@640: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-report-center-search\",\"width\":540},{\"id\":\"rondo-search-report-center-storeName\",\"width\":540}]}"
+    },
+    {
+      "name": "report-center@640: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"fieldDirection\":\"column\",\"labelTop\":227,\"controlTop\":255,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":540,\"fieldWidth\":540,\"searchInnerWidth\":540},{\"id\":\"rondo-search-report-center-storeName\",\"fieldDirection\":\"column\",\"labelTop\":295,\"controlTop\":322,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":540,\"fieldWidth\":540,\"searchInnerWidth\":540},{\"id\":\"rondo-search-report-center-species\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":540},{\"id\":\"rondo-search-report-center-dateFrom\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":540},{\"id\":\"rondo-search-report-center-dateTo\",\"fieldDirection\":\"column\",\"labelTop\":0,\"controlTop\":0,\"labelHeight\":0,\"flexBasis\":\"auto\",\"controlWidth\":0,\"fieldWidth\":0,\"searchInnerWidth\":540}]"
+    },
+    {
+      "name": "report-center@640: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-storeName\",\"labelHeight\":20},{\"id\":\"rondo-search-report-center-species\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateFrom\",\"labelHeight\":0},{\"id\":\"rondo-search-report-center-dateTo\",\"labelHeight\":0}]"
+    },
+    {
+      "name": "report-center@640: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-storeName\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateFrom\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-report-center-dateTo\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "report-center@640: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-report-center-search\",\"controlWidth\":540,\"searchInnerWidth\":540},{\"id\":\"rondo-search-report-center-storeName\",\"controlWidth\":540,\"searchInnerWidth\":540},{\"id\":\"rondo-search-report-center-species\",\"controlWidth\":0,\"searchInnerWidth\":540},{\"id\":\"rondo-search-report-center-dateFrom\",\"controlWidth\":0,\"searchInnerWidth\":540},{\"id\":\"rondo-search-report-center-dateTo\",\"controlWidth\":0,\"searchInnerWidth\":540}]"
+    },
+    {
+      "name": "normal-range-config@375: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "normal-range-config@375: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-normal-range-schemes-template\",\"width\":309},{\"id\":\"rondo-search-normal-range-schemes-name\",\"width\":309}]}"
+    },
+    {
+      "name": "normal-range-config@375: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"fieldDirection\":\"column\",\"labelTop\":162,\"controlTop\":190,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":309,\"fieldWidth\":309,\"searchInnerWidth\":309},{\"id\":\"rondo-search-normal-range-schemes-status\",\"fieldDirection\":\"column\",\"labelTop\":230,\"controlTop\":257,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":309,\"fieldWidth\":309,\"searchInnerWidth\":309},{\"id\":\"rondo-search-normal-range-schemes-template\",\"fieldDirection\":\"column\",\"labelTop\":297,\"controlTop\":325,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":309,\"fieldWidth\":309,\"searchInnerWidth\":309},{\"id\":\"rondo-search-normal-range-schemes-name\",\"fieldDirection\":\"column\",\"labelTop\":365,\"controlTop\":392,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":309,\"fieldWidth\":309,\"searchInnerWidth\":309}]"
+    },
+    {
+      "name": "normal-range-config@375: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-status\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-template\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-name\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "normal-range-config@375: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-template\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-name\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "normal-range-config@375: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"controlWidth\":309,\"searchInnerWidth\":309},{\"id\":\"rondo-search-normal-range-schemes-status\",\"controlWidth\":309,\"searchInnerWidth\":309},{\"id\":\"rondo-search-normal-range-schemes-template\",\"controlWidth\":309,\"searchInnerWidth\":309},{\"id\":\"rondo-search-normal-range-schemes-name\",\"controlWidth\":309,\"searchInnerWidth\":309}]"
+    },
+    {
+      "name": "normal-range-config@390: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "normal-range-config@390: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-normal-range-schemes-template\",\"width\":324},{\"id\":\"rondo-search-normal-range-schemes-name\",\"width\":324}]}"
+    },
+    {
+      "name": "normal-range-config@390: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"fieldDirection\":\"column\",\"labelTop\":162,\"controlTop\":190,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":324,\"fieldWidth\":324,\"searchInnerWidth\":324},{\"id\":\"rondo-search-normal-range-schemes-status\",\"fieldDirection\":\"column\",\"labelTop\":230,\"controlTop\":257,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":324,\"fieldWidth\":324,\"searchInnerWidth\":324},{\"id\":\"rondo-search-normal-range-schemes-template\",\"fieldDirection\":\"column\",\"labelTop\":297,\"controlTop\":325,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":324,\"fieldWidth\":324,\"searchInnerWidth\":324},{\"id\":\"rondo-search-normal-range-schemes-name\",\"fieldDirection\":\"column\",\"labelTop\":365,\"controlTop\":392,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":324,\"fieldWidth\":324,\"searchInnerWidth\":324}]"
+    },
+    {
+      "name": "normal-range-config@390: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-status\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-template\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-name\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "normal-range-config@390: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-template\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-name\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "normal-range-config@390: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"controlWidth\":324,\"searchInnerWidth\":324},{\"id\":\"rondo-search-normal-range-schemes-status\",\"controlWidth\":324,\"searchInnerWidth\":324},{\"id\":\"rondo-search-normal-range-schemes-template\",\"controlWidth\":324,\"searchInnerWidth\":324},{\"id\":\"rondo-search-normal-range-schemes-name\",\"controlWidth\":324,\"searchInnerWidth\":324}]"
+    },
+    {
+      "name": "normal-range-config@414: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "normal-range-config@414: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-normal-range-schemes-template\",\"width\":348},{\"id\":\"rondo-search-normal-range-schemes-name\",\"width\":348}]}"
+    },
+    {
+      "name": "normal-range-config@414: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"fieldDirection\":\"column\",\"labelTop\":162,\"controlTop\":190,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":348,\"fieldWidth\":348,\"searchInnerWidth\":348},{\"id\":\"rondo-search-normal-range-schemes-status\",\"fieldDirection\":\"column\",\"labelTop\":230,\"controlTop\":257,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":348,\"fieldWidth\":348,\"searchInnerWidth\":348},{\"id\":\"rondo-search-normal-range-schemes-template\",\"fieldDirection\":\"column\",\"labelTop\":297,\"controlTop\":325,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":348,\"fieldWidth\":348,\"searchInnerWidth\":348},{\"id\":\"rondo-search-normal-range-schemes-name\",\"fieldDirection\":\"column\",\"labelTop\":365,\"controlTop\":392,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":348,\"fieldWidth\":348,\"searchInnerWidth\":348}]"
+    },
+    {
+      "name": "normal-range-config@414: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-status\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-template\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-name\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "normal-range-config@414: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-template\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-name\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "normal-range-config@414: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"controlWidth\":348,\"searchInnerWidth\":348},{\"id\":\"rondo-search-normal-range-schemes-status\",\"controlWidth\":348,\"searchInnerWidth\":348},{\"id\":\"rondo-search-normal-range-schemes-template\",\"controlWidth\":348,\"searchInnerWidth\":348},{\"id\":\"rondo-search-normal-range-schemes-name\",\"controlWidth\":348,\"searchInnerWidth\":348}]"
+    },
+    {
+      "name": "normal-range-config@430: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "normal-range-config@430: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-normal-range-schemes-template\",\"width\":364},{\"id\":\"rondo-search-normal-range-schemes-name\",\"width\":364}]}"
+    },
+    {
+      "name": "normal-range-config@430: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"fieldDirection\":\"column\",\"labelTop\":162,\"controlTop\":190,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":364,\"fieldWidth\":364,\"searchInnerWidth\":364},{\"id\":\"rondo-search-normal-range-schemes-status\",\"fieldDirection\":\"column\",\"labelTop\":230,\"controlTop\":257,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":364,\"fieldWidth\":364,\"searchInnerWidth\":364},{\"id\":\"rondo-search-normal-range-schemes-template\",\"fieldDirection\":\"column\",\"labelTop\":297,\"controlTop\":325,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":364,\"fieldWidth\":364,\"searchInnerWidth\":364},{\"id\":\"rondo-search-normal-range-schemes-name\",\"fieldDirection\":\"column\",\"labelTop\":365,\"controlTop\":392,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":364,\"fieldWidth\":364,\"searchInnerWidth\":364}]"
+    },
+    {
+      "name": "normal-range-config@430: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-status\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-template\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-name\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "normal-range-config@430: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-template\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-name\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "normal-range-config@430: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"controlWidth\":364,\"searchInnerWidth\":364},{\"id\":\"rondo-search-normal-range-schemes-status\",\"controlWidth\":364,\"searchInnerWidth\":364},{\"id\":\"rondo-search-normal-range-schemes-template\",\"controlWidth\":364,\"searchInnerWidth\":364},{\"id\":\"rondo-search-normal-range-schemes-name\",\"controlWidth\":364,\"searchInnerWidth\":364}]"
+    },
+    {
+      "name": "normal-range-config@640: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "normal-range-config@640: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-normal-range-schemes-template\",\"width\":574},{\"id\":\"rondo-search-normal-range-schemes-name\",\"width\":574}]}"
+    },
+    {
+      "name": "normal-range-config@640: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"fieldDirection\":\"column\",\"labelTop\":162,\"controlTop\":190,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":574,\"fieldWidth\":574,\"searchInnerWidth\":574},{\"id\":\"rondo-search-normal-range-schemes-status\",\"fieldDirection\":\"column\",\"labelTop\":230,\"controlTop\":257,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":574,\"fieldWidth\":574,\"searchInnerWidth\":574},{\"id\":\"rondo-search-normal-range-schemes-template\",\"fieldDirection\":\"column\",\"labelTop\":297,\"controlTop\":325,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":574,\"fieldWidth\":574,\"searchInnerWidth\":574},{\"id\":\"rondo-search-normal-range-schemes-name\",\"fieldDirection\":\"column\",\"labelTop\":365,\"controlTop\":392,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":574,\"fieldWidth\":574,\"searchInnerWidth\":574}]"
+    },
+    {
+      "name": "normal-range-config@640: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-status\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-template\",\"labelHeight\":20},{\"id\":\"rondo-search-normal-range-schemes-name\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "normal-range-config@640: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-template\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-normal-range-schemes-name\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "normal-range-config@640: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-normal-range-schemes-species\",\"controlWidth\":574,\"searchInnerWidth\":574},{\"id\":\"rondo-search-normal-range-schemes-status\",\"controlWidth\":574,\"searchInnerWidth\":574},{\"id\":\"rondo-search-normal-range-schemes-template\",\"controlWidth\":574,\"searchInnerWidth\":574},{\"id\":\"rondo-search-normal-range-schemes-name\",\"controlWidth\":574,\"searchInnerWidth\":574}]"
+    },
+    {
+      "name": "analysis-rules@375: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "analysis-rules@375: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-analysis-rules-list-query\",\"width\":259}]}"
+    },
+    {
+      "name": "analysis-rules@375: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"fieldDirection\":\"column\",\"labelTop\":307,\"controlTop\":335,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":259,\"fieldWidth\":259,\"searchInnerWidth\":259},{\"id\":\"rondo-search-analysis-rules-list-status\",\"fieldDirection\":\"column\",\"labelTop\":375,\"controlTop\":402,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":259,\"fieldWidth\":259,\"searchInnerWidth\":259},{\"id\":\"rondo-search-analysis-rules-list-species\",\"fieldDirection\":\"column\",\"labelTop\":442,\"controlTop\":470,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":259,\"fieldWidth\":259,\"searchInnerWidth\":259}]"
+    },
+    {
+      "name": "analysis-rules@375: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-status\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-species\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "analysis-rules@375: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-species\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "analysis-rules@375: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"controlWidth\":259,\"searchInnerWidth\":259},{\"id\":\"rondo-search-analysis-rules-list-status\",\"controlWidth\":259,\"searchInnerWidth\":259},{\"id\":\"rondo-search-analysis-rules-list-species\",\"controlWidth\":259,\"searchInnerWidth\":259}]"
+    },
+    {
+      "name": "analysis-rules@390: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "analysis-rules@390: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-analysis-rules-list-query\",\"width\":274}]}"
+    },
+    {
+      "name": "analysis-rules@390: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"fieldDirection\":\"column\",\"labelTop\":307,\"controlTop\":335,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":274,\"fieldWidth\":274,\"searchInnerWidth\":274},{\"id\":\"rondo-search-analysis-rules-list-status\",\"fieldDirection\":\"column\",\"labelTop\":375,\"controlTop\":402,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":274,\"fieldWidth\":274,\"searchInnerWidth\":274},{\"id\":\"rondo-search-analysis-rules-list-species\",\"fieldDirection\":\"column\",\"labelTop\":442,\"controlTop\":470,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":274,\"fieldWidth\":274,\"searchInnerWidth\":274}]"
+    },
+    {
+      "name": "analysis-rules@390: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-status\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-species\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "analysis-rules@390: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-species\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "analysis-rules@390: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"controlWidth\":274,\"searchInnerWidth\":274},{\"id\":\"rondo-search-analysis-rules-list-status\",\"controlWidth\":274,\"searchInnerWidth\":274},{\"id\":\"rondo-search-analysis-rules-list-species\",\"controlWidth\":274,\"searchInnerWidth\":274}]"
+    },
+    {
+      "name": "analysis-rules@414: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "analysis-rules@414: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-analysis-rules-list-query\",\"width\":298}]}"
+    },
+    {
+      "name": "analysis-rules@414: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"fieldDirection\":\"column\",\"labelTop\":288,\"controlTop\":315,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":298,\"fieldWidth\":298,\"searchInnerWidth\":298},{\"id\":\"rondo-search-analysis-rules-list-status\",\"fieldDirection\":\"column\",\"labelTop\":355,\"controlTop\":383,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":298,\"fieldWidth\":298,\"searchInnerWidth\":298},{\"id\":\"rondo-search-analysis-rules-list-species\",\"fieldDirection\":\"column\",\"labelTop\":423,\"controlTop\":450,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":298,\"fieldWidth\":298,\"searchInnerWidth\":298}]"
+    },
+    {
+      "name": "analysis-rules@414: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-status\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-species\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "analysis-rules@414: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-species\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "analysis-rules@414: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"controlWidth\":298,\"searchInnerWidth\":298},{\"id\":\"rondo-search-analysis-rules-list-status\",\"controlWidth\":298,\"searchInnerWidth\":298},{\"id\":\"rondo-search-analysis-rules-list-species\",\"controlWidth\":298,\"searchInnerWidth\":298}]"
+    },
+    {
+      "name": "analysis-rules@430: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "analysis-rules@430: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-analysis-rules-list-query\",\"width\":314}]}"
+    },
+    {
+      "name": "analysis-rules@430: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"fieldDirection\":\"column\",\"labelTop\":288,\"controlTop\":315,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":314,\"fieldWidth\":314,\"searchInnerWidth\":314},{\"id\":\"rondo-search-analysis-rules-list-status\",\"fieldDirection\":\"column\",\"labelTop\":355,\"controlTop\":383,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":314,\"fieldWidth\":314,\"searchInnerWidth\":314},{\"id\":\"rondo-search-analysis-rules-list-species\",\"fieldDirection\":\"column\",\"labelTop\":423,\"controlTop\":450,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":314,\"fieldWidth\":314,\"searchInnerWidth\":314}]"
+    },
+    {
+      "name": "analysis-rules@430: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-status\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-species\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "analysis-rules@430: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-species\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "analysis-rules@430: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"controlWidth\":314,\"searchInnerWidth\":314},{\"id\":\"rondo-search-analysis-rules-list-status\",\"controlWidth\":314,\"searchInnerWidth\":314},{\"id\":\"rondo-search-analysis-rules-list-species\",\"controlWidth\":314,\"searchInnerWidth\":314}]"
+    },
+    {
+      "name": "analysis-rules@640: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "analysis-rules@640: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-analysis-rules-list-query\",\"width\":524}]}"
+    },
+    {
+      "name": "analysis-rules@640: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"fieldDirection\":\"column\",\"labelTop\":268,\"controlTop\":296,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":524,\"fieldWidth\":524,\"searchInnerWidth\":524},{\"id\":\"rondo-search-analysis-rules-list-status\",\"fieldDirection\":\"column\",\"labelTop\":336,\"controlTop\":363,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":524,\"fieldWidth\":524,\"searchInnerWidth\":524},{\"id\":\"rondo-search-analysis-rules-list-species\",\"fieldDirection\":\"column\",\"labelTop\":403,\"controlTop\":431,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":524,\"fieldWidth\":524,\"searchInnerWidth\":524}]"
+    },
+    {
+      "name": "analysis-rules@640: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-status\",\"labelHeight\":20},{\"id\":\"rondo-search-analysis-rules-list-species\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "analysis-rules@640: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-status\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-analysis-rules-list-species\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "analysis-rules@640: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-analysis-rules-list-query\",\"controlWidth\":524,\"searchInnerWidth\":524},{\"id\":\"rondo-search-analysis-rules-list-status\",\"controlWidth\":524,\"searchInnerWidth\":524},{\"id\":\"rondo-search-analysis-rules-list-species\",\"controlWidth\":524,\"searchInnerWidth\":524}]"
+    },
+    {
+      "name": "user-pets@375: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "user-pets@375: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":309}]}"
+    },
+    {
+      "name": "user-pets@375: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"fieldDirection\":\"column\",\"labelTop\":246,\"controlTop\":273,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":309,\"fieldWidth\":309,\"searchInnerWidth\":309},{\"id\":\"rondo-search-user-pets-users-petCount\",\"fieldDirection\":\"column\",\"labelTop\":313,\"controlTop\":341,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":309,\"fieldWidth\":309,\"searchInnerWidth\":309}]"
+    },
+    {
+      "name": "user-pets@375: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"labelHeight\":20},{\"id\":\"rondo-search-user-pets-users-petCount\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "user-pets@375: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-user-pets-users-petCount\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "user-pets@375: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"controlWidth\":309,\"searchInnerWidth\":309},{\"id\":\"rondo-search-user-pets-users-petCount\",\"controlWidth\":309,\"searchInnerWidth\":309}]"
+    },
+    {
+      "name": "user-pets@390: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "user-pets@390: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":324}]}"
+    },
+    {
+      "name": "user-pets@390: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"fieldDirection\":\"column\",\"labelTop\":246,\"controlTop\":273,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":324,\"fieldWidth\":324,\"searchInnerWidth\":324},{\"id\":\"rondo-search-user-pets-users-petCount\",\"fieldDirection\":\"column\",\"labelTop\":313,\"controlTop\":341,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":324,\"fieldWidth\":324,\"searchInnerWidth\":324}]"
+    },
+    {
+      "name": "user-pets@390: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"labelHeight\":20},{\"id\":\"rondo-search-user-pets-users-petCount\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "user-pets@390: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-user-pets-users-petCount\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "user-pets@390: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"controlWidth\":324,\"searchInnerWidth\":324},{\"id\":\"rondo-search-user-pets-users-petCount\",\"controlWidth\":324,\"searchInnerWidth\":324}]"
+    },
+    {
+      "name": "user-pets@414: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "user-pets@414: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":348}]}"
+    },
+    {
+      "name": "user-pets@414: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"fieldDirection\":\"column\",\"labelTop\":246,\"controlTop\":273,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":348,\"fieldWidth\":348,\"searchInnerWidth\":348},{\"id\":\"rondo-search-user-pets-users-petCount\",\"fieldDirection\":\"column\",\"labelTop\":313,\"controlTop\":341,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":348,\"fieldWidth\":348,\"searchInnerWidth\":348}]"
+    },
+    {
+      "name": "user-pets@414: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"labelHeight\":20},{\"id\":\"rondo-search-user-pets-users-petCount\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "user-pets@414: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-user-pets-users-petCount\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "user-pets@414: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"controlWidth\":348,\"searchInnerWidth\":348},{\"id\":\"rondo-search-user-pets-users-petCount\",\"controlWidth\":348,\"searchInnerWidth\":348}]"
+    },
+    {
+      "name": "user-pets@430: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "user-pets@430: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":364}]}"
+    },
+    {
+      "name": "user-pets@430: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"fieldDirection\":\"column\",\"labelTop\":246,\"controlTop\":273,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":364,\"fieldWidth\":364,\"searchInnerWidth\":364},{\"id\":\"rondo-search-user-pets-users-petCount\",\"fieldDirection\":\"column\",\"labelTop\":313,\"controlTop\":341,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":364,\"fieldWidth\":364,\"searchInnerWidth\":364}]"
+    },
+    {
+      "name": "user-pets@430: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"labelHeight\":20},{\"id\":\"rondo-search-user-pets-users-petCount\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "user-pets@430: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-user-pets-users-petCount\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "user-pets@430: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"controlWidth\":364,\"searchInnerWidth\":364},{\"id\":\"rondo-search-user-pets-users-petCount\",\"controlWidth\":364,\"searchInnerWidth\":364}]"
+    },
+    {
+      "name": "user-pets@640: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "user-pets@640: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-user-pets-users-search\",\"width\":574}]}"
+    },
+    {
+      "name": "user-pets@640: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"fieldDirection\":\"column\",\"labelTop\":246,\"controlTop\":273,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":574,\"fieldWidth\":574,\"searchInnerWidth\":574},{\"id\":\"rondo-search-user-pets-users-petCount\",\"fieldDirection\":\"column\",\"labelTop\":313,\"controlTop\":341,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":574,\"fieldWidth\":574,\"searchInnerWidth\":574}]"
+    },
+    {
+      "name": "user-pets@640: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"labelHeight\":20},{\"id\":\"rondo-search-user-pets-users-petCount\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "user-pets@640: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"flexBasis\":\"auto\"},{\"id\":\"rondo-search-user-pets-users-petCount\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "user-pets@640: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-user-pets-users-search\",\"controlWidth\":574,\"searchInnerWidth\":574},{\"id\":\"rondo-search-user-pets-users-petCount\",\"controlWidth\":574,\"searchInnerWidth\":574}]"
+    },
+    {
+      "name": "dictionary-management@375: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "dictionary-management@375: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":309}]}"
+    },
+    {
+      "name": "dictionary-management@375: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"fieldDirection\":\"column\",\"labelTop\":278,\"controlTop\":306,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":309,\"fieldWidth\":309,\"searchInnerWidth\":309}]"
+    },
+    {
+      "name": "dictionary-management@375: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "dictionary-management@375: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "dictionary-management@375: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"controlWidth\":309,\"searchInnerWidth\":309}]"
+    },
+    {
+      "name": "dictionary-management@390: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "dictionary-management@390: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":324}]}"
+    },
+    {
+      "name": "dictionary-management@390: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"fieldDirection\":\"column\",\"labelTop\":278,\"controlTop\":306,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":324,\"fieldWidth\":324,\"searchInnerWidth\":324}]"
+    },
+    {
+      "name": "dictionary-management@390: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "dictionary-management@390: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "dictionary-management@390: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"controlWidth\":324,\"searchInnerWidth\":324}]"
+    },
+    {
+      "name": "dictionary-management@414: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "dictionary-management@414: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":348}]}"
+    },
+    {
+      "name": "dictionary-management@414: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"fieldDirection\":\"column\",\"labelTop\":278,\"controlTop\":306,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":348,\"fieldWidth\":348,\"searchInnerWidth\":348}]"
+    },
+    {
+      "name": "dictionary-management@414: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "dictionary-management@414: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "dictionary-management@414: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"controlWidth\":348,\"searchInnerWidth\":348}]"
+    },
+    {
+      "name": "dictionary-management@430: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "dictionary-management@430: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":364}]}"
+    },
+    {
+      "name": "dictionary-management@430: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"fieldDirection\":\"column\",\"labelTop\":278,\"controlTop\":306,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":364,\"fieldWidth\":364,\"searchInnerWidth\":364}]"
+    },
+    {
+      "name": "dictionary-management@430: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "dictionary-management@430: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "dictionary-management@430: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"controlWidth\":364,\"searchInnerWidth\":364}]"
+    },
+    {
+      "name": "dictionary-management@640: 搜索单列",
+      "ok": true,
+      "detail": "gridCols=1"
+    },
+    {
+      "name": "dictionary-management@640: 搜索字段可读宽度",
+      "ok": true,
+      "detail": "{\"minReadable\":100,\"narrow\":[],\"all\":[{\"id\":\"rondo-search-dictionary-breeds-q\",\"width\":574}]}"
+    },
+    {
+      "name": "dictionary-management@640: 标签上置",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"fieldDirection\":\"column\",\"labelTop\":259,\"controlTop\":286,\"labelHeight\":20,\"flexBasis\":\"auto\",\"controlWidth\":574,\"fieldWidth\":574,\"searchInnerWidth\":574}]"
+    },
+    {
+      "name": "dictionary-management@640: 标签自然行高",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"labelHeight\":20}]"
+    },
+    {
+      "name": "dictionary-management@640: 标签无 80px flex-basis",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"flexBasis\":\"auto\"}]"
+    },
+    {
+      "name": "dictionary-management@640: 控件填满搜索区",
+      "ok": true,
+      "detail": "[{\"id\":\"rondo-search-dictionary-breeds-q\",\"controlWidth\":574,\"searchInnerWidth\":574}]"
+    },
+    {
+      "name": "dict-modal dm-modal-key: 单行高度 32px",
+      "ok": true,
+      "detail": "h=32"
+    },
+    {
+      "name": "dict-modal dm-modal-key: 标准宽度",
+      "ok": true,
+      "detail": "w=440"
+    },
+    {
+      "name": "dict-modal dm-modal-label: 单行高度 32px",
+      "ok": true,
+      "detail": "h=32"
+    },
+    {
+      "name": "dict-modal dm-modal-label: 标准宽度",
+      "ok": true,
+      "detail": "w=440"
+    },
+    {
+      "name": "dict-modal dm-modal-value: 单行高度 32px",
+      "ok": true,
+      "detail": "h=32"
+    },
+    {
+      "name": "dict-modal dm-modal-value: 标准宽度",
+      "ok": true,
+      "detail": "w=440"
+    },
+    {
+      "name": "dict-modal dm-modal-parent: 单行高度 32px",
+      "ok": true,
+      "detail": "h=32"
+    },
+    {
+      "name": "dict-modal dm-modal-parent: 标准宽度",
+      "ok": true,
+      "detail": "w=440"
+    },
+    {
+      "name": "dict-modal dm-modal-sort: 单行高度 32px",
+      "ok": true,
+      "detail": "h=32"
+    },
+    {
+      "name": "dict-modal dm-modal-sort: 标准宽度",
+      "ok": true,
+      "detail": "w=440"
+    },
+    {
+      "name": "tablet@1024: 搜索保持多列",
+      "ok": true,
+      "detail": "cols=2, min=2"
+    },
+    {
+      "name": "tablet@1024: 桌面标签 80px 宽",
+      "ok": true,
+      "detail": "{\"fieldDirection\":\"row\",\"labelFlexBasis\":\"80px\"}"
+    },
+    {
+      "name": "desktop@1440: 搜索保持多列",
+      "ok": true,
+      "detail": "cols=3, min=3"
+    },
+    {
+      "name": "desktop@1440: 桌面标签 80px 宽",
+      "ok": true,
+      "detail": "{\"fieldDirection\":\"row\",\"labelFlexBasis\":\"80px\"}"
+    },
+    {
+      "name": "report preview rw-mini-app 仍在",
+      "ok": true,
+      "detail": "{\"exists\":true,\"display\":\"block\",\"htmlLen\":8607,\"antInputCount\":0}"
+    },
+    {
+      "name": "rw-mini-app 内无 ant-input 污染",
+      "ok": true,
+      "detail": "0"
+    }
+  ],
+  "failed": [],
+  "screenshots": [
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-detection-records-390.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-detection-records-640.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-report-center-390.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-report-center-640.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-normal-range-config-390.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-normal-range-config-640.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-analysis-rules-390.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-analysis-rules-640.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-user-pets-390.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-user-pets-640.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-dictionary-management-390.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-dictionary-management-640.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/modal-dict-add-key-1440.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-detection-records-1024.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/admin-page-audit-20260906/remaining-css/screenshots/search-detection-records-1440.png"
+  ]
+}

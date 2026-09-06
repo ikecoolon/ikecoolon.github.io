@@ -1,0 +1,55 @@
+{
+  "base": "http://127.0.0.1:8765/docs/.vuepress/public/prototype/admin/index.html",
+  "at": "2026-09-05T02:32:48.907Z",
+  "passed": 6,
+  "failed": 0,
+  "cases": [
+    {
+      "name": "fixture: 至少一个启用谱系",
+      "ok": true,
+      "detail": "lineage-actino-low-cat"
+    },
+    {
+      "name": "编辑→测试→返回保留阈值",
+      "ok": true,
+      "detail": "7.77"
+    },
+    {
+      "name": "编辑→测试→返回保留分析",
+      "ok": true,
+      "detail": "会话验收分析-7.77"
+    },
+    {
+      "name": "未保存候选未写入启用规则",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "name": "不同谱系会话隔离",
+      "ok": true,
+      "detail": "会话验收分析-7.77"
+    },
+    {
+      "name": "校验失败保留表单输入",
+      "ok": true,
+      "detail": "验收失败保留"
+    }
+  ],
+  "console": [
+    {
+      "type": "warning",
+      "text": "cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation"
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (File not found)"
+    }
+  ],
+  "pageerrors": [],
+  "screenshots": [
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/rules/edit-1280.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/rules/test-1280.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/rules/edit-390.png",
+    "/Users/zhaoyanlong/Documents/ikecoolon.github.io/.impeccable/review/pet-eden-admin-20260905/rules/test-390.png"
+  ]
+}

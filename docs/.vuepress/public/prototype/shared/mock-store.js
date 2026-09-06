@@ -77,6 +77,27 @@
   var memoryState = null;
   var localStorageAvailable = detectLocalStorage();
   var frozenNow = null;
+  var DEFAULT_ACTOR_FIXTURE = { actorId: 'admin-demo', actor: '管理员', roles: ['editor', 'reviewer'] };
+  var ACTOR_PROFILE_MAP = {
+    default: { actorId: 'admin-demo', actor: '后台管理员（编制+审核）', roles: ['editor', 'reviewer'] },
+    editor: { actorId: 'admin-editor', actor: '编制员', roles: ['editor'] },
+    reviewer: { actorId: 'admin-reviewer', actor: '审核员', roles: ['reviewer'] },
+    dual: { actorId: 'admin-dual', actor: '双权限账号', roles: ['editor', 'reviewer'] },
+    readonly: { actorId: 'admin-readonly', actor: '只读账号', roles: ['readonly'], readOnly: true }
+  };
+  var actorFixture = clone(DEFAULT_ACTOR_FIXTURE);
+  var ACTION_PERMISSIONS = {
+    submitReport: ['editor'],
+    withdrawReport: ['editor'],
+    rejectReport: ['reviewer'],
+    publishReport: ['reviewer'],
+    voidReport: ['reviewer'],
+    registerTest: ['editor'],
+    savePhylumUnitProducts: ['editor', 'reviewer'],
+    saveReportAssessment: ['editor', 'reviewer'],
+    savePhylumUnitDraft: ['editor', 'reviewer'],
+    saveProfessionalCatalog: ['editor']
+  };
 
   function detectLocalStorage() {
     try {
@@ -588,6 +609,126 @@
     return options || {};
   }
 
+  function setActorFixture(profile) {
+    if (!profile) {
+      actorFixture = clone(DEFAULT_ACTOR_FIXTURE);
+      return clone(actorFixture);
+    }
+    if (typeof profile === 'string') {
+      var mapped = ACTOR_PROFILE_MAP[profile];
+      if (!mapped) throw new Error('unknown actor fixture: ' + profile);
+      profile = mapped;
+    }
+    actorFixture = Object.assign(clone(DEFAULT_ACTOR_FIXTURE), profile);
+    if (profile.roles) {
+      actorFixture.roles = Array.isArray(profile.roles) ? profile.roles.slice() : profile.roles;
+    }
+    if (profile.readOnly) actorFixture.roles = ['readonly'];
+    return clone(actorFixture);
+  }
+
+  function resolvePermissionContext(options) {
+    options = normalizeActorOptions(options);
+    if (options.permissionProfile) {
+      return {
+        actorId: options.permissionProfile.actorId || options.actorId || actorFixture.actorId,
+        actor: options.permissionProfile.actor || options.actor || actorFixture.actor,
+        roles: (options.permissionProfile.roles || options.roles || actorFixture.roles || []).slice()
+      };
+    }
+    return {
+      actorId: options.actorId || actorFixture.actorId,
+      actor: options.actor || actorFixture.actor,
+      roles: (options.roles || actorFixture.roles || []).slice()
+    };
+  }
+
+  function hasRole(context, role) {
+    return (context.roles || []).indexOf(role) >= 0;
+  }
+
+  function assertActionPermission(action, options, report) {
+    var required = ACTION_PERMISSIONS[action];
+    var ctx = resolvePermissionContext(options);
+    if (!required || !required.length) return ctx;
+    var roles = ctx.roles || [];
+    if (roles.indexOf('readonly') >= 0) {
+      throw new Error('当前账号无权限执行：' + action);
+    }
+    for (var i = 0; i < required.length; i += 1) {
+      if (roles.indexOf(required[i]) >= 0) {
+        if (action === 'withdrawReport' && report) assertWithdrawSubmitter(report, ctx);
+        return ctx;
+      }
+    }
+    throw new Error('当前账号无权限执行：' + action);
+  }
+
+  function assertWithdrawSubmitter(report, ctx) {
+    var submittedBy = report.submittedByActorId;
+    if (!submittedBy) return;
+    if (!ctx.actorId) throw new Error('仅原提交人可撤回报告');
+    if (ctx.actorId === submittedBy) return;
+    throw new Error('仅原提交人可撤回报告');
+  }
+
+  function isPendingReviewLikeReport(report) {
+    if (!report) return false;
+    if (report.status === 'pending_review') return true;
+    return report.status === 'published' && getCorrectionDraftStageFromReport(report) === 'pending_review';
+  }
+
+  function validateAssessmentParams(params) {
+    params = params || {};
+    var errors = [];
+    if (params.healthScore != null && params.healthScore !== '') {
+      var n = Number(params.healthScore);
+      if (!isFinite(n) || n < 0 || n > 100) errors.push('综合分须为 0–100');
+    }
+    if (params.healthLevel && HEALTH_LEVELS.indexOf(params.healthLevel) < 0) {
+      errors.push('等级须为 A–E');
+    }
+    if (errors.length) throw new Error(errors.join('；'));
+  }
+
+  function assertProfessionalEditPermission(report, ctx) {
+    assertResultsEditable(report);
+    if (isPendingReviewLikeReport(report)) {
+      if (!hasRole(ctx, 'reviewer')) {
+        throw new Error('待审核报告仅审核人员可修订专业内容');
+      }
+      return;
+    }
+    if (!hasRole(ctx, 'editor')) {
+      throw new Error('当前账号无权限编辑专业内容');
+    }
+  }
+
+  function assertProductConfigurable(report) {
+    if (!report) throw new Error('report not found');
+    if (report.status === 'voided') throw new Error('已作废报告不可配置商品');
+  }
+
+  function getPermissionProfile() {
+    return {
+      actorId: actorFixture.actorId,
+      actor: actorFixture.actor,
+      roles: (actorFixture.roles || []).slice()
+    };
+  }
+
+  function assertCatalogEditPermission() {
+    var profile = getPermissionProfile();
+    var roles = profile.roles || [];
+    if (roles.indexOf('readonly') >= 0) {
+      throw new Error('当前账号无权限编辑专业配置');
+    }
+    if (roles.indexOf('editor') >= 0) {
+      return profile;
+    }
+    throw new Error('当前账号无权限编辑专业配置');
+  }
+
   function migrateLegacyAnalysisRules(state) {
     var rules = state.analysisRuleCatalog || [];
     var activeByLineage = {};
@@ -1049,6 +1190,8 @@
     var actor = options.actor || '系统';
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
+    var ctx = assertActionPermission('savePhylumUnitDraft', options, report);
+    assertProfessionalEditPermission(report, ctx);
     ensurePhylumUnits(state, report);
     var results = getDecoratedCurrentResults(state, report);
     var rules = listActiveRules(state);
@@ -1116,10 +1259,9 @@
     return run;
   }
 
-  function savePhylumUnitDraftInternal(state, reportId, phylumKey, patch) {
+  function applyPhylumUnitDraftWrite(state, reportId, phylumKey, patch) {
+    patch = patch || {};
     var report = findReport(state, reportId);
-    if (!report) throw new Error('report not found: ' + reportId);
-    assertResultsEditable(report);
     var unit = findPhylumUnit(state, reportId, phylumKey);
     if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
     if (patch.analysis != null) unit.analysisDraft = patch.analysis;
@@ -1132,11 +1274,21 @@
     return unit;
   }
 
+  function savePhylumUnitDraftInternal(state, reportId, phylumKey, patch) {
+    patch = patch || {};
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    var ctx = assertActionPermission('savePhylumUnitDraft', patch, report);
+    assertProfessionalEditPermission(report, ctx);
+    return applyPhylumUnitDraftWrite(state, reportId, phylumKey, patch);
+  }
+
   function confirmPhylumUnitInternal(state, reportId, phylumKey, options) {
     options = normalizeActorOptions(options);
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
-    assertResultsEditable(report);
+    var ctx = assertActionPermission('savePhylumUnitDraft', options, report);
+    assertProfessionalEditPermission(report, ctx);
     var unit = findPhylumUnit(state, reportId, phylumKey);
     if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
     unit.confirmStatus = 'confirmed';
@@ -1153,7 +1305,8 @@
     params = params || {};
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
-    assertResultsEditable(report);
+    var ctx = assertActionPermission('savePhylumUnitDraft', params, report);
+    assertProfessionalEditPermission(report, ctx);
     var unit = findPhylumUnit(state, reportId, phylumKey);
     if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
     var hit = (unit.hits || []).find(function (h) { return h.id === hitId; });
@@ -1178,7 +1331,8 @@
     params = params || {};
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
-    assertResultsEditable(report);
+    assertActionPermission('savePhylumUnitProducts', params, report);
+    assertProductConfigurable(report);
     var unit = findPhylumUnit(state, reportId, phylumKey);
     if (!unit) throw new Error('phylum unit not found: ' + phylumKey);
     var primary = params.primaryProductId || null;
@@ -1375,6 +1529,7 @@
     options = normalizeActorOptions(options);
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
+    var ctx = assertActionPermission('submitReport', options, report);
     var stage = getCorrectionDraftStageFromReport(report);
     var ok = report.status === 'incomplete' || (report.status === 'published' && stage === 'incomplete');
     if (!ok) throw new Error('当前状态不可提交审核');
@@ -1386,9 +1541,11 @@
       setReportStatus(report, 'pending_review');
       if (ver) ver.status = 'pending_review';
     }
+    report.submittedByActorId = ctx.actorId;
+    report.submittedBy = options.actor || ctx.actor || '审核员';
     report.rejectReason = null;
     report.updatedAt = nowIso();
-    appendOperationRecord(state, { type: 'submit', reportId: reportId, actor: options.actor || '审核员' });
+    appendOperationRecord(state, { type: 'submit', reportId: reportId, actor: report.submittedBy, actorId: ctx.actorId });
     syncReportDerived(state, report);
     return report;
   }
@@ -1397,6 +1554,7 @@
     options = normalizeActorOptions(options);
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
+    var ctx = assertActionPermission('withdrawReport', options, report);
     var stage = getCorrectionDraftStageFromReport(report);
     var ok = report.status === 'pending_review' || (report.status === 'published' && stage === 'pending_review');
     if (!ok) throw new Error('当前状态不可撤回');
@@ -1408,7 +1566,7 @@
       if (ver) ver.status = 'draft';
     }
     report.updatedAt = nowIso();
-    appendOperationRecord(state, { type: 'withdraw', reportId: reportId, actor: options.actor || '审核员' });
+    appendOperationRecord(state, { type: 'withdraw', reportId: reportId, actor: options.actor || ctx.actor || '审核员', actorId: ctx.actorId });
     syncReportDerived(state, report);
     return report;
   }
@@ -1417,6 +1575,7 @@
     options = normalizeActorOptions(options);
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
+    assertActionPermission('rejectReport', options, report);
     var stage = getCorrectionDraftStageFromReport(report);
     var ok = report.status === 'pending_review' || (report.status === 'published' && stage === 'pending_review');
     if (!ok) throw new Error('当前状态不可退回完善');
@@ -1438,9 +1597,10 @@
 
   function publishReportInternal(state, reportId, options) {
     options = normalizeActorOptions(options);
-    var actor = options.actor || '审核员';
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
+    assertActionPermission('publishReport', options, report);
+    var actor = options.actor || resolvePermissionContext(options).actor || '审核员';
     var stage = getCorrectionDraftStageFromReport(report);
     var ok = report.status === 'pending_review' || (report.status === 'published' && stage === 'pending_review');
     if (!ok) throw new Error('当前状态不可发布');
@@ -1498,9 +1658,11 @@
     return report;
   }
 
-  function voidReportInternal(state, reportId, reason) {
+  function voidReportInternal(state, reportId, reason, options) {
+    options = normalizeActorOptions(options);
     var report = findReport(state, reportId);
     if (!report) throw new Error('report not found: ' + reportId);
+    var ctx = assertActionPermission('voidReport', options, report);
     if (report.status === 'voided') return report;
     setReportStatus(report, 'voided');
     report.voidedAt = nowIso();
@@ -1513,7 +1675,7 @@
       tr.updatedAt = nowIso();
     }
     appendOperationRecord(state, {
-      type: 'void', reportId: report.id, reason: report.voidReason, actor: '运营专员'
+      type: 'void', reportId: report.id, reason: report.voidReason, actor: options.actor || ctx.actor || '运营专员', actorId: ctx.actorId
     });
     syncReportDerived(state, report);
     return report;
@@ -1651,7 +1813,8 @@
     params = params || {};
     var report = findReport(state, params.reportId);
     if (!report) throw new Error('report not found: ' + params.reportId);
-    assertResultsEditable(report);
+    var ctx = assertActionPermission('savePhylumUnitDraft', params, report);
+    assertProfessionalEditPermission(report, ctx);
     var original = (state.indicators || []).find(function (i) { return i.id === params.resultId; });
     if (!original || original.reportId !== report.id) throw new Error('result not found');
     if (!params.reason || !String(params.reason).trim()) throw new Error('修改有效值须填写原因');
@@ -1686,7 +1849,8 @@
     params = params || {};
     var report = findReport(state, params.reportId);
     if (!report) throw new Error('report not found: ' + params.reportId);
-    assertResultsEditable(report);
+    var ctx = assertActionPermission('savePhylumUnitDraft', params, report);
+    assertProfessionalEditPermission(report, ctx);
     if (!params.key) throw new Error('请选择补录指标');
     if (!params.reason || !String(params.reason).trim()) throw new Error('补录须填写原因');
     var exists = currentResultsOf(state, report.id).some(function (r) { return r.key === params.key; });
@@ -2404,6 +2568,7 @@
 
   function reset() {
     memoryState = null;
+    setActorFixture(null);
     if (localStorageAvailable) {
       try {
         localStorage.removeItem(STORAGE_KEY);
@@ -2427,11 +2592,21 @@
 
   function commit(mutator) {
     var state = loadState();
-    var result = mutator(state);
-    syncAllReportsDerived(state);
-    state.meta.lastModifiedAt = nowIso();
-    persistState(state);
-    return result !== undefined ? clone(result) : clone(state);
+    var snapshot = clone(state);
+    var result;
+    try {
+      result = mutator(state);
+      syncAllReportsDerived(state);
+      state.meta.lastModifiedAt = nowIso();
+      persistState(state);
+      return result !== undefined ? clone(result) : clone(state);
+    } catch (err) {
+      memoryState = snapshot;
+      if (localStorageAvailable) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot)); } catch (ignore) {}
+      }
+      throw err;
+    }
   }
 
   function setReportStatusPublic(reportId, nextStatus) {
@@ -2515,8 +2690,8 @@
       return report;
     });
   }
-  function voidReport(reportId, reason) {
-    return commit(function (state) { return voidReportInternal(state, reportId, reason); });
+  function voidReport(reportId, reason, options) {
+    return commit(function (state) { return voidReportInternal(state, reportId, reason, options); });
   }
   function assignReportOwnership(params) {
     return commit(function (state) { return assignReportOwnershipInternal(state, params); });
@@ -2957,16 +3132,45 @@
   function registerTest(params) {
     params = params || {};
     return commit(function (state) {
-      if (!params.petId) throw new Error('请选择已关联用户的宠物');
-      var pet = findPet(state, params.petId);
-      if (!pet) throw new Error('宠物不存在');
-      if (!pet.userId) throw new Error('该宠物尚未关联平台用户，请先在客户管理或宠物档案完成关联');
+      assertActionPermission('registerTest', params);
       var submissionType = params.submissionType;
       if (SUBMISSION_TYPES.indexOf(submissionType) < 0) throw new Error('请选择送检类型：本店送检或客户自带报告');
-      var sampleNumber = params.sampleNumber != null ? String(params.sampleNumber).trim() : '';
-      if (!sampleNumber) throw new Error('请填写样本编号');
       if (!params.testDate) throw new Error('请选择送检日期');
       if (!params.storeId && !params.sourceOrgId) throw new Error('请选择检测机构或来源');
+      var pet;
+      if (params.petId) {
+        pet = findPet(state, params.petId);
+        if (!pet) throw new Error('宠物不存在');
+      } else if (params.newPet) {
+        var userId = params.userId;
+        if (!userId && params.createUser) {
+          var createdUser = createPlatformUserInternal(state, params.createUser);
+          userId = createdUser.id;
+        }
+        if (!userId) throw new Error('新建宠物送检须指定用户或提供 createUser');
+        var owner = findUser(state, userId);
+        if (!owner) throw new Error('用户不存在');
+        if (owner.disabled) throw new Error('用户已停用，无法登记送检');
+        var newPet = params.newPet || {};
+        pet = {
+          id: bumpIds(state, 'pets', 'pet'),
+          userId: userId,
+          name: newPet.name || '新宠物',
+          breed: newPet.breed || '未知品种',
+          age: newPet.age != null ? newPet.age : null,
+          gender: newPet.gender || 'unknown',
+          species: newPet.species || 'dog',
+          storeId: params.storeId || newPet.storeId || null,
+          claimStatus: 'bound',
+          opsCreated: true,
+          createdAt: nowIso()
+        };
+        state.pets.push(pet);
+      } else {
+        throw new Error('请选择已关联用户的宠物');
+      }
+      if (!pet.userId) throw new Error('该宠物尚未关联平台用户，请先在客户管理或宠物档案完成关联');
+      var sampleNumber = params.sampleNumber != null ? String(params.sampleNumber).trim() : '';
       var record = {
         id: bumpIds(state, 'testRecords', 'tr'),
         petId: pet.id, userId: pet.userId, storeId: params.storeId || pet.storeId || null,
@@ -2974,7 +3178,7 @@
         externalReportNumber: params.externalReportNumber || null,
         sampleNumber: sampleNumber, sampleType: params.sampleType || 'feces',
         testDate: params.testDate, status: 'pending_result', importBatchId: null,
-        claimStatus: 'bound', submissionType: submissionType, label: sampleNumber, createdAt: nowIso(), updatedAt: nowIso()
+        claimStatus: 'bound', submissionType: submissionType, label: sampleNumber || null, createdAt: nowIso(), updatedAt: nowIso()
       };
       state.testRecords.push(record);
       return record;
@@ -3158,15 +3362,28 @@
     });
   }
 
+  function createPlatformUserInternal(state, params) {
+    params = params || {};
+    if (!params.phone || !String(params.phone).trim()) throw new Error('请填写手机号');
+    var phone = String(params.phone).trim();
+    var existing = (state.users || []).find(function (u) { return u.phone === phone; });
+    if (existing) return existing;
+    var user = {
+      id: bumpIds(state, 'users', 'user'),
+      name: params.name || '新用户',
+      phone: phone,
+      address: params.address || null,
+      disabled: !!params.disabled,
+      createdAt: nowIso()
+    };
+    state.users.push(user);
+    return user;
+  }
+
   function createPlatformUser(params) {
     params = params || {};
     return commit(function (state) {
-      var user = {
-        id: bumpIds(state, 'users', 'user'), name: params.name || '新用户',
-        phone: params.phone, address: params.address || null, createdAt: nowIso()
-      };
-      state.users.push(user);
-      return user;
+      return createPlatformUserInternal(state, params);
     });
   }
 
@@ -3210,6 +3427,7 @@
   }
 
   function updateProfessionalCatalog(mutator) {
+    assertCatalogEditPermission();
     return commit(function (state) {
       ensureDomainState(state);
       var result = mutator(state.professionalCatalog, state);
@@ -3246,19 +3464,63 @@
     });
   }
 
+  function saveReportWorkVersionInternal(state, reportId, params, options) {
+    params = params || {};
+    options = normalizeActorOptions(options);
+    var report = findReport(state, reportId);
+    if (!report) throw new Error('report not found: ' + reportId);
+    var ctx = assertActionPermission('saveReportAssessment', options, report);
+    assertProfessionalEditPermission(report, ctx);
+    if (params.assessment) validateAssessmentParams(params.assessment);
+    var unitPatches = params.phylumUnits || [];
+    unitPatches.forEach(function (patch) {
+      if (!patch.phylumKey) throw new Error('phylumKey required');
+      if (!findPhylumUnit(state, reportId, patch.phylumKey)) {
+        throw new Error('phylum unit not found: ' + patch.phylumKey);
+      }
+    });
+    if (params.assessment) saveAssessmentInternal(state, reportId, params.assessment);
+    unitPatches.forEach(function (patch) {
+      applyPhylumUnitDraftWrite(state, reportId, patch.phylumKey, patch);
+    });
+    report.contentUpdatedAt = report.updatedAt;
+    report.contentUpdatedBy = options.actor || ctx.actor || '审核员';
+    appendOperationRecord(state, {
+      type: 'work_version_saved',
+      reportId: reportId,
+      actor: report.contentUpdatedBy,
+      actorId: ctx.actorId
+    });
+    return report;
+  }
+
   function saveReportAssessment(reportId, params, actor) {
     params = params || {};
-    actor = actor || '审核员';
+    var actorOptions = typeof actor === 'object' && actor !== null ? actor : { actor: actor };
     return commit(function (state) {
       var report = findReport(state, reportId);
       if (!report) throw new Error('report not found');
+      var ctx = assertActionPermission('saveReportAssessment', actorOptions, report);
+      assertProfessionalEditPermission(report, ctx);
+      validateAssessmentParams(params);
       var ver = getWorkingReportVersion(state, reportId);
       if (!ver) throw new Error('working version not found');
       saveAssessmentInternal(state, reportId, params);
       report.contentUpdatedAt = report.updatedAt;
-      report.contentUpdatedBy = actor;
-      appendOperationRecord(state, { type: 'assessment_saved', reportId: reportId, version: ver.version, actor: actor });
+      report.contentUpdatedBy = actorOptions.actor || ctx.actor || '审核员';
+      appendOperationRecord(state, {
+        type: 'assessment_saved', reportId: reportId, version: ver.version,
+        actor: report.contentUpdatedBy, actorId: ctx.actorId
+      });
       return report;
+    });
+  }
+
+  function saveReportWorkVersion(reportId, params, actor) {
+    params = params || {};
+    var actorOptions = typeof actor === 'object' && actor !== null ? actor : { actor: actor };
+    return commit(function (state) {
+      return saveReportWorkVersionInternal(state, reportId, params, actorOptions);
     });
   }
 
@@ -3318,6 +3580,9 @@
     reset: reset,
     subscribe: subscribe,
     commit: commit,
+    setActorFixture: setActorFixture,
+    getPermissionProfile: getPermissionProfile,
+    assertCatalogEditPermission: assertCatalogEditPermission,
     setReportStatus: setReportStatusPublic,
     getReport: getReport,
     listReports: listReports,
@@ -3416,6 +3681,7 @@
     flattenSchemesToPlatformRanges: flattenSchemesToPlatformRanges,
     schemeHasValidItems: schemeHasValidItems,
     saveReportAssessment: saveReportAssessment,
+    saveReportWorkVersion: saveReportWorkVersion,
     buildContentSnapshot: function (reportId, versionNo, actor) {
       var state = loadState();
       var report = findReport(state, reportId);
