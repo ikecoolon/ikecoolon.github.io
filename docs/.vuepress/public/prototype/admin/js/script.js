@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', function () {
-  window.__PET_ADMIN_ASSET_VERSION = '20260907b';
+  window.__PET_ADMIN_ASSET_VERSION = '20260907c';
   var C = window.PetAdminCommon;
   var Session = window.PetAdminSession;
   var Permissions = window.PetAdminPermissions;
