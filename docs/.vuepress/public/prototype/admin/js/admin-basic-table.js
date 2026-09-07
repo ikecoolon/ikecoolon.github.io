@@ -513,7 +513,9 @@
     }
 
     function loadData() {
-      if (typeof config.fetchData !== 'function' || destroyed) return;
+      if (typeof config.fetchData !== 'function' || destroyed) {
+        return Promise.resolve();
+      }
       fetchSeq += 1;
       var seq = fetchSeq;
       state.loading = true;
@@ -526,7 +528,7 @@
         sortOrder: state.sortOrder,
         filters: Object.assign({}, state.filters)
       };
-      Promise.resolve(config.fetchData(query)).then(function (result) {
+      return Promise.resolve(config.fetchData(query)).then(function (result) {
         if (destroyed || seq !== fetchSeq) return;
         result = result || {};
         state.rows = result.rows || result.list || [];

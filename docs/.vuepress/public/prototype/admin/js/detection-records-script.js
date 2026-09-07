@@ -178,7 +178,8 @@ function initDetectionRecords(mountRoot, tab) {
     }
   }
 
-  function pickExcelFiles(testRecordId) {
+  function pickExcelFiles(testRecordId, options) {
+    options = options || {};
     if (!testRecordId) {
       C.toast('请从待导入的送检记录发起「导入结果」', 'warning');
       return;
@@ -188,12 +189,86 @@ function initDetectionRecords(mountRoot, tab) {
     input.accept = '.csv,.xlsx,.xls';
     input.multiple = false;
     input.style.display = 'none';
-    input.onchange = function () {
-      runExcelImport(testRecordId || null, input.files);
+    var settled = false;
+    function cleanup() {
+      window.removeEventListener('focus', onWindowFocus);
       if (input.parentNode) input.parentNode.removeChild(input);
-    };
+    }
+    function finish(files) {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (files && files.length) {
+        runExcelImport(testRecordId, files);
+      } else if (typeof options.onCancel === 'function') {
+        options.onCancel();
+      }
+    }
+    function onWindowFocus() {
+      setTimeout(function () {
+        if (!settled) finish(input.files && input.files.length ? input.files : null);
+      }, 400);
+    }
+    input.addEventListener('change', function () {
+      finish(input.files);
+    });
+    input.addEventListener('cancel', function () {
+      finish(null);
+    });
     document.body.appendChild(input);
     input.click();
+    if (typeof options.onCancel === 'function') {
+      setTimeout(function () {
+        if (!settled) window.addEventListener('focus', onWindowFocus);
+      }, 0);
+    }
+  }
+
+  function displayLabName(state, tr) {
+    var name = String((tr && tr.labName) || '').trim();
+    if (name) return name;
+    var labStore = C.lookupStore(state, tr && tr.labStoreId);
+    if (labStore) return labStore.name;
+    return '—';
+  }
+
+  function highlightRecordRow(recordId) {
+    if (!recordId || !listContainer) return;
+    var attempts = 0;
+    function tryHighlight() {
+      attempts += 1;
+      var row = listContainer.querySelector('tr[data-row-key="' + recordId + '"]');
+      if (row) {
+        row.classList.add('is-new-record');
+        row.querySelectorAll('td').forEach(function (td) {
+          td.style.background = '#fff7e6';
+        });
+        if (typeof row.scrollIntoView === 'function') {
+          row.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+        setTimeout(function () {
+          if (row.classList) row.classList.remove('is-new-record');
+          row.querySelectorAll('td').forEach(function (td) {
+            td.style.background = '';
+          });
+        }, 2400);
+        return;
+      }
+      if (attempts < 24) setTimeout(tryHighlight, 50);
+    }
+    tryHighlight();
+  }
+
+  function revealNewRecord(recordId) {
+    if (currentView === 'import_failed') {
+      setActiveView('pending_result');
+      updateRouteView('pending_result');
+    }
+    if (listApi) {
+      if (typeof listApi.setFilters === 'function') listApi.setFilters({ search: '' });
+      listApi.setPage(1);
+    }
+    highlightRecordRow(recordId);
   }
 
   function eligiblePets(state, userId) {
@@ -398,8 +473,14 @@ function initDetectionRecords(mountRoot, tab) {
       '<input type="text" id="dr-reg-sample-number" class="ant-input" placeholder="线下样本标签编号"></div>' +
       '<div class="rondo-form-field"><label for="dr-reg-test-date">送检日期 <span style="color:var(--ant-danger)">*</span></label>' +
       '<input type="date" id="dr-reg-test-date" class="ant-input" value="' + today + '" required></div>' +
-      '<div class="rondo-form-field"><label for="dr-reg-store-id">检测机构 / 来源 <span style="color:var(--ant-danger)">*</span></label>' +
-      '<select id="dr-reg-store-id" class="ant-input ant-select-native" required>' + storeOptions + '</select></div>';
+      '<div class="rondo-form-field"><label for="dr-reg-store-id">承接门店 <span style="color:var(--ant-danger)">*</span></label>' +
+      '<select id="dr-reg-store-id" class="ant-input ant-select-native" required>' + storeOptions + '</select></div>' +
+      '<div class="rondo-form-field" id="dr-reg-lab-store-field">' +
+      '<label for="dr-reg-lab-store-id">检测机构 <span style="color:var(--ant-danger)">*</span></label>' +
+      '<select id="dr-reg-lab-store-id" class="ant-input ant-select-native">' + storeOptions + '</select></div>' +
+      '<div class="rondo-form-field hidden" id="dr-reg-lab-name-field">' +
+      '<label for="dr-reg-lab-name">检测机构</label>' +
+      '<input type="text" id="dr-reg-lab-name" class="ant-input" placeholder="出具 Excel 的实验室名称，选填"></div>';
   }
 
   function wireRegisterModal(overlay, state, preset) {
@@ -528,6 +609,39 @@ function initDetectionRecords(mountRoot, tab) {
       }
     });
 
+    var storeSelect = overlay.querySelector('#dr-reg-store-id');
+    var labSelect = overlay.querySelector('#dr-reg-lab-store-id');
+    var labStoreField = overlay.querySelector('#dr-reg-lab-store-field');
+    var labNameField = overlay.querySelector('#dr-reg-lab-name-field');
+    var labFollowsStore = true;
+
+    function syncRegisterPrimary() {
+      var type = (overlay.querySelector('input[name="dr-reg-submission-type"]:checked') || {}).value;
+      var isBrought = type === 'customer_brought';
+      if (labStoreField) labStoreField.classList.toggle('hidden', isBrought);
+      if (labNameField) labNameField.classList.toggle('hidden', !isBrought);
+      if (registerModalHandle && typeof registerModalHandle.setOkLabel === 'function') {
+        registerModalHandle.setOkLabel(isBrought ? '登记并导入' : '确认登记');
+      } else {
+        var okBtn = overlay.querySelector('[data-action="ok"]');
+        if (okBtn) okBtn.textContent = isBrought ? '登记并导入' : '确认登记';
+      }
+    }
+
+    if (labSelect && storeSelect) {
+      labSelect.value = storeSelect.value;
+      labSelect.addEventListener('change', function () {
+        labFollowsStore = labSelect.value === storeSelect.value;
+      });
+      storeSelect.addEventListener('change', function () {
+        if (labFollowsStore) labSelect.value = storeSelect.value;
+      });
+    }
+    overlay.querySelectorAll('input[name="dr-reg-submission-type"]').forEach(function (radio) {
+      radio.addEventListener('change', syncRegisterPrimary);
+    });
+    syncRegisterPrimary();
+
     overlay._registerContextUserId = function () { return contextUserId; };
   }
 
@@ -541,7 +655,7 @@ function initDetectionRecords(mountRoot, tab) {
 
     if (!submissionType) throw new Error('请选择送检类型：本店送检或客户自带报告');
     if (!testDate) throw new Error('请选择送检日期');
-    if (!storeId) throw new Error('请选择检测机构或来源');
+    if (!storeId) throw new Error('请选择承接门店');
 
     var payload = {
       sampleNumber: sampleNumber,
@@ -549,6 +663,15 @@ function initDetectionRecords(mountRoot, tab) {
       storeId: storeId || null,
       submissionType: submissionType
     };
+    if (submissionType === 'in_store') {
+      var labStoreId = (overlay.querySelector('#dr-reg-lab-store-id') || {}).value || storeId;
+      payload.labStoreId = labStoreId || null;
+      var labStore = C.lookupStore(store.getState(), labStoreId);
+      payload.labName = labStore ? labStore.name : '';
+    } else {
+      payload.labStoreId = null;
+      payload.labName = (overlay.querySelector('#dr-reg-lab-name').value || '').trim();
+    }
     if (mode === 'existing') {
       payload.petId = overlay.querySelector('#dr-reg-pet-id').value;
       if (!payload.petId) throw new Error('请选择已关联用户的宠物');
@@ -642,13 +765,22 @@ function initDetectionRecords(mountRoot, tab) {
         }
         setLoading(true);
         try {
-          store.registerTest(payload);
-          C.toast('送检记录已登记，状态为待导入结果', 'success');
+          var record = store.registerTest(payload);
+          var openImport = payload.submissionType === 'customer_brought';
           close();
           setRegisterDirty(false);
           registerModalHandle = null;
           clearRegisterRouteAction();
-          if (listApi) listApi.reload();
+          revealNewRecord(record.id);
+          if (openImport) {
+            pickExcelFiles(record.id, {
+              onCancel: function () {
+                C.toast('已登记，可稍后在该行导入', 'info');
+              }
+            });
+          } else {
+            C.toast('送检记录已登记，状态为待导入结果', 'success');
+          }
         } catch (err) {
           C.toast(err.message || '登记失败', 'error');
         } finally {
@@ -679,7 +811,7 @@ function initDetectionRecords(mountRoot, tab) {
     ownerTabId: tab && tab.id,
     title: '送检记录',
     stateKey: STATE_KEY,
-    searchFields: [{ name: 'search', label: '关键词', placeholder: '送检 ID / 样本编号' }],
+    searchFields: [{ name: 'search', label: '关键词', placeholder: '送检 ID / 样本编号 / 手机号 / 宠物名' }],
     toolbarActions: canRegisterTest() ? [{
       label: '登记送检',
       variant: 'primary',
@@ -691,7 +823,8 @@ function initDetectionRecords(mountRoot, tab) {
       }},
       { key: 'userName', title: '用户', dataIndex: 'userName' },
       { key: 'petName', title: '宠物', dataIndex: 'petName' },
-      { key: 'storeName', title: '机构', dataIndex: 'storeName', ellipsis: true },
+      { key: 'storeName', title: '承接门店', dataIndex: 'storeName', ellipsis: true },
+      { key: 'labName', title: '检测机构', dataIndex: 'labName', ellipsis: true },
       { key: 'sampleNumber', title: '样本编号', render: function (row) {
         return '<span class="rondo-cell-mono">' + C.escapeHtml(row.sampleNumber || '—') + '</span>';
       }},
@@ -720,7 +853,15 @@ function initDetectionRecords(mountRoot, tab) {
           var stage = deriveStage(tr, state);
           if (currentView !== 'all' && stage !== currentView) return false;
           if (q) {
-            var hay = [tr.id, tr.label, tr.sampleNumber].join(' ').toLowerCase();
+            var user = C.lookupUser(state, tr.userId);
+            var pet = C.lookupPet(state, tr.petId);
+            var hay = [
+              tr.id,
+              tr.label,
+              tr.sampleNumber,
+              user && user.phone,
+              pet && pet.name
+            ].join(' ').toLowerCase();
             if (hay.indexOf(q) < 0) return false;
           }
           return true;
@@ -740,6 +881,7 @@ function initDetectionRecords(mountRoot, tab) {
           userName: user ? user.name : '—',
           petName: pet ? pet.name : '—',
           storeName: st ? st.name : '—',
+          labName: displayLabName(state, tr),
           sampleNumber: tr.sampleNumber,
           testDate: tr.testDate,
           submissionTypeLabel: submissionTypeLabel(tr),

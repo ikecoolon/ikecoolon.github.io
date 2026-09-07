@@ -196,7 +196,12 @@
     var focusable = getFocusable(modalEl);
     if (focusable.length) focusable[0].focus();
 
-    return { close: close, root: overlay, setLoading: setLoading, markDirty: markDirty };
+    function setOkLabel(label) {
+      var btn = overlay.querySelector('[data-action="ok"]');
+      if (btn) btn.textContent = label;
+    }
+
+    return { close: close, root: overlay, setLoading: setLoading, markDirty: markDirty, setOkLabel: setOkLabel };
   }
 
   global.PetAdminModal = { open: open, openModal: open };

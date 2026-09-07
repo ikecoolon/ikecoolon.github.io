@@ -780,6 +780,7 @@
       if (tr.status === 'unassigned') {
         tr.status = tr.petId ? 'pending_review' : 'pending_result';
       }
+      backfillTestRecordInstitutions(state, tr);
     });
     (state.reports || []).forEach(function (report) {
       if (report.status === 'unassigned') report.status = 'incomplete';
@@ -843,6 +844,65 @@
   }
   function findUser(state, userId) {
     return (state.users || []).find(function (u) { return u.id === userId; });
+  }
+  function findStore(state, storeId) {
+    if (!storeId) return null;
+    return (state.stores || []).find(function (s) { return s.id === storeId; }) || null;
+  }
+
+  function backfillTestRecordInstitutions(state, tr) {
+    if (!tr) return;
+    if (tr.labName == null) tr.labName = '';
+    if (tr.labStoreId === undefined) tr.labStoreId = null;
+    if (tr.submissionType !== 'customer_brought' && !tr.labStoreId && tr.storeId) {
+      tr.labStoreId = tr.storeId;
+    }
+    if (!String(tr.labName || '').trim()) {
+      var labStore = findStore(state, tr.labStoreId);
+      if (labStore) tr.labName = labStore.name;
+    }
+  }
+
+  function labDuplicateKey(record) {
+    if (!record) return '';
+    var name = String(record.labName || '').trim().toLowerCase();
+    if (name) return 'name:' + name;
+    if (record.labStoreId) return 'store:' + String(record.labStoreId).trim();
+    return '';
+  }
+
+  function findLabScopedDuplicate(state, params) {
+    params = params || {};
+    var directed = params.testRecordId ? findTestRecord(state, params.testRecordId) : null;
+    var probe = {
+      labStoreId: params.labStoreId != null ? params.labStoreId : (directed ? directed.labStoreId : null),
+      labName: (params.labName != null && String(params.labName).trim())
+        ? String(params.labName).trim()
+        : (directed ? directed.labName : '')
+    };
+    var labKey = labDuplicateKey(probe);
+    if (!labKey && directed) labKey = labDuplicateKey(directed);
+    var externalNo = String(params.externalReportNumber || params.externalNumber || '').trim();
+    var sampleNo = String(params.sampleNumber || params.sampleNo || '').trim();
+    if (!labKey || (!externalNo && !sampleNo)) return null;
+    var existing = (state.testRecords || []).find(function (tr) {
+      if (params.testRecordId && tr.id === params.testRecordId) return false;
+      if (params.excludeId && tr.id === params.excludeId) return false;
+      if (labDuplicateKey(tr) !== labKey) return false;
+      if (externalNo && String(tr.externalReportNumber || '').trim() === externalNo) return true;
+      if (sampleNo && String(tr.sampleNumber || '').trim() === sampleNo) return true;
+      return false;
+    });
+    if (!existing) return null;
+    return {
+      duplicate: true,
+      existingTestRecordId: existing.id,
+      labName: probe.labName || existing.labName || null,
+      labStoreId: probe.labStoreId || existing.labStoreId || null,
+      sourceOrgId: params.sourceOrgId || existing.sourceOrgId || null,
+      externalReportNumber: externalNo || null,
+      sampleNumber: sampleNo || null
+    };
   }
   function findProduct(state, productId) {
     return (state.products || []).find(function (p) { return p.id === productId; });
@@ -2317,14 +2377,14 @@
         { id: 'batch-007', fileName: '检测结果导入_豆包.xlsx', status: 'success', totalRows: 12, successRows: 12, failedRows: 0, errors: [], testRecordIds: ['tr-010'], createdAt: '2025-08-27T10:00:00.000Z' }
       ],
       testRecords: [
-        { id: 'tr-001', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-PARTIAL-001', sampleNumber: 'SAMPLE-PARTIAL-001', sampleType: 'feces', testDate: '2025-08-22', status: 'pending_result', importBatchId: null, claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-PARTIAL-001', createdAt: '2025-08-22T09:15:00.000Z', updatedAt: '2025-08-22T09:15:00.000Z' },
-        { id: 'tr-002', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-FAIL-002', sampleNumber: 'SAMPLE-FAIL-002', sampleType: 'feces', testDate: '2025-08-21', status: 'pending_review', importBatchId: 'batch-002', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-FAIL-002', createdAt: '2025-08-21T11:30:00.000Z', updatedAt: '2025-08-21T11:30:00.000Z' },
-        { id: 'tr-003', petId: 'pet-003', userId: 'user-002', storeId: null, sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-REVIEW-003', sampleNumber: 'SAMPLE-REVIEW-003', sampleType: 'feces', testDate: '2025-08-23', status: 'pending_review', importBatchId: null, claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-REVIEW-003', createdAt: '2025-08-23T14:00:00.000Z', updatedAt: '2025-08-23T14:00:00.000Z' },
-        { id: 'tr-004', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-001', sampleNumber: 'SAMPLE-BJ-001', sampleType: 'feces', testDate: '2025-08-20', status: 'published', importBatchId: 'batch-001', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-BJ-001', createdAt: '2025-08-20T10:00:00.000Z', updatedAt: '2025-08-24T16:00:00.000Z' },
-        { id: 'tr-006', petId: 'pet-004', userId: null, storeId: 'store-001', sourceOrgId: SECOND_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-HARLEY-006', sampleNumber: 'SAMPLE-HARLEY-006', sampleType: 'feces', testDate: '2025-08-18', status: 'published', importBatchId: 'batch-harley', claimStatus: 'unassigned', submissionType: 'in_store', label: 'SAMPLE-HARLEY-006', createdAt: '2025-08-19T09:00:00.000Z', updatedAt: '2025-08-19T16:00:00.000Z' },
-        { id: 'tr-008', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-VOID-008', sampleNumber: 'SAMPLE-VOID-008', sampleType: 'feces', testDate: '2025-08-10', status: 'voided', importBatchId: 'batch-001', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-VOID-008', createdAt: '2025-08-10T09:00:00.000Z', updatedAt: '2025-08-12T10:00:00.000Z' },
-        { id: 'tr-009', petId: 'pet-005', userId: 'user-002', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-OSCAR-009', sampleNumber: 'SAMPLE-OSCAR-009', sampleType: 'feces', testDate: '2025-08-25', status: 'pending_review', importBatchId: 'batch-oscar', claimStatus: 'bound', submissionType: 'customer_brought', label: 'SAMPLE-OSCAR-009', createdAt: '2025-08-18T09:00:00.000Z', updatedAt: '2025-08-18T09:00:00.000Z' },
-        { id: 'tr-010', petId: 'pet-006', userId: 'user-004', storeId: 'store-001', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-007', sampleNumber: 'SAMPLE-HZ-007', sampleType: 'feces', testDate: '2025-08-27', status: 'published', importBatchId: 'batch-007', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-HZ-007', createdAt: '2025-08-27T10:00:00.000Z', updatedAt: '2025-08-27T16:00:00.000Z' }
+        { id: 'tr-001', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', labStoreId: 'store-001', labName: '萌宠肠道健康中心（朝阳店）', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-PARTIAL-001', sampleNumber: 'SAMPLE-PARTIAL-001', sampleType: 'feces', testDate: '2025-08-22', status: 'pending_result', importBatchId: null, claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-PARTIAL-001', createdAt: '2025-08-22T09:15:00.000Z', updatedAt: '2025-08-22T09:15:00.000Z' },
+        { id: 'tr-002', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', labStoreId: 'store-002', labName: '宠物医院肠道专科（浦东店）', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-FAIL-002', sampleNumber: 'SAMPLE-FAIL-002', sampleType: 'feces', testDate: '2025-08-21', status: 'pending_review', importBatchId: 'batch-002', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-FAIL-002', createdAt: '2025-08-21T11:30:00.000Z', updatedAt: '2025-08-21T11:30:00.000Z' },
+        { id: 'tr-003', petId: 'pet-003', userId: 'user-002', storeId: null, labStoreId: null, labName: '', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-REVIEW-003', sampleNumber: 'SAMPLE-REVIEW-003', sampleType: 'feces', testDate: '2025-08-23', status: 'pending_review', importBatchId: null, claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-REVIEW-003', createdAt: '2025-08-23T14:00:00.000Z', updatedAt: '2025-08-23T14:00:00.000Z' },
+        { id: 'tr-004', petId: 'pet-001', userId: 'user-001', storeId: 'store-001', labStoreId: 'store-001', labName: '萌宠肠道健康中心（朝阳店）', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-001', sampleNumber: 'SAMPLE-BJ-001', sampleType: 'feces', testDate: '2025-08-20', status: 'published', importBatchId: 'batch-001', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-BJ-001', createdAt: '2025-08-20T10:00:00.000Z', updatedAt: '2025-08-24T16:00:00.000Z' },
+        { id: 'tr-006', petId: 'pet-004', userId: null, storeId: 'store-001', labStoreId: 'store-001', labName: '萌宠肠道健康中心（朝阳店）', sourceOrgId: SECOND_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-HARLEY-006', sampleNumber: 'SAMPLE-HARLEY-006', sampleType: 'feces', testDate: '2025-08-18', status: 'published', importBatchId: 'batch-harley', claimStatus: 'unassigned', submissionType: 'in_store', label: 'SAMPLE-HARLEY-006', createdAt: '2025-08-19T09:00:00.000Z', updatedAt: '2025-08-19T16:00:00.000Z' },
+        { id: 'tr-008', petId: 'pet-002', userId: 'user-001', storeId: 'store-002', labStoreId: 'store-002', labName: '宠物医院肠道专科（浦东店）', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-VOID-008', sampleNumber: 'SAMPLE-VOID-008', sampleType: 'feces', testDate: '2025-08-10', status: 'voided', importBatchId: 'batch-001', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-VOID-008', createdAt: '2025-08-10T09:00:00.000Z', updatedAt: '2025-08-12T10:00:00.000Z' },
+        { id: 'tr-009', petId: 'pet-005', userId: 'user-002', storeId: 'store-001', labStoreId: null, labName: '', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-OSCAR-009', sampleNumber: 'SAMPLE-OSCAR-009', sampleType: 'feces', testDate: '2025-08-25', status: 'pending_review', importBatchId: 'batch-oscar', claimStatus: 'bound', submissionType: 'customer_brought', label: 'SAMPLE-OSCAR-009', createdAt: '2025-08-18T09:00:00.000Z', updatedAt: '2025-08-18T09:00:00.000Z' },
+        { id: 'tr-010', petId: 'pet-006', userId: 'user-004', storeId: 'store-001', labStoreId: 'store-001', labName: '萌宠肠道健康中心（朝阳店）', sourceOrgId: DEFAULT_SOURCE_ORG_ID, externalReportNumber: 'EXT-2025-007', sampleNumber: 'SAMPLE-HZ-007', sampleType: 'feces', testDate: '2025-08-27', status: 'published', importBatchId: 'batch-007', claimStatus: 'bound', submissionType: 'in_store', label: 'SAMPLE-HZ-007', createdAt: '2025-08-27T10:00:00.000Z', updatedAt: '2025-08-27T16:00:00.000Z' }
       ],
       indicators: [],
       reports: [],
@@ -3048,22 +3108,7 @@
   }
 
   function checkDuplicateImportInternal(state, params) {
-    var sourceOrgId = params.sourceOrgId || DEFAULT_SOURCE_ORG_ID;
-    var externalNo = params.externalReportNumber || params.externalNumber;
-    var sampleNo = params.sampleNumber || params.sampleNo;
-    if (!externalNo && !sampleNo) return null;
-    var existing = state.testRecords.find(function (tr) {
-      if (params.testRecordId && tr.id === params.testRecordId) return false;
-      if ((tr.sourceOrgId || DEFAULT_SOURCE_ORG_ID) !== sourceOrgId) return false;
-      if (externalNo && tr.externalReportNumber === externalNo) return true;
-      if (sampleNo && tr.sampleNumber === sampleNo) return true;
-      return false;
-    });
-    if (!existing) return null;
-    return {
-      duplicate: true, existingTestRecordId: existing.id, sourceOrgId: sourceOrgId,
-      externalReportNumber: externalNo || null, sampleNumber: sampleNo || null
-    };
+    return findLabScopedDuplicate(state, params || {});
   }
   function checkDuplicateImport(params) {
     return checkDuplicateImportInternal(loadState(), params || {});
@@ -3136,7 +3181,7 @@
       var submissionType = params.submissionType;
       if (SUBMISSION_TYPES.indexOf(submissionType) < 0) throw new Error('请选择送检类型：本店送检或客户自带报告');
       if (!params.testDate) throw new Error('请选择送检日期');
-      if (!params.storeId && !params.sourceOrgId) throw new Error('请选择检测机构或来源');
+      if (!params.storeId) throw new Error('请选择承接门店');
       var pet;
       if (params.petId) {
         pet = findPet(state, params.petId);
@@ -3171,9 +3216,27 @@
       }
       if (!pet.userId) throw new Error('该宠物尚未关联平台用户，请先在客户管理或宠物档案完成关联');
       var sampleNumber = params.sampleNumber != null ? String(params.sampleNumber).trim() : '';
+      var labStoreId = params.labStoreId || null;
+      var labName = params.labName != null ? String(params.labName).trim() : '';
+      if (submissionType === 'in_store') {
+        if (!labStoreId) labStoreId = params.storeId || null;
+        if (!labName && labStoreId) {
+          var labStore = findStore(state, labStoreId);
+          if (labStore) labName = labStore.name;
+        }
+      }
+      var dup = findLabScopedDuplicate(state, {
+        labStoreId: labStoreId,
+        labName: labName,
+        sampleNumber: sampleNumber,
+        externalReportNumber: params.externalReportNumber
+      });
+      if (dup) throw new Error('同一检测机构下样本编号或外部报告编号已存在');
       var record = {
         id: bumpIds(state, 'testRecords', 'tr'),
         petId: pet.id, userId: pet.userId, storeId: params.storeId || pet.storeId || null,
+        labStoreId: labStoreId,
+        labName: labName,
         sourceOrgId: params.sourceOrgId || DEFAULT_SOURCE_ORG_ID,
         externalReportNumber: params.externalReportNumber || null,
         sampleNumber: sampleNumber, sampleType: params.sampleType || 'feces',

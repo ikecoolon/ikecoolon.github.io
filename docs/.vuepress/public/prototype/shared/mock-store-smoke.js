@@ -80,6 +80,13 @@ function testSeed() {
   assertEqual(store.OWNERSHIP_STATUSES.join(','), 'unassigned,bound', 'ownership two values');
   assert(store.WORKFLOW_STATUSES === store.REPORT_STATUSES, 'WORKFLOW_STATUSES aliases REPORT_STATUSES');
   assertEqual(store.SUBMISSION_TYPES.join(','), 'in_store,customer_brought', 'submission types');
+  var tr1 = state.testRecords.find(function (t) { return t.id === 'tr-001'; });
+  assertEqual(tr1.storeId, 'store-001', 'seed 承接门店 storeId');
+  assertEqual(tr1.labStoreId, 'store-001', 'seed 本店送检检测机构默认同门店');
+  assert(!!tr1.labName, 'seed 本店送检写入检测机构名称');
+  var tr9 = state.testRecords.find(function (t) { return t.id === 'tr-009'; });
+  assertEqual(tr9.storeId, 'store-001', 'seed 客户自带报告仍有承接门店');
+  assertEqual(tr9.labName, '', 'seed 客户自带报告检测机构可为空');
 
   var r1 = findReport(state, 'report-001');
   var r2 = findReport(state, 'report-002');
@@ -786,6 +793,8 @@ function testIntakePipeline() {
   assertEqual(report.status, 'incomplete', '本店送检导入后进入待完善');
   assertEqual(report.petId, 'pet-001', '导入后仍挂原宠物');
   assertEqual(inStore.submissionType, 'in_store', '本店送检类型保留');
+  assertEqual(inStore.labStoreId, 'store-001', '本店送检默认检测机构=承接门店');
+  assert(!!inStore.labName, '本店送检写入检测机构名称');
   assertEqual(imported.testRecordId, inStore.id, '导入写入原送检记录');
 
   store.reset();
@@ -805,6 +814,156 @@ function testIntakePipeline() {
   assertEqual(report2.status, 'incomplete', '客户自带报告导入后进入待完善');
   assertEqual(report2.petId, 'pet-006', '客户自带报告仍挂原宠物');
   assertEqual(store.getReport(report2.id).status !== 'unassigned', true, '导入不进入待归属');
+  assertEqual(brought.labStoreId, null, '客户自带报告不把承接门店当作检测机构');
+}
+
+function testLabScopedSampleDuplicates() {
+  store.reset();
+  var first = store.registerTest({
+    petId: 'pet-001',
+    sampleNumber: 'S-LAB-DUP',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    submissionType: 'in_store'
+  });
+  assertEqual(first.labStoreId, 'store-001', '本店送检默认 labStoreId=storeId');
+  assert(first.labName.indexOf('朝阳') >= 0, '本店送检 labName 取门店名');
+
+  var sameLabThrew = false;
+  try {
+    store.registerTest({
+      petId: 'pet-006',
+      sampleNumber: 'S-LAB-DUP',
+      testDate: '2025-09-04',
+      storeId: 'store-001',
+      submissionType: 'in_store'
+    });
+  } catch (err) {
+    sameLabThrew = /同一检测机构/.test(err.message);
+  }
+  assert(sameLabThrew, '同检测机构同样本编号拒绝登记');
+
+  var otherLab = store.registerTest({
+    petId: 'pet-002',
+    sampleNumber: 'S-LAB-DUP',
+    testDate: '2025-09-04',
+    storeId: 'store-002',
+    submissionType: 'in_store'
+  });
+  assert(otherLab.id !== first.id, '不同检测机构可共用样本编号');
+  assertEqual(otherLab.sampleNumber, 'S-LAB-DUP', '跨机构样本编号原样保留');
+  assert(otherLab.id !== first.id && /^tr-\d+$/.test(otherLab.id), '平台送检 ID 仍全局唯一');
+
+  var emptyA = store.registerTest({
+    petId: 'pet-001',
+    sampleNumber: '',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    submissionType: 'in_store'
+  });
+  var emptyB = store.registerTest({
+    petId: 'pet-006',
+    sampleNumber: '',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    submissionType: 'in_store'
+  });
+  assert(emptyA.id !== emptyB.id, '空样本编号不参与重复校验');
+
+  store.reset();
+  var broughtA = store.registerTest({
+    petId: 'pet-001',
+    sampleNumber: 'S-FREE-LAB',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    labName: '外院实验室甲',
+    submissionType: 'customer_brought'
+  });
+  assertEqual(broughtA.storeId, 'store-001', '客户自带报告仍写入承接门店');
+  assertEqual(broughtA.labName, '外院实验室甲', '客户自带报告写入手填检测机构');
+  assertEqual(broughtA.labStoreId, null, '客户自带报告不绑定门店为检测机构');
+
+  var broughtSameThrew = false;
+  try {
+    store.registerTest({
+      petId: 'pet-006',
+      sampleNumber: 'S-FREE-LAB',
+      testDate: '2025-09-04',
+      storeId: 'store-002',
+      labName: '外院实验室甲',
+      submissionType: 'customer_brought'
+    });
+  } catch (err) {
+    broughtSameThrew = /同一检测机构/.test(err.message);
+  }
+  assert(broughtSameThrew, '手填同一检测机构同样本编号拒绝登记');
+
+  var broughtOther = store.registerTest({
+    petId: 'pet-006',
+    sampleNumber: 'S-FREE-LAB',
+    testDate: '2025-09-04',
+    storeId: 'store-002',
+    labName: '外院实验室乙',
+    submissionType: 'customer_brought'
+  });
+  assert(!!broughtOther.id, '不同手填检测机构可共用样本编号');
+
+  var emptyLabA = store.registerTest({
+    petId: 'pet-001',
+    sampleNumber: 'S-NO-LAB',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    submissionType: 'customer_brought'
+  });
+  var emptyLabB = store.registerTest({
+    petId: 'pet-006',
+    sampleNumber: 'S-NO-LAB',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    submissionType: 'customer_brought'
+  });
+  assert(emptyLabA.id !== emptyLabB.id, '未填检测机构时样本编号不参与重复校验');
+
+  store.reset();
+  var rec = store.registerTest({
+    petId: 'pet-001',
+    sampleNumber: 'S-IMPORT-DUP',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    submissionType: 'in_store'
+  });
+  var rec2 = store.registerTest({
+    petId: 'pet-006',
+    sampleNumber: 'S-IMPORT-OTHER',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    submissionType: 'in_store'
+  });
+  var importDup = store.checkDuplicateImport({
+    testRecordId: rec2.id,
+    sampleNumber: 'S-IMPORT-DUP'
+  });
+  assert(importDup && importDup.existingTestRecordId === rec.id, '导入重复校验按检测机构+样本编号');
+
+  store.registerTest({
+    petId: 'pet-002',
+    sampleNumber: 'S-IMPORT-CROSS',
+    testDate: '2025-09-04',
+    storeId: 'store-002',
+    submissionType: 'in_store'
+  });
+  var recSameSampleOtherLab = store.registerTest({
+    petId: 'pet-001',
+    sampleNumber: 'S-IMPORT-CROSS',
+    testDate: '2025-09-04',
+    storeId: 'store-001',
+    submissionType: 'in_store'
+  });
+  var cross = store.checkDuplicateImport({
+    testRecordId: recSameSampleOtherLab.id,
+    sampleNumber: 'S-IMPORT-CROSS'
+  });
+  assert(cross == null, '导入重复校验不跨检测机构');
 }
 
 function testPermissionsUsersAndProducts() {
@@ -1023,6 +1182,7 @@ function main() {
   testClosedSpeciesValueThresholdCopyAndLibrary();
   testDeprecatedAndLabels();
   testIntakePipeline();
+  testLabScopedSampleDuplicates();
   testPermissionsUsersAndProducts();
   testDomainAtomicityAndPermissions();
 
