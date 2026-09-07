@@ -449,10 +449,40 @@
   function schemeHasValidItems(scheme) {
     var st = storeApi();
     if (st && typeof st.schemeHasValidItems === 'function') return st.schemeHasValidItems(scheme);
-    if (!scheme || !scheme.evidenceRef || !String(scheme.evidenceRef).trim()) return false;
-    return (scheme.items || []).some(function (item) {
+    return (scheme && scheme.items || []).some(function (item) {
       return item.minValue != null && item.maxValue != null && item.unit && item.minValue < item.maxValue;
     });
+  }
+
+  function findActiveSchemeConflict(schemes, candidate) {
+    var st = storeApi();
+    if (st && typeof st.findActiveSchemeConflict === 'function') {
+      return st.findActiveSchemeConflict(schemes, candidate);
+    }
+    if (!candidate || candidate.status !== 'active') return null;
+    var templateId = candidate.templateId;
+    var species = candidate.applicableSpecies || [];
+    if (!templateId || !species.length) return null;
+    for (var i = 0; i < (schemes || []).length; i++) {
+      var other = schemes[i];
+      if (!other || other.status !== 'active') continue;
+      if (candidate.id && other.id === candidate.id) continue;
+      if (other.templateId !== templateId) continue;
+      var overlap = (other.applicableSpecies || []).some(function (sp) { return species.indexOf(sp) >= 0; });
+      if (overlap) return other;
+    }
+    return null;
+  }
+
+  function listKnownDetectionTemplates() {
+    var st = storeApi();
+    if (st && typeof st.listKnownDetectionTemplates === 'function') {
+      return st.listKnownDetectionTemplates();
+    }
+    return [
+      { id: 'ORG-LAB-GUT-001', name: '已知模板 001（16S 肠道菌群）' },
+      { id: 'ORG-LAB-GUT-002', name: '已知模板 002（16S 肠道菌群）' }
+    ];
   }
 
   function defaultCatalog() {
@@ -633,6 +663,9 @@
   function saveReferenceRangeScheme(scheme) {
     return commitCatalog(function (catalog) {
       if (!catalog.referenceRangeSchemes) catalog.referenceRangeSchemes = [];
+      var existing = scheme.id
+        ? catalog.referenceRangeSchemes.find(function (s) { return s.id === scheme.id; })
+        : null;
       var row = Object.assign({
         applicableSpecies: [],
         items: [],
@@ -640,19 +673,23 @@
         version: 1,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
-      }, scheme);
+      }, existing || {}, scheme);
+      delete row.bumpVersion;
       if (row.status === 'active' && !schemeHasValidItems(row)) {
-        throw new Error('启用方案需要专业依据且至少一条有效范围');
+        throw new Error('启用方案至少需要一条有效范围');
       }
-      if (scheme.id) {
+      var conflict = findActiveSchemeConflict(catalog.referenceRangeSchemes, row);
+      if (conflict) {
+        throw new Error('同一检测模板下已有启用方案与所选物种重叠（「' +
+          (conflict.name || conflict.id) + '」）。请先停用冲突方案或调整适用物种。');
+      }
+      if (existing) {
         var idx = catalog.referenceRangeSchemes.findIndex(function (s) { return s.id === scheme.id; });
-        if (idx >= 0) {
-          row.updatedAt = new Date().toISOString();
-          if (scheme.bumpVersion) row.version = (catalog.referenceRangeSchemes[idx].version || 1) + 1;
-          catalog.referenceRangeSchemes[idx] = Object.assign({}, catalog.referenceRangeSchemes[idx], row);
-          syncPlatformReferenceRangesFromSchemes(catalog);
-          return catalog.referenceRangeSchemes[idx];
-        }
+        row.updatedAt = new Date().toISOString();
+        if (scheme.bumpVersion) row.version = (existing.version || 1) + 1;
+        catalog.referenceRangeSchemes[idx] = row;
+        syncPlatformReferenceRangesFromSchemes(catalog);
+        return catalog.referenceRangeSchemes[idx];
       }
       row.id = row.id || uid('rrs');
       catalog.referenceRangeSchemes.push(row);
@@ -1004,6 +1041,8 @@
     deleteReferenceRangeScheme: deleteReferenceRangeScheme,
     duplicateReferenceRangeScheme: duplicateReferenceRangeScheme,
     schemeHasValidItems: schemeHasValidItems,
+    findActiveSchemeConflict: findActiveSchemeConflict,
+    listKnownDetectionTemplates: listKnownDetectionTemplates,
     savePlatformReferenceRange: savePlatformReferenceRange,
     deletePlatformReferenceRange: deletePlatformReferenceRange,
     saveCatalogItem: saveCatalogItem,

@@ -21,7 +21,7 @@
     throw new Error('PetReportAnalysisEngine 不可用');
   }
 
-  var STORAGE_KEY = 'pet-report-mock-store-v6';
+  var STORAGE_KEY = 'pet-report-mock-store-v7';
   var LEGACY_STORAGE_KEYS = ['pet-report-mock-store-v5', 'pet-report-mock-store-v3'];
   var DATA_STATUSES = ['PRESENT', 'MISSING_COLUMN', 'EMPTY', 'NOT_DETECTED', 'INVALID', 'NOT_APPLICABLE'];
   var REPORT_STATUSES = ['unassigned', 'incomplete', 'pending_review', 'published', 'voided'];
@@ -37,6 +37,7 @@
   var SUBMISSION_TYPE_LABELS = { in_store: '本店送检', customer_brought: '客户自带报告' };
   var UNIT_CONFIRM_STATUSES = ['unconfirmed', 'confirmed', 'invalidated'];
   var RANGE_SOURCES = ['imported', 'platform', 'none'];
+  var IMPORTED_RANGE_DECISIONS = ['pending', 'confirmed', 'rejected'];
   var VALUE_SOURCES = ['import', 'manual'];
   var MISSING_DATA_STATUSES = ['MISSING_COLUMN', 'EMPTY', 'INVALID', 'NOT_APPLICABLE'];
 
@@ -59,6 +60,7 @@
     low: '低于参考范围', normal: '参考范围内', high: '高于参考范围', no_range: '无有效参考范围'
   };
   var RANGE_SOURCE_LABELS = { imported: '报告导入', platform: '平台配置', none: '无范围' };
+  var IMPORTED_RANGE_DECISION_LABELS = { pending: '待确认', confirmed: '已确认可用', rejected: '已驳回' };
   /** 风险级别不再作为运营配置概念；仅保留存储占位，不参与裁决或商品。 */
   var RISK_LEVEL_LABELS = { low: '低', medium: '中', high: '高', notice: '仅提示' };
   var CONDITION_TYPE_LABELS = {
@@ -480,10 +482,108 @@
   }
 
   function schemeHasValidItems(scheme) {
-    if (!scheme || !scheme.evidenceRef || !String(scheme.evidenceRef).trim()) return false;
-    return (scheme.items || []).some(function (item) {
+    return (scheme && scheme.items || []).some(function (item) {
       return item.minValue != null && item.maxValue != null && item.unit && item.minValue < item.maxValue;
     });
+  }
+
+  function speciesListsOverlap(a, b) {
+    a = a || [];
+    b = b || [];
+    for (var i = 0; i < a.length; i++) {
+      if (b.indexOf(a[i]) >= 0) return true;
+    }
+    return false;
+  }
+
+  function findActiveSchemeConflict(schemes, candidate) {
+    if (!candidate || candidate.status !== 'active') return null;
+    var templateId = candidate.templateId;
+    if (!templateId) return null;
+    var species = candidate.applicableSpecies || [];
+    if (!species.length) return null;
+    for (var i = 0; i < (schemes || []).length; i++) {
+      var other = schemes[i];
+      if (!other || other.status !== 'active') continue;
+      if (candidate.id && other.id === candidate.id) continue;
+      if (other.templateId !== templateId) continue;
+      if (speciesListsOverlap(other.applicableSpecies, species)) return other;
+    }
+    return null;
+  }
+
+  function listKnownDetectionTemplates() {
+    return [
+      { id: DEFAULT_SOURCE_ORG_ID, name: '已知模板 001（16S 肠道菌群）' },
+      { id: SECOND_SOURCE_ORG_ID, name: '已知模板 002（16S 肠道菌群）' }
+    ];
+  }
+
+  function schemeItemOrderMap(scheme) {
+    var map = {};
+    ((scheme && scheme.items) || []).forEach(function (item, idx) {
+      if (!item || !item.targetKey) return;
+      if (map[item.targetKey] == null) map[item.targetKey] = idx;
+    });
+    return map;
+  }
+
+  function sortBySchemeItemOrder(list, scheme, getKey) {
+    getKey = getKey || function (row) { return row && row.key; };
+    var map = schemeItemOrderMap(scheme);
+    return (list || []).slice().sort(function (a, b) {
+      var ka = getKey(a);
+      var kb = getKey(b);
+      var ia = Object.prototype.hasOwnProperty.call(map, ka) ? map[ka] : 1e9;
+      var ib = Object.prototype.hasOwnProperty.call(map, kb) ? map[kb] : 1e9;
+      if (ia !== ib) return ia - ib;
+      return 0;
+    });
+  }
+
+  function findMatchingActiveScheme(catalog, templateId, species) {
+    if (!templateId || !species) return null;
+    var schemes = (catalog && catalog.referenceRangeSchemes) || [];
+    for (var i = 0; i < schemes.length; i++) {
+      var scheme = schemes[i];
+      if (!scheme || scheme.status !== 'active') continue;
+      if (scheme.templateId !== templateId) continue;
+      if (!scheme.applicableSpecies || scheme.applicableSpecies.indexOf(species) < 0) continue;
+      if (!schemeHasValidItems(scheme)) continue;
+      return scheme;
+    }
+    return null;
+  }
+
+  function resolveReportSourceTemplateId(state, report) {
+    if (!report) return null;
+    var tr = report.testRecordId ? findTestRecord(state, report.testRecordId) : null;
+    return (tr && tr.sourceOrgId) || report.sourceOrgId || null;
+  }
+
+  function findMatchingActiveSchemeForReport(state, report) {
+    if (!report) return null;
+    var catalog = state.professionalCatalog || defaultCatalog();
+    return findMatchingActiveScheme(
+      catalog,
+      resolveReportSourceTemplateId(state, report),
+      getReportSpecies(state, report)
+    );
+  }
+
+  function normalizeImportedRangeDecision(result) {
+    if (!result || !result.importedRange) return null;
+    if (result.importedRange.min == null || result.importedRange.max == null) return null;
+    if (result.importedRangeDecision === 'confirmed' || result.importedRangeDecision === 'rejected') {
+      return result.importedRangeDecision;
+    }
+    return 'pending';
+  }
+
+  function hasConfirmedImportedRange(result) {
+    if (!result || !result.importedRange) return false;
+    if (result.importedRange.min == null || result.importedRange.max == null) return false;
+    return normalizeImportedRangeDecision(result) === 'confirmed';
   }
 
   function defaultStandardUnits() {
@@ -981,7 +1081,7 @@
   }
 
   function resolveResultRange(state, result, species) {
-    if (result.importedRange && result.importedRange.min != null && result.importedRange.max != null) {
+    if (hasConfirmedImportedRange(result)) {
       return {
         range: {
           min: result.importedRange.min,
@@ -1021,6 +1121,8 @@
     out.value = out.effectiveValue;
     if (!out.labNotice) out.labNotice = 'unmarked';
     var resolved = resolveResultRange(state, out, species);
+    out.importedRange = result.importedRange ? clone(result.importedRange) : null;
+    out.importedRangeDecision = normalizeImportedRangeDecision(result);
     out.range = resolved.range;
     out.rangeSource = resolved.rangeSource;
     var status = normalizeDataStatus(out.dataStatus);
@@ -1078,7 +1180,7 @@
     return getDecoratedCurrentResults(state, report)
       .filter(function (r) { return r.phylumKey === phylumKey && r.isEffective; })
       .map(function (r) {
-        return [r.key, r.dataStatus, String(r.effectiveValue), r.labNotice, r.rangeStatus].join(':');
+        return [r.key, r.dataStatus, String(r.effectiveValue), r.labNotice, r.rangeStatus, r.importedRangeDecision || ''].join(':');
       })
       .sort()
       .join('|');
@@ -1115,7 +1217,7 @@
 
   function computeResultSignature(results) {
     return (results || []).map(function (r) {
-      return [r.key, r.dataStatus, String(r.effectiveValue), r.labNotice || '', r.rangeStatus || ''].join(':');
+      return [r.key, r.dataStatus, String(r.effectiveValue), r.labNotice || '', r.rangeStatus || '', r.importedRangeDecision || ''].join(':');
     }).sort().join('|');
   }
 
@@ -1841,6 +1943,7 @@
     if (!row.valueSource) row.valueSource = row.sourceValue == null && row.effectiveValue != null ? 'manual' : 'import';
     row.dataStatus = normalizeDataStatus(row.dataStatus || 'PRESENT');
     if (row.isCurrent == null) row.isCurrent = true;
+    row.importedRangeDecision = normalizeImportedRangeDecision(row);
     return row;
   }
 
@@ -1860,6 +1963,7 @@
       valueSource: spec.valueSource || 'import',
       labNotice: spec.labNotice || 'unmarked',
       importedRange: spec.importedRange ? clone(spec.importedRange) : null,
+      importedRangeDecision: spec.importedRangeDecision || null,
       version: spec.version || 1,
       isCurrent: spec.isCurrent !== false,
       correctedFrom: spec.correctedFrom || null,
@@ -1894,6 +1998,50 @@
       valueSource: original.valueSource || 'import',
       labNotice: params.labNotice || original.labNotice,
       importedRange: original.importedRange,
+      importedRangeDecision: original.importedRangeDecision,
+      version: (original.version || 1) + 1,
+      isCurrent: true,
+      correctedFrom: original.id,
+      updatedBy: params.actor || '审核员'
+    });
+    state.indicators.push(next);
+    report.updatedAt = nowIso();
+    syncReportDerived(state, report);
+    return next;
+  }
+
+  function setImportedRangeDecisionInternal(state, params) {
+    params = params || {};
+    var report = findReport(state, params.reportId);
+    if (!report) throw new Error('report not found: ' + params.reportId);
+    var ctx = assertActionPermission('savePhylumUnitDraft', params, report);
+    assertProfessionalEditPermission(report, ctx);
+    var original = (state.indicators || []).find(function (i) { return i.id === params.resultId; });
+    if (!original || original.reportId !== report.id) throw new Error('result not found');
+    if (!original.importedRange || original.importedRange.min == null || original.importedRange.max == null) {
+      throw new Error('该结果没有导入参考范围');
+    }
+    var decision = params.decision;
+    if (decision !== 'confirmed' && decision !== 'rejected') {
+      throw new Error('请确认导入范围可用或驳回');
+    }
+    original.isCurrent = false;
+    var next = makeResult(state, {
+      id: uid('ind'),
+      testRecordId: original.testRecordId,
+      reportId: original.reportId,
+      key: original.key,
+      rawImportName: original.rawImportName,
+      sourceTemplateId: original.sourceTemplateId,
+      unit: original.unit,
+      dataStatus: original.dataStatus,
+      sourceValue: original.sourceValue,
+      effectiveValue: original.effectiveValue,
+      modifiedReason: decision === 'confirmed' ? '确认导入参考范围可用' : '驳回导入参考范围，改用平台范围',
+      valueSource: original.valueSource || 'import',
+      labNotice: original.labNotice,
+      importedRange: original.importedRange,
+      importedRangeDecision: decision,
       version: (original.version || 1) + 1,
       isCurrent: true,
       correctedFrom: original.id,
@@ -2276,7 +2424,8 @@
         sourceValue: dataStatus === 'PRESENT' ? (override.sourceValue !== undefined ? override.sourceValue : value) : null,
         effectiveValue: dataStatus === 'PRESENT' ? value : null,
         labNotice: override.labNotice || 'unmarked',
-        importedRange: spec.importedRange || null,
+        importedRange: override.importedRange || spec.importedRange || null,
+        importedRangeDecision: override.importedRangeDecision || spec.importedRangeDecision || null,
         version: override.version || 1,
         isCurrent: override.isCurrent !== false,
         correctedFrom: override.correctedFrom || null,
@@ -2510,11 +2659,16 @@
       idPrefix: 'r2', testRecordId: 'tr-003', reportId: 'report-002',
       templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-23T14:30:00.000Z',
       overrides: {
-        Actinobacteria: { value: 18.0, labNotice: 'low' },
+        Actinobacteria: {
+          value: 18.0, labNotice: 'low',
+          importedRange: { min: 20, max: 40, unit: '%' }, importedRangeDecision: 'pending'
+        },
         Fusobacterium: { value: null, dataStatus: 'NOT_DETECTED' },
         Proteus: { value: 3.5, labNotice: 'high' },
         'Escherichia-Shigella': { value: 6.5, labNotice: 'high' },
-        Klebsiella: { value: 4.59, labNotice: 'high' }
+        Klebsiella: { value: 4.59, labNotice: 'high' },
+        Firmicutes: { importedRange: { min: 20, max: 55, unit: '%' }, importedRangeDecision: 'pending' },
+        Bacteroidetes: { importedRange: { min: 12, max: 36, unit: '%' }, importedRangeDecision: 'pending' }
       }
     });
     pushTaxonResults(state, indicators, {
@@ -2536,7 +2690,12 @@
     });
     pushTaxonResults(state, indicators, {
       idPrefix: 'r6', testRecordId: 'tr-009', reportId: 'report-006',
-      templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-18T09:10:00.000Z'
+      templateId: DEFAULT_SOURCE_ORG_ID, createdAt: '2025-08-18T09:10:00.000Z',
+      overrides: {
+        Actinobacteria: { importedRange: { min: 20, max: 38, unit: '%' }, importedRangeDecision: 'pending' },
+        Firmicutes: { importedRange: { min: 22, max: 48, unit: '%' }, importedRangeDecision: 'confirmed' },
+        Bacteroidetes: { importedRange: { min: 10, max: 30, unit: '%' }, importedRangeDecision: 'rejected' }
+      }
     });
     pushTaxonResults(state, indicators, {
       idPrefix: 'r7', testRecordId: 'tr-010', reportId: 'report-007',
@@ -2720,6 +2879,9 @@
   }
   function modifyResultValue(params) {
     return commit(function (state) { return modifyResultValueInternal(state, params); });
+  }
+  function setImportedRangeDecision(params) {
+    return commit(function (state) { return setImportedRangeDecisionInternal(state, params); });
   }
   function supplementResult(params) {
     return commit(function (state) { return supplementResultInternal(state, params); });
@@ -3132,6 +3294,7 @@
         dataStatus: ind.dataStatus || 'PRESENT',
         value: ind.value,
         importedRange: ind.importedRange || null,
+        importedRangeDecision: ind.importedRangeDecision || null,
         labNotice: ind.labNotice || 'unmarked'
       }));
     });
@@ -3628,6 +3791,8 @@
     UNIT_CONFIRM_LABELS: UNIT_CONFIRM_LABELS,
     RANGE_SOURCES: RANGE_SOURCES,
     RANGE_SOURCE_LABELS: RANGE_SOURCE_LABELS,
+    IMPORTED_RANGE_DECISIONS: IMPORTED_RANGE_DECISIONS,
+    IMPORTED_RANGE_DECISION_LABELS: IMPORTED_RANGE_DECISION_LABELS,
     RANGE_STATUS_LABELS: RANGE_STATUS_LABELS,
     LAB_NOTICE_LABELS: LAB_NOTICE_LABELS,
     RISK_LEVEL_LABELS: RISK_LEVEL_LABELS,
@@ -3660,6 +3825,7 @@
     excludeHit: excludeHit,
     savePhylumUnitProducts: savePhylumUnitProducts,
     modifyResultValue: modifyResultValue,
+    setImportedRangeDecision: setImportedRangeDecision,
     supplementResult: supplementResult,
     submitReport: submitReport,
     withdrawReport: withdrawReport,
@@ -3743,6 +3909,15 @@
     },
     flattenSchemesToPlatformRanges: flattenSchemesToPlatformRanges,
     schemeHasValidItems: schemeHasValidItems,
+    findActiveSchemeConflict: findActiveSchemeConflict,
+    listKnownDetectionTemplates: listKnownDetectionTemplates,
+    sortBySchemeItemOrder: sortBySchemeItemOrder,
+    getActiveRangeSchemeForReport: function (reportId) {
+      var state = loadState();
+      var report = findReport(state, reportId);
+      var scheme = findMatchingActiveSchemeForReport(state, report);
+      return scheme ? clone(scheme) : null;
+    },
     saveReportAssessment: saveReportAssessment,
     saveReportWorkVersion: saveReportWorkVersion,
     buildContentSnapshot: function (reportId, versionNo, actor) {

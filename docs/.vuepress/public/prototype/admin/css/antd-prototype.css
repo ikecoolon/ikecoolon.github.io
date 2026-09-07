@@ -775,8 +775,16 @@ body.mk-drawer-open {
   background: #fafafa;
 }
 
-.rw-indicator-row.is-selected {
-  background: #e6f4ff;
+.rw-imported-range {
+  padding: 8px 10px;
+  border: 1px solid var(--ant-border, #d9d9d9);
+  border-radius: 6px;
+  background: #fafafa;
+}
+
+.rw-indicator-row .ant-tag {
+  margin-left: 4px;
+  font-size: 11px;
 }
 
 .rw-filter-btn {

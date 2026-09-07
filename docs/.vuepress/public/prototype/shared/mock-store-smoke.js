@@ -8,6 +8,7 @@ global.window = global;
 global.location = { hash: '', href: '' };
 global.document = {
   getElementById: function () { return null; },
+  addEventListener: function () {},
   body: {
     appendChild: function () {},
     querySelector: function () { return null; },
@@ -34,7 +35,9 @@ global.document = {
 };
 global.window.PetReportMockStore = store;
 require('../admin/js/admin-common.js');
+require('../admin/js/dictionary-data-service.js');
 var C = global.PetAdminCommon;
+var dictionaryDataService = global.dictionaryDataService;
 
 var passed = 0;
 var failed = 0;
@@ -75,7 +78,7 @@ function testSeed() {
   assert(!state.healthTagProducts, 'no healthTagProducts collection');
   assert(!state.claimCodes, 'no claimCodes collection');
   assert(!state.reportAnalysisAdjustments, 'no reportAnalysisAdjustments collection');
-  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v6', 'storage key v6');
+  assertEqual(store.STORAGE_KEY, 'pet-report-mock-store-v7', 'storage key v7');
   assertEqual(store.REPORT_STATUSES.join(','), 'unassigned,incomplete,pending_review,published,voided', 'five report statuses remain in model');
   assertEqual(store.OWNERSHIP_STATUSES.join(','), 'unassigned,bound', 'ownership two values');
   assert(store.WORKFLOW_STATUSES === store.REPORT_STATUSES, 'WORKFLOW_STATUSES aliases REPORT_STATUSES');
@@ -1169,6 +1172,112 @@ function testDomainAtomicityAndPermissions() {
   store.setActorFixture(null);
 }
 
+function testReferenceRangeSchemeRules() {
+  store.reset();
+  store.setActorFixture('default');
+  var schemes = store.getState().professionalCatalog.referenceRangeSchemes;
+  var catScheme = schemes.find(function (s) { return s.id === 'rrs-cat-gut-001'; });
+  var dogScheme = schemes.find(function (s) { return s.id === 'rrs-dog-gut-001'; });
+  assert(!!catScheme && !!dogScheme, 'seed 猫/狗参考范围方案存在');
+  assert(store.schemeHasValidItems({ items: catScheme.items, evidenceRef: '' }), '无专业依据仍可凭有效范围项启用');
+  assert(!store.schemeHasValidItems({ items: [], evidenceRef: '文献' }), '仅有依据说明不能启用');
+
+  var overlap = store.findActiveSchemeConflict(schemes, {
+    id: 'rrs-new',
+    templateId: catScheme.templateId,
+    status: 'active',
+    applicableSpecies: ['cat']
+  });
+  assert(overlap && overlap.id === 'rrs-cat-gut-001', '同模板同物种启用冲突');
+  assert(!store.findActiveSchemeConflict(schemes, catScheme), '保存自身不冲突');
+  assert(!store.findActiveSchemeConflict(schemes, {
+    id: 'rrs-draft',
+    templateId: catScheme.templateId,
+    status: 'draft',
+    applicableSpecies: ['cat']
+  }), '草稿不参与启用冲突');
+  assert(!store.findActiveSchemeConflict(schemes, {
+    id: 'rrs-bird',
+    templateId: catScheme.templateId,
+    status: 'active',
+    applicableSpecies: ['bird']
+  }), '同模板无物种重叠不冲突');
+
+  var templates = store.listKnownDetectionTemplates();
+  assert(templates.some(function (t) { return t.id === store.DEFAULT_SOURCE_ORG_ID; }), '已知检测模板含 001');
+  assert(templates.some(function (t) { return t.id === store.SECOND_SOURCE_ORG_ID; }), '已知检测模板含 002');
+
+  var schemeForReport = store.getActiveRangeSchemeForReport('report-002');
+  assert(schemeForReport && schemeForReport.id === 'rrs-cat-gut-001', 'report-002 匹配猫科启用方案');
+  var phylumResults = store.getEffectiveResults('report-002').filter(function (r) {
+    return r.level === 'phylum' && r.range;
+  });
+  var sorted = store.sortBySchemeItemOrder(phylumResults, schemeForReport);
+  assertEqual(sorted[0].key, schemeForReport.items[0].targetKey, '对比顺序跟随方案 items 数组');
+
+  var r2Actino = store.getEffectiveResults('report-002').find(function (r) { return r.key === 'Actinobacteria'; });
+  assert(r2Actino && r2Actino.importedRange, 'report-002 有待确认导入范围');
+  assertEqual(r2Actino.importedRangeDecision, 'pending', '未确认导入范围保持 pending');
+  assertEqual(r2Actino.rangeSource, 'platform', '待确认时有效范围走平台方案');
+
+  var r6 = store.getEffectiveResults('report-006');
+  var r6Firmi = r6.find(function (r) { return r.key === 'Firmicutes'; });
+  var r6Bactero = r6.find(function (r) { return r.key === 'Bacteroidetes'; });
+  var r6Actino = r6.find(function (r) { return r.key === 'Actinobacteria'; });
+  assertEqual(r6Firmi.rangeSource, 'imported', '已确认导入范围作为有效范围');
+  assertEqual(r6Firmi.range.min, 22, '确认后使用导入下限');
+  assertEqual(r6Bactero.rangeSource, 'platform', '驳回后回退平台方案');
+  assertEqual(r6Actino.importedRangeDecision, 'pending', 'report-006 放线菌门导入范围待确认');
+
+  store.setImportedRangeDecision({
+    reportId: 'report-006',
+    resultId: r6Actino.id,
+    decision: 'confirmed'
+  });
+  var r6ActinoAfter = store.getEffectiveResults('report-006').find(function (r) { return r.key === 'Actinobacteria'; });
+  assertEqual(r6ActinoAfter.rangeSource, 'imported', '确认后改用导入范围');
+  assertEqual(r6ActinoAfter.range.max, 38, '确认后使用导入上限');
+
+  store.setImportedRangeDecision({
+    reportId: 'report-006',
+    resultId: r6ActinoAfter.id,
+    decision: 'rejected'
+  });
+  var r6ActinoRejected = store.getEffectiveResults('report-006').find(function (r) { return r.key === 'Actinobacteria'; });
+  assertEqual(r6ActinoRejected.rangeSource, 'platform', '再驳回后回到平台方案');
+
+  var saveThrew = false;
+  try {
+    dictionaryDataService.saveReferenceRangeScheme({
+      name: '冲突启用方案',
+      templateId: store.DEFAULT_SOURCE_ORG_ID,
+      applicableSpecies: ['cat'],
+      status: 'active',
+      items: [{
+        targetType: 'microbiota', targetKey: 'Actinobacteria', taxonomyLevel: 'phylum',
+        minValue: 1, maxValue: 2, unit: '%'
+      }]
+    });
+  } catch (err) {
+    saveThrew = /重叠/.test(err.message);
+  }
+  assert(saveThrew, '保存冲突启用方案被拦截');
+
+  var draft = dictionaryDataService.saveReferenceRangeScheme({
+    name: '同模板草稿',
+    templateId: store.DEFAULT_SOURCE_ORG_ID,
+    applicableSpecies: ['cat'],
+    status: 'draft',
+    items: [{
+      targetType: 'microbiota', targetKey: 'Actinobacteria', taxonomyLevel: 'phylum',
+      minValue: 1, maxValue: 2, unit: '%'
+    }]
+  });
+  assert(draft && draft.status === 'draft', '同模板草稿可以保存');
+
+  store.reset();
+}
+
 function main() {
   testSeed();
   testStateMachine();
@@ -1185,6 +1294,7 @@ function main() {
   testLabScopedSampleDuplicates();
   testPermissionsUsersAndProducts();
   testDomainAtomicityAndPermissions();
+  testReferenceRangeSchemeRules();
 
   console.log('\n' + passed + ' passed, ' + failed + ' failed');
   if (failed) process.exit(1);

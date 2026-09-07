@@ -55,6 +55,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
   var formTitle = root.querySelector('#form-title');
   var itemsBody = root.querySelector('#items-body');
   var speciesCheckboxes = root.querySelector('#species-checkboxes');
+  var itemsScroll = root.querySelector('.nrc-items-scroll');
 
   var currentEditId = null;
   var formItems = [];
@@ -62,6 +63,10 @@ function initNormalRangeConfigCore(mountRoot, tab) {
   var listApi = null;
   var tabActive = true;
   var activeImportModal = null;
+  var activeCopyModal = null;
+  var comboboxMenu = null;
+  var comboboxOwner = null;
+  var indicatorCatalogCache = null;
 
   var STATUS_LABELS = {
     active: '启用',
@@ -95,17 +100,28 @@ function initNormalRangeConfigCore(mountRoot, tab) {
     }
   }
 
+  function closeCombobox() {
+    if (comboboxMenu) comboboxMenu.hidden = true;
+    comboboxOwner = null;
+  }
+
   function syncFormReadOnly() {
     var ro = !canEditCatalog();
     pageEl.classList.toggle('nrc-readonly', ro);
     schemeForm.querySelectorAll('input, select, textarea').forEach(function (el) {
+      if (el.classList.contains('nrc-meta-input')) {
+        el.readOnly = true;
+        return;
+      }
       el.disabled = ro;
     });
     var saveBtn = schemeForm.querySelector('[type="submit"]');
     if (saveBtn) saveBtn.disabled = ro;
-    var addBtn = q('#add-item-btn');
-    if (addBtn) addBtn.disabled = ro;
-    itemsBody.querySelectorAll('.remove-item-btn').forEach(function (btn) {
+    ['#add-item-btn', '#copy-items-btn', '#prefill-phyla-btn'].forEach(function (sel) {
+      var btn = q(sel);
+      if (btn) btn.disabled = ro;
+    });
+    itemsBody.querySelectorAll('button').forEach(function (btn) {
       btn.disabled = ro;
     });
   }
@@ -113,7 +129,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
   function persistFormSession(forEditId) {
     if (!tab) return;
     if (!formView.classList.contains('hidden')) {
-      formItems = collectItemsFromTable();
+      formItems = readRowsFromTable();
     }
     var key = entityKey(forEditId !== undefined ? forEditId : currentEditId);
     var sessions = getFormSessions();
@@ -141,6 +157,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
     if (!saved) return false;
     currentEditId = saved.editId || null;
     formItems = (saved.formItems || []).map(function (item) { return Object.assign({}, item); });
+    populateTemplateSelect(saved.formSnapshot && saved.formSnapshot.template);
     if (saved.formSnapshot) {
       q('#scheme-name').value = saved.formSnapshot.name || '';
       q('#scheme-template').value = saved.formSnapshot.template || '';
@@ -173,6 +190,29 @@ function initNormalRangeConfigCore(mountRoot, tab) {
 
   function getSchemes() {
     return svc.getReferenceRangeSchemes(false);
+  }
+
+  function knownTemplates() {
+    return svc.listKnownDetectionTemplates ? svc.listKnownDetectionTemplates() : [];
+  }
+
+  function templateLabel(id) {
+    var found = knownTemplates().find(function (t) { return t.id === id; });
+    return found ? found.name : (id || '—');
+  }
+
+  function populateTemplateSelect(selectedId) {
+    var sel = q('#scheme-template');
+    if (!sel) return;
+    var templates = knownTemplates().slice();
+    if (selectedId && !templates.some(function (t) { return t.id === selectedId; })) {
+      templates.push({ id: selectedId, name: selectedId + '（未列入已知模板）' });
+    }
+    sel.innerHTML = '<option value="">请选择检测模板</option>' + templates.map(function (t) {
+      return '<option value="' + C.escapeHtml(t.id) + '"' +
+        (t.id === selectedId ? ' selected' : '') + '>' +
+        C.escapeHtml(t.name) + '</option>';
+    }).join('');
   }
 
   function speciesOptions() {
@@ -210,9 +250,9 @@ function initNormalRangeConfigCore(mountRoot, tab) {
 
   function defaultItemRow() {
     return {
-      targetType: 'microbiota',
+      targetType: '',
       targetKey: '',
-      taxonomyLevel: 'phylum',
+      taxonomyLevel: '',
       minValue: '',
       maxValue: '',
       unit: '%',
@@ -220,63 +260,219 @@ function initNormalRangeConfigCore(mountRoot, tab) {
     };
   }
 
-  function indicatorOptionsHtml(selectedKey) {
-    var html = '<optgroup label="菌群门">';
-    Object.keys(svc.getMicrobiotaTree()).forEach(function (phylum) {
-      html += '<option value="' + C.escapeHtml(phylum) + '" data-type="microbiota" data-level="phylum"' +
-        (selectedKey === phylum ? ' selected' : '') + '>' + C.escapeHtml(phylum) + '</option>';
+  function listIndicatorCatalog() {
+    if (indicatorCatalogCache) return indicatorCatalogCache;
+    var items = [];
+    (svc.getMicrobiotaTaxa() || []).forEach(function (taxon) {
+      if (!taxon || !taxon.key) return;
+      var group = taxon.level === 'genus' ? '菌群属' : '菌群门';
+      items.push({
+        key: taxon.key,
+        label: taxon.label || taxon.key,
+        latinName: taxon.latinName || '',
+        group: group,
+        targetType: 'microbiota',
+        taxonomyLevel: taxon.level || 'phylum',
+        searchText: [taxon.key, taxon.label, taxon.latinName].join(' ').toLowerCase()
+      });
     });
-    html += '</optgroup><optgroup label="菌群属">';
-    svc.getMicrobiotaTaxa().filter(function (t) { return t.level === 'genus'; }).forEach(function (genus) {
-      html += '<option value="' + C.escapeHtml(genus.key) + '" data-type="microbiota" data-level="genus"' +
-        (selectedKey === genus.key ? ' selected' : '') + '>' + C.escapeHtml(genus.label) + '</option>';
+    (svc.getTestIndicators() || []).forEach(function (ind) {
+      if (!ind || !ind.key) return;
+      items.push({
+        key: ind.key,
+        label: ind.label || ind.key,
+        latinName: '',
+        group: '普通指标',
+        targetType: 'indicator',
+        taxonomyLevel: '',
+        searchText: [ind.key, ind.label].join(' ').toLowerCase()
+      });
     });
-    html += '</optgroup><optgroup label="普通指标">';
-    svc.getTestIndicators().forEach(function (item) {
-      html += '<option value="' + C.escapeHtml(item.key) + '" data-type="indicator" data-level=""' +
-        (selectedKey === item.key ? ' selected' : '') + '>' + C.escapeHtml(item.label) + '</option>';
-    });
-    html += '</optgroup>';
-    return html;
+    indicatorCatalogCache = items;
+    return items;
+  }
+
+  function indicatorMeta(key) {
+    return listIndicatorCatalog().find(function (item) { return item.key === key; }) || null;
+  }
+
+  function indicatorDisplayLabel(key) {
+    var meta = indicatorMeta(key);
+    if (!meta) return key || '';
+    return meta.latinName && meta.latinName !== meta.label
+      ? meta.label + ' (' + meta.latinName + ')'
+      : meta.label;
+  }
+
+  function typeLabel(type) {
+    if (type === 'indicator') return '普通指标';
+    if (type === 'microbiota') return '菌群';
+    return '—';
+  }
+
+  function levelLabel(level) {
+    if (level === 'phylum') return '门';
+    if (level === 'genus') return '属';
+    return '—';
+  }
+
+  function applyCatalogMeta(item) {
+    var meta = indicatorMeta(item.targetKey);
+    if (!meta) return item;
+    item.targetType = meta.targetType;
+    item.taxonomyLevel = meta.taxonomyLevel || '';
+    return item;
+  }
+
+  function formatCellValue(val) {
+    if (val == null || val === '' || (typeof val === 'number' && isNaN(val))) return '';
+    return val;
   }
 
   function renderItemsTable() {
     if (!formItems.length) formItems = [defaultItemRow()];
-    itemsBody.innerHTML = formItems.map(function (item, idx) {
+    itemsBody.innerHTML = formItems.map(function (raw, idx) {
+      var item = applyCatalogMeta(Object.assign({}, raw));
+      var display = item.targetKey ? indicatorDisplayLabel(item.targetKey) : '';
+      var upDisabled = idx === 0 ? ' disabled' : '';
+      var downDisabled = idx === formItems.length - 1 ? ' disabled' : '';
       return '<tr data-item-idx="' + idx + '">' +
-        '<td class="rondo-table-cell"><select class="item-target rondo-select ant-select-native">' + indicatorOptionsHtml(item.targetKey) + '</select></td>' +
-        '<td class="rondo-table-cell"><select class="item-type rondo-select ant-select-native">' +
-          '<option value="microbiota"' + (item.targetType === 'microbiota' ? ' selected' : '') + '>菌群</option>' +
-          '<option value="indicator"' + (item.targetType === 'indicator' ? ' selected' : '') + '>普通指标</option>' +
-        '</select></td>' +
-        '<td class="rondo-table-cell"><select class="item-level rondo-select ant-select-native">' +
-          '<option value="phylum"' + (item.taxonomyLevel === 'phylum' ? ' selected' : '') + '>门</option>' +
-          '<option value="genus"' + (item.taxonomyLevel === 'genus' ? ' selected' : '') + '>属</option>' +
-          '<option value=""' + (!item.taxonomyLevel ? ' selected' : '') + '>—</option>' +
-        '</select></td>' +
-        '<td class="rondo-table-cell"><input type="number" class="item-min rondo-input ant-input" step="0.01" value="' + C.escapeHtml(item.minValue) + '"></td>' +
-        '<td class="rondo-table-cell"><input type="number" class="item-max rondo-input ant-input" step="0.01" value="' + C.escapeHtml(item.maxValue) + '"></td>' +
-        '<td class="rondo-table-cell"><input type="text" class="item-unit rondo-input ant-input" value="' + C.escapeHtml(item.unit || '%') + '"></td>' +
-        '<td class="rondo-table-cell"><input type="text" class="item-notes rondo-input ant-input" value="' + C.escapeHtml(item.notes || '') + '"></td>' +
-        '<td class="rondo-table-cell"><button type="button" class="rondo-btn rondo-btn-link rondo-btn-link-danger remove-item-btn" data-idx="' + idx + '"><i class="fas fa-times"></i></button></td>' +
+        '<td class="rondo-table-cell nrc-row-num">' + (idx + 1) + '</td>' +
+        '<td class="rondo-table-cell nrc-indicator-cell">' +
+          '<div class="nrc-combobox">' +
+            '<input type="hidden" class="item-target" value="' + C.escapeHtml(item.targetKey || '') + '">' +
+            '<input type="text" class="item-target-search rondo-input ant-input" autocomplete="off" ' +
+              'placeholder="搜索指标…" value="' + C.escapeHtml(display) + '">' +
+          '</div>' +
+        '</td>' +
+        '<td class="rondo-table-cell">' +
+          '<input type="hidden" class="item-type" value="' + C.escapeHtml(item.targetType || '') + '">' +
+          '<input type="text" class="item-type-label nrc-meta-input rondo-input ant-input" readonly tabindex="-1" value="' +
+            C.escapeHtml(typeLabel(item.targetType)) + '">' +
+        '</td>' +
+        '<td class="rondo-table-cell">' +
+          '<input type="hidden" class="item-level" value="' + C.escapeHtml(item.taxonomyLevel || '') + '">' +
+          '<input type="text" class="item-level-label nrc-meta-input rondo-input ant-input" readonly tabindex="-1" value="' +
+            C.escapeHtml(levelLabel(item.taxonomyLevel)) + '">' +
+        '</td>' +
+        '<td class="rondo-table-cell"><input type="number" class="item-min rondo-input ant-input" step="0.01" value="' +
+          C.escapeHtml(formatCellValue(item.minValue)) + '"></td>' +
+        '<td class="rondo-table-cell"><input type="number" class="item-max rondo-input ant-input" step="0.01" value="' +
+          C.escapeHtml(formatCellValue(item.maxValue)) + '"></td>' +
+        '<td class="rondo-table-cell"><input type="text" class="item-unit rondo-input ant-input" value="' +
+          C.escapeHtml(item.unit || '%') + '"></td>' +
+        '<td class="rondo-table-cell"><input type="text" class="item-notes rondo-input ant-input" value="' +
+          C.escapeHtml(item.notes || '') + '"></td>' +
+        '<td class="rondo-table-cell">' +
+          '<div class="nrc-row-actions">' +
+            '<button type="button" class="nrc-icon-btn move-up-btn" data-idx="' + idx + '" title="上移"' + upDisabled +
+              '><i class="fas fa-arrow-up"></i></button>' +
+            '<button type="button" class="nrc-icon-btn move-down-btn" data-idx="' + idx + '" title="下移"' + downDisabled +
+              '><i class="fas fa-arrow-down"></i></button>' +
+            '<button type="button" class="nrc-icon-btn insert-below-btn" data-idx="' + idx + '" title="在此下方插入">' +
+              '<i class="fas fa-plus"></i></button>' +
+            '<button type="button" class="nrc-icon-btn is-danger remove-item-btn" data-idx="' + idx + '" title="删除">' +
+              '<i class="fas fa-times"></i></button>' +
+          '</div>' +
+        '</td>' +
       '</tr>';
     }).join('');
     syncFormReadOnly();
   }
 
-  function collectItemsFromTable() {
+  function parseNumericField(raw) {
+    if (raw == null || String(raw).trim() === '') return '';
+    var n = parseFloat(raw);
+    return isNaN(n) ? '' : n;
+  }
+
+  function readRowsFromTable() {
+    if (!itemsBody) return formItems.slice();
     return Array.prototype.slice.call(itemsBody.querySelectorAll('tr')).map(function (row) {
-      var targetSelect = row.querySelector('.item-target');
+      var target = row.querySelector('.item-target');
       return {
         targetType: row.querySelector('.item-type').value,
-        targetKey: targetSelect.value,
-        taxonomyLevel: row.querySelector('.item-level').value || null,
-        minValue: parseFloat(row.querySelector('.item-min').value),
-        maxValue: parseFloat(row.querySelector('.item-max').value),
+        targetKey: target ? target.value : '',
+        taxonomyLevel: row.querySelector('.item-level').value || '',
+        minValue: parseNumericField(row.querySelector('.item-min').value),
+        maxValue: parseNumericField(row.querySelector('.item-max').value),
         unit: row.querySelector('.item-unit').value.trim() || '%',
         notes: row.querySelector('.item-notes').value.trim()
       };
-    }).filter(function (item) { return item.targetKey; });
+    });
+  }
+
+  function collectValidItems() {
+    return readRowsFromTable().filter(function (item) { return item.targetKey; });
+  }
+
+  function ensureComboboxMenu() {
+    if (comboboxMenu) return comboboxMenu;
+    comboboxMenu = document.createElement('div');
+    comboboxMenu.className = 'nrc-combobox-menu';
+    comboboxMenu.hidden = true;
+    comboboxMenu.setAttribute('role', 'listbox');
+    document.body.appendChild(comboboxMenu);
+    comboboxMenu.addEventListener('mousedown', function (e) {
+      var opt = e.target.closest('.nrc-combobox-option');
+      if (!opt) return;
+      e.preventDefault();
+      selectIndicatorOption(opt.getAttribute('data-key'));
+    });
+    return comboboxMenu;
+  }
+
+  function filterCatalog(query) {
+    var qstr = String(query || '').trim().toLowerCase();
+    var list = listIndicatorCatalog();
+    if (!qstr) return list;
+    return list.filter(function (item) { return item.searchText.indexOf(qstr) >= 0; });
+  }
+
+  function openCombobox(input, fromTyping) {
+    var menu = ensureComboboxMenu();
+    comboboxOwner = input;
+    var hidden = input.parentNode && input.parentNode.querySelector('.item-target');
+    var query = input.value;
+    if (!fromTyping && hidden && hidden.value && input.value === indicatorDisplayLabel(hidden.value)) {
+      query = '';
+    }
+    var matches = filterCatalog(query);
+    var html = '';
+    var lastGroup = '';
+    matches.forEach(function (item) {
+      if (item.group !== lastGroup) {
+        lastGroup = item.group;
+        html += '<div class="nrc-combobox-group">' + C.escapeHtml(item.group) + '</div>';
+      }
+      var text = item.latinName && item.latinName !== item.label
+        ? item.label + ' · ' + item.latinName
+        : item.label;
+      html += '<button type="button" class="nrc-combobox-option" role="option" data-key="' +
+        C.escapeHtml(item.key) + '">' + C.escapeHtml(text) + '</button>';
+    });
+    menu.innerHTML = html || '<div class="nrc-combobox-empty">无匹配指标</div>';
+    var rect = input.getBoundingClientRect();
+    menu.style.left = Math.round(rect.left) + 'px';
+    menu.style.top = Math.round(rect.bottom + 2) + 'px';
+    menu.style.width = Math.max(rect.width, 240) + 'px';
+    menu.hidden = false;
+  }
+
+  function selectIndicatorOption(key) {
+    if (!comboboxOwner) return;
+    var row = comboboxOwner.closest('tr');
+    var meta = indicatorMeta(key);
+    var hidden = row.querySelector('.item-target');
+    hidden.value = key || '';
+    comboboxOwner.value = key ? indicatorDisplayLabel(key) : '';
+    row.querySelector('.item-type').value = meta ? meta.targetType : '';
+    row.querySelector('.item-type-label').value = typeLabel(meta && meta.targetType);
+    row.querySelector('.item-level').value = meta ? (meta.taxonomyLevel || '') : '';
+    row.querySelector('.item-level-label').value = levelLabel(meta && meta.taxonomyLevel);
+    closeCombobox();
+    setDirty(true);
+    persistFormSession();
   }
 
   function confirmLeaveForm() {
@@ -290,6 +486,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
     setDirty(false);
     clearFormSession(leavingId);
     currentEditId = null;
+    closeCombobox();
     listView.classList.remove('hidden');
     formView.classList.add('hidden');
     C.navigate('normal-range-config', {});
@@ -298,6 +495,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
   }
 
   function loadFormFromScheme(scheme) {
+    populateTemplateSelect(scheme.templateId || '');
     q('#scheme-name').value = scheme.name || '';
     q('#scheme-template').value = scheme.templateId || '';
     q('#scheme-method').value = scheme.methodName || '';
@@ -306,7 +504,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
     q('#scheme-evidence-ref').value = scheme.evidenceRef || '';
     renderSpeciesCheckboxes(scheme.applicableSpecies || []);
     formItems = (scheme.items || []).length
-      ? scheme.items.map(function (item) { return Object.assign({}, item); })
+      ? scheme.items.map(function (item) { return applyCatalogMeta(Object.assign({}, item)); })
       : [defaultItemRow()];
   }
 
@@ -347,9 +545,10 @@ function initNormalRangeConfigCore(mountRoot, tab) {
       loadFormFromScheme(scheme);
       C.navigate('normal-range-config', { edit: editId });
     } else {
+      populateTemplateSelect('');
       renderSpeciesCheckboxes([]);
       q('#scheme-evidence-type').value = 'internal';
-      q('#scheme-evidence-ref').value = '检测机构内部参考范围';
+      q('#scheme-evidence-ref').value = '';
       C.navigate('normal-range-config', { edit: 'new' });
     }
     renderItemsTable();
@@ -359,9 +558,8 @@ function initNormalRangeConfigCore(mountRoot, tab) {
   function validateSchemeForm() {
     var name = q('#scheme-name').value.trim();
     var templateId = q('#scheme-template').value.trim();
-    var evidenceRef = q('#scheme-evidence-ref').value.trim();
     var species = selectedSpeciesFromForm();
-    var items = collectItemsFromTable();
+    var items = collectValidItems();
     if (!name || !templateId) {
       C.toast('请填写方案名称与检测模板', 'warning');
       return false;
@@ -370,26 +568,19 @@ function initNormalRangeConfigCore(mountRoot, tab) {
       C.toast('请至少勾选一个适用物种', 'warning');
       return false;
     }
-    if (!evidenceRef) {
-      C.toast('请填写专业依据', 'warning');
-      return false;
-    }
     if (!items.length) {
       C.toast('请至少添加一条有效范围项', 'warning');
       return false;
     }
     var invalid = items.some(function (item) {
-      return isNaN(item.minValue) || isNaN(item.maxValue) || item.minValue >= item.maxValue;
+      return typeof item.minValue !== 'number' || typeof item.maxValue !== 'number' || item.minValue >= item.maxValue;
     });
     if (invalid) {
       C.toast('请检查范围项数值（最小值须小于最大值）', 'warning');
       return false;
     }
-    if (q('#scheme-status').value === 'active' && !svc.schemeHasValidItems({
-      evidenceRef: evidenceRef,
-      items: items
-    })) {
-      C.toast('启用方案需要专业依据且至少一条有效范围', 'warning');
+    if (q('#scheme-status').value === 'active' && !svc.schemeHasValidItems({ items: items })) {
+      C.toast('启用方案至少需要一条有效范围', 'warning');
       return false;
     }
     return true;
@@ -401,6 +592,9 @@ function initNormalRangeConfigCore(mountRoot, tab) {
       speciesOptions().map(function (major) {
         return { value: major.key, label: major.label.replace(/科$/, '') };
       })
+    );
+    var templateFilterOptions = [{ value: '', label: '全部模板' }].concat(
+      knownTemplates().map(function (t) { return { value: t.id, label: t.name }; })
     );
     var toolbarActions = [];
     if (canEditCatalog()) {
@@ -421,13 +615,13 @@ function initNormalRangeConfigCore(mountRoot, tab) {
           { value: 'draft', label: '草稿' },
           { value: 'disabled', label: '停用' }
         ]},
-        { name: 'template', label: '检测模板', placeholder: '模板 ID' },
+        { name: 'template', label: '检测模板', type: 'select', options: templateFilterOptions },
         { name: 'name', label: '方案名称', placeholder: '搜索方案名称' }
       ],
       toolbarActions: toolbarActions,
       columns: [
         { title: '方案名称', dataIndex: 'name', sortable: true },
-        { title: '检测模板', dataIndex: 'templateId' },
+        { title: '检测模板', dataIndex: 'templateText' },
         { title: '适用物种', dataIndex: 'speciesText' },
         { title: '专业依据', dataIndex: 'evidenceRef', ellipsis: true },
         { title: '范围项', dataIndex: 'itemCount' },
@@ -445,19 +639,19 @@ function initNormalRangeConfigCore(mountRoot, tab) {
         var filters = query.filters || {};
         var species = filters.species || '';
         var status = filters.status || '';
-        var template = String(filters.template || '').trim().toLowerCase();
+        var template = String(filters.template || '').trim();
         var name = String(filters.name || '').trim().toLowerCase();
         var rows = getSchemes().filter(function (scheme) {
           if (species && (!scheme.applicableSpecies || scheme.applicableSpecies.indexOf(species) < 0)) return false;
           if (status && scheme.status !== status) return false;
-          if (template && String(scheme.templateId || '').toLowerCase().indexOf(template) < 0) return false;
+          if (template && String(scheme.templateId || '') !== template) return false;
           if (name && String(scheme.name || '').toLowerCase().indexOf(name) < 0) return false;
           return true;
         }).map(function (scheme) {
           return {
             id: scheme.id,
             name: scheme.name || '—',
-            templateId: scheme.templateId || '—',
+            templateText: templateLabel(scheme.templateId),
             speciesText: speciesLabels(scheme.applicableSpecies),
             evidenceRef: scheme.evidenceRef || '—',
             itemCount: (scheme.items || []).length,
@@ -549,7 +743,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
           methodName: row.methodName || '',
           applicableSpecies: [],
           evidenceType: row.evidenceType === 'demo' ? 'internal' : (row.evidenceType || 'internal'),
-          evidenceRef: row.evidenceRef || '检测机构内部参考范围',
+          evidenceRef: row.evidenceRef || '',
           status: row.status || 'draft',
           items: []
         };
@@ -579,7 +773,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
 
   function downloadImportTemplate() {
     var csv = 'schemeName,templateId,methodName,species,evidenceType,evidenceRef,status,targetType,targetKey,taxonomyLevel,minValue,maxValue,unit,notes\n' +
-      '猫科肠道检测,ORG-LAB-GUT-001,16S肠道菌群,cat,internal,检测机构内部参考范围,draft,microbiota,放线菌门,phylum,25,45,%,\n';
+      '猫科肠道检测,ORG-LAB-GUT-001,16S肠道菌群,cat,internal,,draft,microbiota,Actinobacteria,phylum,25,45,%,\n';
     var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -620,7 +814,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
           C.toast('请选择 CSV 文件', 'warning');
           return false;
         }
-        return new Promise(function (resolve, reject) {
+        return new Promise(function (resolve) {
           var reader = new FileReader();
           reader.onload = function (ev) {
             try {
@@ -654,36 +848,194 @@ function initNormalRangeConfigCore(mountRoot, tab) {
     }
   }
 
+  function cloneSchemeItems(scheme) {
+    return ((scheme && scheme.items) || []).map(function (item) {
+      return applyCatalogMeta(Object.assign({}, item));
+    });
+  }
+
+  function openCopyItemsModal() {
+    if (!canEditCatalog()) return;
+    if (!Modal) {
+      C.toast('组件未加载', 'error');
+      return;
+    }
+    if (activeCopyModal) {
+      activeCopyModal.close();
+      activeCopyModal = null;
+    }
+    var others = getSchemes().filter(function (s) { return s.id !== currentEditId; });
+    if (!others.length) {
+      C.toast('没有可复制的其他方案', 'warning');
+      return;
+    }
+    var options = others.map(function (s) {
+      return '<option value="' + C.escapeHtml(s.id) + '">' +
+        C.escapeHtml((s.name || s.id) + ' · ' + templateLabel(s.templateId) + ' · ' + (s.items || []).length + ' 项') +
+        '</option>';
+    }).join('');
+    var bodyHtml =
+      '<div class="rondo-form-field">' +
+      '<label class="rondo-form-label" for="nrc-copy-scheme">来源方案</label>' +
+      '<select id="nrc-copy-scheme" class="rondo-select ant-select-native">' + options + '</select>' +
+      '</div>' +
+      '<fieldset class="rondo-form-field">' +
+      '<legend class="rondo-form-label">复制方式</legend>' +
+      '<label class="rondo-checkbox-card"><input type="radio" name="nrc-copy-mode" value="replace" checked> 替换当前范围项</label>' +
+      '<label class="rondo-checkbox-card"><input type="radio" name="nrc-copy-mode" value="append"> 追加到末尾</label>' +
+      '</fieldset>' +
+      '<p class="rondo-form-hint">默认替换：若当前已有已选指标，确认后整表换成来源方案的范围项（含顺序）。追加不会去重。</p>';
+    activeCopyModal = Modal.open({
+      title: '从其他方案复制范围项',
+      bodyHtml: bodyHtml,
+      okLabel: '复制',
+      cancelLabel: '取消',
+      onOk: function (close, overlay) {
+        var sourceId = overlay.querySelector('#nrc-copy-scheme').value;
+        var modeEl = overlay.querySelector('input[name="nrc-copy-mode"]:checked');
+        var mode = modeEl ? modeEl.value : 'replace';
+        var source = getSchemes().find(function (s) { return s.id === sourceId; });
+        if (!source) {
+          C.toast('方案不存在', 'warning');
+          return false;
+        }
+        var copied = cloneSchemeItems(source);
+        if (!copied.length) {
+          C.toast('来源方案没有范围项', 'warning');
+          return false;
+        }
+        formItems = readRowsFromTable();
+        var hasFilled = formItems.some(function (item) { return item.targetKey; });
+        if (mode === 'replace' && hasFilled) {
+          if (!window.confirm('将用「' + (source.name || source.id) + '」的范围项替换当前表格，确定吗？')) {
+            return false;
+          }
+          formItems = copied;
+        } else if (mode === 'replace') {
+          formItems = copied;
+        } else {
+          var kept = formItems.filter(function (item) { return item.targetKey || item.minValue !== '' || item.maxValue !== ''; });
+          if (!kept.length) kept = [];
+          formItems = kept.concat(copied);
+        }
+        renderItemsTable();
+        setDirty(true);
+        persistFormSession();
+        C.toast('已复制 ' + copied.length + ' 条范围项', 'success');
+        return true;
+      },
+      onClose: function () {
+        activeCopyModal = null;
+      }
+    });
+  }
+
+  function prefillPhylumRows() {
+    if (!canEditCatalog()) return;
+    formItems = readRowsFromTable();
+    var existing = {};
+    formItems.forEach(function (item) {
+      if (item.targetKey) existing[item.targetKey] = true;
+    });
+    var added = 0;
+    (svc.getMicrobiotaTaxa() || []).filter(function (t) { return t.level === 'phylum'; }).forEach(function (phylum) {
+      if (existing[phylum.key]) return;
+      formItems.push({
+        targetType: 'microbiota',
+        targetKey: phylum.key,
+        taxonomyLevel: 'phylum',
+        minValue: '',
+        maxValue: '',
+        unit: '%',
+        notes: ''
+      });
+      existing[phylum.key] = true;
+      added += 1;
+    });
+    formItems = formItems.filter(function (item, idx, arr) {
+      if (item.targetKey) return true;
+      var others = arr.filter(function (row) { return row.targetKey; });
+      return others.length === 0 && idx === 0;
+    });
+    if (!added) {
+      C.toast('菌门空行已齐全', 'info');
+      renderItemsTable();
+      return;
+    }
+    renderItemsTable();
+    setDirty(true);
+    persistFormSession();
+    C.toast('已预填 ' + added + ' 条菌门空行', 'success');
+  }
+
   function onBackToListClick() { showListView(false); }
   function onCancelFormClick() { showListView(false); }
   function onAddItemClick() {
     if (!canEditCatalog()) return;
-    formItems = collectItemsFromTable();
+    formItems = readRowsFromTable();
     formItems.push(defaultItemRow());
     renderItemsTable();
     setDirty(true);
     persistFormSession();
   }
+  function onCopyItemsClick() { openCopyItemsModal(); }
+  function onPrefillPhylaClick() { prefillPhylumRows(); }
+
   function onItemsBodyClick(e) {
-    var btn = e.target.closest('.remove-item-btn');
-    if (!btn || !canEditCatalog()) return;
-    formItems = collectItemsFromTable();
-    formItems.splice(Number(btn.getAttribute('data-idx')), 1);
-    if (!formItems.length) formItems = [defaultItemRow()];
+    if (!canEditCatalog()) return;
+    var btn = e.target.closest('button');
+    if (!btn) return;
+    var idx = Number(btn.getAttribute('data-idx'));
+    if (isNaN(idx)) return;
+    formItems = readRowsFromTable();
+    if (btn.classList.contains('remove-item-btn')) {
+      formItems.splice(idx, 1);
+      if (!formItems.length) formItems = [defaultItemRow()];
+    } else if (btn.classList.contains('insert-below-btn')) {
+      formItems.splice(idx + 1, 0, defaultItemRow());
+    } else if (btn.classList.contains('move-up-btn')) {
+      if (idx <= 0) return;
+      var up = formItems[idx - 1];
+      formItems[idx - 1] = formItems[idx];
+      formItems[idx] = up;
+    } else if (btn.classList.contains('move-down-btn')) {
+      if (idx >= formItems.length - 1) return;
+      var down = formItems[idx + 1];
+      formItems[idx + 1] = formItems[idx];
+      formItems[idx] = down;
+    } else {
+      return;
+    }
     renderItemsTable();
     setDirty(true);
     persistFormSession();
   }
-  function onItemsBodyChange(e) {
-    if (!e.target.classList.contains('item-target')) return;
-    var row = e.target.closest('tr');
-    var opt = e.target.options[e.target.selectedIndex];
-    row.querySelector('.item-type').value = opt.getAttribute('data-type') || 'microbiota';
-    row.querySelector('.item-level').value = opt.getAttribute('data-level') || '';
+
+  function onItemsBodyFocus(e) {
+    if (!e.target.classList.contains('item-target-search') || !canEditCatalog()) return;
+    openCombobox(e.target);
+  }
+
+  function onItemsBodyInput(e) {
+    if (e.target.classList.contains('item-target-search')) {
+    openCombobox(e.target, true);
+    }
     setDirty(true);
     persistFormSession();
   }
-  function onFormInput() {
+
+  function onDocumentPointerDown(e) {
+    if (!comboboxMenu || comboboxMenu.hidden) return;
+    if (comboboxMenu.contains(e.target)) return;
+    if (e.target && e.target.classList && e.target.classList.contains('item-target-search')) return;
+    if (comboboxOwner && e.target === comboboxOwner) return;
+    closeCombobox();
+  }
+
+  function onItemsScrollClose() { closeCombobox(); }
+
+  function onFormInput(e) {
+    if (e.target && e.target.classList && e.target.classList.contains('item-target-search')) return;
     setDirty(true);
     persistFormSession();
   }
@@ -704,7 +1056,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
         evidenceType: q('#scheme-evidence-type').value,
         evidenceRef: q('#scheme-evidence-ref').value.trim(),
         status: q('#scheme-status').value,
-        items: collectItemsFromTable(),
+        items: collectValidItems(),
         bumpVersion: !!currentEditId
       });
       C.toast('参考范围方案已保存；新配置不追溯改变已发布报告冻结范围', 'success');
@@ -715,9 +1067,11 @@ function initNormalRangeConfigCore(mountRoot, tab) {
     }
   }
   function onCatalogUpdated() {
+    indicatorCatalogCache = null;
     if (!tabActive) return;
     if (!formView.classList.contains('hidden')) {
       renderSpeciesCheckboxes(selectedSpeciesFromForm());
+      populateTemplateSelect(q('#scheme-template').value);
       syncFormReadOnly();
     } else if (listApi) {
       listApi.reload();
@@ -727,8 +1081,13 @@ function initNormalRangeConfigCore(mountRoot, tab) {
   q('#back-to-list-btn').addEventListener('click', onBackToListClick);
   q('#cancel-form-btn').addEventListener('click', onCancelFormClick);
   q('#add-item-btn').addEventListener('click', onAddItemClick);
+  q('#copy-items-btn').addEventListener('click', onCopyItemsClick);
+  q('#prefill-phyla-btn').addEventListener('click', onPrefillPhylaClick);
   itemsBody.addEventListener('click', onItemsBodyClick);
-  itemsBody.addEventListener('change', onItemsBodyChange);
+  itemsBody.addEventListener('focusin', onItemsBodyFocus);
+  itemsBody.addEventListener('input', onItemsBodyInput);
+  if (itemsScroll) itemsScroll.addEventListener('scroll', onItemsScrollClose);
+  document.addEventListener('mousedown', onDocumentPointerDown);
   schemeForm.addEventListener('input', onFormInput);
   schemeForm.addEventListener('change', onFormInput);
   schemeForm.addEventListener('submit', onFormSubmit);
@@ -749,6 +1108,7 @@ function initNormalRangeConfigCore(mountRoot, tab) {
     if (!formView.classList.contains('hidden')) {
       persistFormSession();
     }
+    closeCombobox();
     tabActive = false;
   }
 
@@ -791,18 +1151,30 @@ function initNormalRangeConfigCore(mountRoot, tab) {
 
   return function teardown() {
     delete window.__petAdminOpenRangeScheme;
+    closeCombobox();
+    if (comboboxMenu && comboboxMenu.parentNode) comboboxMenu.parentNode.removeChild(comboboxMenu);
+    comboboxMenu = null;
     if (activeImportModal) {
       activeImportModal.close();
       activeImportModal = null;
     }
+    if (activeCopyModal) {
+      activeCopyModal.close();
+      activeCopyModal = null;
+    }
     unsub();
     document.removeEventListener('professionalCatalogUpdated', onCatalogUpdated);
+    document.removeEventListener('mousedown', onDocumentPointerDown);
     window.removeEventListener('hashchange', onHashChange);
     q('#back-to-list-btn').removeEventListener('click', onBackToListClick);
     q('#cancel-form-btn').removeEventListener('click', onCancelFormClick);
     q('#add-item-btn').removeEventListener('click', onAddItemClick);
+    q('#copy-items-btn').removeEventListener('click', onCopyItemsClick);
+    q('#prefill-phyla-btn').removeEventListener('click', onPrefillPhylaClick);
     itemsBody.removeEventListener('click', onItemsBodyClick);
-    itemsBody.removeEventListener('change', onItemsBodyChange);
+    itemsBody.removeEventListener('focusin', onItemsBodyFocus);
+    itemsBody.removeEventListener('input', onItemsBodyInput);
+    if (itemsScroll) itemsScroll.removeEventListener('scroll', onItemsScrollClose);
     schemeForm.removeEventListener('input', onFormInput);
     schemeForm.removeEventListener('change', onFormInput);
     schemeForm.removeEventListener('submit', onFormSubmit);
