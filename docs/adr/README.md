@@ -13,6 +13,7 @@
 - [ADR-0035：报告编制与审核采用可组合权限](./0035-separate-composable-report-permissions.md)
 - [ADR-0036：送检登记拆开承接门店与检测机构](./0036-split-fulfilling-store-and-lab-on-test-submission.md)
 - [ADR-0037：「指标/参考范围」按专业资料方案维护](./0037-lock-normal-range-scheme-authoring.md)
+- [ADR-0038：「菌群科普」本轮锁定管理端壳与预览状态](./0038-lock-microbiota-knowledge-authoring-shell.md)
 
 ## 数据与发布
 
