@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="./css/microbiota-knowledge.css">
+<link rel="stylesheet" href="./css/microbiota-knowledge.css?v=20260907c">
 <div id="microbiota-knowledge" class="page rondo-page">
     <div class="rondo-panel">
         <div class="rondo-page-header">
@@ -55,9 +55,10 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                         <div>
                             <label class="text-xs text-slate-500" for="mk-latin-name">学名</label>
-                            <input type="text" id="mk-latin-name"
-                                class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm"
-                                placeholder="如 Bacteroidetes">
+                            <input type="text" id="mk-latin-name" readonly aria-readonly="true"
+                                class="block w-full border rounded-md py-1.5 px-2 mt-1 text-sm bg-slate-50 text-slate-500"
+                                placeholder="由菌群分类树维护">
+                            <p class="rondo-form-hint mt-1">学名在专业基础资料维护，本页只读。</p>
                         </div>
                         <div>
                             <label class="text-xs text-slate-500" for="mk-key">编码 key</label>
@@ -116,10 +117,16 @@
                 </section>
 
                 <section class="bg-white rounded-lg border border-dashed border-slate-300 p-5">
-                    <div class="flex items-center justify-between gap-2 mb-3">
+                    <div class="mk-preview-toolbar">
                         <h4 class="text-sm font-medium text-slate-700">
                             <i class="fas fa-mobile-screen-button text-slate-400 mr-1"></i>用户端预览
                         </h4>
+                        <div id="mk-preview-status" class="mk-preview-status rondo-segmented" role="radiogroup" aria-label="预览状态">
+                            <button type="button" class="rondo-segmented-btn is-active" data-mk-preview-status="low" role="radio" aria-checked="true">偏低</button>
+                            <button type="button" class="rondo-segmented-btn" data-mk-preview-status="normal" role="radio" aria-checked="false">正常</button>
+                            <button type="button" class="rondo-segmented-btn" data-mk-preview-status="high" role="radio" aria-checked="false">偏高</button>
+                            <button type="button" class="rondo-segmented-btn" data-mk-preview-status="none" role="radio" aria-checked="false">无范围</button>
+                        </div>
                     </div>
                     <div id="mk-preview" class="text-sm text-slate-700 space-y-3"></div>
                 </section>
@@ -130,7 +137,7 @@
     <div id="mk-drawer-root" class="ant-drawer-root" hidden aria-hidden="true">
         <div class="ant-drawer-mask" data-mk-drawer-close tabindex="-1"></div>
         <div class="ant-drawer-wrap">
-            <div class="ant-drawer" role="dialog" aria-modal="true" aria-labelledby="mk-drawer-title" tabindex="-1">
+            <div class="ant-drawer ant-drawer-right" role="dialog" aria-modal="true" aria-labelledby="mk-drawer-title" tabindex="-1">
                 <div class="ant-drawer-header">
                     <h3 id="mk-drawer-title" class="ant-drawer-title">全局场景词设置</h3>
                     <button type="button" class="ant-drawer-close" data-mk-drawer-close aria-label="关闭">
