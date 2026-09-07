@@ -40,3 +40,9 @@
   border-color: #ffa39e;
   background: #fff1f0;
 }
+
+#dr-list-table .rondo-basic-table tbody tr.is-new-record td,
+#dr-list-table .rondo-basic-table tbody tr.is-new-record .rondo-col-fixed-right {
+  background: #fff7e6;
+  transition: background 1.6s ease;
+}
