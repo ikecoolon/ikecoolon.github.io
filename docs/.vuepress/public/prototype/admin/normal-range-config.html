@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="./css/normal-range-config.css">
+<link rel="stylesheet" href="./css/normal-range-config.css?v=20260907b">
 
 <div id="normal-range-config" class="page rondo-page">
     <div id="nrc-list-view">
@@ -9,7 +9,7 @@
         <div class="rondo-page-header">
             <div>
                 <h2 class="rondo-page-title" id="form-title">新增参考范围方案</h2>
-                <p class="rondo-page-desc">一次选择多个适用物种，并在下方表格维护整套指标范围</p>
+                <p class="rondo-page-desc">一次选择多个适用物种，并在下方表格维护整套指标范围。范围项顺序即为方案顺序，并驱动对比展示。</p>
             </div>
             <button id="back-to-list-btn" type="button" class="rondo-btn rondo-btn-default">
                 <i class="fas fa-arrow-left"></i> 返回列表
@@ -23,8 +23,10 @@
                     <input type="text" id="scheme-name" required class="rondo-input ant-input">
                 </div>
                 <div class="rondo-form-field">
-                    <label class="rondo-form-label" for="scheme-template">检测模板 ID <span class="rondo-required">*</span></label>
-                    <input type="text" id="scheme-template" required placeholder="如 ORG-LAB-GUT-001" class="rondo-input ant-input">
+                    <label class="rondo-form-label" for="scheme-template">检测模板 <span class="rondo-required">*</span></label>
+                    <select id="scheme-template" required class="rondo-select ant-select-native">
+                        <option value="">请选择检测模板</option>
+                    </select>
                 </div>
                 <div class="rondo-form-field">
                     <label class="rondo-form-label" for="scheme-method">检测方法</label>
@@ -42,7 +44,7 @@
 
             <div class="rondo-form-field">
                 <label class="rondo-form-label">适用物种 <span class="rondo-required">*</span></label>
-                <p class="rondo-form-hint">从宠物分类字典读取；须显式勾选，新增物种不会自动继承本方案。</p>
+                <p class="rondo-form-hint">从宠物分类字典读取；须显式勾选，新增物种不会自动继承本方案。同一检测模板下，启用方案的适用物种不可重叠。</p>
                 <div id="species-checkboxes" class="rondo-checkbox-group"></div>
             </div>
 
@@ -55,22 +57,32 @@
                     </select>
                 </div>
                 <div class="rondo-form-field">
-                    <label class="rondo-form-label" for="scheme-evidence-ref">专业依据 <span class="rondo-required">*</span></label>
-                    <input type="text" id="scheme-evidence-ref" required placeholder="检测机构内部参考范围" class="rondo-input ant-input">
+                    <label class="rondo-form-label" for="scheme-evidence-ref">专业依据（选填，仅审计）</label>
+                    <input type="text" id="scheme-evidence-ref" placeholder="可选，不作为启用条件" class="rondo-input ant-input">
                 </div>
             </div>
 
             <div class="rondo-form-section">
                 <div class="rondo-form-section-header">
                     <h3 class="rondo-form-section-title">范围项</h3>
-                    <button type="button" id="add-item-btn" class="rondo-btn rondo-btn-link">
-                        <i class="fas fa-plus"></i> 添加范围项
-                    </button>
+                    <div class="nrc-item-toolbar">
+                        <button type="button" id="copy-items-btn" class="rondo-btn rondo-btn-link">
+                            <i class="fas fa-copy"></i> 从其他方案复制范围项
+                        </button>
+                        <button type="button" id="prefill-phyla-btn" class="rondo-btn rondo-btn-link">
+                            <i class="fas fa-list"></i> 预填菌门空行
+                        </button>
+                        <button type="button" id="add-item-btn" class="rondo-btn rondo-btn-link">
+                            <i class="fas fa-plus"></i> 添加范围项
+                        </button>
+                    </div>
                 </div>
-                <div class="rondo-basic-table-wrap">
+                <p class="rondo-form-hint">用上移 / 下移调整顺序；「在此下方插入」在当前行下新增空行。拖拽排序暂缓。保存后 <code>items</code> 数组顺序即为方案顺序。</p>
+                <div class="rondo-basic-table-wrap nrc-items-scroll">
                     <table class="rondo-basic-table rondo-table-sm ant-table">
                         <thead>
                             <tr>
+                                <th class="nrc-col-num">#</th>
                                 <th>指标</th>
                                 <th>类型</th>
                                 <th>层级</th>

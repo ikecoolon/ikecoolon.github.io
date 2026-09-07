@@ -29,13 +29,158 @@
   margin-bottom: 8px;
 }
 
-#normal-range-config .rondo-basic-table-wrap {
-  overflow-x: auto;
+#normal-range-config .nrc-item-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+#normal-range-config .nrc-items-scroll {
+  overflow: auto;
+  max-height: min(60vh, 520px);
+  border: 1px solid var(--ant-border-secondary, #f0f0f0);
+  border-radius: 6px;
+  -webkit-overflow-scrolling: touch;
+}
+
+#normal-range-config .nrc-items-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #fafafa;
+  box-shadow: 0 1px 0 var(--ant-border-secondary, #f0f0f0);
+}
+
+#normal-range-config .nrc-col-num,
+#normal-range-config .nrc-row-num {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 2.5rem;
+  text-align: center;
+  color: var(--ant-text-secondary, #64748b);
+  font-variant-numeric: tabular-nums;
+  background: #fff;
+}
+
+#normal-range-config .nrc-items-scroll thead .nrc-col-num {
+  z-index: 4;
+  background: #fafafa;
+}
+
+#normal-range-config .nrc-items-scroll th:last-child,
+#normal-range-config .nrc-items-scroll td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  background: #fff;
+  box-shadow: -6px 0 8px -6px rgba(0, 0, 0, 0.12);
+}
+
+#normal-range-config .nrc-items-scroll thead th:last-child {
+  z-index: 4;
+  background: #fafafa;
+}
+
+#normal-range-config .nrc-combobox {
+  min-width: 160px;
+}
+
+#normal-range-config .nrc-meta-input {
+  min-width: 4.5rem;
+  background: #fafafa;
+  color: var(--ant-text-secondary, #64748b);
+  cursor: default;
+}
+
+#normal-range-config .nrc-row-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 2px;
+}
+
+#normal-range-config .nrc-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--ant-text-secondary, #64748b);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+#normal-range-config .nrc-icon-btn:hover:not(:disabled) {
+  background: #f5f5f5;
+  color: var(--rondo-primary, #0960bd);
+}
+
+#normal-range-config .nrc-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+#normal-range-config .nrc-icon-btn.is-danger:hover:not(:disabled) {
+  color: var(--ant-error, #ff4d4f);
+  background: #fff2f0;
+}
+
+.nrc-combobox-menu {
+  position: fixed;
+  z-index: 1400;
+  max-height: 240px;
+  overflow: auto;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--ant-border, #d9d9d9);
+  border-radius: 6px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+
+.nrc-combobox-menu[hidden] {
+  display: none;
+}
+
+.nrc-combobox-group {
+  padding: 4px 12px 2px;
+  font-size: 11px;
+  color: var(--ant-text-secondary, #64748b);
+}
+
+.nrc-combobox-option {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.nrc-combobox-option:hover,
+.nrc-combobox-option.is-active {
+  background: #e6f4ff;
+}
+
+.nrc-combobox-empty {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--ant-text-secondary, #64748b);
 }
 
 #normal-range-config.nrc-readonly .rondo-form-actions [type="submit"],
 #normal-range-config.nrc-readonly #add-item-btn,
-#normal-range-config.nrc-readonly .remove-item-btn {
+#normal-range-config.nrc-readonly #copy-items-btn,
+#normal-range-config.nrc-readonly #prefill-phyla-btn,
+#normal-range-config.nrc-readonly .nrc-row-actions {
   display: none;
 }
 
@@ -48,5 +193,10 @@
 
   #normal-range-config .rondo-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  #normal-range-config .rondo-form-section-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }

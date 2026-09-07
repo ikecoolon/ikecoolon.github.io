@@ -877,6 +877,46 @@ function initReportReview(mountRoot, tab) {
     return ind.range.min + '–' + ind.range.max + (ind.range.unit || ind.unit || '');
   }
 
+  function formatImportedRange(range) {
+    if (!range || range.min == null || range.max == null) return '—';
+    return range.min + '–' + range.max + (range.unit || '');
+  }
+
+  function importedRangeDecisionLabel(decision) {
+    var labels = store.IMPORTED_RANGE_DECISION_LABELS || {
+      pending: '待确认', confirmed: '已确认可用', rejected: '已驳回'
+    };
+    return labels[decision] || decision || '—';
+  }
+
+  function importedRangeBlockHtml(ind, readonly) {
+    if (!ind.importedRange || ind.importedRange.min == null || ind.importedRange.max == null) {
+      return '<p class="mt-1 text-xs text-slate-400">无导入参考范围。有效范围只能来自已确认的导入范围或平台方案，不能手填第三套。</p>';
+    }
+    var decision = ind.importedRangeDecision || 'pending';
+    var html = '<div class="rw-imported-range mt-3">' +
+      '<p class="text-xs font-medium text-slate-600">Excel 导入参考范围</p>' +
+      '<p class="mt-1">' + C.escapeHtml(formatImportedRange(ind.importedRange)) +
+      ' <span class="ant-tag ' +
+      (decision === 'confirmed' ? 'ant-tag-success' : decision === 'rejected' ? 'ant-tag-default' : 'ant-tag-warning') +
+      '">' + C.escapeHtml(importedRangeDecisionLabel(decision)) + '</span></p>';
+    if (decision === 'rejected') {
+      html += '<p class="mt-1 text-xs text-slate-500">已驳回：对比与判定改用平台方案；无匹配平台范围则不展示该项对比。</p>';
+    } else if (decision === 'confirmed') {
+      html += '<p class="mt-1 text-xs text-slate-500">已确认可用，优先作为本报告有效范围。</p>';
+    } else {
+      html += '<p class="mt-1 text-xs text-slate-500">待确认期间暂用平台方案（若有）。系统不校验导入范围专业有效性，也不允许手填第三套范围。</p>';
+    }
+    if (!readonly && decision === 'pending') {
+      html += '<div class="mt-2 flex flex-wrap gap-2">' +
+        '<button type="button" class="ant-btn ant-btn-primary ant-btn-sm" id="btn-confirm-imported-range">确认可用</button>' +
+        '<button type="button" class="ant-btn ant-btn-default ant-btn-sm" id="btn-reject-imported-range">驳回，改用平台范围</button>' +
+        '</div>';
+    }
+    html += '</div>';
+    return html;
+  }
+
   function findProduct(state, id) {
     return (state.products || []).find(function (p) { return p.id === id; });
   }
@@ -1271,7 +1311,11 @@ function initReportReview(mountRoot, tab) {
         '<span class="text-xs text-slate-500">原始 ' + C.escapeHtml(formatNum(ind.sourceValue)) +
         ' → <span class="' + (changed ? 'rw-value-changed' : '') + '">有效 ' + C.escapeHtml(formatNum(ind.effectiveValue)) +
         (ind.unit || '') + '</span></span></span>' +
-        '<span class="text-xs">' + C.statusBadge(status, C.DATA_STATUS_LABELS) + '</span>' +
+        '<span class="text-xs">' + C.statusBadge(status, C.DATA_STATUS_LABELS) +
+        (ind.importedRange && ind.importedRangeDecision === 'pending'
+          ? ' <span class="ant-tag ant-tag-warning">导入范围待确认</span>'
+          : '') +
+        '</span>' +
         '</button>';
     }).join('');
 
@@ -1296,6 +1340,7 @@ function initReportReview(mountRoot, tab) {
       '<p class="mt-1"><span class="text-slate-500">实验室标注</span> ' + C.escapeHtml(notice) + '</p>' +
       '<p class="mt-1"><span class="text-slate-500">参考范围</span> ' + C.escapeHtml(formatRange(ind)) +
       ' <span class="text-xs text-slate-500">（' + C.escapeHtml(rangeSrc) + '）</span></p>' +
+      importedRangeBlockHtml(ind, readonly) +
       '<p class="mt-1"><span class="text-slate-500">范围状态</span> ' + C.escapeHtml(rangeSt) + '</p>' +
       '<p class="mt-1"><span class="text-slate-500">数据状态</span> ' + C.statusBadge(status, C.DATA_STATUS_LABELS) +
       (ind.isEffective ? ' <span class="text-emerald-700 text-xs">有效结果</span>' : '') + '</p>';
@@ -1332,6 +1377,22 @@ function initReportReview(mountRoot, tab) {
   }
 
   function handleResultDetailClick(e) {
+    var confirmBtn = e.target.closest('#btn-confirm-imported-range');
+    var rejectBtn = e.target.closest('#btn-reject-imported-range');
+    if (confirmBtn || rejectBtn) {
+      try {
+        var updated = store.setImportedRangeDecision(withActorPayload({
+          reportId: currentReportId,
+          resultId: selectedResultId,
+          decision: confirmBtn ? 'confirmed' : 'rejected'
+        }));
+        if (updated && updated.id) selectedResultId = updated.id;
+        afterWrite(confirmBtn ? '已确认导入范围可用' : '已驳回导入范围，改用平台方案', 'success');
+      } catch (err) {
+        handleStoreError(err);
+      }
+      return;
+    }
     if (!e.target.closest('#btn-save-result')) return;
     var valueEl = el('result-edit-value');
     var statusEl = el('result-edit-status');
@@ -2002,6 +2063,13 @@ function initReportReview(mountRoot, tab) {
         return !phylumKeys[r.key] && r.range && r.rangeSource && r.rangeSource !== 'none' &&
           r.key !== 'alpha-diversity' && r.key !== 'evenness' && r.key !== 'richness';
       });
+      if (store.sortBySchemeItemOrder && store.getActiveRangeSchemeForReport) {
+        var scheme = store.getActiveRangeSchemeForReport(report.id);
+        if (scheme) {
+          phylumRows = store.sortBySchemeItemOrder(phylumRows, scheme);
+          genusRows = store.sortBySchemeItemOrder(genusRows, scheme);
+        }
+      }
       html += '<section class="rw-compare-block" data-preview-region="compare">';
       html += '<h3>微生物组对比</h3><p>理想菌群组合 VS ' + C.escapeHtml(petName) + '</p>';
       html += '<div class="rw-seg"><button type="button" class="rw-seg-btn active" data-compare-tab="phylum">「门」检测数值</button>';

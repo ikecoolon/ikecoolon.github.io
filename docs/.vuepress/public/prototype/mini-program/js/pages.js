@@ -214,6 +214,18 @@
       });
     });
     if (!phylumEntries.length && !genusEntries.length) return '';
+    var store = H.getStore();
+    if (store && store.sortBySchemeItemOrder && store.getActiveRangeSchemeForReport) {
+      var scheme = store.getActiveRangeSchemeForReport(reportId);
+      if (scheme) {
+        phylumEntries = store.sortBySchemeItemOrder(phylumEntries, scheme, function (row) {
+          return row.taxon && row.taxon.key;
+        });
+        genusEntries = store.sortBySchemeItemOrder(genusEntries, scheme, function (row) {
+          return row.taxon && row.taxon.key;
+        });
+      }
+    }
 
     var html = '<section class="sheet-block compare-block">';
     html += '<div class="sheet-head">';
