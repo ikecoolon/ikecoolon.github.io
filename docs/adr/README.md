@@ -12,6 +12,7 @@
 - [ADR-0034：宠物健康模块复用平台会员身份](./0034-reuse-member-identities-in-pet-health.md)
 - [ADR-0035：报告编制与审核采用可组合权限](./0035-separate-composable-report-permissions.md)
 - [ADR-0036：送检登记拆开承接门店与检测机构](./0036-split-fulfilling-store-and-lab-on-test-submission.md)
+- [ADR-0037：「指标/参考范围」按专业资料方案维护](./0037-lock-normal-range-scheme-authoring.md)
 
 ## 数据与发布
 
