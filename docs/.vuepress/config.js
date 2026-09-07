@@ -43,6 +43,7 @@ module.exports = config({
                 '',
                 'pet-health-report-business-design',
                 'open-questions',
+                'pet-health-admin-implementation-plan',
                 'pet-microbiome-reference-and-content-configuration-research',
                 'wechat-mini-program-client-preparation-research'
               ]
