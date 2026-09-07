@@ -11,10 +11,12 @@
 - [ADR-0033：管理端列表统一采用 BasicTable](./0033-use-basic-table-for-pet-eden-admin-lists.md)
 - [ADR-0034：宠物健康模块复用平台会员身份](./0034-reuse-member-identities-in-pet-health.md)
 - [ADR-0035：报告编制与审核采用可组合权限](./0035-separate-composable-report-permissions.md)
+- [ADR-0036：送检登记拆开承接门店与检测机构](./0036-split-fulfilling-store-and-lab-on-test-submission.md)
 
 ## 数据与发布
 
 - [ADR-0012：区分来源结果、有效结果与报告呈现](./0012-separate-source-results-effective-results-and-report-presentation.md)
+- [ADR-0018：禁止重复导入相同机构报告编号](./0018-reject-duplicate-laboratory-report-identifiers.md)
 - [ADR-0013：管理端保留版本、用户端只展示最新版本](./0013-retain-report-versions-in-admin-expose-only-the-latest-to-users.md)
 - [ADR-0019：更正期间保持当前报告可见](./0019-keep-the-current-report-visible-while-preparing-a-correction.md)
 - [ADR-0024：参考范围仅来自导入或平台配置](./0024-use-only-imported-or-platform-reference-ranges.md)
