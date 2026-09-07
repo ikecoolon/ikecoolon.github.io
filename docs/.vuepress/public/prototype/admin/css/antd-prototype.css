@@ -514,6 +514,7 @@ body.mk-drawer-open {
   position: absolute;
   top: 0;
   right: 0;
+  left: auto;
   display: flex;
   flex-direction: column;
   width: min(400px, 100vw);
@@ -523,6 +524,7 @@ body.mk-drawer-open {
   box-shadow: var(--ant-shadow-secondary, 0 6px 16px rgba(0, 0, 0, 0.08));
   pointer-events: auto;
   outline: 0;
+  transform: none;
 }
 
 .ant-drawer-header {
@@ -613,11 +615,11 @@ body.mk-drawer-open {
 
 @media (prefers-reduced-motion: no-preference) {
   .ant-drawer-root:not([hidden]) .ant-drawer-mask {
-    animation: ant-drawer-mask-in 0.2s ease;
+    animation: ant-drawer-mask-in 0.2s ease both;
   }
 
   .ant-drawer-root:not([hidden]) .ant-drawer {
-    animation: ant-drawer-slide-in 0.2s ease;
+    animation: ant-drawer-slide-in 0.2s ease both;
   }
 }
 
@@ -627,8 +629,8 @@ body.mk-drawer-open {
 }
 
 @keyframes ant-drawer-slide-in {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from { transform: translateX(16px); }
+  to { transform: none; }
 }
 
 /* ── Page-level polish ── */
