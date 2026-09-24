@@ -22,6 +22,8 @@ npm install
 npm run docs:dev
 ```
 
+本地站点地址：`http://localhost:8081/`；原型目录：`http://localhost:8081/prototypes/`。
+
 构建检查：
 
 ```sh

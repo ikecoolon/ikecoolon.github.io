@@ -5,10 +5,14 @@ module.exports = config({
   lang: 'zh-CN',
   title: '营会中心',
   description: '营会中心产品资料、需求专题与交互原型',
+  port: 8081,
   shouldPrefetch: false,
+  devServer: {
+    watchOptions: { poll: 1000, ignored: /node_modules/ }
+  },
   theme: 'hope',
   themeConfig: {
-    hostname: 'http://localhost:8080',
+    hostname: 'http://localhost:8081',
     locales: {
       '/': {
         lang: 'zh-CN',
