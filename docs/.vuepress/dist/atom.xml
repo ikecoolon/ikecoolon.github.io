@@ -1,0 +1,5258 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="zh-CN">
+  <id>https://ikecoolon.github.io/</id>
+  <title>宠物健康报告</title>
+  <subtitle>宠物健康报告的产品设计、需求文档、架构决策与交互原型</subtitle>
+  <author>
+    <name>Pet Eden</name>
+  </author>
+  <updated>2026-09-06T06:55:50.297Z</updated>
+  <generator>@mr-hope/vuepress-plugin-feed</generator>
+  <link rel="self" href="https://ikecoolon.github.io/atom.xml"/>
+  <link rel="alternate" href="https://ikecoolon.github.io/"/>
+  <contributor>
+    <name>Pet Eden</name>
+  </contributor>
+  <entry>
+    <title type="html">在现有商城小程序内承载健康报告</title>
+    <id>https://ikecoolon.github.io/adr/0032-embed-health-reports-in-the-existing-mall-mini-program/</id>
+    <link href="https://ikecoolon.github.io/adr/0032-embed-health-reports-in-the-existing-mall-mini-program/"/>
+    <updated>2026-09-03T09:17:31.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="在现有商城小程序内承载健康报告"> 在现有商城小程序内承载健康报告</h1>
+<p>宠物健康报告作为现有商城小程序同一 AppID 下的新增模块实现，不新建独立报告小程序，也不做跨小程序跳转。这样可以复用商城已有登录态、商品详情、购物车、订单、支付和退款能力，避免重复建设交易后端；代价是商城小程序前端需要增加健康报告入口、页面、路由/分包、返回路径和商品详情衔接，并对既有微信认证、商户权限、AppID 绑定、安全参数及支付退款链路完成核验与回归联调。</p>
+<h2 id="consequences"> Consequences</h2>
+<ul>
+<li>小程序启动/登录后的全局默认首页调整为健康报告原型的当前宠物页（健康报告首页），主导航按原型为「首页」「我的」。</li>
+<li>健康报告前端不得持有商户 API 私钥、APIv3 密钥或其他支付安全材料；这些继续由商城支付后端管理。</li>
+<li>可购推荐商品在同一小程序内进入既有商城商品详情；首期不记录报告来源的商品点击、加购、订单或支付归因。</li>
+<li>项目估期包含商城小程序前端二次开发和完整交易链路回归，不重复估算购物车、订单、支付与退款后端的新建工作。</li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-09-03T09:17:31.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">项目进度</title>
+    <id>https://ikecoolon.github.io/rules/project-progress/</id>
+    <link href="https://ikecoolon.github.io/rules/project-progress/"/>
+    <updated>2026-09-03T09:17:31.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="项目进度"> 项目进度</h1>
+<h2 id="进度呈现"> 进度呈现</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>项目进度必须以前端页面呈现，目录固定为 <code>docs/.vuepress/public/prototype/project-progress/</code></li>
+<li>唯一数据源必须是该目录下的 <code>data.js</code>；页面统计必须由脚本从数据派生，不得在 HTML 中硬编码工作量数字</li>
+<li>不得把进度改成内部项目管理工具、表格文档或独立后台</li>
+<li>产品设计任务 <code>pd-01</code> 必须保持已完成，不再占研发主路</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p>进度入口是原型第三按钮，打开后是面向甲方的工程总控墙：总控数据带、周次排期、任务明细、待甲方预备清单。工作量数字全部来自 <code>data.js</code> 实时计算。</p>
+<h2 id="原型更新后的维护范围"> 原型更新后的维护范围</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>管理端或小程序原型（<code>docs/.vuepress/public/prototype/admin</code>、<code>mini-program</code>）或业务设计更新后，必须同步进度墙的任务内容和工时</li>
+<li>必须只改 <code>data.js</code></li>
+<li>允许改研发任务的 <code>name</code>、<code>group</code>、<code>workdays</code>；若原型新增或删除功能，允许增删任务，并为新任务在两个 profile 的 <code>taskSchedules</code> 中补齐 <code>planStart</code> / <code>duration</code> / <code>owner</code></li>
+<li>不得因原型更新改既有任务的 <code>progress</code>、<code>status</code></li>
+<li>不得改 <code>index.html</code>、<code>styles.css</code>、<code>script.js</code>，不得改待甲方预备清单结构、范围待确认、缓冲率、泳道结构，除非明确要求</li>
+<li>人员配置切换由 <code>?staffing=1fe|2fe</code> 与顶栏单选驱动；不得用 <code>localStorage</code></li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p>原型新增「报告工作台：菌门分析」页面对应更新 <code>adm-05</code> 的任务名称与工时；不得把该任务 <code>progress</code> 写成已完成。健康报告在现有商城小程序同一 AppID 内二次开发时，应同步评估商城前端入口、路由、分包和商品详情衔接，但不得把复用的购物车、订单、支付与退款后端重复估算为新建。</p>
+<p>管理端页面与任务对应关系：</p>
+<ul>
+<li><code>detection-records.html</code> 对应 <code>adm-02</code>、<code>adm-03</code>、<code>be-03</code>、<code>be-04</code></li>
+<li><code>report-center.html</code> / <code>report-review.html</code> 对应 <code>adm-04</code> 至 <code>adm-08</code>、<code>be-05</code>、<code>be-06</code>、<code>be-08</code></li>
+<li><code>customer-management.html</code> / <code>pet-information.html</code> 对应 <code>adm-09</code>、<code>adm-10</code>、<code>be-03</code></li>
+<li><code>dictionary-management.html</code> / <code>normal-range-config.html</code> / <code>microbiota-knowledge.html</code> / <code>analysis-rules.html</code> 对应 <code>adm-11</code> 至 <code>adm-14</code>、<code>be-07</code>、<code>be-08</code></li>
+</ul>
+<p>小程序页面与任务对应关系：</p>
+<ul>
+<li>登录与账号绑定 对应 <code>mp-01</code>、<code>be-10</code></li>
+<li>商城内健康报告入口 / <code>home.html</code> / 宠物切换 对应 <code>mp-02</code>、<code>mp-03</code></li>
+<li><code>report.html</code> 对应 <code>mp-04</code>、<code>mp-05</code></li>
+<li>推荐商品与同小程序商品详情衔接 对应 <code>mp-06</code>、<code>be-09</code>（商城交易后端复用）</li>
+</ul>
+<h2 id="估期口径"> 估期口径</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>人力基线按 1 名前端工程师 + 1 名后端工程师估算；进度墙另提供 2 前端 + 1 后端 profile 用于对比排期</li>
+<li>两个 profile 均保持 38 条研发任务与 56.5 人日不变；其中产品设计以单条已完成任务记录 8 人日历史投入，不再拆分跟踪；排期、负责人与周次标尺只在 <code>data.js</code> 的 <code>staffingProfiles</code> 维护，<code>script.js</code> 只派生</li>
+<li><code>owner=全员</code> 的任务占用所有前后端工程师时段，不得与任一具体前端/后端任务重叠；联调任务 <code>ops-04</code> 须在小程序与 PC 管理端叶子任务完成后排期，且 <code>dependencyIds</code> 至少覆盖 <code>ops-03</code>、<code>mp-07</code> 与 PC 管理端未被共同末端覆盖的叶子任务</li>
+<li>后端必须负责实施：领域模型、接口、导入、分析、部署与运维实施</li>
+<li>两人都有 AI 辅助，估期必须按可交付的准确口径，不得按无 AI 或新手再加长</li>
+<li>必须基于 pet-eden 已有框架（管理端壳、登录权限、文件、商城）只估健康报告增量；商城交易后端不重做，但应计入商城小程序前端新增健康报告入口、页面、路由、分包和商品详情衔接的工作量</li>
+<li>估期必须含联调、不含自测</li>
+<li>必须按 8 小时 = 1 人日；20% 缓冲必须由页面单独计算，不得摊入单条任务</li>
+<li>前后端必须并行；前端可以先 Mock</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p>当前墙面合计 56.5 人日 / 452 人时：产品设计 8（已完成，作为单条历史工作量保留）/ PC 管理端 18 / 小程序 9 / 后端 16 / 部署 5.5。含 20% 缓冲后 67.8 人日 / 542.4 人时。新增一个「参考范围导入校验」若只是现有 <code>adm-12</code> / <code>be-07</code> 的补充交互，应调整这两条工时，而不是再加一条 3 人日的独立任务。</p>
+<h2 id="代码提交后的进度"> 代码提交后的进度</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>必须根据实际代码开发提交更新任务的 <code>progress</code> / <code>status</code></li>
+<li><code>progress</code> 必须是 0–100 的整数；<code>progress = 100</code> 必须视为已完成</li>
+<li>不得把原型更新误当成开发完成</li>
+<li>待甲方预备事项仅在条件成立或甲方交付时更新 <code>status</code> / <code>expectedWeek</code> / <code>active</code></li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p>后端提交健康报告领域模型迁移后，只把 <code>be-02</code> 的 <code>progress</code> / <code>status</code> 改为进行中或已完成，不得改 <code>workdays</code>。管理端原型改了工作台文案时，只改 <code>adm-05</code> 的 <code>name</code>，不得改其 <code>progress</code>。</p>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./prototype.html">产品原型约束规则</a></li>
+<li><a href="./iteration.html">产品迭代</a></li>
+<li><a href="./collaboration.html">跨部门协作</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-09-03T03:41:45.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">架构决策记录</title>
+    <id>https://ikecoolon.github.io/adr/</id>
+    <link href="https://ikecoolon.github.io/adr/"/>
+    <updated>2026-09-03T09:17:31.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="架构决策记录"> 架构决策记录</h1>
+<p>本目录记录宠物健康报告的关键产品与领域决策。编号文件按决策形成顺序保存，后续决策通过新增 ADR 延续。</p>
+<h2 id="核心边界"> 核心边界</h2>
+<ul>
+<li><a href="./0023-support-only-the-microbiome-report-product.html">ADR-0023：仅支持微生物组报告产品</a></li>
+<li><a href="./0030-separate-test-submission-management-from-report-center.html">ADR-0030：送检管理与报告中心分工</a></li>
+<li><a href="./0031-organize-analysis-advice-and-products-by-phylum.html">ADR-0031：按菌门组织分析、建议与商品</a></li>
+<li><a href="./0032-embed-health-reports-in-the-existing-mall-mini-program.html">ADR-0032：在现有商城小程序内承载健康报告</a></li>
+<li><a href="./0033-use-basic-table-for-pet-eden-admin-lists.html">ADR-0033：管理端列表统一采用 BasicTable</a></li>
+<li><a href="./0034-reuse-member-identities-in-pet-health.html">ADR-0034：宠物健康模块复用平台会员身份</a></li>
+<li><a href="./0035-separate-composable-report-permissions.html">ADR-0035：报告编制与审核采用可组合权限</a></li>
+</ul>
+<h2 id="数据与发布"> 数据与发布</h2>
+<ul>
+<li><a href="./0012-separate-source-results-effective-results-and-report-presentation.html">ADR-0012：区分来源结果、有效结果与报告呈现</a></li>
+<li><a href="./0013-retain-report-versions-in-admin-expose-only-the-latest-to-users.html">ADR-0013：管理端保留版本、用户端只展示最新版本</a></li>
+<li><a href="./0019-keep-the-current-report-visible-while-preparing-a-correction.html">ADR-0019：更正期间保持当前报告可见</a></li>
+<li><a href="./0024-use-only-imported-or-platform-reference-ranges.html">ADR-0024：参考范围仅来自导入或平台配置</a></li>
+</ul>
+<h2 id="分析与商品"> 分析与商品</h2>
+<ul>
+<li><a href="./0014-compose-rule-results-before-human-review.html">ADR-0014：人工审核前组合规则结果</a></li>
+<li><a href="./0029-use-manual-product-selection-without-a-recommendation-engine.html">ADR-0029：人工选择商品，不建设推荐引擎</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-09-02T11:14:01.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">Pet Eden Wiki VAULT</title>
+    <id>https://ikecoolon.github.io/agents/wiki/</id>
+    <link href="https://ikecoolon.github.io/agents/wiki/"/>
+    <updated>2026-09-02T11:14:01.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="pet-eden-wiki-vault"> Pet Eden Wiki VAULT</h1>
+<p>当前 <code>product/pet-eden</code> 分支只服务宠物健康报告，所有 Wiki 操作固定使用同一个 VAULT：</p>
+<ul>
+<li>本地路径：<code>/Users/zhaoyanlong/Documents/personal/pet-eden-wiki</code></li>
+<li>GitHub 远程：<code>https://github.com/ikecoolon/pet-eden-wiki</code></li>
+</ul>
+<p>本产品文档仓库不是 Wiki VAULT，普通文档变更不会自动同步到 Wiki。</p>
+<h2 id="agent-操作顺序"> Agent 操作顺序</h2>
+<p>执行 <code>inspool</code>、<code>query-wiki</code> 或 <code>lint-wiki</code> 前：</p>
+<ol>
+<li>进入 <code>/Users/zhaoyanlong/Documents/personal/pet-eden-wiki</code>。</li>
+<li>阅读目标 VAULT 的 <code>AGENTS.md</code>。</li>
+<li>阅读目标 VAULT 的 <code>wiki/index.md</code>。</li>
+<li>仅在该 VAULT 内查询、创建、更新或检查 Wiki 页面。</li>
+</ol>
+<h2 id="git-边界"> Git 边界</h2>
+<p>产品文档仓库和 Wiki 仓库是两个独立 Git 仓库，分别执行 <code>commit</code> 与 <code>push</code>；提交其中一个不会同步另一个。</p>
+<p>推送 Wiki 前，在 Wiki 工作目录运行远程核对，确认 <code>origin</code> 为 <code>https://github.com/ikecoolon/pet-eden-wiki</code>，再按目标 VAULT 的规则操作。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-09-02T11:14:01.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">宠物健康报告管理端 PRD</title>
+    <id>https://ikecoolon.github.io/prd/admin/</id>
+    <link href="https://ikecoolon.github.io/prd/admin/"/>
+    <updated>2026-09-02T11:14:01.000Z</updated>
+    <content type="html"><![CDATA[<h2 id="总览新开窗口访问"> 总览<a :href="$withBase('/prototype/admin/index.html')" target="_blank" style="font-size:16px">新开窗口访问</a></h2>
+<p>管理端沿用真实 Rondo 的标准后台布局与 BasicTable 列表规范。宠物健康模块独立承载送检、报告、用户与宠物及专业配置，不重做平台会员基础功能。</p>
+<ul>
+<li><a href="./../product-design/pet-health-admin-implementation-plan.html">实施方案与验收清单</a></li>
+<li><a href="./../product-design/pet-health-report-business-design.html">完整业务设计</a></li>
+<li><a href="./../adr/">架构决策</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-08-29T16:00:00.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">产品设计</title>
+    <id>https://ikecoolon.github.io/product-design/</id>
+    <link href="https://ikecoolon.github.io/product-design/"/>
+    <updated>2026-09-02T11:14:01.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="产品设计"> 产品设计</h1>
+<p>本目录沉淀宠物健康报告的业务设计、研究材料和待确认事项。</p>
+<ul>
+<li><a href="./pet-health-report-business-design.html">完整业务设计</a></li>
+<li><a href="./open-questions.html">待确认事项</a></li>
+<li><a href="./pet-microbiome-reference-and-content-configuration-research.html">宠物微生物组参考范围与内容配置研究</a></li>
+<li><a href="./wechat-mini-program-client-preparation-research.html">微信小程序客户端准备研究</a></li>
+<li><a href="./../prd/">管理端与小程序 PRD</a></li>
+<li><a href="/prototype/">交互原型</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-09-02T11:14:01.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">宠物健康报告 PRD</title>
+    <id>https://ikecoolon.github.io/prd/</id>
+    <link href="https://ikecoolon.github.io/prd/"/>
+    <updated>2026-09-02T11:14:01.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="宠物健康报告-prd"> 宠物健康报告 PRD</h1>
+<p>本目录收录宠物健康报告当前产品分支的需求文档，使用稳定端名称作为文件名，不设置日期层级。</p>
+<ul>
+<li><a href="./admin.html">管理端 PRD</a></li>
+<li><a href="./mini-program.html">小程序 PRD</a></li>
+</ul>
+<p>相关资料：</p>
+<ul>
+<li><a href="./../product-design/pet-health-report-business-design.html">完整业务设计</a></li>
+<li><a href="./../product-design/open-questions.html">待确认事项</a></li>
+<li><a href="/prototype/">交互原型</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-09-02T11:14:01.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">宠物健康报告小程序 PRD</title>
+    <id>https://ikecoolon.github.io/prd/mini-program/</id>
+    <link href="https://ikecoolon.github.io/prd/mini-program/"/>
+    <updated>2026-09-02T11:14:01.000Z</updated>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-08-29T16:00:00.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">分析、建议与商品按菌门组织</title>
+    <id>https://ikecoolon.github.io/adr/0031-organize-analysis-advice-and-products-by-phylum/</id>
+    <link href="https://ikecoolon.github.io/adr/0031-organize-analysis-advice-and-products-by-phylum/"/>
+    <updated>2026-09-02T05:15:02.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="分析、建议与商品按菌门组织"> 分析、建议与商品按菌门组织</h1>
+<p>每份报告中每个有检测结果的菌门对应一个菌门分析单元，内含规则命中列表（每条命中记录来源原始菌群记录、规则版本、条件实际值和风险级别，可被人工排除）、「分析」草稿、「建议」草稿、人工确认状态，以及最多一个主推 SPU 加最多三个有序关联 SPU 的商品推荐；报告不再保留报告级的「整体分析解释」「总体建议」单例。选择菌门作为组织粒度有三个依据：设计稿把「分析」「总体建议」两个 tab 放在每个菌门页内，报告级单例没有对应的展示位置；真实 Excel 的 <code>vs AVG notice</code> 是属级判断，属级命中可以按所属菌门聚合，不需要预先归并跨门内容；商品与建议同处一个菌门单元，避免同时维护报告级单例与逐条建议商品两套模型。分析规则相应改为从字典选择菌门或菌属作为目标、只使用状态类条件，并输出「分析」「建议」两个自由文案字段加风险级别（低 / 中 / 高 / 仅提示），「仅提示」只出分析、不出建议、不配商品。逐份报告的正式分析运行仍在报告工作台内完成（ADR-0026），「分析规则」页面只保留只读的按菌门规则测试。规则目标层级、商品在小程序中的位置以及管理端商品配置是否并入菌门卡片仍待甲方确认（见 docs/product-design/open-questions.md「分析规则的目标层级」「商品推荐的用户端呈现」）。</p>
+<p>本决策取代 ADR-0014：不再按“检测项主结论 + 合并兼容补充”的方式组合三类文案，而是在菌门分析单元内按风险与优先级排序、逐段原样形成分析与建议两个草稿。同时取代 ADR-0005：商品不再通过正文中的推荐位编码插入，而是作为菌门分析单元的商品推荐项出现。部分取代 ADR-0029：其“运营人工选择、不使用推荐引擎、商品配置与专业版本分开”的原则继续有效，但商品的挂载点由“单份报告的健康建议后”改为菌门分析单元。部分取代 ADR-0006：报告详情仍一次返回全部商品解析结果并批量查询商城，但按菌门而非推荐位编码组织。ADR-0020 的原则不变，菌群科普模板的字段按设计稿保留，只是把按检测状态切换的提示合并为一句固定提示。</p>
+<h2 id="consequences"> Consequences</h2>
+<ul>
+<li>报告工作台模块调整为来源与归属 / 检测结果 / 综合评定 / 分析与建议 / 商品推荐 / 发布检查 / 版本与记录；分析与建议按菌门卡片展示与编辑，每个菌门单独确认，商品推荐按菌门列出建议摘要与商品槽。</li>
+<li>发布检查把“存在未确认的菌门分析单元”和“依据变化后未重新分析”列为阻断项；无命中的菌门允许单元为空。</li>
+<li>小程序菌门详情页的「分析」「总体建议」tab 读取该菌门分析单元确认后的文案，建议 tab 下展示该菌门主推商品卡（临时口径）。</li>
+<li>规则不再有绝对数值比较条件；<code>vs AVG notice</code> 为 <code>-</code> 的记录仍为有效结果，实验室比较状态记为「未标注」，只是不触发依赖 <code>high</code> / <code>low</code> 的规则。</li>
+<li>删除报告级「整体分析解释」「总体建议」「分析整体确认」概念及其原型页面与 Mock 数据；删除健康需求标签与标签商品映射数据。</li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-09-02T05:15:02.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">送检管理与报告中心分开</title>
+    <id>https://ikecoolon.github.io/adr/0030-separate-test-submission-management-from-report-center/</id>
+    <link href="https://ikecoolon.github.io/adr/0030-separate-test-submission-management-from-report-center/"/>
+    <updated>2026-08-28T09:02:02.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="送检管理与报告中心分开"> 送检管理与报告中心分开</h1>
+<p>送检记录与报告是前后相接但生命周期不同的业务对象：送检管理负责登记后到成功生成报告前的履约队列，报告中心只负责已经生成报告后的归属、完善、审核、发布和追溯。运营已经需要持续跟进“已送检但尚未拿到报告”和导入异常，因此触发 ADR-0021 预留的独立流程条件；成功导入后送检记录统一完成为“已生成报告”，不继续复制报告状态。</p>
+<h2 id="consequences"> Consequences</h2>
+<ul>
+<li>管理端在同一“检测与报告”分组下提供“送检管理”和“报告中心”两个入口。</li>
+<li>登记送检、定向导入和批量 Excel 导入归入送检管理；报告中心不再承接报告生成前动作。</li>
+<li>两个对象保持一对一关联并允许双向跳转，但各自列表只展示自身生命周期状态。</li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T09:02:02.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">微信小程序甲方筹备事项研究</title>
+    <id>https://ikecoolon.github.io/product-design/wechat-mini-program-client-preparation-research/</id>
+    <link href="https://ikecoolon.github.io/product-design/wechat-mini-program-client-preparation-research/"/>
+    <updated>2026-09-03T09:17:31.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="微信小程序甲方筹备事项研究"> 微信小程序甲方筹备事项研究</h1>
+<blockquote>
+<p>查阅日期：2026-08-28<br>
+适用项目：宠物健康报告管理端与小程序<br>
+证据范围：仅采用微信公众平台、微信开放文档、微信支付官方文档；项目范围事实引用本仓库产品设计。<br>
+用途：将甲方需要提前完成的账号、资质、技术资源、合规材料和支付准备，整理为项目进度页可核验的前置事项。</p>
+</blockquote>
+<h2 id="_1-结论摘要"> 1. 结论摘要</h2>
+<ol>
+<li>当前 7 条“甲方筹备”不足以支持真实小程序联调和发布。至少还需要覆盖：账号主体与管理员、AppID/AppSecret 安全交付、开发者与体验成员权限、服务类目及资质、小程序备案、服务器和域名、服务器域名配置、隐私保护指引、审核测试数据，以及条件式微信支付准备。</li>
+<li>“域名备案”和“小程序备案”是两件事。服务器域名必须使用 HTTPS/WSS 且经过 ICP 备案；小程序自身还需按微信公众平台流程办理小程序备案，备案成功后才能进入后续版本发布流程。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html" target="_blank" rel="noopener noreferrer">微信开放文档：网络<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/product/record_guidelines.html" target="_blank" rel="noopener noreferrer">微信开放文档：小程序备案操作指引<i>Content not supported</i></a></li>
+<li><code>request</code>、<code>uploadFile</code>、<code>downloadFile</code>、<code>socket</code> 域名不是四项都无条件需要。应按实际调用能力分别配置：本项目真实登录和报告查询至少需要 <code>request</code>；只有确实上传、下载或使用 WebSocket 时，才需要相应域名。微信要求小程序只能与已配置的域名通信。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html" target="_blank" rel="noopener noreferrer">微信开放文档：网络<i>Content not supported</i></a></li>
+<li>H5 或 Mock 开发可以在账号、备案、域名尚未齐备时继续；微信开发者工具也可在开发阶段临时跳过域名、TLS 和 HTTPS 证书校验。但真实 <code>wx.login</code> 联调、体验版真机闭环、审核发布及微信支付不能据此验收。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html" target="_blank" rel="noopener noreferrer">微信开放文档：网络<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/release.html" target="_blank" rel="noopener noreferrer">微信开放文档：协同工作和发布<i>Content not supported</i></a></li>
+<li>微信支付不能只列为一条“开通支付服务”。如果当前小程序直接承接交易，至少要核验商户号、JSAPI/小程序支付权限、商户号与当前 AppID 绑定、APIv3 安全材料、HTTPS 回调以及真实支付/退款闭环。<a href="https://pay.wechatpay.cn/doc/v3/merchant/4015459512" target="_blank" rel="noopener noreferrer">微信支付：开发接入准备<i>Content not supported</i></a></li>
+<li>当前实施方式已经确认：宠物健康报告在现有商城小程序同一 AppID 内二次开发，复用商城已有登录态、商品详情、购物车、订单、支付和退款能力，不新建报告小程序，也不做跨小程序跳转。<a href="./pet-health-report-business-design.html">本项目业务设计</a> 因此微信认证、现有商户号、JSAPI/小程序支付权限、AppID 绑定、安全参数和支付退款闭环均为当前适用的核验或联调事项，但原则上复用现状，不默认重新申请商户号或重建支付后端。</li>
+</ol>
+<h2 id="_2-必需程度与对开发的影响"> 2. 必需程度与对开发的影响</h2>
+<h3 id="_2-1-当前小程序真实联调和发布前必需"> 2.1 当前小程序真实联调和发布前必需</h3>
+<ul>
+<li>注册正确主体的小程序账号，指定长期可用的管理员，取得 AppID；需要服务端微信登录时，还需由甲方管理员安全生成并交付 AppSecret。注册时需选择主体类型、完善主体和管理员信息，主体信息确认后不可变更。<a href="https://kf.qq.com/faq/170109iQBJ3Q170109JbQfiu.html" target="_blank" rel="noopener noreferrer">腾讯客服：小程序注册流程<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/getstart.html" target="_blank" rel="noopener noreferrer">微信开放文档：开始<i>Content not supported</i></a></li>
+<li>给实施人员配置开发者权限，给产品、测试和甲方验收人员配置体验成员；只有对应成员才能使用开发版或体验版完成真机测试。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/release.html" target="_blank" rel="noopener noreferrer">微信开放文档：协同工作和发布<i>Content not supported</i></a></li>
+<li>按小程序实际功能选择服务类目，准备该类目要求的许可证、合作协议或承诺材料；类目必须与页面实际服务一致。<a href="https://developers.weixin.qq.com/miniprogram/product/material/" target="_blank" rel="noopener noreferrer">微信开放文档：服务类目所需资质材料<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/product/reject.html" target="_blank" rel="noopener noreferrer">微信开放文档：常见拒绝情形<i>Content not supported</i></a></li>
+<li>完成小程序备案。单位主体通常需准备单位证件、主体负责人和小程序负责人证件；涉及前置审批的服务还需对应审批材料。流程包含平台初审、工信部短信核验和通信管理局审核。<a href="https://developers.weixin.qq.com/miniprogram/product/record_guidelines.html" target="_blank" rel="noopener noreferrer">微信开放文档：小程序备案操作指引<i>Content not supported</i></a></li>
+<li>准备可运行的后端、数据库、合法域名、DNS、ICP 备案和有效 HTTPS 证书，并在小程序后台配置实际使用的服务器域名。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html" target="_blank" rel="noopener noreferrer">微信开放文档：网络<i>Content not supported</i></a></li>
+<li>整理真实个人信息处理清单、用途、保存期限、用户权利行使方式和联系人，完成小程序用户隐私保护指引；提审版本调用的隐私接口必须与指引相符。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/user-privacy/" target="_blank" rel="noopener noreferrer">微信开放文档：用户隐私保护指引填写说明<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/user-privacy/miniprogram-intro" target="_blank" rel="noopener noreferrer">微信开放文档：指引内容介绍<i>Content not supported</i></a></li>
+<li>准备可供微信审核人员完整体验的测试数据或测试账号。小程序存在账号体系时，官方审核规则要求提供可以体验全部功能的测试号；提交版本还必须是可打开、可运行、无测试占位的完成品。<a href="https://developers.weixin.qq.com/miniprogram/product/reject.html" target="_blank" rel="noopener noreferrer">微信开放文档：常见拒绝情形<i>Content not supported</i></a></li>
+</ul>
+<h3 id="_2-2-按功能条件必需"> 2.2 按功能条件必需</h3>
+<ul>
+<li><strong>微信认证</strong>：企业账号注册可用对公打款验证主体，微信认证不是所有本地开发的无条件前置；但微信支付官方明确要求，未认证小程序无法申请小程序支付权限。若本 AppID 需要直接支付或依赖其他要求认证的能力，则必须保持认证有效。<a href="https://kf.qq.com/faq/170109iQBJ3Q170109JbQfiu.html" target="_blank" rel="noopener noreferrer">腾讯客服：小程序注册流程<i>Content not supported</i></a>、<a href="https://kf.qq.com/faq/170109by2mQB170109zUFfqe.html" target="_blank" rel="noopener noreferrer">腾讯客服：小程序微信认证方法<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4015459512" target="_blank" rel="noopener noreferrer">微信支付：开发接入准备<i>Content not supported</i></a></li>
+<li><strong><code>web-view</code> 业务域名</strong>：只有把 H5 页面嵌入小程序时才需要。个人主体小程序不能使用 <code>web-view</code>；业务域名必须使用 HTTPS、完成 ICP 备案并在后台配置。若 H5 只是临时独立访问而不嵌入小程序，则不应把业务域名当成开发必需项。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/domain.html" target="_blank" rel="noopener noreferrer">微信开放文档：业务域名<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/component/web-view.html" target="_blank" rel="noopener noreferrer">微信开放文档：web-view<i>Content not supported</i></a></li>
+<li><strong><code>uploadFile</code>、<code>downloadFile</code>、<code>socket</code> 域名</strong>：只在对应能力被实现时配置。当前小程序是只读报告入口，不应因为平台提供这些配置栏就默认四项全开。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html" target="_blank" rel="noopener noreferrer">微信开放文档：网络<i>Content not supported</i></a></li>
+<li><strong>微信支付</strong>：当前已确认由现有商城小程序同一 AppID 承接。微信认证、商户号、JSAPI/小程序支付权限、AppID 绑定、安全参数和真实支付退款闭环均适用；但它们首先是对商城现有能力的核验和回归联调，不是要求为健康报告模块重新申请商户号或向前端复制支付密钥。</li>
+</ul>
+<h3 id="_2-3-主要阻断审核发布-但不阻断普通-h5-mock-开发"> 2.3 主要阻断审核发布，但不阻断普通 H5/Mock 开发</h3>
+<ul>
+<li>服务类目最终确认、类目资质审核、小程序备案、正式隐私保护指引、账号基本信息、审核测试账号、管理员提交审核和发布权限。</li>
+<li>正式服务器域名和 <code>web-view</code> 业务域名可在本地开发阶段暂时绕过校验，但缺失时不能把真机正式环境验收为通过。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html" target="_blank" rel="noopener noreferrer">微信开放文档：网络<i>Content not supported</i></a></li>
+<li>微信支付商户权限和真实回调不阻断报告阅读页面的 Mock 开发，但会阻断任何“本 AppID 内真实下单支付”的支付闭环验收。</li>
+</ul>
+<h2 id="_3-账号、登录与权限准备"> 3. 账号、登录与权限准备</h2>
+<h3 id="_3-1-主体、管理员与-appid"> 3.1 主体、管理员与 AppID</h3>
+<p>甲方应使用最终运营主体注册小程序，并指定能够长期处理扫码确认、成员权限、支付绑定、提审和发布的管理员。注册流程要求选择主体类型、填写主体和管理员信息；企业主体可通过对公打款或微信认证验证主体。<a href="https://kf.qq.com/faq/170109iQBJ3Q170109JbQfiu.html" target="_blank" rel="noopener noreferrer">腾讯客服：小程序注册流程<i>Content not supported</i></a></p>
+<p>注册完成后，AppID 可在小程序后台“开发设置”查看。开发人员还需被添加为项目成员并取得开发者权限，甲方测试人员应作为体验成员加入。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/getstart.html" target="_blank" rel="noopener noreferrer">微信开放文档：开始<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/release.html" target="_blank" rel="noopener noreferrer">微信开放文档：协同工作和发布<i>Content not supported</i></a></p>
+<h3 id="_3-2-微信登录联调"> 3.2 微信登录联调</h3>
+<p>真实微信登录的链路是：小程序调用 <code>wx.login</code> 得到一次性 <code>code</code>，服务端使用 AppID、AppSecret 和 <code>code</code> 调用 <code>code2Session</code>，再以 OpenID 等结果建立业务登录态。AppSecret 和 <code>session_key</code> 都不得下发到小程序或提交到公开前端代码。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/open-ability/login.html" target="_blank" rel="noopener noreferrer">微信开放文档：小程序登录<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/server/API/user-login/api_code2session.html" target="_blank" rel="noopener noreferrer">微信开放文档：登录凭证校验<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html" target="_blank" rel="noopener noreferrer">微信开放文档：网络<i>Content not supported</i></a></p>
+<p>因此，“开通微信授权登录能力”不应只理解为后台点一个开关。完成标准应是：真实 AppID 可用、开发者权限可用、AppSecret 已安全交付服务端、<code>wx.login → code2Session → 平台用户</code> 链路在体验版真机成功，并已有能看到宠物和报告的测试数据。</p>
+<h2 id="_4-服务类目与资质边界"> 4. 服务类目与资质边界</h2>
+<p>微信要求服务类目与小程序实际服务一致，且核心功能页面必须能正常访问；涉及账号或受限功能时，审核人员还需能完整体验。<a href="https://developers.weixin.qq.com/miniprogram/product/reject.html" target="_blank" rel="noopener noreferrer">微信开放文档：常见拒绝情形<i>Content not supported</i></a></p>
+<p>与本项目接近的官方类目包括：</p>
+<ul>
+<li>“生活服务—宠物（非医院类）”：适用于宠物美容预约、宠物资讯等，官方表格未列额外资质。</li>
+<li>“生活服务—宠物医院/兽医”：要求《动物诊疗许可证》，适用于宠物医院治疗预约、在线问诊。</li>
+<li>“生活服务—其他宠物健康服务”：官方适用范围写的是动物基因检测，要求《动物诊疗许可证》《检验检测机构资质认定证书》或省级农业农村主管部门公布的检测机构/实验室名单三选一。</li>
+<li>当前同一商城小程序直接销售宠物商品，既有“商家自营—宠物食品/用品”等商城类目需要继续有效；新增宠物微生物组报告功能后，还必须按真实页面确认是否需要补充宠物健康相关服务类目及专项资质，不能只沿用商城原类目而不核验新增功能。</li>
+</ul>
+<p>以上均见<a href="https://developers.weixin.qq.com/miniprogram/product/material/" target="_blank" rel="noopener noreferrer">微信开放文档：服务类目所需资质材料<i>Content not supported</i></a>。</p>
+<p><strong>证据边界</strong>：官方“其他宠物健康服务”的适用范围明确写“动物基因检测”，没有直接说明宠物微生物组检测报告应归入哪个类目。本研究不能据此替甲方断定最终类目。甲方应尽早用真实页面说明在小程序后台选类目并提交平台确认；在确认前，进度页应写“服务类目与专项资质确认”，不能写成已经确定需要某一种许可证。</p>
+<h2 id="_5-备案、服务器与域名"> 5. 备案、服务器与域名</h2>
+<h3 id="_5-1-小程序备案"> 5.1 小程序备案</h3>
+<p>小程序备案材料包括主体证件、主体负责人证件、小程序负责人证件，以及按业务需要提供的前置审批或补充材料；单位主体通常还需完成负责人核验、工信部短信核验和通信管理局审核。官方指引给出的管局审核时间为 1—20 个工作日，适合在项目第 1 周即启动，而不是等开发结束后办理。<a href="https://developers.weixin.qq.com/miniprogram/product/record_guidelines.html" target="_blank" rel="noopener noreferrer">微信开放文档：小程序备案操作指引<i>Content not supported</i></a></p>
+<h3 id="_5-2-服务器域名"> 5.2 服务器域名</h3>
+<p>小程序的 <code>request</code>、<code>uploadFile</code>、<code>downloadFile</code> 和 WebSocket 通信只能访问后台已配置的域名。域名必须使用 HTTPS/WSS、完成 ICP 备案，不得使用 IP 或 localhost；HTTPS 证书必须有效、域名匹配、信任链完整。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/network.html" target="_blank" rel="noopener noreferrer">微信开放文档：网络<i>Content not supported</i></a></p>
+<p>对本项目的最小准备是：</p>
+<ul>
+<li>可公网访问的测试/生产 API 域名；</li>
+<li>对应 DNS、ICP 备案和有效 HTTPS 证书；</li>
+<li><code>request</code> 合法域名；</li>
+<li>若报告图片或文件通过 <code>wx.downloadFile</code> 获取，则配置 <code>downloadFile</code> 合法域名；</li>
+<li>只有实现用户上传或 WebSocket 时，再配置 <code>uploadFile</code> 或 <code>socket</code> 合法域名；</li>
+<li>AppSecret 只存放在服务端。</li>
+</ul>
+<h3 id="_5-3-h5-内嵌的额外条件"> 5.3 H5 内嵌的额外条件</h3>
+<p>若选择在小程序内通过 <code>web-view</code> 承载 H5，还需要单独配置业务域名。官方规则要求非个人主体、HTTPS、ICP 备案；配置成功后小程序才能打开该域名页面。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/ability/domain.html" target="_blank" rel="noopener noreferrer">微信开放文档：业务域名<i>Content not supported</i></a></p>
+<p>若当前所说的“H5 兜底”只是开发期间从浏览器独立访问，则它不需要小程序业务域名，也不应被描述为正式小程序发布条件已经满足。</p>
+<h2 id="_6-隐私合规与审核发布"> 6. 隐私合规与审核发布</h2>
+<p>甲方需要提供的不是一段泛化隐私政策，而是与真实功能一致的资料：开发者主体名称、实际处理的信息、处理目的、第三方插件或服务商、用户查阅/复制/更正/删除等权利的联系渠道、保存期限、对外提供规则、投诉联系方式和生效日期。微信会按提审版本的隐私接口调用情况检查指引内容。<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/user-privacy/" target="_blank" rel="noopener noreferrer">微信开放文档：用户隐私保护指引填写说明<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/user-privacy/miniprogram-intro" target="_blank" rel="noopener noreferrer">微信开放文档：指引内容介绍<i>Content not supported</i></a></p>
+<p>对当前项目，至少要确认商城既有微信身份与健康报告平台用户如何关联、手机号是否复用或新增处理、宠物与报告信息的保存期限、健康报告模块是否新增采集或向商城交易链路传递报告来源信息，以及用户请求删除或更正信息时由谁处理。未确定的接口不能先写入指引，实际调用的接口也不能漏报。</p>
+<p>提交审核前还需：</p>
+<ul>
+<li>名称、头像、简介和服务类目与真实功能一致；</li>
+<li>首页能够在合理路径内到达提交的类目功能；</li>
+<li>页面无“测试版”、空按钮、不可用功能或严重错误；</li>
+<li>对账号受限内容提供能完整体验功能的测试账号或审核路径；</li>
+<li>严格测试后再提审，审核通过后由管理员发布。<a href="https://developers.weixin.qq.com/miniprogram/product/reject.html" target="_blank" rel="noopener noreferrer">微信开放文档：常见拒绝情形<i>Content not supported</i></a>、<a href="https://developers.weixin.qq.com/miniprogram/dev/framework/quickstart/release.html" target="_blank" rel="noopener noreferrer">微信开放文档：协同工作和发布<i>Content not supported</i></a></li>
+</ul>
+<h2 id="_7-微信支付准备及当前项目边界"> 7. 微信支付准备及当前项目边界</h2>
+<h3 id="_7-1-已确认-同一商城小程序-appid-承接"> 7.1 已确认：同一商城小程序 AppID 承接</h3>
+<p>当前产品设计明确：宠物健康报告作为现有商城小程序的新增模块实现；报告中的可购商品在同一小程序内进入现有商城 SPU 详情，购物车、订单、支付和退款继续由商城既有交易链路负责，首期不做报告来源的交易归因。<a href="./pet-health-report-business-design.html">本项目业务设计</a></p>
+<p>因此支付承接方式不再待确认，按以下边界执行：</p>
+<ol>
+<li><strong>不新建独立报告小程序</strong>：报告与商城使用同一 AppID，不存在跨小程序跳转。</li>
+<li><strong>不默认新申请商户号</strong>：先核验商城现有商户号、JSAPI/小程序支付权限、主体、费率、风险状态和当前 AppID 绑定；仅在现状缺失或失效时补办。</li>
+<li><strong>不向健康报告前端交付支付密钥</strong>：商户 API 私钥/证书、APIv3 密钥和验签材料继续由商城支付后端安全管理。</li>
+<li><strong>需要完整回归联调</strong>：从健康报告推荐商品进入同一小程序商品详情，完成选 SKU、下单、支付、支付通知、订单更新、退款及退款结果确认。</li>
+</ol>
+<h3 id="_7-2-新商户号与复用商户号"> 7.2 新商户号与复用商户号</h3>
+<p>微信支付官方接入顺序为：小程序注册与认证、开通 JSAPI/小程序支付权限、商户号发起 AppID 绑定、小程序管理员确认绑定、配置技术负责人、准备开发参数。<a href="https://pay.wechatpay.cn/doc/v3/merchant/4015459512" target="_blank" rel="noopener noreferrer">微信支付：开发接入准备<i>Content not supported</i></a></p>
+<ul>
+<li><strong>新申请商户号</strong>：当前方案原则上不需要；仅当核验发现商城没有可复用商户号，或现有商户号无法继续服务当前 AppID 时办理。需要按主体类型提交营业执照或登记证书、法人/经营者证件和结算账户等材料，完成资料提交、账户验证、审核和签约。<a href="https://pay.wechatpay.cn/static/applyment_guide/applyment_detail_miniapp.shtml" target="_blank" rel="noopener noreferrer">微信支付：小程序接入申请指引<i>Content not supported</i></a>、<a href="https://kf.qq.com/faq/180910IBZVnQ180910naQ77b.html" target="_blank" rel="noopener noreferrer">腾讯客服：微信支付商户入驻支持的主体类型<i>Content not supported</i></a></li>
+<li><strong>复用现有商城商户号</strong>：由商户超级管理员核验并开通 JSAPI 支付权限，发起当前小程序 AppID 关联；再由小程序管理员在公众平台确认。主体不一致时，官方流程还可能要求联合营运承诺材料。<a href="https://pay.wechatpay.cn/doc/v3/merchant/4013287504" target="_blank" rel="noopener noreferrer">微信支付：管理商户号绑定的 AppID<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012791895" target="_blank" rel="noopener noreferrer">微信支付：JSAPI 支付权限申请指引<i>Content not supported</i></a></li>
+</ul>
+<h3 id="_7-3-安全参数、回调和真实验证"> 7.3 安全参数、回调和真实验证</h3>
+<p>当前同一商城 AppID 支付时，甲方应先确认商城支付后端已经安全配置商户号、AppID、商户 API 证书、商户 API 私钥、证书序列号、APIv3 密钥，以及所采用的微信支付公钥或平台证书验签方案；健康报告前端不得接触这些安全材料。只有商城现有配置缺失、失效或本次需要调整支付后端时，才由商户超级管理员为技术负责人配置商户平台账号和安全联系人，并通过安全渠道补充材料。既有系统如果仍使用平台证书，则平台证书与微信支付公钥是方案选择，不应写成两套都必须提供。<a href="https://pay.wechatpay.cn/doc/v3/merchant/4013070756" target="_blank" rel="noopener noreferrer">微信支付：开发必要参数说明<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012072195" target="_blank" rel="noopener noreferrer">微信支付：APIv3 密钥<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012072428" target="_blank" rel="noopener noreferrer">微信支付：商户 API 证书<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012153196" target="_blank" rel="noopener noreferrer">微信支付：微信支付公钥<i>Content not supported</i></a></p>
+<p>支付和退款通知必须使用完整、外网可访问的 HTTPS 地址，不能使用 localhost、内网 IP 或带查询参数的地址；服务器、防火墙或 WAF 不能拦截微信支付通知。<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012075420" target="_blank" rel="noopener noreferrer">微信支付：回调通知注意事项<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012791902" target="_blank" rel="noopener noreferrer">微信支付：支付成功回调<i>Content not supported</i></a></p>
+<p>微信支付官方没有提供线上支付回调测试接口，支付闭环要在真实环境用小额真实交易验证；不能只看前端 <code>requestPayment</code> 成功，还要核验后端查单和支付通知。退款接口受理成功也不等于最终退款成功，应以退款通知或退款查询结果为准。<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012791869" target="_blank" rel="noopener noreferrer">微信支付：JSAPI 支付常见问题<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012791911" target="_blank" rel="noopener noreferrer">微信支付：小程序支付开发指引<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4013071031" target="_blank" rel="noopener noreferrer">微信支付：订单退款开发指引<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012791903" target="_blank" rel="noopener noreferrer">微信支付：退款申请<i>Content not supported</i></a>、<a href="https://pay.wechatpay.cn/doc/v3/merchant/4012791906" target="_blank" rel="noopener noreferrer">微信支付：退款结果通知<i>Content not supported</i></a></p>
+<h2 id="_8-建议呈现在项目进度页的精简前置事项"> 8. 建议呈现在项目进度页的精简前置事项</h2>
+<p>以下 15 条适合替换当前 7 条笼统事项。<code>必需程度</code> 为“条件项”的条目必须在标题或说明中明确条件，不能一律显示成甲方无条件欠缺。</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>页面条目</th>
+<th>必需程度</th>
+<th>甲方责任角色</th>
+<th>建议期望周次</th>
+<th>可核验完成标准</th>
+<th>受影响任务 ID</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pre-mp-account</code></td>
+<td>小程序主体、管理员与 AppID/AppSecret</td>
+<td>必需</td>
+<td>甲方业务负责人、小程序管理员</td>
+<td>第 1 周</td>
+<td>最终运营主体账号已注册；管理员可登录；AppID 已提供；AppSecret 仅通过安全方式交给后端；真实 <code>code2Session</code> 可调用</td>
+<td><code>mp-01</code>, <code>mp-05</code>, <code>ops-04</code></td>
+</tr>
+<tr>
+<td><code>pre-mp-certification</code></td>
+<td>微信认证状态</td>
+<td>必需：复用商城小程序支付</td>
+<td>甲方业务负责人、财务</td>
+<td>第 1 周</td>
+<td>公众平台显示当前商城小程序认证有效，认证主体与实际运营主体一致</td>
+<td><code>mp-01</code>, <code>mp-05</code>, <code>ops-06</code></td>
+</tr>
+<tr>
+<td><code>pre-mp-members</code></td>
+<td>开发者与体验成员权限</td>
+<td>必需</td>
+<td>小程序管理员、甲方项目负责人</td>
+<td>第 1 周</td>
+<td>开发者能上传开发版；产品、测试和甲方验收人员能打开体验版；发布敏感权限只给指定人员</td>
+<td><code>mp-05</code>, <code>ops-04</code>, <code>ops-06</code></td>
+</tr>
+<tr>
+<td><code>pre-mp-category</code></td>
+<td>服务类目与专项资质确认</td>
+<td>必需</td>
+<td>甲方业务负责人、法务/资质负责人</td>
+<td>第 1 周</td>
+<td>类目与真实宠物微生物组报告功能已获平台确认；所需许可证、合作协议或承诺材料已上传并通过；未把“基因检测”类目直接套用为既定结论</td>
+<td><code>mp-02</code>, <code>mp-03</code>, <code>mp-05</code>, <code>ops-06</code></td>
+</tr>
+<tr>
+<td><code>pre-mp-filing</code></td>
+<td>小程序备案</td>
+<td>必需</td>
+<td>甲方行政/法务、小程序负责人</td>
+<td>第 1 周启动</td>
+<td>主体、负责人、专项材料与短信核验完成；后台取得小程序备案号</td>
+<td><code>mp-05</code>, <code>ops-06</code></td>
+</tr>
+<tr>
+<td><code>pre-server</code></td>
+<td>测试/生产服务器、数据库与运维联系人</td>
+<td>必需</td>
+<td>甲方 IT 负责人</td>
+<td>第 1 周</td>
+<td>可公网访问的环境和数据库已交付；技术联系人明确；具备部署、日志、备份和恢复所需权限</td>
+<td><code>ops-01</code>, <code>ops-04</code>, <code>ops-05</code></td>
+</tr>
+<tr>
+<td><code>pre-domain</code></td>
+<td>域名、ICP、DNS 与 HTTPS</td>
+<td>必需</td>
+<td>甲方 IT 负责人、行政/法务</td>
+<td>第 1 周启动，第 6 周前完成</td>
+<td>域名可控；ICP 备案可查；DNS 指向目标环境；HTTPS 证书有效、域名匹配、链完整</td>
+<td><code>ops-02</code>, <code>ops-04</code>, <code>ops-05</code></td>
+</tr>
+<tr>
+<td><code>pre-mp-server-domains</code></td>
+<td>小程序服务器域名配置</td>
+<td>必需</td>
+<td>甲方 IT 负责人、小程序管理员</td>
+<td>第 6 周</td>
+<td><code>request</code> 合法域名已配置并真机验证；按实际功能补充 <code>downloadFile</code>，仅在确有上传/Socket 时补充对应域名</td>
+<td><code>mp-01</code>, <code>mp-02</code>, <code>mp-03</code>, <code>mp-04</code>, <code>mp-05</code>, <code>ops-02</code>, <code>ops-04</code></td>
+</tr>
+<tr>
+<td><code>pre-mp-webview-domain</code></td>
+<td>H5 业务域名</td>
+<td>条件项：H5 内嵌小程序时</td>
+<td>甲方 IT 负责人、小程序管理员</td>
+<td>第 6 周</td>
+<td>已确认是否使用 <code>web-view</code>；若使用，非个人主体、HTTPS、ICP 和后台业务域名配置均通过，真机可打开；独立 H5 则标“不适用”</td>
+<td><code>mp-04</code>, <code>mp-05</code>, <code>ops-02</code>, <code>ops-04</code></td>
+</tr>
+<tr>
+<td><code>pre-mp-privacy</code></td>
+<td>隐私保护指引与用户权利联系人</td>
+<td>必需</td>
+<td>甲方法务、业务负责人、客服负责人</td>
+<td>第 6 周</td>
+<td>个人信息清单、用途、保存期限、第三方、删除/更正渠道、联系方式已确认；后台指引与提审代码实际接口一致并通过审核</td>
+<td><code>mp-01</code>, <code>mp-02</code>, <code>mp-03</code>, <code>mp-05</code>, <code>ops-06</code></td>
+</tr>
+<tr>
+<td><code>pre-mp-review</code></td>
+<td>审核资料、测试账号与发布负责人</td>
+<td>仅上线前核验</td>
+<td>甲方业务负责人、测试负责人、小程序管理员</td>
+<td>第 8 周</td>
+<td>名称/头像/简介/类目一致；审核人员可通过测试账号或测试数据体验宠物与完整报告；无测试占位；提审和发布负责人已确认</td>
+<td><code>mp-02</code>, <code>mp-03</code>, <code>mp-05</code>, <code>ops-04</code>, <code>ops-06</code></td>
+</tr>
+<tr>
+<td><code>pre-pay-merchant</code></td>
+<td>商户号与 JSAPI/小程序支付权限</td>
+<td>必需：核验现状</td>
+<td>甲方财务、商户超级管理员</td>
+<td>第 1 周</td>
+<td>现有商户号主体、费率、风险状态正常，JSAPI/小程序支付权限有效；原则上复用，不重复申请</td>
+<td><code>mp-04</code>, <code>mp-05</code>, <code>ops-04</code></td>
+</tr>
+<tr>
+<td><code>pre-pay-binding-security</code></td>
+<td>商户号绑定 AppID 与支付安全参数</td>
+<td>必需：核验现状</td>
+<td>商户超级管理员、小程序管理员、技术负责人</td>
+<td>第 6 周</td>
+<td>当前商城 AppID 与商户号绑定有效；支付后端安全参数及验签方案可用且未进入前端或公开仓库；缺失时再安全补充</td>
+<td><code>mp-04</code>, <code>mp-05</code>, <code>ops-04</code>, <code>ops-05</code></td>
+</tr>
+<tr>
+<td><code>pre-pay-callback-test</code></td>
+<td>支付回调与真实支付退款闭环</td>
+<td>必需：回归联调</td>
+<td>甲方财务、IT、测试负责人</td>
+<td>第 8 周</td>
+<td>从报告推荐商品进入同小程序商品详情后，真实小额支付、查单、支付通知、订单更新、退款及退款结果确认全部通过并留存结果</td>
+<td><code>mp-04</code>, <code>mp-05</code>, <code>ops-04</code>, <code>ops-05</code>, <code>ops-06</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="_9-页面呈现建议"> 9. 页面呈现建议</h2>
+<ul>
+<li>顶部“未完成待配合”只统计当前确实适用且尚未完成的事项。</li>
+<li>支付承接方式（同一 AppID 复用商城交易）为产品技术结论，不作为甲方清单项；支付相关 3 条事项均按核验现有能力与真实回归联调维护。</li>
+<li>每条事项至少展示：事项名、责任角色、期望周次、完成/未完成、受影响任务。详细办理材料可放在研究文档，不必把长篇说明塞入总控页。</li>
+<li>甲方没有服务器、域名、备案或小程序账号时，可以继续展示 H5/Mock 开发，但受影响任务应明确为“真实微信登录/真机联调/审核发布/真实支付验证”，不要把整个前后端开发笼统标成停止。</li>
+</ul>
+<h2 id="_10-仍需甲方确认的证据边界"> 10. 仍需甲方确认的证据边界</h2>
+<ol>
+<li><strong>最终服务类目</strong>：官方类目没有直接写明“宠物微生物组检测报告”，不能仅凭相似名称确定。需由甲方以真实主体、实际页面和资质向微信平台确认。</li>
+<li><strong>现有商城商户号与认证状态</strong>：实施方式已确认同一 AppID 复用商城支付，但本研究未登录甲方公众平台和微信支付商户平台，仍无法确认认证有效期、认证主体、商户号、费率、风险状态、JSAPI 权限、AppID 绑定及安全参数现状。</li>
+<li><strong>商城前端接入边界</strong>：健康报告入口放在商城何处、是否使用分包、如何复用登录态和客服入口，以及商品详情返回路径，需要结合现有商城小程序代码确认。</li>
+<li><strong>实际使用的域名类型</strong>：是否需要 <code>downloadFile</code>、<code>uploadFile</code>、<code>socket</code> 或 <code>web-view</code> 取决于最终实现；官方规则只证明这些能力各自需要配置，不能据此断言当前项目全部需要。</li>
+<li><strong>新增功能的类目与隐私变化</strong>：同一商城小程序新增宠物健康报告后，需核验现有服务类目和隐私保护指引是否覆盖新增页面、宠物与报告数据处理，不能因商城已上线而默认无需变更。</li>
+</ol>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T09:02:02.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">报告工作版本采用后暂存覆盖</title>
+    <id>https://ikecoolon.github.io/adr/0022-use-last-write-wins-for-report-drafts/</id>
+    <link href="https://ikecoolon.github.io/adr/0022-use-last-write-wins-for-report-drafts/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="报告工作版本采用后暂存覆盖"> 报告工作版本采用后暂存覆盖</h1>
+<p>多人同时编辑同一份报告时不锁定工作台，也不通过版本号阻止暂存；后一次暂存直接覆盖后端的前一次工作版本，每次暂存只记录操作人和时间。该选择保持首期暂存流程简单，但明确接受并发编辑可能丢失先前修改的风险；正式发布版本和更正版本的追溯规则不受影响。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T06:15:29.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">只支持微生物组报告产品</title>
+    <id>https://ikecoolon.github.io/adr/0023-support-only-the-microbiome-report-product/</id>
+    <link href="https://ikecoolon.github.io/adr/0023-support-only-the-microbiome-report-product/"/>
+    <updated>2026-09-02T05:15:02.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="只支持微生物组报告产品"> 只支持微生物组报告产品</h1>
+<p>平台当前及长期只提供宠物微生物组报告，不在数据模型、管理端或规则配置中建立可配置报告类型，也不为假设中的其他检测产品预留通用报告引擎。该选择用明确的单一产品边界换取更简单、可验证的导入、内容、审核和小程序展示流程；未来若业务方向真正变化，应作为新产品边界重新设计，而不是把当前模块提前泛化。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T06:15:29.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">参考范围只采用报告导入或平台配置</title>
+    <id>https://ikecoolon.github.io/adr/0024-use-only-imported-or-platform-reference-ranges/</id>
+    <link href="https://ikecoolon.github.io/adr/0024-use-only-imported-or-platform-reference-ranges/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="参考范围只采用报告导入或平台配置"> 参考范围只采用报告导入或平台配置</h1>
+<p>有效参考范围优先采用审核人员确认可用的报告导入范围，缺失或被审核人员判为不可用时自动匹配“指标/参考范围”中的平台配置，两者都没有则保持为空；系统不判断导入范围的专业有效性，也不允许在单份报告中人工填写第三种范围。未发布工作版本打开时自动采用最新平台匹配结果并触发相关内容重新分析确认，已发布版本继续冻结原有效范围。该决策取代 ADR-0009 中允许审核人员直接修订最终范围的部分。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T06:15:29.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">保留原始事实但有效结果只保存当前值</title>
+    <id>https://ikecoolon.github.io/adr/0025-keep-source-facts-and-only-the-current-effective-result/</id>
+    <link href="https://ikecoolon.github.io/adr/0025-keep-source-facts-and-only-the-current-effective-result/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="保留原始事实但有效结果只保存当前值"> 保留原始事实但有效结果只保存当前值</h1>
+<p>原始 Excel 和首次解析形成的检测事实永久保留；人工补录或修订不覆盖原始事实，但有效检测结果只保存当前采用的值、人工来源和当前修改原因，后一次修改覆盖前一次有效值，不建立逐次值变更版本链。报告呈现内容继续基于当前有效结果生成，已发布后的数据变化通过唯一更正草稿处理。该决策取代 ADR-0012 中把每次有效结果修订都作为可追溯修改链的要求。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T06:15:29.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">逐份规则分析归入报告工作台</title>
+    <id>https://ikecoolon.github.io/adr/0026-run-per-report-analysis-inside-the-report-workbench/</id>
+    <link href="https://ikecoolon.github.io/adr/0026-run-per-report-analysis-inside-the-report-workbench/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="逐份规则分析归入报告工作台"> 逐份规则分析归入报告工作台</h1>
+<p>“分析规则”菜单只维护规则定义、版本、条件、输出、优先级、冲突分组和测试，不再提供独立的逐份报告分析工作台；报告的规则运行、原始命中、组合结果、命中排除、人工发现和最终内容确认统一放入报告工作台。无规则命中时允许分析模块为空，存在命中时必须人工确认；检测结果、报告物种或有效参考范围变化会使旧分析失效并阻断提交。这样规则配置与报告处理各自只有一个入口，避免多处编辑产生不同最终内容。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T06:15:29.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">保留不可购主推商品的推荐上下文</title>
+    <id>https://ikecoolon.github.io/adr/0027-preserve-unavailable-primary-product-context/</id>
+    <link href="https://ikecoolon.github.io/adr/0027-preserve-unavailable-primary-product-context/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="保留不可购主推商品的推荐上下文"> 保留不可购主推商品的推荐上下文</h1>
+<p>报告中的原主推商品即使缺货、下架或已从商城中消失，也继续作为当时健康建议的推荐上下文展示，而不是被候选商品直接替换；可购主推商品从小程序报告正文直接进入商城 SPU 详情，不可购主推商品则进入推荐详情查看当前候选商品。这样既保留报告发布时的推荐语义，又不会把不可购买商品伪装成有效购买入口；原商品展示数据的保存来源另行决定。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T06:15:29.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">商品推荐只使用运营人工选择</title>
+    <id>https://ikecoolon.github.io/adr/0029-use-manual-product-selection-without-a-recommendation-engine/</id>
+    <link href="https://ikecoolon.github.io/adr/0029-use-manual-product-selection-without-a-recommendation-engine/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="商品推荐只使用运营人工选择"> 商品推荐只使用运营人工选择</h1>
+<p>商品推荐不使用健康需求标签、标签商品映射、分析规则、评分、自动排序或自动替换；运营在单份报告的健康建议后直接选择一个主推 SPU，并可选配、手工排序最多三个关联推荐 SPU。商品配置与专业报告版本分开，保存后只立即更新该报告当前的小程序展示，不创建报告更正版本或影响其他报告；系统只从商城读取商品当前或历史资料并标记可购状态，缺货或下架时不自动提升其他商品，从而把专业分析与商品运营彻底分开，并让运营对用户看到的商品承担直接决策责任。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T06:15:29.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">主推商品与候选商品均使用当前推荐映射</title>
+    <id>https://ikecoolon.github.io/adr/0028-resolve-primary-and-candidate-products-from-current-mapping/</id>
+    <link href="https://ikecoolon.github.io/adr/0028-resolve-primary-and-candidate-products-from-current-mapping/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="主推商品与候选商品均使用当前推荐映射"> 主推商品与候选商品均使用当前推荐映射</h1>
+<p>报告发布时只固化专业发现、推荐理由、健康需求标签和规则版本，不固化主推 SPU 或候选 SPU；每次查看报告时，主推商品与候选商品均依据当前推荐映射和商城状态解析，运营调整映射后直接影响全部已发布报告，无需创建报告更正版本。商品名称、图片及失效状态继续由商城保留的当前或历史记录提供，报告不保存商品信息快照，从而优先保证运营可以统一替换推荐商品并复用现有商城能力，但历史报告不再复现其发布当时的具体商品推荐。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T06:15:29.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">报告中心从成功导入后开始</title>
+    <id>https://ikecoolon.github.io/adr/0021-start-report-center-after-successful-import/</id>
+    <link href="https://ikecoolon.github.io/adr/0021-start-report-center-after-successful-import/"/>
+    <updated>2026-08-28T09:02:02.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="报告中心从成功导入后开始"> 报告中心从成功导入后开始</h1>
+<p>统一报告中心只管理 Excel 成功解析并已经生成的报告，生命周期从待归属开始，不把检测登记或等待机构出结果的前置任务伪装成报告。这样每条中心记录都具有稳定的平台报告编号和一致的归属、审核、发布、版本及作废语义；首期不另建检测任务管理，未来若业务需要跟踪送检履约，应作为独立对象和流程设计。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-28T01:34:34.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">宠物肠道菌群参考区间与科普配置研究</title>
+    <id>https://ikecoolon.github.io/product-design/pet-microbiome-reference-and-content-configuration-research/</id>
+    <link href="https://ikecoolon.github.io/product-design/pet-microbiome-reference-and-content-configuration-research/"/>
+    <updated>2026-09-04T08:50:58.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="宠物肠道菌群参考区间与科普配置研究"> 宠物肠道菌群参考区间与科普配置研究</h1>
+<blockquote>
+<p>调研日期：2026-08-26</p>
+<p>适用范围：犬、猫粪便微生物检测报告及当前小程序设计图</p>
+<p>目的：只确定支撑现有报告展示所需的最小配置边界，不扩张小程序页面或内容模块。</p>
+</blockquote>
+<h2 id="结论先行"> 结论先行</h2>
+<ol>
+<li><strong>不存在可以直接套给所有犬猫、所有队列和所有检测方法的“某门/某属通用正常范围”。</strong> 可以存在的是某一物种、样本类型、分析方法、计量单位和参考群体下，经验证得到的参考区间。尤其不能把 16S/宏基因组给出的相对丰度百分比，换算或套用到 qPCR 的 <code>log DNA/g feces</code> 参考区间。</li>
+<li><strong>菌群字典只适合维护分类身份和极少量、带证据的中性科普。</strong> “本次偏高/偏低意味着什么”“对这只宠物有什么影响”“应如何干预”都不是 taxon 的恒定属性，必须结合物种、样本、检测值、有效参考区间、分析规则及其他结果，形成单份报告结论，并由专业人员审核。</li>
+<li><strong>不需要为每一个门或属预先填满占位文案，也不应为了页面完整而制造空内容。</strong> 当前设计只展示本次实际检测到或报告选中的菌群；没有可靠参考区间时保留检测值，不判定“正常/偏高/偏低”；没有经审核解释时不补通用危害或建议。</li>
+<li><strong>当前原型中“丛林角色、它是什么样、功能说明、偏低提示、偏高提示”全部放在 taxon 全局字典里，边界过宽。</strong> 最小化后，字典只保留分类事实与一个可选的中性短说明；高低提示、分析和建议移到报告规则/审核结果。</li>
+</ol>
+<h2 id="_1-为什么同一个门或属不能共用一套正常范围"> 1. 为什么同一个门或属不能共用一套正常范围</h2>
+<h3 id="_1-1-犬与猫需要分别建立范围或判定模型"> 1.1 犬与猫需要分别建立范围或判定模型</h3>
+<p>犬、猫之间即使能检测到相同属，也不能据此共用参考区间。对 2,639 份犬猫粪便宏基因组的整合研究发现，犬猫共享一部分微生物物种，但同一类群中存在宿主特异的谱系适应以及代谢、耐药基因等功能差异。这说明“名称相同”并不等于宿主背景和功能完全相同。<a href="https://doi.org/10.1093/ismejo/wrae201" target="_blank" rel="noopener noreferrer">Branck et al., 2024<i>Content not supported</i></a></p>
+<p>一个很直接的临床实例是 Texas A&amp;M 的 qPCR 菌群失衡指数：犬、猫使用不同的目标菌组合和不同参考区间。犬面板包含 <code>Blautia</code>、<code>Fusobacterium</code>，猫面板则包含 <code>Bifidobacterium</code>、<code>Bacteroides</code>；即使两者都测量 <code>Faecalibacterium</code>、<code>Turicibacter</code>、<code>Peptacetobacter hiranonis</code>、<code>Streptococcus</code> 和 <code>E. coli</code>，给出的区间也并不完全相同，且犬的显著失衡阈值为 <code>DI &gt; 2</code>，猫为 <code>DI &gt; 1</code>。<a href="https://vetmed.tamu.edu/gilab/service/assays/canine-microbiota-dysbiosis-index/" target="_blank" rel="noopener noreferrer">Texas A&amp;M GI Laboratory 官方说明<i>Content not supported</i></a></p>
+<p>因此，原型中的 <code>species + taxon + min/max</code> 至少要继续区分犬、猫；不能设置一个无物种范围作为默认兜底。</p>
+<h3 id="_1-2-健康动物内部也存在个体、饮食、年龄、品种和环境差异"> 1.2 健康动物内部也存在个体、饮食、年龄、品种和环境差异</h3>
+<ul>
+<li>对 286 只北美家庭健康犬的全长 16S 研究中，饮食类别、地域和体重都能解释部分菌群结构差异，作者明确提示结论外推到其他犬群仍需进一步研究。<a href="https://doi.org/10.3389/fvets.2024.1405470" target="_blank" rel="noopener noreferrer">Rojas et al., 2024<i>Content not supported</i></a></li>
+<li>在相同饲养和饮食条件下比较 3 个犬种，<code>Fusobacterium</code>、<code>Turicibacter</code>、<code>Streptococcus</code> 等多个属仍存在犬种差异。<a href="https://pubmed.ncbi.nlm.nih.gov/31601060/" target="_blank" rel="noopener noreferrer">Chun et al., 2019<i>Content not supported</i></a></li>
+<li>健康猫研究发现，年龄、饮食形式和居住环境都会影响“核心菌群”的组成；家庭猫和收容所猫之间存在显著差异。<a href="https://pubmed.ncbi.nlm.nih.gov/36423084/" target="_blank" rel="noopener noreferrer">Ganz et al., 2022<i>Content not supported</i></a></li>
+<li>对健康犬猫粪便采样的研究中，个体身份对菌群结构的解释度高于采样位置和短时存放因素，犬、猫的个体效应分别达到 <code>R²=0.64</code> 和 <code>0.88</code>。<a href="https://doi.org/10.1186/s12917-023-03842-7" target="_blank" rel="noopener noreferrer">Tal et al., 2023<i>Content not supported</i></a></li>
+</ul>
+<p>这些结果并不等于产品首期必须马上增加年龄、犬种、饮食、地区等一排配置项。更稳妥的产品结论是：<strong>只有检测机构或已验证研究明确提供分层参考区间时，才增加相应分层；没有证据时不要用空占位符假装精细。</strong></p>
+<h3 id="_1-3-检测方法、样本与单位不同-数值不可直接互换"> 1.3 检测方法、样本与单位不同，数值不可直接互换</h3>
+<p>16S 扩增子测序、全长 16S、宏基因组测序和目标 qPCR 测量的不是同一种量：</p>
+<ul>
+<li>16S/宏基因组通常报告群落中的<strong>相对丰度</strong>；它是组成性数据，一个菌的百分比上升可能来自其他菌下降，并不等于该菌绝对数量增长。</li>
+<li>qPCR 可以对预定义目标作较可重复的<strong>绝对定量</strong>。Texas A&amp;M 的犬猫面板按 <code>log DNA/g feces</code> 报告，不能套到百分比图表。</li>
+<li>对 296 只犬同时做 qPCR 和宏基因组测序的研究显示，两种方法虽总体相关，但部分菌只能由 qPCR 检出；健康犬中某些属的测序相对丰度从未检出到很高比例，而 qPCR 的绝对量区间窄得多。<a href="https://doi.org/10.3390/ani13162597" target="_blank" rel="noopener noreferrer">Sung et al., 2023<i>Content not supported</i></a></li>
+<li>对同一批健康犬分别使用 Illumina 短读长和 Oxford Nanopore 全长 16S 的直接比较发现，两套工作流在属级相对丰度上不能互换，并且会得到不同的多样性和年龄关联结论。<a href="https://doi.org/10.1007/s11259-026-11407-w" target="_blank" rel="noopener noreferrer">Polacchini et al., 2026<i>Content not supported</i></a></li>
+<li>粪便、直肠拭子和肠黏膜活检捕获的群落也不能视为完全等价。<a href="https://pubmed.ncbi.nlm.nih.gov/34032481/" target="_blank" rel="noopener noreferrer">Gal et al., 2021<i>Content not supported</i></a></li>
+</ul>
+<p>因此，范围的适用键不能只有“门/属 + 犬/猫”。最小情况下还要能区分<strong>检测方案/来源模板与单位</strong>；如果当前 Excel 自带范围，应优先保存该次报告的原始范围和单位，而不是从平台猜测。</p>
+<h2 id="_2-正常范围-与-菌群失衡指数-分别是什么"> 2. “正常范围”与“菌群失衡指数”分别是什么</h2>
+<h3 id="_2-1-参考区间不是随手配置的产品阈值"> 2.1 参考区间不是随手配置的产品阈值</h3>
+<p>美国兽医临床病理学会（ASVCP）将参考区间定义为可比较的健康参考群体中测量值的估计分布，通常覆盖中间 95%；建立新的群体参考区间时，理想情况下至少需要 120 个健康参考个体，且必须记录物种、品种、年龄、性别、地理、饲养/饮食、采样、处理和分析方法。小样本会显著增加上下限的不确定性。<a href="https://doi.org/10.1111/vcp.12006" target="_blank" rel="noopener noreferrer">ASVCP 指南<i>Content not supported</i></a>、<a href="https://www.asvcp.org/resource/resmgr/QALS/Other_Publications/RI_Guidelines_For_ASVCP_webs.pdf" target="_blank" rel="noopener noreferrer">ASVCP 官方完整版<i>Content not supported</i></a></p>
+<p>这意味着产品后台录入的上下限只能称为以下两者之一：</p>
+<ul>
+<li><strong>检测机构参考区间</strong>：随 Excel/检测方案提供，并冻结到该份报告；</li>
+<li><strong>平台验证参考区间</strong>：有明确来源、物种、方法、单位、参考群体和版本，经专业人员批准后使用。</li>
+</ul>
+<p>不满足这些条件的数字不应对用户称为“通用正常范围”或“理想范围”。</p>
+<h3 id="_2-2-犬猫-di-是特定-qpcr-面板的分类算法-不是所有菌平均后的通用分数"> 2.2 犬猫 DI 是特定 qPCR 面板的分类算法，不是所有菌平均后的通用分数</h3>
+<p>犬 DI 的原始研究用 95 只健康犬与 106 只组织学确认慢性炎症性肠病犬建立和验证模型；面板测量总菌量及 7 个目标菌群，再由最近质心分类器计算单一数值。以 0 为阈值区分健康犬和慢性肠病犬时，灵敏度 74%、特异度 95%。<a href="https://doi.org/10.1093/femsec/fix136" target="_blank" rel="noopener noreferrer">AlShawaqfeh et al., 2017<i>Content not supported</i></a></p>
+<p>猫 DI 的研究使用 80 只健康猫与 68 只慢性肠病猫，目标菌组合与犬并不相同；阈值 0 的综合灵敏度为 77%、特异度为 96%。<a href="https://doi.org/10.1177/1098612X221077876" target="_blank" rel="noopener noreferrer">Sung et al., 2022<i>Content not supported</i></a></p>
+<p>要特别区分：</p>
+<ul>
+<li>单菌的“参考区间”描述健康参考群体中的测量分布；</li>
+<li>DI 的 <code>0</code>、<code>2</code> 或 <code>1</code> 是该专用算法的<strong>判定阈值/解释分层</strong>；</li>
+<li>这两个概念都不能从当前页面上一组百分比范围自行推导。</li>
+</ul>
+<h3 id="_2-3-di-仍有明确局限"> 2.3 DI 仍有明确局限</h3>
+<ul>
+<li>它是对菌群整体偏移的指标，不单独诊断某一种疾病，也不直接证明失衡是疾病的原因。</li>
+<li>犬阈值 0 的灵敏度 74%、猫为 77%，意味着一部分慢性肠病动物仍可能落在 0 以下；猫研究也明确提出应与炎症等其他生物标志物和临床信息结合。</li>
+<li>qPCR 面板只能识别预先选定的目标，不能发现未知或未纳入的菌；宏基因组覆盖更广，但目前个体级临床解释又缺少统一验证和参考区间。</li>
+<li>抗生素、质子泵抑制剂和饮食等都可能改变结果。Texas A&amp;M 要求结合单菌结果，特别是 <code>P. hiranonis</code>，并考虑近期药物和饮食。<a href="https://vetmed.tamu.edu/gilab/service/assays/canine-microbiota-dysbiosis-index/" target="_blank" rel="noopener noreferrer">Texas A&amp;M GI Laboratory<i>Content not supported</i></a></li>
+<li>伴侣动物粪菌移植临床共识认为，经过验证的犬猫 DI 可用于供体筛查；但不推荐用尚未验证且没有个体解释标准的下一代测序结果判断供体“正常/异常”。这是共识中的低质量证据建议，不能被扩大成“所有 NGS 都无用”。<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC13251538/" target="_blank" rel="noopener noreferrer">Companion Animal FMT Consortium clinical guidelines<i>Content not supported</i></a></li>
+<li>AAHA 营养与体重管理指南也提示，微生物组检测的临床应用仍有限，尤其应警惕由检测直接导向补充剂销售的做法。<a href="https://www.aaha.org/resources/2021-aaha-nutrition-and-weight-management-guidelines/microbiome-prebiotics-postbiotics/" target="_blank" rel="noopener noreferrer">AAHA 指南<i>Content not supported</i></a></li>
+</ul>
+<h2 id="_3-菌群功能说明能否放进-taxon-全局字典"> 3. 菌群功能说明能否放进 taxon 全局字典</h2>
+<h3 id="_3-1-可以作为共性配置的内容"> 3.1 可以作为共性配置的内容</h3>
+<p>以下内容是分类身份或带范围的科普事实，可以全局复用：</p>
+<table>
+<thead>
+<tr>
+<th>内容</th>
+<th>配置建议</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>稳定编码、中文展示名、学名、分类层级、父级</td>
+<td>全局 taxon 字典；它们用于搜索、分类树和页面标题</td>
+</tr>
+<tr>
+<td>新旧学名/同义名</td>
+<td>全局别名；例如 <code>Clostridium hiranonis</code> 已常写作 <code>Peptacetobacter hiranonis</code></td>
+</tr>
+<tr>
+<td>一句中性短说明</td>
+<td>可选；必须标注适用物种或“跨物种”、证据来源和专业审核状态</td>
+</tr>
+<tr>
+<td>已证实的特定机制</td>
+<td>仅在证据足够、层级足够精确时写成中性事实，并限定物种；例如犬研究支持 <code>P. hiranonis</code> 与初级胆汁酸转化为次级胆汁酸密切相关，但仍不等于单凭丰度即可给个体下治疗结论。<a href="https://doi.org/10.3390/ani14020216" target="_blank" rel="noopener noreferrer">Correa Lopes et al., 2024<i>Content not supported</i></a></td>
+</tr>
+</tbody>
+</table>
+<p>中性科普应使用“研究发现……相关/参与……”而不是“好菌、坏菌、核心保护者、过多就挤占其他菌”等确定性标签。16S 属级结果通常不能提供菌株功能或实际代谢活性；犬猫大规模宏基因组研究也发现宿主特异的菌株和功能差异，因此不能把某属的一句话扩张为所有物种、所有菌株的固定作用。<a href="https://doi.org/10.1093/ismejo/wrae201" target="_blank" rel="noopener noreferrer">Branck et al., 2024<i>Content not supported</i></a></p>
+<h3 id="_3-2-必须结合单份报告并由专业人员审核的内容"> 3.2 必须结合单份报告并由专业人员审核的内容</h3>
+<p>下列内容不得由 taxon 字典直接输出：</p>
+<ul>
+<li>“本次正常、偏高、偏低、未检出”的状态；</li>
+<li>“为什么会这样”“会造成什么风险”的解释；</li>
+<li>当前宠物的健康结论、综合评价、风险级别；</li>
+<li>饮食、益生菌、药物、复检或就医建议；</li>
+<li>与其他菌、代谢物、多样性指标的组合解释；</li>
+<li>商品推荐理由。</li>
+</ul>
+<p>这些结论至少依赖以下运行时上下文：报告物种、样本类型、检测方案/平台、单位、检测值、该次有效参考区间、其他结果、近期用药/饮食信息（如果报告有）、规则版本和审核后的最终文案。</p>
+<p>例如“某属偏高会挤占其他保护性菌属”是一条生态与因果判断，不能仅凭属名和单项百分比成立；“补充某种益生菌”更属于干预建议，不能由字典自动推出。当前截图中 <code>Collinsella</code> 下的解释以及“分析/总体建议”都应属于<strong>这份报告的审核结果</strong>，不属于 <code>Collinsella</code> 全局定义。</p>
+<h2 id="_4-对当前设计图的最小配置边界"> 4. 对当前设计图的最小配置边界</h2>
+<p>相关设计图：</p>
+<ul>
+<li><code>docs/product-design/img/微信图片_20260825163609_86_525.jpg</code>：门/属检测数值与正常范围对比；</li>
+<li><code>docs/product-design/img/微信图片_20260825163611_87_525.jpg</code>：菌门详情、属级检测卡、分析和总体建议。</li>
+</ul>
+<h3 id="_4-1-不需要-每个菌一个占位符"> 4.1 不需要“每个菌一个占位符”</h3>
+<p>推荐删除“每个 taxon 科普字段都必须使用 <code>{pet} {theme} {taxon} {value} {status}</code>”这一隐含要求。</p>
+<ul>
+<li>分类名称、父级、学名和中性科普本身不需要占位符。</li>
+<li>检测值和范围已经在数值卡片中单独显示，不必再次塞进科普句子。</li>
+<li>设计图中的“莎莎的雨林中，药草与苔藓（放线菌门）——略显繁茂”是组合后的完整展示文案：宠物昵称和等级主题来自报告，场景短称来自菌群科普，菌群名称来自分类字典，末尾状态词来自检测值相对有效参考范围的判定。</li>
+<li>偏低、正常、偏高状态可以映射为全局可配置的中性场景词，但不为每个门/属重复配置，也不能把它当成健康影响、风险程度或干预建议。</li>
+</ul>
+<h3 id="_4-2-建议保留的最小后台配置"> 4.2 建议保留的最小后台配置</h3>
+<h4 id="a-菌群分类字典"> A. 菌群分类字典</h4>
+<p>只保留：</p>
+<ul>
+<li>稳定编码；</li>
+<li>中文展示名与学名；</li>
+<li>层级（门/属）；</li>
+<li>父级；</li>
+<li>别名（可选）；</li>
+<li>场景短称（可选，仅用于形成完整报告场景描述草稿）；</li>
+<li>一段中性说明（可选，带来源和审核状态）。</li>
+</ul>
+<p>不再把“丛林角色、它是什么样、功能说明、主要工作、偏低提示、偏高提示”设为每个 taxon 的拆分字段。报告审核只处理最终完整句子。</p>
+<h4 id="b-参考区间"> B. 参考区间</h4>
+<p>只在有明确来源时配置，并按检测方案成套维护，不让运营按“物种 × 指标”逐行新建。每个参考范围方案最少记录：</p>
+<ul>
+<li>明确适用的一种或多种物种；</li>
+<li>检测方案；</li>
+<li>结果单位/计量方式；</li>
+<li>全套检测项/taxon 的下限、上限（允许单侧）；</li>
+<li>专业依据、版本和生效状态。</li>
+</ul>
+<p>年龄、品种、饮食、地区等不应先建一排空字段；将来检测机构确实提供分层范围时再扩展。Excel 自带范围优先，并连同方法和单位冻结到报告版本。多个物种只有在专业证据确认相同范围时才能共用方案；新增物种默认不继承，可复制既有方案后修订差异，或直接批量导入专业方提供的整套范围。</p>
+<h4 id="c-单份报告内容"> C. 单份报告内容</h4>
+<p>报告保存并审核：</p>
+<ul>
+<li>检测值、有效参考区间与判定状态；</li>
+<li>当前结果的通俗解释；</li>
+<li>分析结论；</li>
+<li>总体建议。</li>
+</ul>
+<p>这些字段只为设计图中实际出现的结果生成，不要求所有字典菌都拥有一份内容。</p>
+<h3 id="_4-3-小程序渲染规则"> 4.3 小程序渲染规则</h3>
+<table>
+<thead>
+<tr>
+<th>设计图内容</th>
+<th>数据归属</th>
+<th>最小行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>门/属名称与所属关系</td>
+<td>taxon 字典</td>
+<td>按本次报告实际项目展示</td>
+</tr>
+<tr>
+<td>检测值</td>
+<td>报告检测事实</td>
+<td>原单位展示，不推算</td>
+</tr>
+<tr>
+<td>正常范围条</td>
+<td>报告冻结的有效参考区间</td>
+<td>只有方法、物种、单位匹配时展示</td>
+</tr>
+<tr>
+<td>正常/偏高/偏低颜色</td>
+<td>报告判定结果</td>
+<td>无有效范围则不显示状态色</td>
+</tr>
+<tr>
+<td>一句雨林/森林比喻</td>
+<td>报告宠物与等级主题 + 菌群场景短称 + 相对范围状态词</td>
+<td>组合为完整文案；状态词只作中性场景修辞</td>
+</tr>
+<tr>
+<td>属级解释、分析、总体建议</td>
+<td>单份报告审核内容</td>
+<td>只展示本次已有内容</td>
+</tr>
+<tr>
+<td>字典中没有检测结果的菌</td>
+<td>无</td>
+<td>不创建空卡片、不显示“待补充”占位</td>
+</tr>
+</tbody>
+</table>
+<p>这套边界已经足够支撑现有小程序的两个菌群页面，不需要新增“菌群机制库、症状库、干预方案库、按品种范围库”等新模块。</p>
+<h2 id="_5-对现有原型内容的具体判断"> 5. 对现有原型内容的具体判断</h2>
+<ol>
+<li><code>dictionary-data-service.js</code> 中当前按犬猫和门配置的百分比范围只能作为演示数据，除非甲方能提供对应检测机构、方法、单位和参考群体证据；不能把它标为医学通用正常范围。</li>
+<li><code>Bacteroides属</code>、<code>Collinsella属</code> 等全局的“过多会挤占其他菌”“缺乏益友时会失衡”等文案，混合了科普、状态解释和因果判断，建议从全局 taxon 知识中移出。</li>
+<li>“有助于分解碳水化合物并调节胆汁酸”等功能句，如果继续保留，应由专业人员确认具体物种、分类层级和证据；对属级结果应使用中性、有限措辞。</li>
+<li>规则治理至少要明确适用物种、检测方案 / 来源模板、专业依据与审核状态；这些字段不是 taxon 恒定属性。规则自身不需要持久草稿：未保存编辑只作为会话候选用于单报告差异测试，保存时原子形成启用版本并归档旧版，减少未经审核的长期候选并存。</li>
+<li>没有专业内容的门/属不必设置空白占位符。小程序按报告实际结果裁剪，正好符合“不新增内容，只支撑设计图展示”的目标。</li>
+</ol>
+<h2 id="_6-来源与证据等级说明"> 6. 来源与证据等级说明</h2>
+<p>本笔记优先使用同行评议原始研究、专业共识和大学/专业协会官方材料。需要注意：Texas A&amp;M 提供收费检测服务并将犬 DI 授权给 IDEXX；部分健康犬猫队列研究由宠物微生物或宠物食品企业资助。本文仅使用其可核查的方法、样本和结果，不采用商品营销结论。关键边界同时由 ASVCP、AAHA 指南及独立/多队列研究交叉支持。</p>
+<p>主要来源：</p>
+<ol>
+<li><a href="https://doi.org/10.1111/vcp.12006" target="_blank" rel="noopener noreferrer">ASVCP reference interval guidelines<i>Content not supported</i></a></li>
+<li><a href="https://doi.org/10.1093/femsec/fix136" target="_blank" rel="noopener noreferrer">AlShawaqfeh et al. 2017，犬 DI 原始研究<i>Content not supported</i></a></li>
+<li><a href="https://doi.org/10.1177/1098612X221077876" target="_blank" rel="noopener noreferrer">Sung et al. 2022，猫 DI 原始研究<i>Content not supported</i></a></li>
+<li><a href="https://vetmed.tamu.edu/gilab/service/assays/canine-microbiota-dysbiosis-index/" target="_blank" rel="noopener noreferrer">Texas A&amp;M 犬猫 DI 官方检测说明和物种区间<i>Content not supported</i></a></li>
+<li><a href="https://doi.org/10.3390/ani13162597" target="_blank" rel="noopener noreferrer">Sung et al. 2023，犬 qPCR 与宏基因组对照研究<i>Content not supported</i></a></li>
+<li><a href="https://doi.org/10.1093/ismejo/wrae201" target="_blank" rel="noopener noreferrer">Branck et al. 2024，2,639 份犬猫宏基因组整合研究<i>Content not supported</i></a></li>
+<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC13251538/" target="_blank" rel="noopener noreferrer">Companion Animal FMT Consortium 临床共识<i>Content not supported</i></a></li>
+<li><a href="https://www.aaha.org/resources/2021-aaha-nutrition-and-weight-management-guidelines/microbiome-prebiotics-postbiotics/" target="_blank" rel="noopener noreferrer">AAHA 2021 营养与体重管理指南：微生物组部分<i>Content not supported</i></a></li>
+</ol>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-27T02:19:44.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">报告推荐 SPU 而非 SKU</title>
+    <id>https://ikecoolon.github.io/adr/0004-reports-recommend-spus-not-skus/</id>
+    <link href="https://ikecoolon.github.io/adr/0004-reports-recommend-spus-not-skus/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="报告推荐-spu-而非-sku"> 报告推荐 SPU 而非 SKU</h1>
+<p>报告中的主推商品只关联商城 SPU，不关联包装、容量或口味等具体 SKU；用户进入商品详情后再选择可售规格。健康适用性不同的猫用、犬用等商品应建为不同 SPU，而不是仅靠 SKU 区分，从而保持健康推荐与交易规格的领域边界。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">使用推荐位编码编辑并交付结构化报告内容</title>
+    <id>https://ikecoolon.github.io/adr/0005-author-with-slot-codes-deliver-structured-report-blocks/</id>
+    <link href="https://ikecoolon.github.io/adr/0005-author-with-slot-codes-deliver-structured-report-blocks/"/>
+    <updated>2026-09-02T05:15:02.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="使用推荐位编码编辑并交付结构化报告内容"> 使用推荐位编码编辑并交付结构化报告内容</h1>
+<p>运营在报告内容中通过稳定编码插入推荐位，后端保存或读取时将正文转换为有序的结构化内容块，对客户端返回富文本块和推荐位块，而不要求客户端解析特殊字符串或执行嵌入代码。这样可以在展示方案尚未确定时保留任意插入位置，并让小程序、审核预览及未来客户端共用同一安全协议。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">区分推荐目标失效和暂时缺货</title>
+    <id>https://ikecoolon.github.io/adr/0002-distinguish-invalid-products-from-temporary-stockouts/</id>
+    <link href="https://ikecoolon.github.io/adr/0002-distinguish-invalid-products-from-temporary-stockouts/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="区分推荐目标失效和暂时缺货"> 区分推荐目标失效和暂时缺货</h1>
+<p>商品不存在、回收或下架时，将主推商品视为推荐目标失效并按健康需求标签展示候选商品；商品仍上架但库存为零时，保留其专业推荐关系和暂时缺货状态，同时展示替代商品。这样库存波动不会改写健康建议，但用户仍能获得当前可购买的选择。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">在报告详情中批量解析推荐位</title>
+    <id>https://ikecoolon.github.io/adr/0006-resolve-recommendation-slots-in-report-detail/</id>
+    <link href="https://ikecoolon.github.io/adr/0006-resolve-recommendation-slots-in-report-detail/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="在报告详情中批量解析推荐位"> 在报告详情中批量解析推荐位</h1>
+<p>报告详情接口一次返回有序内容块以及按推荐位编码组织的推荐解析结果，内部由独立的推荐解析服务收集全部商品引用并通过商城 Product API 批量查询。这样客户端只需一次请求即可稳定渲染报告，同时商品状态仍在每次查看时实时解析，并避免为每个推荐位发起独立请求。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">报告物种驱动报告上下文但不修改宠物档案</title>
+    <id>https://ikecoolon.github.io/adr/0007-report-species-drives-report-context-without-changing-pet-profile/</id>
+    <link href="https://ikecoolon.github.io/adr/0007-report-species-drives-report-context-without-changing-pet-profile/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="报告物种驱动报告上下文但不修改宠物档案"> 报告物种驱动报告上下文但不修改宠物档案</h1>
+<p>报告保留导入时识别的原始物种，并允许审核人员修正当前报告采用的物种；修正后重新匹配该报告的称谓、参考范围、规则、科普和推荐语义，但不自动修改宠物长期档案。这样可以纠正单次送检数据，同时避免报告审核意外覆盖宠物主数据，发布后的物种修正则通过报告更正版本处理。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">健康需求标签归报告领域所有</title>
+    <id>https://ikecoolon.github.io/adr/0001-report-owned-health-recommendation-tags/</id>
+    <link href="https://ikecoolon.github.io/adr/0001-report-owned-health-recommendation-tags/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="健康需求标签归报告领域所有"> 健康需求标签归报告领域所有</h1>
+<p>报告领域维护健康需求标签及其与商城 SPU 的映射，商城继续独立拥有商品、分类、上下架、库存和价格等商品事实。这样既能让运营直接指定主推商品，也能在主推商品失效时按健康需求标签寻找候选商品，同时无需把报告专用的健康语义加入通用商城商品模型。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">将菌群分类建模为通用层级树</title>
+    <id>https://ikecoolon.github.io/adr/0008-model-microbial-taxa-as-a-general-hierarchy/</id>
+    <link href="https://ikecoolon.github.io/adr/0008-model-microbial-taxa-as-a-general-hierarchy/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="将菌群分类建模为通用层级树"> 将菌群分类建模为通用层级树</h1>
+<p>后端以带分类层级和父子关系的通用菌群分类单元表达门、纲、目、科、属和种，当前产品只启用设计所需的菌门与菌属页面。这样可以稳定生成门与属的包含关系，并在未来增加其他检测层级时复用同一数据模型，而无需为每个层级新增专用表和接口。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">将未检出建模为独立结果状态</title>
+    <id>https://ikecoolon.github.io/adr/0011-model-not-detected-as-an-explicit-result-status/</id>
+    <link href="https://ikecoolon.github.io/adr/0011-model-not-detected-as-an-explicit-result-status/"/>
+    <updated>2026-09-02T05:15:02.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="将未检出建模为独立结果状态"> 将未检出建模为独立结果状态</h1>
+<p>实验室明确给出的未检出结果保留为独立状态及可选检测限，不转换为数值零，也不按缺失处理。实验室比较状态、相对参考范围状态等普通状态类条件不会命中未检出结果，只有显式使用未检出条件的规则才能生成分析或建议，从而避免把检测限以下误述为目标绝对不存在。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">允许发布包含未决缺失项的报告</title>
+    <id>https://ikecoolon.github.io/adr/0010-allow-publication-with-unresolved-missing-results/</id>
+    <link href="https://ikecoolon.github.io/adr/0010-allow-publication-with-unresolved-missing-results/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="允许发布包含未决缺失项的报告"> 允许发布包含未决缺失项的报告</h1>
+<p>Excel 导入后的缺失或无效检测项进入人工审核并允许补录，但未补录、未说明原因的缺失项也不阻断报告发布。审核工作台应提示未处理数量，发布版本保留其原始缺失状态；这些项目不参与异常判断、健康建议或商品推荐，从而优先保证人工审核流程可继续推进。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">冻结健康推荐并动态解析商品</title>
+    <id>https://ikecoolon.github.io/adr/0003-freeze-health-recommendation-resolve-products-dynamically/</id>
+    <link href="https://ikecoolon.github.io/adr/0003-freeze-health-recommendation-resolve-products-dynamically/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="冻结健康推荐并动态解析商品"> 冻结健康推荐并动态解析商品</h1>
+<p>报告发布时固化健康结论、推荐理由、健康需求标签、主推 SPU 和规则版本，但不冻结商品名称、图片、价格、库存及标签下的候选商品。历史报告保持原有健康语义，用户查看时则依据当前标签映射和商城状态解析可用商品，从而兼顾报告可追溯性与商品可用性。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">分离原始检测事实、有效结果和报告呈现</title>
+    <id>https://ikecoolon.github.io/adr/0012-separate-source-results-effective-results-and-report-presentation/</id>
+    <link href="https://ikecoolon.github.io/adr/0012-separate-source-results-effective-results-and-report-presentation/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="分离原始检测事实、有效结果和报告呈现"> 分离原始检测事实、有效结果和报告呈现</h1>
+<p>原始文件导入形成不可覆盖的原始检测事实；人工补录、物种或范围修正通过可追溯修订形成报告采用的有效检测结果；等级、解释、建议、推荐位和模块组织作为报告呈现内容在发布前编辑。发布后的有效结果或呈现内容变化均通过报告更正版本处理，从而同时支持人工运营和来源追溯。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">后台保留报告版本但用户只看最新版本</title>
+    <id>https://ikecoolon.github.io/adr/0013-retain-report-versions-in-admin-expose-only-the-latest-to-users/</id>
+    <link href="https://ikecoolon.github.io/adr/0013-retain-report-versions-in-admin-expose-only-the-latest-to-users/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="后台保留报告版本但用户只看最新版本"> 后台保留报告版本但用户只看最新版本</h1>
+<p>报告更正继续产生不可变后台版本，供运营查看原内容、更正内容和操作记录；用户端对同一次检测只暴露当前最新发布版本，不提供旧版本入口，历史报告次数也不随版本增加。报告发生更正时用户仅看到最近更新时间，不显示版本号、旧内容或修改明细。这样保留内部追溯能力，同时保持用户报告体验简单且始终展示平台当前认可的内容。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">规则结果组合后进入人工审核</title>
+    <id>https://ikecoolon.github.io/adr/0014-compose-rule-results-before-human-review/</id>
+    <link href="https://ikecoolon.github.io/adr/0014-compose-rule-results-before-human-review/"/>
+    <updated>2026-09-02T05:15:02.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="规则结果组合后进入人工审核"> 规则结果组合后进入人工审核</h1>
+<p>同一检测项命中多条规则时，系统先选取最高风险和优先级的主结论，再合并兼容的补充解释和建议，并通过冲突分组排除互斥内容；最终组合结果交由审核人员微调。后台同时保留命中规则、组合结果和人工最终文案，使用户获得连贯解释且运营仍能追溯生成依据。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">装饰素材全局更新而专业素材随报告冻结</title>
+    <id>https://ikecoolon.github.io/adr/0015-update-decorative-assets-globally-freeze-semantic-assets/</id>
+    <link href="https://ikecoolon.github.io/adr/0015-update-decorative-assets-globally-freeze-semantic-assets/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="装饰素材全局更新而专业素材随报告冻结"> 装饰素材全局更新而专业素材随报告冻结</h1>
+<p>A–E 主题背景、页面装饰、通用图标和品牌视觉不改变报告含义，可以在平台更新后应用于现有报告；菌群关系图、角色解释图和分析示意图等专业内容素材则随报告版本冻结。这样允许统一视觉升级，同时避免专业解释在未发布报告更正的情况下发生变化。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">按已知模板解释检测文件</title>
+    <id>https://ikecoolon.github.io/adr/0016-support-versioned-known-laboratory-templates/</id>
+    <link href="https://ikecoolon.github.io/adr/0016-support-versioned-known-laboratory-templates/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="按已知模板解释检测文件"> 按已知模板解释检测文件</h1>
+<p>平台只自动解释已经通过产品开发适配的 Excel 结构，不向运营人员提供机构资料、模板启停或任意表格的现场字段映射；适配完成后即可使用。新机构或既有机构变更文件结构时，通过产品迭代增加新的已知模板；这样牺牲了新模板的即时接入和业务验收流程，但保持了当前运营后台简单，并避免现场错误映射检测值、单位和参考范围。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">优先采用导入参考范围并冻结最终范围</title>
+    <id>https://ikecoolon.github.io/adr/0009-prefer-imported-reference-ranges-and-freeze-effective-ranges/</id>
+    <link href="https://ikecoolon.github.io/adr/0009-prefer-imported-reference-ranges-and-freeze-effective-ranges/"/>
+    <updated>2026-08-28T06:15:29.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="优先采用导入参考范围并冻结最终范围"> 优先采用导入参考范围并冻结最终范围</h1>
+<p>每项检测结果默认优先采用 Excel 提供的有效参考范围；缺失时只能从专业人员成套维护的参考范围方案中，匹配检测项或菌群、报告物种、检测方案及单位均兼容的平台范围，否则保持为空。审核人员可以显式修订最终范围，但必须保留导入值、平台匹配值、最终有效值、来源和修改原因。参考范围方案可以覆盖多个经专业确认共用范围的物种，新物种不自动继承；报告发布时将有效范围固化到版本中，后续方案变化不改写历史报告，发布后的调整通过报告更正完成。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">由运营直接修正关联并保留纠错记录</title>
+    <id>https://ikecoolon.github.io/adr/0017-correct-report-ownership-in-place-with-an-operation-record/</id>
+    <link href="https://ikecoolon.github.io/adr/0017-correct-report-ownership-in-place-with-an-operation-record/"/>
+    <updated>2026-08-28T01:34:34.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="由运营直接修正关联并保留纠错记录"> 由运营直接修正关联并保留纠错记录</h1>
+<p>运营负责维护报告与宠物、宠物与用户的关联；发现错误时可以直接把报告改归正确宠物，或更换宠物关联用户，不要求用户确认、先撤回报告或重新导入。修正立即改变用户可见范围，并保留变更前后关系、操作人员、时间和原因。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">禁止重复导入相同机构报告编号</title>
+    <id>https://ikecoolon.github.io/adr/0018-reject-duplicate-laboratory-report-identifiers/</id>
+    <link href="https://ikecoolon.github.io/adr/0018-reject-duplicate-laboratory-report-identifiers/"/>
+    <updated>2026-09-02T05:15:02.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="禁止重复导入相同机构报告编号"> 禁止重复导入相同机构报告编号</h1>
+<p>同一检测机构下具有相同外部报告编号或样本编号的 Excel 一律禁止再次导入，即使文件内容已经变化；原始文件保持不变，后续差异由运营在原报告中通过可追溯的人工修订处理。该选择优先保证当前导入和报告计数简单明确，代价是暂不接收机构重新出具的修正版文件。真实 Excel 不含任何机构报告编号或样本编号，重复判定当前只能依赖送检记录侧的编号，待甲方确认机构能否在文件名或文件内提供标识。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">更正期间继续展示当前发布版本</title>
+    <id>https://ikecoolon.github.io/adr/0019-keep-the-current-report-visible-while-preparing-a-correction/</id>
+    <link href="https://ikecoolon.github.io/adr/0019-keep-the-current-report-visible-while-preparing-a-correction/"/>
+    <updated>2026-08-26T09:07:40.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="更正期间继续展示当前发布版本"> 更正期间继续展示当前发布版本</h1>
+<p>修改已发布报告时，平台创建更正草稿，并在新版本完成审核和重新发布前继续向用户展示原当前发布版本；新版本发布后再一次性替换。这样避免运营编辑过程使用户报告突然消失或看到未经审核的中间内容，代价是更正期间后台需要同时区分线上版本和待发布草稿。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">宠物健康报告开放问题（甲方核对稿）</title>
+    <id>https://ikecoolon.github.io/product-design/open-questions/</id>
+    <link href="https://ikecoolon.github.io/product-design/open-questions/"/>
+    <updated>2026-09-04T08:50:58.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="宠物健康报告开放问题-甲方核对稿"> 宠物健康报告开放问题（甲方核对稿）</h1>
+<p>对照三份真实 Excel（<code>harley</code> / <code>oscar</code> / <code>riley</code>，结构一致）和小程序设计稿。</p>
+<p>分三档，不要混着对：</p>
+<ul>
+<li><strong>第 0 节</strong> 已内部决定，知情即可。</li>
+<li><strong>第 1 节</strong> 实验室数据怎么读，没有人工字段能绕过去。不拍板就无法正确出数。今晚优先。</li>
+<li><strong>第 2 节</strong> 产品已经闭环：工作台能补上，或没有就按规则隐藏。跟甲方确认的是「来源要不要改」，不是「能不能发报告」。有空再对。</li>
+<li><strong>第 3 节</strong> 体验与规则，有时间再对。</li>
+</ul>
+<h2 id="excel-实际有什么"> Excel 实际有什么</h2>
+<p>三份文件都是单 sheet（<code>leaky gut microbiota</code>），只有 9 列：</p>
+<p><code>superkingdom</code> · <code>phylum</code> · <code>class</code> · <code>order</code> · <code>family</code> · <code>genus</code> · <code>species</code> · <code>Your sample (%)</code> · <code>vs AVG notice</code></p>
+<p>没有：宠物 / 用户 / 样本 / 报告编号、检测日期、参考范围、现成的菌门合计、Alpha 多样性 / 均匀度 / 丰富度、情绪 / 免疫、综合分 / 等级 / 百分位、维生素或其他评估维度、分析文案、建议文案、商品。</p>
+<p>补充事实：</p>
+<ul>
+<li><code>class</code> / <code>order</code> / <code>family</code> 三列全是占位值 <code>Class_</code> / <code>Order_</code> / <code>Family_</code>，不能用来分类。</li>
+<li><code>species</code> 多数为 <code>unresolved</code>，少数有种名。</li>
+<li>只有属级行；同一 <code>genus</code> 会占 1–13 行（harley 最多 8 行，oscar 9 行，riley 13 行）。</li>
+<li>约 20 个属。<code>vs AVG notice</code> 只有 <code>high</code> / <code>low</code> / <code>-</code>。</li>
+<li>占比合计分别为约 100.01% / 120.80% / 134.97%，不是 100%。</li>
+<li>文件名是 <code>harley_final_microbiome_report.xlsx</code> 这类宠物名，表内没有任何身份字段。</li>
+</ul>
+<p>设计稿见 <code>docs/product-design/img/</code>。科普文案、动物隐喻、主题插画是平台素材，不向 Excel 要。分析 / 建议文案来自规则 + 人工审核，也不向 Excel 要。</p>
+<hr>
+<h2 id="_0-已内部决定-知情即可-不必再议"> 0. 已内部决定（知情即可，不必再议）</h2>
+<ol>
+<li><strong>送检与导入</strong>：先登记送检，再把 Excel 挂到那一条送检记录上。身份（用户、宠物、送检日、机构、平台送检编号、送检类型）由平台在导入前写好。送检类型为本店送检或客户自带报告，两条路径相同：先选定已关联用户的宠物，再登记，再在该行导入。不要求 Excel 里出现样本编号。不做「无预登记批量导入」，界面不把待归属作为可操作状态。宠物在登记送检时创建（履约对象，不是空档案）。</li>
+<li><strong>没有参考范围也可以出报告</strong>：对比模块整块隐藏；菌门 / 菌属卡不显示正常范围，也不拼「略显稀疏 / 生机适宜 / 略显繁茂」。设计稿里的 2%–8%、12%–20%、15%–30%、40%–65% <strong>不能进生产</strong>。不允许在单份报告里手填第三套范围。平台范围方案是后续增强，不是出报告的前提。</li>
+<li><strong>商品推荐</strong>：运营在单份报告的各菌门里人工选商城 SPU；每菌门最多 1 个主推 + 3 个关联；不做推荐算法。小程序最终摆放位置仍见第 3 节。</li>
+<li><strong>建设范围</strong>：内部按「只支持微生物组报告」建设（ADR-0023）。是否对外承诺永远只有这一种，见第 3 节。</li>
+<li><strong>现有商城小程序内二次开发（原 Q10）</strong>：已锁定，不再作为待拍板项。宠物健康报告作为现有商城小程序同一 AppID 下的新增模块，不新建报告小程序，也不做跨小程序跳转；复用商城已有登录态、商品详情、购物车、订单、支付和退款能力，新增健康报告页面、路由与商品详情衔接。健康报告模块不另建交易后端，也不保存支付密钥。小程序启动/登录默认进入「健康报告首页」= 当前宠物页，主导航按原型为「首页」「我的」。即使一宠一份报告也不跳过健康报告首页，也绝不自动打开报告。健康报告首页不是经营看板也不是第二份宠物列表：一只宠物时问候用档案名，主区块为不可点击「报告处理中」（自送检登记至发布）或进入最新已发布报告，其下为该宠历史已发布的同一份列表；多宠时头部紧凑切换并替换页面内容，没有完整宠物列表页；无宠时显示「暂无宠物，请联系门店」。报告从健康报告首页打开为独立滚动页（主题首屏 →「详细」滚入对比与菌门分段），不再用「概览 / 对比 / 菌门」三 tab。用户端仍不提供宠物新建 / 编辑 / 认领 / 分享。</li>
+<li><strong>分析规则 v1</strong>：适用范围是封闭物种名单，一条规则只属于一个当前能出报告的物种；禁止开放「全部（含未来新物种）」。主证据是实验室标注 high / low / 未标注或未检出，可另加有效值百分比门槛；两者同时填写时必须都满足才命中（AND）。同一个数字对所有已知检测方案 / 实验室生效，方法不同导致一边命中一边不中由运营承担——这是明确接受的专业风险。同一菌上多条命中全部采用，不再用风险级别自动裁冲突。没有「仅提示」档；建议栏空着 = 不给建议；商品由工作台决定。规则里的分析/建议是可复用草稿，每份报告仍须在工作台按菌门确认后发布。需要给另一物种写相同判断时复制成新谱系。</li>
+</ol>
+<hr>
+<h2 id="_1-真正没着落-今晚优先"> 1. 真正没着落（今晚优先）</h2>
+<p>这些不是「找个人填一下」就能过的。不拍板，属级原始行就无法变成小程序上的菌门数字、对比和气泡。</p>
+<h3 id="q1-菌门百分比怎么来"> Q1. 菌门百分比怎么来？</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>设计稿</td>
+<td>菌门详情大数字，例如放线菌门 9.6%、拟杆菌门 25%、厚壁菌门 57.4%。</td>
+</tr>
+<tr>
+<td>Excel</td>
+<td>只有属级行，没有现成的菌门合计。</td>
+</tr>
+<tr>
+<td>为何没闭环</td>
+<td>工作台没有「菌门合计」手填位；这个数字必须从属级行算出来，或机构另给。</td>
+</tr>
+</tbody>
+</table>
+<p>请拍板：</p>
+<ul>
+<li>A. 把同一菌门下各属的 <code>Your sample (%)</code> 相加（先按 Q2 处理多行）</li>
+<li>B. 机构另给菌门合计</li>
+<li>C. 小程序不展示菌门大数字，只展示属</li>
+<li>D. 其他：</li>
+</ul>
+<h3 id="q2-同一菌属出现多行时如何合并"> Q2. 同一菌属出现多行时如何合并？</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>事实</td>
+<td>同一 <code>genus</code> 最多 13 行；<code>class</code> / <code>order</code> / <code>family</code> 全是占位，不能用来拆开。</td>
+</tr>
+<tr>
+<td>为何没闭环</td>
+<td>不合并就没有唯一的属级检测值，对比页和菌属卡都对不上。</td>
+</tr>
+</tbody>
+</table>
+<p>请拍板：</p>
+<ul>
+<li>A. 同一 <code>genus</code> 的占比相加，合并为一行属级结果</li>
+<li>B. 只保留其中一行（请写保留规则）</li>
+<li>C. 由机构解释多行为何出现，并给出合并规则</li>
+<li>D. 其他：</li>
+</ul>
+<h3 id="q3-占比合计不是-100-是什么意思"> Q3. 占比合计不是 100% 是什么意思？</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>事实</td>
+<td>三份合计约 100.01% / 120.80% / 134.97%。</td>
+</tr>
+<tr>
+<td>影响</td>
+<td>菌门相加、对比条都会被这个口径带着走。</td>
+</tr>
+<tr>
+<td>为何没闭环</td>
+<td>这是实验室口径，运营填不出来。</td>
+</tr>
+</tbody>
+</table>
+<p>请拍板：</p>
+<ul>
+<li>A. 以文件原值为准，允许合计 ≠ 100%，界面按原值展示</li>
+<li>B. 展示前先归一化到 100%</li>
+<li>C. 合计偏离过大视为导入异常（请给阈值）</li>
+<li>D. 其他（请说明含义）：</li>
+</ul>
+<h3 id="q4-vs-avg-notice-的-avg-是谁-横杠是什么意思"> Q4. <code>vs AVG notice</code> 的 AVG 是谁？横杠是什么意思？</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Excel</td>
+<td>每行只有 <code>high</code> / <code>low</code> / <code>-</code>。</td>
+</tr>
+<tr>
+<td>容易混</td>
+<td>设计稿对比页写「理想菌群组合」，那是参考范围，<strong>不是</strong>这个 AVG。两套基准不能混用。</td>
+</tr>
+<tr>
+<td>临时口径</td>
+<td><code>-</code> 仍是有效结果，记为「未标注」，不触发依赖 high / low 的规则。</td>
+</tr>
+<tr>
+<td>为何没闭环</td>
+<td>没有人工字段能解释 AVG 是谁；规则若要用 high / low，必须知道横杠的含义。</td>
+</tr>
+</tbody>
+</table>
+<p>请拍板（可多选）：</p>
+<ul>
+<li>A. 说明 AVG 是机构内部什么样本群的均值（是否分猫犬、年龄、检测方案）</li>
+<li>B. <code>-</code> 表示落在均值附近，还是没做评估</li>
+<li>C. v1 只原样展示 high / low / 未标注，不做更多解释</li>
+</ul>
+<h3 id="q5-首屏四个漂浮气泡是什么-设计稿标了「vit-b」"> Q5. 首屏四个漂浮气泡是什么？设计稿标了「VIT B」</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>设计稿</td>
+<td>插画上四个圆泡，点开其中一个写着「VIT B / 中等」。</td>
+</tr>
+<tr>
+<td>Excel</td>
+<td>没有维生素，也没有四个额外维度。</td>
+</tr>
+<tr>
+<td>临时演示</td>
+<td>拿前四个有结果的菌门百分比填进气泡。这只是演示，不能当产品承诺。</td>
+</tr>
+<tr>
+<td>为何没闭环</td>
+<td>维生素没有录入位，也没有数据源；若其实是菌门 %，必须先有 Q1 的菌门合计。</td>
+</tr>
+</tbody>
+</table>
+<p>请拍板：</p>
+<ul>
+<li>A. 就是前四个菌门的占比，不要维生素文案</li>
+<li>B. 是独立评估维度（请列出名称、数据从哪来、标签怎么定；若走人工，补到综合评定）</li>
+<li>C. 纯装饰，不展示数字</li>
+<li>D. 删掉气泡</li>
+<li>E. 其他：</li>
+</ul>
+<h3 id="q6-种级-species-小程序展不展示"> Q6. 种级（species）小程序展不展示？</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Excel</td>
+<td>有 <code>species</code> 列，多数 <code>unresolved</code>。</td>
+</tr>
+<tr>
+<td>设计稿</td>
+<td>只画到门、属。</td>
+</tr>
+</tbody>
+</table>
+<p>请拍板：</p>
+<ul>
+<li>A. 忽略种级，小程序只到属</li>
+<li>B. 有种名就在属卡下展示</li>
+<li>C. 其他：</li>
+</ul>
+<hr>
+<h2 id="_2-已闭环-工作台能补上-不挡出报告"> 2. 已闭环：工作台能补上，不挡出报告</h2>
+<p>这些字段 Excel 里都没有，但产品已经规定谁填、填在哪、缺了怎么展示。v1 按此发报告。跟甲方确认的是「以后要不要改成机构给或公式算」，不是今晚的阻塞项。</p>
+<h3 id="c1-参考范围"> C1. 参考范围</h3>
+<p><strong>闭环：</strong> 没有有效范围时对比模块隐藏，菌门 / 菌属卡不显示范围，也不拼「略显繁茂」。单份报告不允许手填第三套范围（避免运营把设计稿上的 2%–8% 填进生产）。平台范围方案是后续增强。</p>
+<p>可选确认（不挡 v1）：机构会不会另给整套正常下限 / 上限？若会，请说明文件形式、是否分猫犬、多久更新。</p>
+<h3 id="c2-alpha-多样性、均匀度、丰富度"> C2. Alpha 多样性、均匀度、丰富度</h3>
+<p><strong>闭环：</strong> 工作台可补录这三项。不填则原位置显示「暂无有效结果」，不换成别的指标，也不单独阻断发布。三个位置固定。</p>
+<p>可选确认：要不要改成机构另给（另附一列或另一张表），或平台按属级丰度计算（需指定算法）。不改就维持人工补录。</p>
+<h3 id="c3-情绪、免疫"> C3. 情绪、免疫</h3>
+<p><strong>闭环：</strong> 审核在综合评定手填。这是平台评估维度，不是实验室检测值。</p>
+<p>可选确认：要不要改成计算公式或机构另给。不改就维持人工填写。也可以首期去掉这两项。</p>
+<h3 id="c4-综合评分-a-e、综合分、「优于-x-的猫咪」"> C4. 综合评分 A–E、综合分、「优于 x% 的猫咪」</h3>
+<p><strong>闭环：</strong> 三项都由审核手填，三者不强行对应。等级只决定主题（A 雨林 / B 森林 / C 草原 / D 苔藓 / E 沙漠）。发布要求有等级和综合分；百分位不填则不展示「优于 x%」。不声称来自实验室或真实历史样本。</p>
+<p>可选确认：要不要改成评分公式或真实群体统计。不改就维持人工填写。也可以只保留等级主题，去掉综合分和百分位。</p>
+<hr>
+<h2 id="_3-体验与规则-有时间再对"> 3. 体验与规则（有时间再对）</h2>
+<h3 id="q7-机构能否在文件名或表内提供样本-宠物标识"> Q7. 机构能否在文件名或表内提供样本 / 宠物标识？</h3>
+<p>三份文件名是宠物名，表内无编号。我们已按「先登记再挂文件」兜底。这条只问机构能不能让导入更省事。</p>
+<p>请拍板：能 / 不能 / 只能约定文件名规则（请给规则）：</p>
+<h3 id="q8-商品推荐出现在小程序哪里"> Q8. 商品推荐出现在小程序哪里？</h3>
+<p>设计稿「总体建议」只有文案，没有商品卡。临时口径：菌门详情「总体建议」tab 下出该菌门主推商品卡。</p>
+<p>请拍板：</p>
+<ul>
+<li>A. 跟该菌门建议走（当前口径）</li>
+<li>B. 固定区域</li>
+<li>C. 独立页</li>
+<li>D. 其他：</li>
+</ul>
+<p>管理端商品配置放在独立「商品推荐」模块，还是并入各菌门「分析与建议」卡片，可一并拍板。</p>
+<h3 id="q9-是否长期只有微生物组这一种报告"> Q9. 是否长期只有微生物组这一种报告？</h3>
+<p>内部已按「只这一种」建设，不预留多报告类型配置。</p>
+<p>请拍板：</p>
+<ul>
+<li>A. 确认长期只有这一种</li>
+<li>B. 未来会加其他检测（请列）</li>
+</ul>
+<p>原 Q10「登录后默认进哪一页」已收入第 0 节，不再作为甲方阻塞项。</p>
+<h3 id="q11-菌门分析空了能不能发布"> Q11. 菌门分析空了能不能发布？</h3>
+<p>已确认：综合概览必须有已关联宠物、报告物种、人工等级和综合分；有效结果至少一项有效数值或明确未检出；三个摘要指标允许缺。</p>
+<p>未确认：某菌门规则命中了但没人工确认，或确认后分析和建议为空，是否阻断发布。</p>
+<p>请拍板：</p>
+<ul>
+<li>A. 有命中就必须确认后才能发</li>
+<li>B. 空建议可以发（有命中未确认仍阻断 / 不阻断，请注明）</li>
+<li>C. 其他：</li>
+</ul>
+<h3 id="q12-分析规则打在菌门还是菌属"> Q12. 分析规则打在菌门还是菌属？</h3>
+<p>临时口径：两者都能选，属级命中归到所属菌门的「分析 / 建议」里。规则生命周期已按无持久草稿闭环：编辑仅是前端会话，保存即创建并启用新版本，旧启用版归档；本题只确认目标层级，不再讨论规则草稿状态。</p>
+<p>请拍板：</p>
+<ul>
+<li>A. 同意</li>
+<li>B. 只打菌门</li>
+<li>C. 只打菌属</li>
+<li>D. 其他：</li>
+</ul>
+<h3 id="q13-规则专业治理的最低门槛是什么"> Q13. 规则专业治理的最低门槛是什么？</h3>
+<p>当前原型已能记录封闭的单物种适用范围、检测方案 / 来源模板，并明确把专业依据、审核人与审核状态标为「原型未接入 / 待专业确认」。命中不再按风险或冲突组自动淘汰。尚未定义真实生产中的专业复核权限和最低测试门槛。</p>
+<p>请拍板：</p>
+<ul>
+<li>A. 单人维护即可启用，但必须填写专业依据并至少完成一次单报告候选测试</li>
+<li>B. 需要另一名专业审核人复核后才能启用</li>
+<li>C. 需要固定回归测试集通过后才能启用（请提供最低样本范围）</li>
+<li>D. 其他：</li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">宠物健康报告完整业务设计</title>
+    <id>https://ikecoolon.github.io/product-design/pet-health-report-business-design/</id>
+    <link href="https://ikecoolon.github.io/product-design/pet-health-report-business-design/"/>
+    <updated>2026-09-04T08:50:58.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="宠物健康报告完整业务设计"> 宠物健康报告完整业务设计</h1>
+<blockquote>
+<p>状态：业务访谈已完成。第 0 节已内部决定（含原 Q10 及“同一商城小程序内二次开发”的实施方式），本文不得与之矛盾；第 1 节 Q1–Q6 为实验室读数阻塞项；第 2 节 C1–C4 已闭环、不挡出报告；第 3 节 Q7–Q9、Q11–Q13 为体验与规则。未拍板的不能提前作为实现要求。</p>
+</blockquote>
+<h2 id="_1-产品目标"> 1. 产品目标</h2>
+<p>客户在线下门店为宠物完成检测，检测机构出具 Excel。平台运营人员先确认或创建用户、在登记送检时创建并关联宠物，再从该送检记录导入 Excel、处理异常、补充内容、执行分析规则、人工审核并发布；用户登录小程序后只读查看自己的宠物和已发布报告。</p>
+<p>报告同时提供专业检测数据和通俗解释，分析、建议与商品推荐按菌门组织，并允许运营在每个菌门的建议下直接关联现有商城商品。宠物健康报告在现有商城小程序同一 AppID 内二次开发，复用商城已有登录态、商品详情、购物车、订单、支付和退款能力；商城继续负责商品、规格、价格、库存和交易，报告平台只保存运营人工选择的商品关联和展示顺序。</p>
+<h2 id="_2-首期范围"> 2. 首期范围</h2>
+<p>平台当前及长期只支持宠物微生物组报告，不建设可配置报告类型、不预留多报告类型配置入口，也不把当前设计抽象成通用报告引擎。</p>
+<h3 id="包含"> 包含</h3>
+<ul>
+<li>从已登记送检记录导入已知 Excel 模板：单文件挂到该记录；多文件仅作为 N 条待导入送检记录由人配对 N 个文件。不做无预登记批量导入。</li>
+<li>原始文件、原始检测事实、有效检测结果和报告呈现内容的分层追溯。</li>
+<li>用户、运营建档宠物（在登记送检时创建）、报告与宠物关联、宠物与用户关联及关联纠错。</li>
+<li>参考范围、菌群分类、科普内容、分析规则和人工审核。</li>
+<li>报告发布、更正、作废及后台历史版本。</li>
+<li>现有商城小程序内新增健康报告入口、页面与路由；健康报告模块首页作为当前宠物入口：处理中占位、最新已发布报告入口，以及该宠物历史已发布报告的同一份列表。</li>
+<li>运营人工选择的主推 SPU、可选关联推荐 SPU 及商城实时状态联动；可购商品在同一小程序内进入既有商城商品详情。</li>
+<li>可重复演示完整流程的 Mock 数据。</li>
+</ul>
+<h3 id="不包含"> 不包含</h3>
+<ul>
+<li>通用角色权限、系统审计和平台治理能力。</li>
+<li>家庭成员授权、多人共享或用户自行转移报告。</li>
+<li>用户在小程序新增、编辑、纠错或合并宠物。</li>
+<li>用户侧完整宠物列表页、宠物 tab，以及把报告做成「概览 / 对比 / 菌门」三个 tab。</li>
+<li>新建或重做购物车、订单、支付和退款后端；健康报告模块复用商城现有交易能力。商品点击或交易转化归因仍不包含。</li>
+<li>发布通知、订阅消息和线下通知任务。</li>
+<li>跨报告趋势分析、最终报告 PDF 或 Word 导出。</li>
+<li>小程序中的报告旧版本查看。</li>
+<li>用户端统一健康免责声明。</li>
+<li>机构合同、联系人、结算或机构账号管理。</li>
+</ul>
+<h2 id="_3-业务参与方"> 3. 业务参与方</h2>
+<table>
+<thead>
+<tr>
+<th>参与方</th>
+<th>业务责任</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>小程序用户</td>
+<td>登录并只读查看自己的宠物与已发布报告；资料有误时线下联系运营或客服</td>
+</tr>
+<tr>
+<td>运营人员</td>
+<td>登记送检、从送检记录导入结果、处理异常、补录和完善报告；纠错（改归宠物 / 换用户）</td>
+</tr>
+<tr>
+<td>审核人员</td>
+<td>核对专业数据和呈现内容、调整综合评定与建议、确认发布检查并发布</td>
+</tr>
+<tr>
+<td>检测机构</td>
+<td>在线下完成检测并交付符合已知结构的 Excel</td>
+</tr>
+<tr>
+<td>商城</td>
+<td>提供 SPU、SKU、分类、价格、库存、上下架状态、商品详情和交易能力</td>
+</tr>
+</tbody>
+</table>
+<p>运营人员和审核人员表示业务职责，复用平台后台权限体系分别分配编制与审核权限，也允许同一后台账号兼具两者，不强制他人审核。提交前的分析与菌门确认属于编制动作；待审核时审核人员仍可留痕修订。具体状态与动作边界见<a href="./pet-health-admin-implementation-plan.html">管理端实施方案</a>。文中人工专业字段及导入范围的确认，在编制阶段由有编制权限的人员完成，审核阶段由审核人员复核，不因旧有“审核人员”措辞阻断编制提交。</p>
+<h2 id="_4-完整业务流程"> 4. 完整业务流程</h2>
+<ol start="0">
+<li>运营确认或创建平台用户。</li>
+<li>运营在登记送检中选择已有宠物或填写新宠物并关联该用户；新宠物与送检一起确认，取消或校验失败不留孤儿宠物/记录。送检类型（本店送检 / 客户自带报告）、送检日期和检测机构必填；样本编号可从试管标签或微信补填，不要求登记时填写、出现在 Excel 中或用于文件自动匹配。确认后生成待导入结果送检记录，用户端随即看到不可点击「报告处理中」。</li>
+<li>运营在送检管理中从该送检记录发起「导入结果」，挂上一份 Excel；成功后复用该送检记录、写入检测结果并生成唯一报告草稿，进入待完善。关键失败保留原记录为待导入结果，重新导入同样从该送检记录发起。客户自带报告不另开「先导入再选宠物」路径。</li>
+<li>多文件导入只允许把 N 份 Excel 分别挂到 N 条待导入送检记录，由人配对；不做「无预登记批量导入」，不创建没有送检记录或未挂宠物的报告。</li>
+<li>平台逐文件识别已知模板与来源机构标识，并依据送检记录侧编号做重复检查。Excel 表内没有身份字段；文件名只是人工提示，不用于自动匹配。</li>
+<li>关键异常导致该文件导入失败且不新建送检记录或报告；局部异常保留已解析内容，并在报告工作台形成「缺失未处理」等待办角标。</li>
+<li>解析成功后进入待完善（宠物已存在），再经待审核、已发布；用户端在发布前始终只见「报告处理中」。v1 界面不把待归属作为可操作状态。</li>
+<li>报告归错宠物或宠物关联错用户时，运营走纠错（改归宠物 / 换用户），不作为主路径建档步骤，也不叫「归属」。</li>
+<li>运营在工作台检测结果模块处理未知检测项、单位异常和缺失值，对照 Excel 原始值修改或补录有效值并填写原因，确定有效检测结果与有效参考范围。</li>
+<li>平台按菌门生成分析单元：每个有结果的菌门得到规则命中列表、「分析」草稿和「建议」草稿；编制人员在提交前逐菌门检查命中依据、排除或改写并单独确认，审核阶段可由审核人员重新核对及修订。</li>
+<li>编制人员填写人工综合分、A–E 等级、人工比较百分位和平台评估维度，必要时修改报告物种、专业数据或呈现文案；审核人员在待审核阶段仍可留痕修订。</li>
+<li>运营人员在需要商品承接的菌门分析单元中选择主推 SPU 和可选关联推荐 SPU，审核人员执行固定发布检查后审核并直接发布。</li>
+<li>报告发布后，宠物当前关联用户可点击查看完整报告；同一业务项不再重复显示处理中占位。</li>
+<li>已发布报告需要修正时，从工作台顶栏或报告中心「更多」创建更正草稿，旧版本继续向用户展示；新版本重新审核发布后一次性替换。</li>
+<li>无效报告从工作台顶栏或报告中心「更多」作废终止并从小程序消失，管理端继续保留全部追溯资料。</li>
+</ol>
+<h2 id="_5-状态与可见性"> 5. 状态与可见性</h2>
+<h3 id="管理端主状态"> 管理端主状态</h3>
+<p>报告只有一个主状态字段。v1 界面可操作四值；另有布尔字段「更正草稿进行中」和文本字段「退回原因」。待归属不是可操作状态。</p>
+<table>
+<thead>
+<tr>
+<th>状态</th>
+<th>含义</th>
+<th>可进入状态</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>待完善</td>
+<td>已归入宠物，正在处理数据、分析和呈现内容；审核退回后回到此状态并显示退回原因</td>
+<td>待审核、已作废</td>
+</tr>
+<tr>
+<td>待审核</td>
+<td>等待最终核对和发布检查</td>
+<td>已发布、待完善、已作废</td>
+</tr>
+<tr>
+<td>已发布</td>
+<td>存在当前面向用户的发布版本；创建更正草稿后主状态不变，仅置「更正草稿进行中」</td>
+<td>已作废</td>
+</tr>
+<tr>
+<td>已作废</td>
+<td>报告离开正常流程的终止状态</td>
+<td>无正常后续状态</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>不设「待归属」「审核退回」「已通过」「已更正」状态，也不设任何与「领取」相关的状态；审核退回表达为待完善加退回原因，审核通过后直接发布。</li>
+<li>v1 成功导入后进入待完善；报告中心「待处理」只聚合待完善与待审核。模型若仍保留待归属字段，界面不得进入、不得作为页签或主操作。</li>
+<li>待办标记只保留待重新分析、缺失未处理、商品失效、未关联用户四类，仅在报告工作台作为角标出现，报告中心列表不显示也不提供待办筛选。</li>
+<li>待确认检测项、单位异常等其他报告处理问题不扩张为新的主状态，在单份报告工作台的对应模块及发布检查中呈现。</li>
+</ul>
+<h3 id="用户可见性"> 用户可见性</h3>
+<table>
+<thead>
+<tr>
+<th>后台情况</th>
+<th>用户是否可见</th>
+<th>用户看到的状态或行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>宠物已关联当前用户，报告已发布且未作废</td>
+<td>是</td>
+<td>在宠物历史报告中直接查看当前发布版本</td>
+</tr>
+<tr>
+<td>宠物已关联当前用户，已登记送检或报告未发布</td>
+<td>是</td>
+<td>不可点击的「报告处理中」，不暴露内部状态</td>
+</tr>
+<tr>
+<td>宠物未关联当前用户</td>
+<td>否</td>
+<td>不展示</td>
+</tr>
+<tr>
+<td>导入失败、已作废</td>
+<td>否</td>
+<td>不展示</td>
+</tr>
+</tbody>
+</table>
+<h2 id="_6-excel-导入与异常处理"> 6. Excel 导入与异常处理</h2>
+<h3 id="文件与模板"> 文件与模板</h3>
+<ul>
+<li>一个 Excel 只表示一只宠物的一次检测。</li>
+<li>多文件导入只允许运营把 N 份 Excel 分别挂到 N 条待导入送检记录；各文件独立成功或失败，不互相回滚。从未登记送检的文件不能导入，也不能创建报告。</li>
+<li>平台只解释已经通过产品开发支持的已知模板，不提供运营现场字段映射。</li>
+<li>新机构或新版文件结构允许通过后续程序开发增加支持，适配完成后直接可用，不设置运营模板测试、启用或停用流程。</li>
+<li>报告保存来源机构名称文本；已知模板另提供稳定的来源机构标识，用于模板识别和重复判定，不建立机构管理资料。</li>
+</ul>
+<h3 id="真实文件结构"> 真实文件结构</h3>
+<p>已核对的三份真实报告（<code>docs/product-design/report/*.xlsx</code>）结构一致：单 sheet，九列（superkingdom、phylum、class、order、family、genus、species、<code>Your sample (%)</code>、<code>vs AVG notice</code>）；只有属级行，同一属 1–13 行；class / order / family 全部为占位值；没有菌门值、参考范围、Alpha 多样性 / 均匀度 / 丰富度，也没有宠物、样本、报告编号或日期。<code>vs AVG notice</code> 只有 <code>high</code> / <code>low</code> / <code>-</code>，三份文件的占比合计分别为 100.01%、120.80%、134.97%。文件配对已决定：导入只从送检记录发起，把一份 Excel 挂到该记录上；文件名只是人工提示。同属多行如何合并、属级如何聚合为菌门值、合计偏离 100% 的含义，见 <a href="./open-questions.html">开放问题清单</a> Q1–Q3；在此之前原型只用 Mock 数据演示。</p>
+<h3 id="重复判定"> 重复判定</h3>
+<p>同一来源机构标识下，送检记录侧的外部报告编号或样本编号相同即视为重复并禁止再次导入。即使后续文件内容不同，也不覆盖原始文件、不创建新报告；差异由运营在原报告内修改当前有效结果，原始文件和首次解析事实继续保留。真实 Excel 表内不含编号或身份，重复判定不从 Excel 表内读身份。机构以后会否在文件名或表内提供标识，只影响导入是否更省事（Q11），不改变「先登记再挂文件」。</p>
+<h3 id="异常分级"> 异常分级</h3>
+<table>
+<thead>
+<tr>
+<th>异常类型</th>
+<th>示例</th>
+<th>处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>关键导入异常</td>
+<td>未知模板、文件损坏、未从送检记录发起导入</td>
+<td>整份失败，不创建报告草稿</td>
+</tr>
+<tr>
+<td>局部导入异常</td>
+<td>未知检测项、异常数值格式、单位不匹配、局部字段缺失</td>
+<td>保留已解析数据，在报告工作台形成待处理问题</td>
+</tr>
+</tbody>
+</table>
+<p>已知模板中出现新指标或新菌群时，保留 Excel 原始名称并标记待确认；运营可以关联已有项目，或确认后新增平台正式检测项。</p>
+<h2 id="_7-检测结果与参考范围"> 7. 检测结果与参考范围</h2>
+<h3 id="三层数据"> 三层数据</h3>
+<ol>
+<li>原始检测文件和原始检测事实不可覆盖。</li>
+<li>有效检测结果用于分析，可以沿用原始值，也可以来自人工补录或修订；只保存当前有效值、人工来源和当前修改原因，不保存逐次值变更链，原始事实继续保留。</li>
+<li>报告呈现内容面向用户，包括等级、各菌门的分析与建议、商品推荐及模块组织。</li>
+</ol>
+<h3 id="检测分类"> 检测分类</h3>
+<ul>
+<li>普通检测指标与菌群分类资料分别维护。</li>
+<li>菌群采用通用分类树，支持门、纲、目、科、属、种等层级；当前报告重点使用门和属。</li>
+<li>原始菌群记录是属级行，菌门值只能由属级聚合得到，聚合口径待甲方确认（Q1–Q3）。</li>
+<li>报告物种来自 Excel，审核人员可以修正。修正会重新匹配称谓、参考范围、规则和本次结果解释，并提示运营重新检查各菌门已人工选择的商品是否合适；系统不会自动替换商品，也不会改写跨报告复用的中性科普或宠物档案物种。</li>
+</ul>
+<h3 id="单位与范围"> 单位与范围</h3>
+<ul>
+<li>每个检测项采用标准检测单位。</li>
+<li>已知模板只能执行明确约定的单位换算，不能根据数值猜测。</li>
+<li>系统选取顺序：审核人员确认可用的 Excel 导入范围 → 匹配的平台参考范围方案 → 空。v1 真实 Excel 不含导入范围，平台范围方案是后续增强，因此空是当前可发布路径，不是阻断。系统不校验导入范围的专业有效性，也不允许在单份报告中手填第三套范围。</li>
+<li>三份真实 Excel 均不含参考范围。没有任何有效参考范围时仍可发布：对比模块隐藏，菌门 / 菌属卡不显示范围，也不拼「略显稀疏 / 生机适宜 / 略显繁茂」。设计稿中的 2%–8%、12%–20%、15%–30%、40%–65% 不得进入生产。不允许在单份报告里手填第三套范围。平台范围方案是后续增强，不是出报告的前提。机构以后会否另给整套范围见 <a href="./open-questions.html">开放问题清单</a> C1，不挡 v1。</li>
+<li>参考范围方案由专业人员按检测方案成套导入或维护，记录适用物种、检测方案、单位以及各项正常下限和正常上限；不增加参考依据说明、单侧范围或理想目标字段，运营人员不按“物种 × 指标”逐项创建范围。</li>
+<li>一个方案可以同时勾选多个经专业确认共用范围的物种；新增物种默认不继承，可复制现有方案形成独立版本，或直接批量导入检测机构提供的整套范围。</li>
+<li>平台范围只在检测项或菌群、报告物种、检测方案及单位均匹配时兜底；不预建年龄、品种、饮食、地区等没有来源依据的空分层。</li>
+<li>未发布工作版本每次打开时自动采用最新匹配的平台范围，工作台检测结果模块对每条结果显示“报告导入”“平台配置”或“无有效范围”来源；平台范围同时显示方案名称和版本。范围发生变化时标记相关菌门需要重新分析，不静默覆盖人工分析与建议。</li>
+<li>有效参考范围随报告版本固化，平台配置变化不重算历史发布报告。</li>
+<li>对比与状态判断只使用正常下限和正常上限，图表坐标起点不等同于真实下限；平台不维护独立理想目标值。</li>
+</ul>
+<h3 id="特殊结果"> 特殊结果</h3>
+<ul>
+<li>未决缺失允许保留和发布，不参与异常判断和商品推荐。</li>
+<li>实验室明确的未检出是有效状态，不等于 0 或缺失；只有明确适用于未检出的规则才能解释。</li>
+<li><code>vs AVG notice</code> 为 <code>high</code> / <code>low</code> 的记录，其实验室比较状态直接作为规则条件；为 <code>-</code> 的记录仍是有效检测结果并正常展示，实验室比较状态记为“未标注”，只是不触发依赖 <code>high</code> / <code>low</code> 的规则。<code>-</code> 的确切含义与 AVG 基准待甲方确认（见 <a href="./open-questions.html">开放问题清单</a> Q4）。</li>
+<li>有检测值但无有效参考范围时，用户可看检测值和“暂无参考范围”，不展示正常、偏高或偏低，也不执行依赖范围的规则；整份报告没有任何有效范围时，对比模块隐藏、菌门卡不显示范围。</li>
+</ul>
+<h2 id="_8-分析规则与报告内容"> 8. 分析规则与报告内容</h2>
+<h3 id="规则定义"> 规则定义</h3>
+<ul>
+<li>分析规则按规则谱系维护。持久版本只有「启用」和「停用」：同一谱系任一时刻至多一个启用版本，曾启用的旧版本永久只读归档，不物理删除。</li>
+<li>新增或修改规则时，未保存内容只存在于当前前端编辑会话，不形成持久草稿。运营可以用该会话候选先测试；保存时原子创建并启用新版本，若同谱系已有启用版则同时归档旧版。取消或离开页面即丢弃编辑会话。</li>
+<li>规则目标从菌群字典中下拉选择一个菌门或菌属，不接受自由文本；菌属规则的命中归入所属菌门的分析单元。允许的目标层级为当前临时口径，待甲方确认（见 <a href="./open-questions.html">开放问题清单</a> Q12）。</li>
+<li>运营用一句临床判断句入库：当某一个当前能出报告的物种的报告里，某一个菌门或菌属处于某一个状态观察，（可选）且有效值满足一个百分比门槛时，输出一套分析与建议草稿。主证据是实验室比较状态（<code>high</code> / <code>low</code> / 未标注）或未检出。相对范围（偏低 / 正常 / 偏高 / 无有效范围）只在报告确有有效范围时作为次要观察，不能当新增规则的默认条件。状态观察和有效值门槛同时填写时必须两者都满足才命中（AND）。</li>
+<li>适用范围是封闭物种名单，一条规则只属于一个物种。禁止开放「全部（含未来新物种）」；今天给猫写的规则，以后乌龟能出报告也不会自动命中。需要给另一物种写相同判断时，复制成新谱系（文案可相同，身份必须分开，漏改可接受）。</li>
+<li>规则里的分析/建议是可复用草稿；每份报告仍须在工作台按菌门确认后才发布。建议栏空着 = 不给建议。</li>
+<li>适用范围表达封闭的单物种与检测方案 / 来源模板；专业依据、审核信息在没有真实服务时必须明确显示「原型未接入 / 待专业确认」，不能把 Mock 当作已审核事实。</li>
+<li>判断句保存后映射为状态观察，加上可选的有效值门槛。有效值比较对象是报告当前有效值，不是原始 Excel 展示字符串。同一个数字对所有已知检测方案 / 实验室生效，方法不同导致一边命中一边不中由运营承担——这是明确接受的专业风险。历史规则中的“全部满足 / 任一满足”、报告物种条件和其他分类单元交叉条件仍可评估，编辑时进入兼容视图，不得静默丢弃。不向运营开放任意脚本公式。</li>
+<li>缺失只使相应判断不成立，不能据此生成建议或商品推荐；未检出、无有效范围和未标注必须按显式状态解释。</li>
+<li>规则输出为「分析」「建议」两个自由文案字段。风险级别不再作为运营配置概念，不决定冲突、排序、是否给建议或是否配置商品。没有「仅提示」档。</li>
+<li>同一菌上多条命中全部采用，都进入该菌门分析 / 建议草稿，按谱系稳定顺序排列，由报告工作台的人改写成一篇。冲突组若仍留在高级区，评估时不得淘汰命中。</li>
+<li>规则不生成或选择商品，也不锁死该菌门不配商品；商品由工作台决定。规则不计算人工综合分、等级、百分位或平台评估维度。</li>
+<li>新规则只用于之后生成或主动重新分析的报告，不自动改变已发布报告。</li>
+</ul>
+<h3 id="分析规则-页面边界"> “分析规则”页面边界</h3>
+<ul>
+<li>规则库先按封闭物种分组，组内再按规则目标的门、属列出判断句摘要，便于看见某物种下某菌写了哪些判断。突出当前启用版、目标、更新时间、维护人和最近测试状态；含历史多条件的谱系标明「含高级条件」。历史版本只读归档。复制到另一物种必须生成新谱系。</li>
+<li>新增/修订进入判断句填空，不进入条件行编辑器。编辑器主路径是：一个物种、目标菌、状态观察、可选有效值门槛、分析、建议；系统用一句话回译这条只认什么证据。判断句上不再询问风险。冲突组、优先级、检测方案、专业依据和审核信息放在高级/治理，且不参与命中裁决。字段错误、错误摘要、未保存保护和影响确认必须在页面内闭环。历史 SPECIES / 交叉 / 多条件规则进入兼容视图，不得静默丢数据。</li>
+<li>单报告规则测试以当前全部启用规则为固定基线。编辑既有规则时，会话候选只临时替换同谱系启用版；新规则只临时加入；其他启用谱系全部保留。不能构造跨谱系任意勾选集。每次开始测试后冻结一条只读运行。测试用医生语言回答：目标菌在这份报告里实际是什么状态、这条说不说，以及不说是因为物种不符、状态不满足还是有效值不满足；并保留当前与候选的命中、分析和建议差异。结果可导出 JSON，但不写入报告的正式分析运行、菌门分析单元、处理问题或发布版本。不提供从报告倒推规则。</li>
+<li>保存新版本或停用谱系前展示版本变化、当前测试摘要、可从 store 计算的未发布 / 待审核 / 活动更正工作数量，并明确已发布线上报告不会自动改变，受影响的未发布工作需要主动重新分析。</li>
+<li>逐份报告的正式分析运行、原始命中查看、命中排除和逐菌门确认全部在报告工作台内完成（与 ADR-0026、ADR-0031 一致）。</li>
+</ul>
+<h3 id="菌门分析单元"> 菌门分析单元</h3>
+<ul>
+<li>每份报告中每个有检测结果的菌门对应一个菌门分析单元，内含：规则命中列表、「分析」草稿、「建议」草稿、人工确认状态，以及商品推荐（0–1 个主推 SPU 加 0–3 个有序关联 SPU）。</li>
+<li>每条规则命中记录来源原始菌群记录、规则版本和条件实际值，可被人工排除但不能抹除。</li>
+<li>不再有报告级的「整体分析解释」「总体建议」单例；小程序菌门详情页的「分析」「总体建议」两个 tab 读取的就是该菌门分析单元确认后的文案。</li>
+<li>同一菌上多条规则命中时全部采用；单元内全部采用命中的「分析」输出与非空「建议」输出分别按谱系稳定顺序逐段原样形成草稿，不做语义改写或自动连接，也不按风险淘汰。建议栏空着就是不给建议。</li>
+<li>编制人员在提交前可以排除命中、删除、排序、合并和改写草稿，每个菌门单独确认；待审核阶段审核人员仍可执行留痕修订。无命中的菌门允许分析单元为空。</li>
+<li>有效检测结果、报告物种或有效参考范围变化后，受影响菌门的草稿与确认失效，工作台显示「待重新分析」角标并阻断提交审核；由当前阶段有编辑权限的编制或审核人员主动重新运行并再次确认，系统不静默覆盖已编辑内容。</li>
+<li>原始规则命中、采用结果和审核后的最终文案都要保留。</li>
+</ul>
+<h3 id="人工内容"> 人工内容</h3>
+<p>当前由审核人员人工确定且彼此独立：</p>
+<ul>
+<li>人工综合分；</li>
+<li>A–E 人工评定等级；</li>
+<li>人工比较百分位：不填则用户端不展示「优于 x%」，不阻断发布（C4）；</li>
+<li>平台评估维度：当前固定为“情绪 / 免疫”两项，由审核在综合评定手填（C3）；报告首屏四个漂浮气泡的含义待甲方确认（见 <a href="./open-questions.html">开放问题清单</a> Q5）。</li>
+</ul>
+<p>综合分与等级不做对应关系校验。等级只控制固定主题：A 雨林、B 森林、C 草原、D 苔藓、E 沙漠。报告中的动物称谓根据报告物种匹配，审核人员可以修正。</p>
+<h3 id="科普与素材"> 科普与素材</h3>
+<ul>
+<li>平台统一维护分类层级科普和菌群科普模板。</li>
+<li>“莎莎的雨林中，药草与苔藓（放线菌门）——略显繁茂”由报告宠物昵称、等级主题、菌群场景短称、菌群名称和相对范围状态词组合，用户端呈现为一条连贯文案。</li>
+<li>菌群科普模板保留设计稿需要的字段：场景短称、导语比喻、主要工作列表、外观、功能，以及菌属卡片的角色 / 像什么 / 能力；原按检测状态切换的“偏低 / 正常 / 偏高提示”合并为一个不随检测状态变化的提示句（与 ADR-0020“科普不随判定状态变化”一致）。不为每个门或属复制宠物名、主题或完整句式。</li>
+<li>“略显稀疏 / 生机适宜 / 略显繁茂”等状态词按检测值相对有效参考范围的偏低、正常、偏高状态全局配置；没有有效范围时不追加状态词。状态词只是场景修辞，不替代分析规则生成的分析。</li>
+<li>偏高、偏低、未检出等状态解释，以及当前宠物的影响和建议，由物种与结果相关的分析规则生成并进入对应菌门分析单元人工确认，不从菌群科普模板兜底。</li>
+<li>“某菌门包含哪些菌属”由分类树关系得到，不重复人工维护名单。</li>
+<li>审核人员只能覆盖单份报告各菌门的分析与建议，不能在审核报告时修改平台菌群身份和分类关系。</li>
+<li>等级背景和品牌装饰可以全局更新；直接承载专业含义的图片随报告版本固化。</li>
+</ul>
+<h2 id="_9-审核、发布、更正与作废"> 9. 审核、发布、更正与作废</h2>
+<h3 id="审核修改范围"> 审核修改范围</h3>
+<p>审核人员可修改有效检测结果、报告物种、综合评定、各菌门的分析与建议以及菌门商品推荐，但不能在单份报告中手填第三套范围。有效检测结果只保留当前值、人工来源和当前修改原因，不保存逐次修改前后的值；原始检测事实继续保留，检测依据变化后要求重新确认受影响菌门的规则分析。</p>
+<h3 id="工作台动作"> 工作台动作</h3>
+<ul>
+<li>暂存只把当前编辑内容写入后端工作版本，不改变报告状态，不使用浏览器本地草稿。</li>
+<li>提交审核时先原子保存当前未暂存修改和整份工作版本，再执行阻断检查；提交成功后报告进入待审核，原提交人不能继续编辑，需要修改时先撤回到待完善，撤回不改动送检记录。</li>
+<li>审核人员可以直接修改报告；关系变更、状态操作和发布版本继续留痕，内容字段按各自规则保存，其中有效检测结果不保留逐次值修改链。改变专业依据时必须重新分析并重新确认发布检查。</li>
+<li>审核通过后立即发布，不保留“已通过”中间状态，也不设置定时自动发布。</li>
+<li>审核退回表达为“待完善 + 退回原因”，退回原因必填，不是独立状态；首期不提供字段级或模块级审核批注。</li>
+<li>作废与创建更正草稿的入口在工作台顶栏（已发布时）与报告中心「更多」中。</li>
+</ul>
+<h3 id="固定发布检查"> 固定发布检查</h3>
+<p>阻断发布：</p>
+<ul>
+<li>尚未完成宠物建档和报告归档；</li>
+<li>原始来源不可追溯；</li>
+<li>报告物种未确定；</li>
+<li>人工等级或综合分未填写；</li>
+<li>没有任何有效检测结果；</li>
+<li>任一必备预设报告模块完全没有可展示内容；</li>
+<li>存在未确认的菌门分析单元；</li>
+<li>有效检测结果、报告物种或有效参考范围变化后未重新分析并确认。</li>
+</ul>
+<p>只警告、允许确认发布：</p>
+<ul>
+<li>单项未决缺失；</li>
+<li>某菌门的参考范围缺失或建议为空；</li>
+<li>已选择商品失效或没有配置关联推荐商品。</li>
+</ul>
+<p>宠物是否关联平台用户不阻断发布。以上把“未确认的菌门分析单元”列为阻断项是当前决定，分析模块的发布条件仍需甲方确认（见 <a href="./open-questions.html">开放问题清单</a> Q11）。</p>
+<h3 id="更正与作废"> 更正与作废</h3>
+<ul>
+<li>已发布报告修改时创建更正草稿，报告主状态保持已发布并置「更正草稿进行中」，用户继续查看旧发布版本；报告中心显示“已发布”加“更正中·待完善”或“更正中·待审核”副标签。</li>
+<li>同一报告最多存在一个活动更正草稿；已有更正草稿时继续进入该草稿，不允许并行创建多个候选版本。</li>
+<li>新版本审核发布后替换当前版本；用户只看到最新版本和最近更新时间，不看版本号、旧内容或变更摘要。</li>
+<li>旧版本仅管理端可追溯。</li>
+<li>报告作废后立即从用户端消失，但原始文件、版本和操作记录保留。</li>
+<li>报告归错宠物或宠物关联错用户时，由运营直接修正并立即生效；管理端保留更正前后关系、操作人员、时间和原因。</li>
+</ul>
+<h2 id="_10-用户、宠物与报告关联"> 10. 用户、宠物与报告关联</h2>
+<ul>
+<li>宠物由运营在登记送检时根据电话或微信核对结果创建并维护，作为履约对象关联到该用户；不是脱离送检的空档案，也不等到首次报告归档才建档。</li>
+<li>小程序宠物资料完全只读，不提供新增、编辑、纠错申请、重复判断或合并。</li>
+<li>运营登记送检时，根据手机号、宠物名称、物种和品种等基础信息人工搜索并选择已有宠物或创建宠物，不做自动判重、评分或合并。</li>
+<li>运营为宠物选择已注册平台用户；样本编号可从试管标签或微信补填，Excel 不含身份字段，不自动决定关联。</li>
+<li>宠物可以暂时不关联用户，报告仍可继续审核发布；建立关联后，用户自动获得该宠物全部已发布报告的查看权。</li>
+<li>不提供领取码、扫码认领、用户确认、用户拒绝或用户自行修改关联关系的流程。</li>
+<li>报告归错宠物或宠物关联错用户时，运营直接修正并填写原因；系统保留变更前后关系、操作人和时间。</li>
+</ul>
+<h2 id="_11-小程序业务范围"> 11. 小程序业务范围</h2>
+<p>v1 实施方式已锁定（产品负责人确认，原开放问题 Q10 已收入第 0 节）：在现有商城小程序同一 AppID 内二次开发健康报告模块，不新建报告小程序，也不做跨小程序跳转。复用商城既有登录态、商品详情、购物车、订单、支付和退款能力；健康报告模块新增页面、路由、主导航与商品详情衔接。小程序启动/登录默认进入健康报告首页，主导航按原型为「首页」「我的」。用户端仍不提供宠物新建、编辑、认领或分享。</p>
+<h3 id="健康报告首页"> 健康报告首页</h3>
+<p>「健康报告首页」即小程序启动/登录后的全局默认首页，为当前宠物页；不再默认商城原首页、经营看板或第二份宠物列表。</p>
+<ul>
+<li>小程序启动/登录默认进入健康报告首页；无路由时固定落在健康报告首页。即使只有一只宠物和一份报告，也不自动跳过该页，也绝不自动打开报告。</li>
+<li>问候语使用宠物档案名，而不是登录用户名。</li>
+<li>一只宠物：主区块要么是不可点击的「报告处理中」（自送检登记起至发布），要么进入该宠物最新一份已发布报告；其下是该宠物历史已发布报告的同一份列表，不在其他报告页面重复放第三份列表。</li>
+<li>多只宠物：页面头部提供紧凑宠物切换器；切换后整页换成该宠物的报告首页内容。没有完整宠物列表页，也没有「最多三只 + 全部宠物」跳转。</li>
+<li>没有宠物：显示「暂无宠物，请联系门店」，联系路径复用商城已有客服或门店入口，不发明用户侧 onboarding。</li>
+<li>不提供跨宠物「全部报告」、领取报告、待确认报告或后台处理进度入口。</li>
+</ul>
+<p>「我的」页按健康报告原型调整：展示微信头像、手机号与「资料有误请联系运营」；可复用商城已有身份数据与客服能力，但不放入宠物列表、报告、通知或设置。</p>
+<h3 id="报告查看"> 报告查看</h3>
+<ul>
+<li>从健康报告首页主区块或该宠物历史已发布列表打开报告，作为独立页。</li>
+<li>阅读结构跟视觉设计：先是等级主题首屏；底部「详细」滚入对比（仅当存在有效参考范围）再滚入菌门分段。废除「概览 / 对比 / 菌门」三 tab 报告信息架构。不要把报告首屏称为「健康报告首页」。</li>
+<li>管理端工作台右侧预览必须同一套：一页滚动的小程序报告，不是三个 tab。</li>
+<li>主题首屏承载综合概览：宠物称谓、等级、综合分、人工百分位、核心指标和等级主题。</li>
+<li>报告首屏三个摘要指标固定为 Alpha 多样性、均匀度和丰富度。v1 闭环：工作台可补录这三项；不填则原位置显示“暂无有效结果”，不自动换成其他指标，也不单独阻断发布。三个位置固定。以后是否改成机构给或公式算见 <a href="./open-questions.html">开放问题清单</a> C2，不挡出报告。</li>
+<li>平台评估维度当前固定为“情绪 / 免疫”两项，由审核手填（C3）；主题首屏插画上四个漂浮气泡的含义待甲方确认（Q5）。</li>
+<li>综合概览和有效检测结果是发布必备核心内容：综合概览必须具备已关联宠物、明确报告物种、人工等级和综合分，有效检测结果至少包含一项有效数值或明确未检出。三个摘要指标允许个别缺失。</li>
+<li>菌群对比在至少一项结果具有有效正常范围时出现在「详细」滚动区内，没有任何有效范围时隐藏整个模块，菌门卡也不显示范围，也不拼「略显稀疏 / 生机适宜 / 略显繁茂」；无范围仍可发布。具体菌门或菌属只在存在有效结果或明确未检出且被报告内容选中时出现。</li>
+<li>菌门详情页的“分析”“总体建议”两个 tab 读取该菌门分析单元确认后的分析与建议；“总体建议”tab 下展示该菌门的主推商品卡。商品在小程序中的最终位置与卡片形式仍待甲方确认（见 <a href="./open-questions.html">开放问题清单</a> Q8），这是当前口径。</li>
+<li>菌门建议和商品推荐均不阻断发布；没有建议或可用商品时不制造空白区域。分析模块的发布条件当前按“存在未确认的菌门分析单元即阻断”执行，最终标准待甲方确认。</li>
+<li>每个必备模块以少量业务必需内容判断是否非空，不根据填写字段数量计算百分比。</li>
+<li>专业内容只展示本次实际检测到、明确未检出或经审核选入报告的分类和检测项，不展开整棵分类树，也不只保留异常项目。</li>
+<li>菌门详情可以继续查看检测值、有效范围（存在时）、所含菌属、分析和建议。</li>
+<li>同一菌门同时提供专业数值、有效范围、所含菌属、分析和建议，不拆成两套完整报告。</li>
+<li>分析与建议文案使用受限的结构化内容，支持段落、列表、强调和专业图片；商品卡由菌门分析单元的商品推荐项产生，不通过正文中的推荐位编码插入；不允许任意 HTML、脚本或自由页面布局。</li>
+<li>未检出明确显示“未检出”；缺失项不显示数值，固定位置必要时显示“暂无有效结果”。</li>
+<li>任一预设模块完全为空会阻断发布，因此用户不会看到完整空模块。</li>
+<li>用户只能查看当前发布版本，不看后台报告版本历史。</li>
+<li>不提供跨多次检测的趋势图；设计图中的理想菌群对比属于单份报告内部对比。</li>
+<li>平台不发送发布通知，也不展示统一健康免责声明。</li>
+</ul>
+<h2 id="_12-健康建议与商城联动"> 12. 健康建议与商城联动</h2>
+<h3 id="推荐模型"> 推荐模型</h3>
+<p>商品推荐挂在菌门分析单元上，每个单元最多包含：</p>
+<ul>
+<li>一个运营人工选择的主推 SPU；</li>
+<li>最多三个运营人工选择并排序的可选关联推荐 SPU。</li>
+</ul>
+<p>商品推荐项不保存推荐理由或建议文案，跟随该菌门确认后的建议出现；建议为空不自动禁商品，商品由工作台决定，规则不锁死该菌门不配商品。系统不维护健康需求标签、标签商品映射、推荐评分或自动排序，也不根据检测结果、报告物种、库存或商城分类自动选择商品；原型中的健康需求标签与标签商品映射数据一并删除。商品部分允许完全不配置，不阻断报告发布。</p>
+<ul>
+<li>小程序中，主推商品卡展示在对应菌门详情页“总体建议”tab 下（当前口径，最终位置与卡片形式待甲方确认，见 <a href="./open-questions.html">开放问题清单</a> Q8）；正文不平铺关联推荐商品。</li>
+<li>推荐详情按运营手工顺序展示主推商品之外最多三个关联推荐商品；系统只根据商城状态标记是否可购，不改写人工顺序。</li>
+<li>可购的主推商品从商品卡直接进入商城 SPU 详情；下架、缺货或已不存在的主推商品仍作为原推荐上下文展示，点击后进入推荐详情查看替代商品。</li>
+</ul>
+<p>运营通过报告工作台“商品推荐”模块按菌门维护商品配置，模块列出各菌门的建议摘要与商品槽；商品配置放在独立模块还是并入菌门卡片，甲方未确认，当前口径为独立模块。商品配置与专业报告版本分开，保存后立即更新该报告当前的小程序展示，不创建报告更正版本；系统不跨报告复用或自动传播商品选择，也不因其他报告的商品调整而改变当前报告。</p>
+<h3 id="商品状态处理"> 商品状态处理</h3>
+<table>
+<thead>
+<tr>
+<th>商城状态</th>
+<th>报告行为</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>主推 SPU 正常上架且可购</td>
+<td>展示主推商品，点击直接进入商城 SPU 详情</td>
+</tr>
+<tr>
+<td>主推 SPU 上架但库存为 0</td>
+<td>保留并展示原主推商品，点击进入推荐详情查看人工配置的关联推荐商品</td>
+</tr>
+<tr>
+<td>主推 SPU 不存在、回收或下架</td>
+<td>保留原主推商品关系和展示上下文，工作台显示「商品失效」角标，点击进入推荐详情查看人工配置的关联推荐商品</td>
+</tr>
+<tr>
+<td>没有任何可用关联推荐商品</td>
+<td>仍完整展示该菌门建议和原主推商品上下文，不制造可购买入口</td>
+</tr>
+</tbody>
+</table>
+<p>用户选择当前可购商品后，在同一商城小程序内进入现有 SPU 详情并自行选择 SKU。不可购的原主推商品不进入商城详情，而进入健康报告模块的推荐详情查看替代商品。健康报告模块不自行处理购物车、订单或支付，而是交给商城既有交易链路；首期不记录商品点击。</p>
+<p>商品卡读取商城当前或历史保留的图片、名称和状态，并读取当前价格、库存和可购状态；系统不自动替换、补充或重排运营选择的商品。报告不复制商品资料、规格和促销规则。首期不记录报告商品点击，也不建设加购、订单或支付归因。</p>
+<h3 id="现有商城的改造边界"> 现有商城的改造边界</h3>
+<p>健康报告将在现有商城小程序内二次开发，因此商城小程序前端需要新增或调整：健康报告入口、页面注册与分包、模块路由、登录态复用、商品详情衔接、返回路径以及真机适配。以下既有交易能力原则上复用，不重新建设：</p>
+<ul>
+<li>商城已经提供 SPU 查询、批量查询、有效性校验和商品详情能力；</li>
+<li>SKU、价格、库存、购物车、订单、支付、退款和上下架状态继续由商城负责；</li>
+<li>报告模块只保存各菌门分析单元中运营选择的主推 SPU、可选关联推荐 SPU 和人工顺序；</li>
+<li>报告模块使用现有商城能力批量取得实时商品事实，不建设商品推荐解析服务；</li>
+<li>商户号、支付权限、AppID 绑定、支付密钥和回调继续由商城既有后端管理，健康报告前端不得持有支付密钥。</li>
+</ul>
+<p>管理端商品选择优先复用现有商品分页接口和商品选择弹窗的结构，在工作台商品推荐模块内提供商品名称、商品编号、分类和状态筛选，并允许从在售、下架、缺货和回收站商品中选择。已经逻辑删除的历史商品继续按既有关联 SPU 标识读取和展示，但不重新进入可搜索商品池。</p>
+<p>如果现有接口不能满足报告商品卡、身份关联或路由衔接，可在商城边界增加最小兼容接口；若未来要求按报告来源追踪加购、订单和支付，则另行设计归因链路，当前明确不做。</p>
+<p>商品推荐跟随对应菌门的建议出现，使用户能够理解商品与哪一菌门的分析相关；每个菌门只放一个主推商品卡，推荐详情最多展示三个由运营人工选择和排序的关联推荐商品。</p>
+<h2 id="_13-管理端功能清单"> 13. 管理端功能清单</h2>
+<p>管理端登录后直接进入报告中心，不设置业务首页。</p>
+<h3 id="送检管理"> 送检管理</h3>
+<ul>
+<li>送检管理是与报告中心并列的业务入口，处理登记送检后、报告生成前的运营履约，不命名为笼统的“待处理任务”。</li>
+<li>默认提供待导入结果、导入异常和全部送检三个视图；待导入结果是默认工作队列，导入异常用于重新导入，全部送检用于追溯。</li>
+<li>页面提供登记送检，以及从该送检记录发起的导入结果和重新导入；不再设独立的 Excel 导入页，也不在列表上提供无预登记批量导入。登记送检时必填送检类型（本店送检 / 客户自带报告），并创建或选择已关联平台用户的宠物。客户自带报告仍走「先登记再在该行导入」，不另开导入后选宠物路径。</li>
+<li>导入结果把一份 Excel 挂到当前送检记录；多文件只表现为 N 条待导入送检记录配对 N 个文件。导入结果包括成功、失败与异常、失败原因、失败文件重新上传，以及原始 Excel 查看与下载。</li>
+<li>Excel 成功导入并生成唯一报告后，送检记录显示“已生成报告”并退出默认工作队列；报告进入待完善（宠物已存在）。报告的待完善、待审核、已发布和已作废不再作为送检记录状态。界面不把待归属作为可操作状态。</li>
+<li>已生成报告的送检记录提供查看报告入口；报告中心只提供“查看送检记录”反向入口，不承接重新导入。</li>
+</ul>
+<h3 id="报告中心"> 报告中心</h3>
+<ul>
+<li>待处理、全部、待完善、待审核、已发布和已作废视图；不设待归属页签，也不另设已发布报告列表页。</li>
+<li>报告中心从 Excel 成功解析并生成报告后开始，不包含登记送检、等待机构出结果或导入异常处理。</li>
+<li>默认进入“待处理”聚合视图，只包含待完善和待审核报告；“待处理”不成为新的报告状态；全部、已发布和已作废用于档案查询与追溯。</li>
+<li>各状态视图显示当前查询条件下的结果数量，不显示与当前查询无关的全局数量。</li>
+<li>默认展示综合搜索和来源机构，并提供展开按钮显示物种与检测日期等高级筛选；综合搜索覆盖平台报告编号、外部报告编号、样本编号、手机号和宠物名称，报告状态只通过顶部视图切换。</li>
+<li>不提供待办标记筛选，列表不显示待办标记。</li>
+<li>列表只显示报告主状态和更正副标签，不展示预设报告模块完整度或具体处理问题；缺失模块、数据异常、待重新分析和发布条件等进入单份报告工作台后查看。</li>
+<li>单份报告按来源与归属、检测结果、综合评定、分析与建议、商品推荐、发布检查六个模块组织；版本数据保留在来源与归属底部的「本报告追溯」，不作为左侧一级模块。</li>
+<li>只允许逐份执行完善、审核、发布、作废和纠错（改归宠物 / 换用户）。</li>
+<li>列表采用真实 Rondo 的 ListPage + BasicTable/useTable 可见契约，以标准紧凑表格承接报告标识、用户与宠物、检测来源、流程状态、更新时间和操作；明确列宽、长内容省略、容器内横向滚动及分页，不再使用记录卡。搜索、工具栏与表格职责分离，具体组件约束见<a href="./pet-health-admin-implementation-plan.html">管理端实施方案</a>。</li>
+<li>每条记录显示已关联的用户与宠物；不出现「未归属 · 导入文件名」行，也不提供「处理归属」主操作。</li>
+<li>已发布报告存在更正草稿时仍归入已发布视图，主状态显示“已发布”，并附加“更正中·待完善”或“更正中·待审核”副标签，不拆成两条报告记录。</li>
+<li>每条记录根据状态只显示一个主要动作，例如继续完善、审核或查看；“更多”收纳版本、作废和创建更正草稿，并提供“查看送检记录”。版本入口打开工作台来源与归属中的「本报告追溯」，不打开独立「版本与记录」模块。</li>
+<li>待处理视图按进入当前状态的时间从早到晚排列，优先暴露滞留报告；全部、已发布和已作废等档案视图按最近更新时间倒序排列。</li>
+</ul>
+<h3 id="报告工作台与实时预览"> 报告工作台与实时预览</h3>
+<ul>
+<li>编辑、完善和审核共用同一个报告工作台，左侧按报告模块处理数据与内容，右侧以模拟小程序展示当前工作版本。</li>
+<li>左侧按运营处理对象组织为来源与归属、检测结果、综合评定、分析与建议、商品推荐、发布检查六个一级模块，不照搬小程序阅读页面，也不按数据库表暴露技术结构。版本与记录不是一级模块。</li>
+<li>待完善报告恢复上次编辑位置，待审核报告默认进入审核总览；已发布或已作废默认进入来源与归属以查看追溯。状态发生变化后不继续停留在已经失效的入口。</li>
+<li>已发布报告的工作台顶栏提供作废与创建更正草稿入口。</li>
+<li>模块导航分别显示必须处理的阻断数和允许确认后继续的警告数，问题同时出现在对应字段附近；待重新分析、缺失未处理、商品失效、未关联用户以角标形式提示，不把所有问题堆到页面顶部或等到发布时才首次展示。</li>
+<li>页面提供明确的“暂存”按钮，将当前编辑内容保存到后端工作版本但不改变报告状态；系统不以自动保存或浏览器本地草稿替代后端暂存。应用页签切换保留内存会话，真正关闭、刷新或丢弃会话前必须提示；商品配置由独立保存动作生效，不随专业报告暂存上线。</li>
+<li>工作台内切换模块时保留当前页面会话的全部未暂存修改，不要求逐模块暂存；暂存时原子保存整份工作版本，多次暂存更新同一工作版本并记录暂存人和时间，不为每次暂存生成正式报告版本。</li>
+<li>多人同时编辑时不锁定报告，也不校验工作版本冲突，后一次暂存直接覆盖前一次暂存；平台接受由此产生的先前修改丢失风险。</li>
+<li>左右区域支持拖动调整宽度，右侧预览可以临时收起；较窄屏幕优先保留编辑区，并将预览收进右侧抽屉，不强制横向滚动。</li>
+<li>右侧预览与小程序一致，为单页滚动的报告阅读页（主题首屏 →「详细」滚入对比与菌门分段），不再使用「概览 / 对比 / 菌门」三个 tab；默认展示包含未暂存修改的工作版本，并明确标记为工作版本预览，实时预览不等于暂存或发布。</li>
+<li>文字、图片、人工分值等直接呈现内容修改后实时更新；检测值、报告物种、有效参考范围等专业依据变化时，先说明影响并由操作人员确认重新分析，不静默覆盖人工调整过的分析与建议。</li>
+<li>鼠标悬停左侧字段时，如果目标位于当前预览滚动区内则临时定位；点击或聚焦字段后才滚到对应分段或钻入菌门详情，避免移动鼠标时连续跳动。</li>
+<li>点击或聚焦字段后，目标区域滚动到可见位置，并使用清晰描边、轻遮罩和字段名称提示；短暂动效结束后保留弱高亮，不能只依赖闪烁或颜色表达对应关系。</li>
+<li>点击右侧可编辑展示区域时，工作台反向切换到负责该内容的左侧模块并聚焦字段。</li>
+<li>一个字段影响多个位置时显示影响位置数量和位置清单，由用户逐个查看，不自动假定唯一主要位置，也不同时打开多个手机预览。</li>
+<li>没有直接用户端展示位置的字段不制造虚假高亮，右侧明确提示“此项不直接展示”，并说明它影响分析、参考范围、推荐或发布检查。</li>
+<li>已发布报告进入更正时，通过同一个预览设备切换“工作版本”和“当前线上版本”，并提供变化位置导航，不长期并排展示两个手机。</li>
+<li>检测结果模块采用可搜索的主从结构，支持异常、缺失和已修改筛选；选中一个普通指标或菌群后在侧边详情区编辑，不将全部结果展开为超长表单或拆成独立页面。</li>
+<li>检测结果模块对每条记录展示 Excel 原始值与当前有效值的对照、范围来源（报告导入 / 平台配置 / 无有效范围）和实验室比较状态（<code>high</code> / <code>low</code> / 未标注）；允许修改有效值并填写原因、补录缺失项。<code>vs AVG notice</code> 为 <code>-</code> 的记录正常展示，不被剔除。</li>
+<li>当前有效结果存在人工修改时标记“已修订”，默认展示当前值，展开后可以查看 Excel 原始值和当前修改原因；不展示逐次修改版本链。</li>
+<li>来源与归属模块展示已关联的送检记录、送检类型、宠物与用户（身份在登记时已知，不是从无名 Excel 选宠物的归属表单），以及原始 Excel 的文件名称、上传时间和模板识别结果，并提供查看与下载。改归宠物 / 换用户作为纠错保留。模块底部提供紧凑的「本报告追溯」：谁发布 / 更正 / 作废、何时，以及当前发布版与更正草稿对照。版本数据不删除，用户端永不展示旧版本。</li>
+<li>未知检测项保留原始内容并进入待确认处理，运营在工作台侧边表单中关联已有检测项或登记新的平台检测项，完成后返回当前报告；系统不按名称自动创建。</li>
+<li>缺失结果在检测结果模块内人工补录并标记人工来源，原始缺失状态继续保留；无法解析的数值保留原始文本，有效结果保持为空，修正前不参与范围判断和分析。不再有独立的补录或完善指标页面。</li>
+<li>报告物种与宠物档案物种不一致时显著提示，审核人员可以确认报告物种，但不自动覆盖任一方。</li>
+<li>分析与建议模块按菌门卡片展示：每张卡片包含该菌门的规则命中列表（含来源原始菌群记录、规则版本、条件实际值，可排除）、「分析」与「建议」草稿以及确认状态；每个菌门单独确认。同一菌上的多条命中全部列出并采用。</li>
+<li>商品推荐模块按菌门列出建议摘要与商品槽（0–1 主推、0–3 有序关联）；是否并入菌门卡片待甲方确认。</li>
+<li>修改检测值、报告物种或有效参考范围后，先列出受影响的菌门、分析和推荐，默认只重新生成受影响菌门的内容，同时提供重新分析整份报告的入口。</li>
+<li>审核人员默认先进入审核总览，查看本次提交的修改范围、阻断项、警告和关键专业数据，再按需进入具体模块。</li>
+<li>发布检查作为独立模块持续展示当前检查结果，其中“存在未确认的菌门分析单元”和“依据变化后未重新分析”为阻断项；提交审核或发布时再打开最终确认面板，最终面板不承担第一次发现问题的职责。</li>
+</ul>
+<h3 id="用户与宠物"> 用户与宠物</h3>
+<ul>
+<li>“用户与宠物”是唯一菜单，内含平台用户和宠物两个标准表格视图；用户、宠物详情使用可直达内部路由，不重复设置同级菜单。</li>
+<li>查询既有平台用户并辅助手机号核对；最小建号为手机号必填、姓名可选，同一身份域同手机号复用、不覆盖资料、不静默启用禁用账号。基础资料只读，有权限时进入既有会员管理修改，不创建第二套客户实体。</li>
+<li>在登记送检时选择已有宠物或创建宠物（履约对象，不是空档案）；不提供脱离送检、为建档而建档的空档案入口。</li>
+<li>宠物视图展示宠物列表；宠物详情展示最小识别资料、当前关联用户和已发布历史报告，详情进入登记时带入用户及宠物；用户详情进入登记时带入用户。</li>
+<li>待归属不是可操作状态；关联纠错记录放在对应宠物或报告详情，不在宠物档案首页设置全局工作台。</li>
+<li>运营直接修正报告与宠物、宠物与用户的关联，并保留原因和操作记录。</li>
+</ul>
+<h3 id="专业配置"> 专业配置</h3>
+<ul>
+<li>原“字典管理”统一命名“专业基础资料”，只承载宠物品种、检测指标与微生物分类，不作为系统通用字典。</li>
+<li>普通检测指标。</li>
+<li>菌群分类树、分类层级科普和菌群科普模板（字段见 §8 科普与素材，提示句不随检测状态切换）。</li>
+<li>平台参考范围。</li>
+<li>分析规则：按谱系维护启用版本与只读停用历史；编辑会话不持久化；提供单报告当前 / 会话候选差异测试、未命中解释与启停影响确认，不提供逐份报告的正式分析运行。</li>
+<li>无效推荐商品在工作台以角标提示；不设置健康需求标签、标签商品映射或推荐映射菜单。</li>
+</ul>
+<h3 id="明确不做"> 明确不做</h3>
+<ul>
+<li>管理端业务首页和经营分析看板。</li>
+<li>独立的已发布报告列表页、旧的宠物报告管理页、独立 Excel 导入页和推荐映射页。</li>
+<li>无预登记批量导入，以及把等待机构出结果伪装成报告中心任务。</li>
+<li>机构资料与 Excel 模板配置页面。</li>
+<li>批量归属、批量审核和批量发布。</li>
+<li>会员、积分、消费、回访和客户营销。</li>
+<li>最终报告 PDF 或 Word 导出。</li>
+</ul>
+<h2 id="_14-mock-演示场景"> 14. Mock 演示场景</h2>
+<p>演示数据至少覆盖：</p>
+<ol>
+<li>从已登记送检记录导入：正常文件、重复文件、局部异常和关键失败；多文件只演示 N 条待导入送检记录配对 N 个文件。</li>
+<li>成功导入后报告进入待完善（宠物已在送检登记时存在）；演示客户自带报告与本店送检走同一登记→行上导入路径，不演示待归属或处理归属。</li>
+<li>运营为宠物关联平台用户；未关联用户时报告仍可继续处理和发布。</li>
+<li>运营在检测结果模块补录缺失值、处理新检测项、确定范围，并重新生成受影响菌门的分析。</li>
+<li>编制人员填写综合评定、逐菌门确认分析与建议并提交；审核人员复核、必要时留痕修订并发布。商品独立保存；双权限账号可完成整条链路，仅编制账号不能发布，仅审核账号不承担提交前编制。</li>
+<li>用户启动/登录默认进入健康报告首页查看当前宠物：主区块为「报告处理中」或进入最新已发布报告，其下为该宠物历史已发布列表；从健康报告首页打开报告阅读页（主题首屏 →「详细」→ 对比与菌门分段），并在菌门详情页查看该菌门的分析、建议与主推商品卡。</li>
+<li>已发布报告创建更正草稿，旧版本继续可见，新版本发布后替换。</li>
+<li>主推商品下架后保留原商品状态并出现「商品失效」角标，运营可以在工作台商品推荐模块人工更换主推或补充关联推荐商品。</li>
+<li>运营将报告改归正确宠物或更换宠物关联用户，并在对象详情查看纠错记录。</li>
+<li>报告作废后从小程序消失但后台仍可追溯。</li>
+<li>审核退回后报告回到待完善并显示退回原因；<code>vs AVG notice</code> 为 <code>-</code> 的菌属正常展示为“未标注”且不触发规则。</li>
+</ol>
+<h2 id="_15-mvp-验收标准"> 15. MVP 验收标准</h2>
+<ul>
+<li>已知 Excel 模板可从送检记录导入，每个文件独立处理，原始文件可追溯；不支持无预登记批量导入。</li>
+<li>重复报告、关键异常、局部异常和待确认检测项符合既定规则。</li>
+<li>原始事实、有效结果、规则命中、审核内容和发布版本之间边界清晰。</li>
+<li>分析、建议与商品按菌门分析单元组织，每条规则命中可追溯到来源原始菌群记录与规则版本，每个菌门单独确认后才能提交审核。</li>
+<li>报告只有待完善 / 待审核 / 已发布 / 已作废四个可操作主状态，加“更正草稿进行中”和“退回原因”两个字段；待办标记仅在工作台以角标出现。界面不把待归属作为可操作状态。</li>
+<li>运营能够完成送检登记时建档宠物、从送检记录导入、补录、审核、发布、更正、作废和纠错（改归宠物 / 换用户）。</li>
+<li>用户无需领取或确认；启动/登录默认进入健康报告首页（当前宠物页），只读查看处理中占位与全部已发布报告。</li>
+<li>未发布报告、旧版本、失败报告和作废报告不向用户展示。</li>
+<li>主推 SPU 和人工关联推荐 SPU 能读取商城实时状态，系统不会自动替运营更换或重排商品。</li>
+<li>现有商城小程序前端已完成健康报告入口、路由、页面/分包及同小程序商品详情衔接；商城交易后端继续复用。</li>
+<li>所有代表流程均有稳定 Mock 数据，能够重复演示且不依赖真实机构、真实微信用户或真实订单。</li>
+</ul>
+<h2 id="_16-待甲方确认"> 16. 待甲方确认</h2>
+<p>以 <a href="./open-questions.html">开放问题清单</a> 为准：第 0 节为已内部决定（含原 Q10 登录落点与小程序壳），本文不得与之矛盾；第 1 节 Q1–Q6 仍待拍板，是实验室读数阻塞项；第 2 节 C1–C4 已闭环，不挡出报告；第 3 节 Q7–Q9、Q11–Q13 为体验与规则。本文不重复该问卷。</p>
+<p>上述事项未确认前，演示原型可以提供明确的临时 Mock 表现，但不能把临时方案描述成最终产品要求。</p>
+<h2 id="_17-现有原型需要校正的业务点"> 17. 现有原型需要校正的业务点</h2>
+<p>以下为 2026-09-02 决定后原型仍需校正的差距，按决定编号列出：</p>
+<ul>
+<li>D1 分析与建议按菌门产出：原型仍以报告级“整体分析解释”“总体建议”单例组织，需要改为每个有结果的菌门一个分析单元（命中列表、分析草稿、建议草稿、确认状态、商品推荐）。</li>
+<li>D2 规则输出：分析规则页已改为“分析”“建议”两个字段；风险级别不再作为运营配置概念，判断句上不再询问风险，并移除“仅数据完整性提示”勾选。</li>
+<li>D3 规则目标：仍为自由文本，需改为从菌群字典下拉选择菌门或菌属，属级命中归入所属菌门（临时口径）。</li>
+<li>D4 规则条件：原型已改为临床判断句（封闭单物种、实验室标注为主、可选有效值门槛且与状态 AND）；物种写在规则适用物种，不再做成报告物种条件。相对范围仅作次要观察。历史多条件 / 交叉条件进入兼容视图。</li>
+<li>D5 分析规则页：原型已按封闭物种再按门/属展示当前启用版与只读归档，规则库用判断句摘要；规则编辑只保留未保存会话，不落持久草稿；可复制到另一物种成为新谱系；提供当前启用基线与单个会话候选替换的单报告差异测试、医生语言未命中解释（物种 / 状态 / 有效值）和影响确认；逐份报告正式运行、命中排除仍只在工作台。</li>
+<li>D6 报告工作台：模块改为来源与归属 / 检测结果 / 综合评定 / 分析与建议 / 商品推荐 / 发布检查（不把版本与记录作为一级模块；追溯放在来源与归属底部）；分析与建议按菌门卡片并逐菌门确认；商品推荐按菌门列出建议摘要与商品槽；发布检查加入“存在未确认的菌门分析单元”“依据变化后未重新分析”两个阻断项。</li>
+<li>D7 工作台动作：去掉浏览器本地草稿，暂存只写后端；提交审核前执行阻断检查；撤回不改动送检记录；审核退回改为“待完善 + 退回原因”；去掉“已通过”中间状态；作废与创建更正草稿入口放到顶栏（已发布时）和报告中心“更多”。</li>
+<li>D8 检测结果模块：展示 Excel 原始值与有效值对照、修改原因、补录、范围来源与实验室比较状态；<code>vs AVG notice</code> 为 <code>-</code> 的记录正常展示为“未标注”，不再默认剔除。</li>
+<li>D9 工作台右侧预览改为与小程序一致的单页滚动报告（主题首屏 →「详细」滚入对比与菌门分段），不再使用「概览 / 对比 / 菌门」三 tab。</li>
+<li>D10 报告状态收敛为待完善 / 待审核 / 已发布 / 已作废，加“更正草稿进行中”“退回原因”；删除待归属入口以及“审核退回”“已通过”“已更正”及所有领取相关状态；待办标记只保留四类且仅在工作台角标显示。</li>
+<li>D11 报告中心：增加更正副标签；去掉待归属页签与「处理归属」主操作；“更多”含版本 / 作废 / 创建更正草稿（版本打开来源与归属中的追溯）；“重新导入”移入送检管理，报告中心只留“查看送检记录”。登记送检必填送检类型（本店送检 / 客户自带报告）。</li>
+<li>D12 删除页面：已发布报告列表页、旧的宠物报告管理页、独立 Excel 导入页、业务首页 / 看板、推荐映射页；删除健康需求标签与标签商品映射 Mock 数据；补录 / 完善指标能力并入工作台检测结果模块。</li>
+<li>D13 小程序：在现有商城小程序同一 AppID 内新增健康报告页面、路由、分包与主导航（「首页」「我的」）；启动/登录默认进入健康报告首页（当前宠物页，多宠头部切换，无宠「暂无宠物，请联系门店」），报告从该页打开为独立滚动页（主题首屏 →「详细」→ 对比（若有）→ 菌门分段），不再使用「概览 / 对比 / 菌门」三 tab；菌门详情页“分析”“总体建议”tab 读取菌门分析单元文案，建议 tab 下展示该菌门主推商品卡（临时口径），可购商品在同一小程序内进入现有商城商品详情；健康报告首页问候语使用宠物档案名；无任何有效范围时对比模块隐藏、菌门卡不显示范围；移除领取报告等已废止入口。</li>
+<li>D14 菌群科普模板：把“偏低 / 正常 / 偏高提示”三个字段合并为一个不随检测状态变化的提示句，其余设计稿字段保留。</li>
+<li>通用：报告状态、待办角标、归属、菌门分析单元、版本和商品状态必须由同一套 Mock 数据贯通；此前已列出的用户端只读约束（不展示旧版本、宠物资料只读、无领取与后台进度入口）继续有效。</li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-08-26T09:07:40.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">资源中心</title>
+    <id>https://ikecoolon.github.io/resources/</id>
+    <link href="https://ikecoolon.github.io/resources/"/>
+    <updated>2026-09-02T11:14:01.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="资源中心"> 资源中心</h1>
+<p>本目录保留宠物健康报告文档工程可复用的模板、设计资源与工具指南，用于提高维护效率并保持文档一致性。</p>
+<h2 id="可用资源"> 可用资源</h2>
+<h3 id="模板下载"> <a href="/resources/templates/">模板下载</a></h3>
+<p>提供各类标准化文档模板，包括PRD模板、流程图模板等。</p>
+<h3 id="设计资源"> <a href="/resources/design/">设计资源</a></h3>
+<p>包含UI组件库、图标库、字体规范等设计资源。</p>
+<h3 id="工具指南"> <a href="/resources/tools/">工具指南</a></h3>
+<p>提供产品设计常用工具的使用指南和最佳实践。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">设计资源</title>
+    <id>https://ikecoolon.github.io/resources/design/</id>
+    <link href="https://ikecoolon.github.io/resources/design/"/>
+    <updated>2025-09-01T15:05:33.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="设计资源"> 设计资源</h1>
+<p>为确保产品设计的一致性和高效协作，我们整理了以下设计资源。</p>
+<h2 id="ui-组件库"> UI 组件库</h2>
+<h3 id="ikecoolon设计系统"> <a href="/resources/design/design-system.html">ikecoolon设计系统</a></h3>
+<p>公司统一的设计系统，包含各类UI组件规范及使用指南。</p>
+<h3 id="figma-组件库"> <a href="/resources/design/figma-components.html">Figma 组件库</a></h3>
+<p>Figma平台上的组件库资源，可直接在设计工具中使用。</p>
+<h2 id="图标资源"> 图标资源</h2>
+<h3 id="系统图标库"> <a href="/resources/design/system-icons.html">系统图标库</a></h3>
+<p>标准系统图标集合，包含常用功能和操作图标。</p>
+<h3 id="业务图标库"> <a href="/resources/design/business-icons.html">业务图标库</a></h3>
+<p>针对电力行业的专业业务图标集合。</p>
+<h2 id="设计规范"> 设计规范</h2>
+<h3 id="颜色规范"> <a href="/resources/design/color-spec.html">颜色规范</a></h3>
+<p>公司产品的标准颜色体系，包含主色、辅助色、功能色等定义。</p>
+<h3 id="字体与排版"> <a href="/resources/design/typography.html">字体与排版</a></h3>
+<p>公司产品使用的字体规范及排版指南。</p>
+<h3 id="响应式设计指南"> <a href="/resources/design/responsive-design.html">响应式设计指南</a></h3>
+<p>针对不同设备尺寸的响应式设计规范和建议。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">工具指南</title>
+    <id>https://ikecoolon.github.io/resources/tools/</id>
+    <link href="https://ikecoolon.github.io/resources/tools/"/>
+    <updated>2026-09-02T11:14:01.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="工具指南"> 工具指南</h1>
+<p>为提高宠物健康报告文档工程的维护效率，这里保留常用工具的使用指南和最佳实践。</p>
+<h2 id="设计工具"> 设计工具</h2>
+<h3 id="figma-使用指南"> <a href=":to=%22$withBase('/resources/tools/figma-guide.md')%22">Figma 使用指南</a></h3>
+<p>Figma设计工具的基础使用方法和团队协作流程。</p>
+<h3 id="原型工具比较"> <a href=":to=%22$withBase('/resources/tools/prototype-tools.md')%22">原型工具比较</a></h3>
+<p>各类原型设计工具的特点比较及使用建议。</p>
+<h2 id="文档工具"> 文档工具</h2>
+<h3 id="vuepress-使用指南"> <a href=":to=%22$withBase('/resources/tools/vuepress-guide.md')%22">VuePress 使用指南</a></h3>
+<p>如何使用VuePress构建和维护产品文档的详细说明。</p>
+<h3 id="markdown-编写规范"> <a href=":to=%22$withBase('/resources/tools/markdown-spec.md')%22">Markdown 编写规范</a></h3>
+<p>Markdown语法参考及公司文档编写规范。</p>
+<h2 id="协作工具"> 协作工具</h2>
+<h3 id="git-使用指南"> <a href=":to=%22$withBase('/resources/tools/git-guide.md')%22">Git 使用指南</a></h3>
+<p>版本控制工具Git的基本操作及团队协作流程。</p>
+<h3 id="jira-使用指南"> <a href=":to=%22$withBase('/resources/tools/jira-guide.md')%22">Jira 使用指南</a></h3>
+<p>项目管理工具Jira的使用方法及最佳实践。</p>
+<h2 id="绘图工具"> 绘图工具</h2>
+<h3 id="流程图工具指南"> <a href=":to=%22$withBase('/resources/tools/flowchart-tools.md')%22">流程图工具指南</a></h3>
+<p>推荐的流程图绘制工具及使用方法。</p>
+<h3 id="思维导图工具"> <a href=":to=%22$withBase('/resources/tools/mindmap-tools.md')%22">思维导图工具</a></h3>
+<p>思维导图工具的使用指南，帮助梳理和组织思路。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">模板下载</title>
+    <id>https://ikecoolon.github.io/resources/templates/</id>
+    <link href="https://ikecoolon.github.io/resources/templates/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="模板下载"> 模板下载</h1>
+<p>为保证产品文档的一致性和规范性，我们提供了以下标准化模板供团队使用。</p>
+<h2 id="prd-模板"> PRD 模板</h2>
+<h3 id="标准-prd-模板"> <a href="/resources/templates/standard-prd.html">标准 PRD 模板</a></h3>
+<p>符合公司规范的产品需求文档模板，包含了完整的文档结构和说明。</p>
+<h3 id="简版-prd-模板"> <a href="/resources/templates/simple-prd.html">简版 PRD 模板</a></h3>
+<p>适用于小型需求和快速迭代的简化版 PRD 模板。</p>
+<h2 id="流程图模板"> 流程图模板</h2>
+<h3 id="业务流程图模板"> <a href="/resources/templates/business-flowchart.html">业务流程图模板</a></h3>
+<p>标准业务流程图模板，包含常见的流程符号和使用规范。</p>
+<h3 id="用户旅程图模板"> <a href="/resources/templates/user-journey.html">用户旅程图模板</a></h3>
+<p>用于描述用户体验全流程的旅程图模板。</p>
+<h2 id="评审文档"> 评审文档</h2>
+<h3 id="需求评审模板"> <a href="/resources/templates/requirement-review.html">需求评审模板</a></h3>
+<p>用于需求评审的文档模板，包含评审要点和检查项。</p>
+<h3 id="上线评审模板"> <a href="/resources/templates/launch-review.html">上线评审模板</a></h3>
+<p>产品上线前的评审文档模板，确保各环节符合上线标准。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">产品文档规范</title>
+    <id>https://ikecoolon.github.io/rules/</id>
+    <link href="https://ikecoolon.github.io/rules/"/>
+    <updated>2026-09-03T03:41:45.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="产品文档规范"> 产品文档规范</h1>
+<h2 id="约束规则概述"> 约束规则概述</h2>
+<p>本文档旨在建立产品经理在 ikecoolon 产品设计与输出过程中的稳定约束规则，确保产品设计的一致性、可靠性和高质量，提高产品经理工作效率，减少沟通成本，促进产品快速稳定迭代。</p>
+<h2 id="适用范围"> 适用范围</h2>
+<p>本约束规则适用于产品经理在以下工作内容中的产出物：</p>
+<ul>
+<li>需求收集与分析</li>
+<li>产品设计与规划</li>
+<li>PRD文档编写</li>
+<li>产品原型设计</li>
+<li>项目进度管理</li>
+<li>产品迭代管理</li>
+<li>产品上线验收</li>
+</ul>
+<h2 id="产品经理角色定位"> 产品经理角色定位</h2>
+<p>产品经理是产品全生命周期的负责人，承担需求收集分析、产品规划设计、项目交付推进等职责，通过与业务方、技术团队、设计师等多方协作，确保产品满足业务目标和用户需求。</p>
+<h2 id="规则类别"> 规则类别</h2>
+<p>约束规则分为以下几个主要类别，每个类别下包含具体的规则项：</p>
+<ol>
+<li><a href="./requirement-analysis.html">需求收集与分析</a> - 需求收集渠道、需求分析规范</li>
+<li><a href="./product-design.html">产品设计</a> - 产品设计流程、评审机制</li>
+<li><a href="./document-structure.html">文档结构</a> - PRD文档的结构和内容标准</li>
+<li><a href="./business-logic.html">业务逻辑设计</a> - 流程和规则设计的标准</li>
+<li><a href="./prototype.html">产品原型</a> - 原型设计和交互规范</li>
+<li><a href="./project-progress.html">项目进度</a> - 进度墙呈现、估期口径与维护范围</li>
+<li><a href="./iteration.html">产品迭代</a> - 迭代计划和执行标准</li>
+<li><a href="./launch.html">产品上线</a> - 上线前准备和上线过程管理</li>
+<li><a href="./collaboration.html">跨部门协作</a> - 与技术、设计等团队的协作标准</li>
+<li><a href="./content.html">产品文案与内容</a> - 文案风格和内容完整性标准</li>
+<li><a href="./knowledge.html">产品知识</a> - 知识沉淀和共享机制</li>
+</ol>
+<h2 id="规则使用方法"> 规则使用方法</h2>
+<ol>
+<li>产品经理应在工作开始前了解并熟悉相关约束规则</li>
+<li>在工作过程中对照约束规则进行自检</li>
+<li>在文档评审环节，评审人应基于约束规则进行检查</li>
+<li>定期回顾和优化约束规则，确保规则与实际工作的契合度</li>
+</ol>
+<h2 id="术语与缩略语"> 术语与缩略语</h2>
+<table>
+<thead>
+<tr>
+<th>术语/缩略语</th>
+<th>定义</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ikecoolon</td>
+<td>ikecoolon 的缩写</td>
+</tr>
+<tr>
+<td>PRD</td>
+<td>产品需求文档</td>
+</tr>
+<tr>
+<td>MRD</td>
+<td>市场需求文档</td>
+</tr>
+<tr>
+<td>BRD</td>
+<td>业务需求文档</td>
+</tr>
+<tr>
+<td>ROI</td>
+<td>投资回报率</td>
+</tr>
+</tbody>
+</table>
+<h2 id="修订历史"> 修订历史</h2>
+<table>
+<thead>
+<tr>
+<th>版本号</th>
+<th>修订日期</th>
+<th>修订人</th>
+<th>修订说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V1.0</td>
+<td>2025-05-13</td>
+<td>Peter</td>
+<td>首次创建</td>
+</tr>
+<tr>
+<td>V1.1</td>
+<td>2026-09-03</td>
+<td>项目管理</td>
+<td>新增项目进度约束：进度墙维护范围与估期口径</td>
+</tr>
+</tbody>
+</table>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">业务逻辑设计</title>
+    <id>https://ikecoolon.github.io/rules/business-logic/</id>
+    <link href="https://ikecoolon.github.io/rules/business-logic/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="业务逻辑设计"> 业务逻辑设计</h1>
+<h2 id="流程设计规范"> 流程设计规范</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>业务流程必须使用标准流程图表示</li>
+<li>流程图必须包含起点、终点、决策点和异常处理流程</li>
+<li>关键业务流程的每个节点必须有明确的状态定义</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p>一个完整的业务流程图应该包含：</p>
+<ol>
+<li><strong>起点和终点</strong>：明确标识流程的开始和结束</li>
+<li><strong>处理步骤</strong>：每个步骤应明确其功能和职责</li>
+<li><strong>决策点</strong>：明确条件判断和分支流程</li>
+<li><strong>异常处理</strong>：包含各种异常情况的处理路径</li>
+<li><strong>状态转换</strong>：说明系统或数据在各个步骤中的状态变化</li>
+<li><strong>角色职责</strong>：明确不同角色的责任和操作</li>
+</ol>
+<h2 id="规则设计规范"> 规则设计规范</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>业务规则必须清晰、无歧义</li>
+<li>规则必须包含条件、动作和例外处理</li>
+<li>复杂规则必须使用表格或决策树表示</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p><strong>业务规则表述示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>规则ID</th>
+<th>条件</th>
+<th>动作</th>
+<th>例外处理</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>R001</td>
+<td>用户年龄 &lt; 18岁</td>
+<td>拒绝注册，提示&quot;未满18岁无法注册&quot;</td>
+<td>若为VIP邀请码用户，转人工审核</td>
+</tr>
+<tr>
+<td>R002</td>
+<td>订单金额 &gt; 10000元</td>
+<td>要求上传付款凭证并人工审核</td>
+<td>若为认证商户，金额上限提升至50000元</td>
+</tr>
+<tr>
+<td>R003</td>
+<td>连续3次登录失败</td>
+<td>锁定账号10分钟</td>
+<td>若使用短信验证码，可立即解锁</td>
+</tr>
+</tbody>
+</table>
+<p><strong>决策树示例</strong>：</p>
+<div><pre><code>是否为注册用户?
+├── 是
+│   ├── 账户余额是否充足?
+│   │   ├── 是 --&gt; 允许下单
+│   │   └── 否 --&gt; 提示充值
+└── 否
+    ├── 是否有邀请码?
+    │   ├── 是 --&gt; 允许注册
+    │   └── 否 --&gt; 普通注册流程
+</code></pre>
+<div><span>1</span><br><span>2</span><br><span>3</span><br><span>4</span><br><span>5</span><br><span>6</span><br><span>7</span><br><span>8</span><br><span>9</span><br></div><div><span>1</span><br><span>2</span><br><span>3</span><br><span>4</span><br><span>5</span><br><span>6</span><br><span>7</span><br><span>8</span><br><span>9</span><br></div></div><h2 id="产品指标设计"> 产品指标设计</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>每个功能模块必须设定清晰的产品指标</li>
+<li>指标必须包含定义、计算方法和目标值</li>
+<li>指标必须可测量、可比较</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>产品指标设计示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>指标名称</th>
+<th>定义</th>
+<th>计算方法</th>
+<th>基准值</th>
+<th>目标值</th>
+<th>数据来源</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户活跃率</td>
+<td>日活跃用户占注册用户的比例</td>
+<td>DAU/注册用户总数</td>
+<td>15%</td>
+<td>25%</td>
+<td>用户行为日志</td>
+</tr>
+<tr>
+<td>订单转化率</td>
+<td>下单用户占浏览用户的比例</td>
+<td>下单用户数/商品页面浏览用户数</td>
+<td>3%</td>
+<td>5%</td>
+<td>订单系统</td>
+</tr>
+<tr>
+<td>客单价</td>
+<td>平均每个订单的金额</td>
+<td>总订单金额/订单数</td>
+<td>¥200</td>
+<td>¥250</td>
+<td>订单系统</td>
+</tr>
+</tbody>
+</table>
+<h2 id="数据模型设计"> 数据模型设计</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>数据模型必须明确定义实体关系</li>
+<li>必须包含字段名称、类型、约束和说明</li>
+<li>必须考虑数据的扩展性和兼容性</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>数据模型设计示例</strong>：</p>
+<p><strong>用户表(User)</strong></p>
+<table>
+<thead>
+<tr>
+<th>字段名</th>
+<th>类型</th>
+<th>约束</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>id</td>
+<td>BigInt</td>
+<td>主键，自增</td>
+<td>用户ID</td>
+</tr>
+<tr>
+<td>username</td>
+<td>VARCHAR(50)</td>
+<td>非空，唯一</td>
+<td>用户名</td>
+</tr>
+<tr>
+<td>phone</td>
+<td>VARCHAR(20)</td>
+<td>非空，唯一</td>
+<td>手机号</td>
+</tr>
+<tr>
+<td>status</td>
+<td>TINYINT</td>
+<td>非空，默认1</td>
+<td>状态：1-正常，2-禁用，3-注销</td>
+</tr>
+<tr>
+<td>created_at</td>
+<td>DATETIME</td>
+<td>非空</td>
+<td>创建时间</td>
+</tr>
+<tr>
+<td>updated_at</td>
+<td>DATETIME</td>
+<td>非空</td>
+<td>更新时间</td>
+</tr>
+</tbody>
+</table>
+<p><strong>关系描述</strong>：</p>
+<ul>
+<li>一个用户可以有多个订单（1:N）</li>
+<li>一个用户可以有多个收货地址（1:N）</li>
+<li>一个用户只能有一个会员等级（1:1）</li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">产品文案与内容</title>
+    <id>https://ikecoolon.github.io/rules/content/</id>
+    <link href="https://ikecoolon.github.io/rules/content/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="产品文案与内容"> 产品文案与内容</h1>
+<h2 id="文案风格统一"> 文案风格统一</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>必须制定并遵循统一的文案风格指南</li>
+<li>产品内的文案必须保持语气一致</li>
+<li>专业术语必须统一规范使用</li>
+<li>功能和模块命名必须直观且一致</li>
+<li>按钮文案必须表意清晰</li>
+<li>相似功能必须使用相似表述</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p><strong>文案风格指南要点</strong>：</p>
+<ol>
+<li>
+<p><strong>语气基调</strong>：</p>
+<ul>
+<li>专业友好：既体现专业性，又保持友好亲切</li>
+<li>简洁明了：用最简单的词表达清晰的意思</li>
+<li>积极正向：用肯定句代替否定句，强调可以做什么</li>
+<li>尊重用户：避免命令式语气，使用建议式表达</li>
+</ul>
+</li>
+<li>
+<p><strong>用词规范</strong>：</p>
+<ul>
+<li>避免使用行业术语（除非目标用户熟悉）</li>
+<li>避免使用网络流行语</li>
+<li>避免使用歧义词汇</li>
+<li>统一使用&quot;点击&quot;而非&quot;点按&quot;、&quot;单击&quot;等</li>
+</ul>
+</li>
+<li>
+<p><strong>按钮文案规范</strong>：</p>
+<ul>
+<li>确认类按钮：统一使用&quot;确定&quot;、&quot;提交&quot;、&quot;保存&quot;</li>
+<li>取消类按钮：统一使用&quot;取消&quot;、&quot;关闭&quot;、&quot;返回&quot;</li>
+<li>动作类按钮：使用动词+名词组合，如&quot;创建订单&quot;</li>
+</ul>
+</li>
+<li>
+<p><strong>命名统一示例</strong>：</p>
+</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>功能</th>
+<th>正确用法</th>
+<th>错误用法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户信息页</td>
+<td>个人中心</td>
+<td>我的信息、用户信息、个人资料</td>
+</tr>
+<tr>
+<td>订单列表</td>
+<td>我的订单</td>
+<td>订单管理、订单记录、交易记录</td>
+</tr>
+<tr>
+<td>退出登录</td>
+<td>退出登录</td>
+<td>登出、注销、退出账号</td>
+</tr>
+</tbody>
+</table>
+<h2 id="内容完整性"> 内容完整性</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>必须提供新功能的引导和提示</li>
+<li>操作提示必须简洁明了</li>
+<li>错误提示必须包含错误原因和解决方法</li>
+<li>复杂功能必须提供帮助文档</li>
+<li>文档必须包含使用场景和操作步骤</li>
+<li>必须及时更新文档与产品同步</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p><strong>新功能引导示例</strong>：</p>
+<ol>
+<li>首次进入时弹出功能介绍卡片</li>
+<li>关键步骤提供引导提示</li>
+<li>提供示例数据或操作演示</li>
+<li>引导完成后提供查看帮助的入口</li>
+</ol>
+<p><strong>错误提示最佳实践</strong>：</p>
+<ul>
+<li>明确指出错误：清楚说明发生了什么问题</li>
+<li>使用友好语气：避免指责用户</li>
+<li>提供解决方法：告诉用户如何解决问题</li>
+<li>提供帮助途径：如需要，提供进一步帮助的方式</li>
+</ul>
+<p><strong>错误提示示例对比</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>不良示例</th>
+<th>良好示例</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>登录失败</td>
+<td>&quot;登录失败&quot;</td>
+<td>&quot;账号或密码不正确，请重新输入或点击'忘记密码'找回&quot;</td>
+</tr>
+<tr>
+<td>网络错误</td>
+<td>&quot;网络错误&quot;</td>
+<td>&quot;网络连接不稳定，请检查网络设置后重试&quot;</td>
+</tr>
+<tr>
+<td>表单提交</td>
+<td>&quot;提交失败&quot;</td>
+<td>&quot;手机号格式不正确，请输入11位有效手机号&quot;</td>
+</tr>
+</tbody>
+</table>
+<p><strong>帮助文档结构</strong>：</p>
+<ol>
+<li>功能概述</li>
+<li>使用场景</li>
+<li>操作步骤（含截图）</li>
+<li>常见问题</li>
+<li>相关功能链接</li>
+<li>更新日期</li>
+</ol>
+<h2 id="多语言与本地化"> 多语言与本地化</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>多语言产品必须支持完整的翻译</li>
+<li>必须考虑不同语言的文本长度差异</li>
+<li>必须考虑不同地区的文化差异</li>
+<li>必须统一日期、时间、货币等显示格式</li>
+<li>必须定期审核翻译质量</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>多语言支持检查清单</strong>：</p>
+<ul>
+<li><input type="checkbox" id="task-item-0" disabled="disabled"><label for="task-item-0"> 界面文案是否全部提取为可翻译文本</label></li>
+<li><input type="checkbox" id="task-item-1" disabled="disabled"><label for="task-item-1"> 是否考虑文本膨胀（某些语言翻译后比原文长）</label></li>
+<li><input type="checkbox" id="task-item-2" disabled="disabled"><label for="task-item-2"> 是否支持从右到左阅读方向（如阿拉伯语）</label></li>
+<li><input type="checkbox" id="task-item-3" disabled="disabled"><label for="task-item-3"> 是否适配不同语言的字体</label></li>
+<li><input type="checkbox" id="task-item-4" disabled="disabled"><label for="task-item-4"> 是否考虑特殊字符和符号的显示</label></li>
+</ul>
+<p><strong>本地化格式标准</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>中国大陆</th>
+<th>美国</th>
+<th>日本</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>日期</td>
+<td>2023年6月15日</td>
+<td>June 15, 2023</td>
+<td>2023年6月15日</td>
+</tr>
+<tr>
+<td>时间</td>
+<td>14:30</td>
+<td>2:30 PM</td>
+<td>14:30</td>
+</tr>
+<tr>
+<td>货币</td>
+<td>¥100</td>
+<td>$100</td>
+<td>¥100</td>
+</tr>
+<tr>
+<td>数字</td>
+<td>1,000,000</td>
+<td>1,000,000</td>
+<td>1,000,000</td>
+</tr>
+<tr>
+<td>电话</td>
+<td>138 0000 0000</td>
+<td>(555) 123-4567</td>
+<td>090-0000-0000</td>
+</tr>
+</tbody>
+</table>
+<p><strong>文化差异注意事项</strong>：</p>
+<ul>
+<li>颜色含义：红色在中国代表喜庆，在西方可能代表警告</li>
+<li>数字禁忌：某些文化中忌讳特定数字</li>
+<li>图像选择：考虑不同文化对图像和符号的理解</li>
+<li>手势图标：某些手势在不同文化中含义不同</li>
+<li>隐私观念：不同地区对个人信息分享的接受度不同</li>
+</ul>
+<h2 id="内容审核机制"> 内容审核机制</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>必须建立内容审核流程</li>
+<li>必须明确内容审核标准</li>
+<li>必须对用户生成内容进行审核</li>
+<li>必须定期审核产品内容的准确性和时效性</li>
+<li>必须及时更新过时内容</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>内容审核流程</strong>：</p>
+<ol>
+<li>内容创建/更新</li>
+<li>内容初审（内容编辑）</li>
+<li>内容复审（产品经理）</li>
+<li>专业审核（如涉及法律、医疗等专业内容）</li>
+<li>发布审批</li>
+<li>内容发布</li>
+<li>定期内容回检</li>
+</ol>
+<p><strong>内容审核标准清单</strong>：</p>
+<ul>
+<li><input type="checkbox" id="task-item-5" disabled="disabled"><label for="task-item-5"> 内容是否准确无误</label></li>
+<li><input type="checkbox" id="task-item-6" disabled="disabled"><label for="task-item-6"> 是否符合文案风格指南</label></li>
+<li><input type="checkbox" id="task-item-7" disabled="disabled"><label for="task-item-7"> 是否存在敏感内容</label></li>
+<li><input type="checkbox" id="task-item-8" disabled="disabled"><label for="task-item-8"> 是否符合法律法规要求</label></li>
+<li><input type="checkbox" id="task-item-9" disabled="disabled"><label for="task-item-9"> 是否有拼写或语法错误</label></li>
+<li><input type="checkbox" id="task-item-10" disabled="disabled"><label for="task-item-10"> 是否保持一致性</label></li>
+<li><input type="checkbox" id="task-item-11" disabled="disabled"><label for="task-item-11"> 是否时效性有效</label></li>
+</ul>
+<p><strong>用户生成内容审核机制</strong>：</p>
+<ul>
+<li>自动审核：关键词过滤、图像识别</li>
+<li>人工审核：敏感内容二次确认</li>
+<li>用户举报：用户参与内容监督</li>
+<li>分级处理：根据违规程度采取不同措施</li>
+<li>申诉机制：提供用户申诉通道</li>
+</ul>
+<h2 id="内容版本管理"> 内容版本管理</h2>
+<h3 id="要求-5"> 要求</h3>
+<ul>
+<li>必须对产品内容进行版本管理</li>
+<li>必须记录内容变更历史</li>
+<li>必须在重大内容变更时通知用户</li>
+<li>必须保留内容的历史版本</li>
+<li>必须建立内容回滚机制</li>
+</ul>
+<h3 id="示例-5"> 示例</h3>
+<p><strong>内容版本控制方法</strong>：</p>
+<ul>
+<li>使用内容管理系统记录所有变更</li>
+<li>对每个版本分配唯一标识符</li>
+<li>记录变更人、变更时间、变更内容</li>
+<li>对重要内容变更进行审批流程</li>
+<li>提供版本比较功能</li>
+</ul>
+<p><strong>内容变更通知示例</strong>：</p>
+<ul>
+<li>重要规则变更：弹窗提示 + 消息通知</li>
+<li>功能调整：首页公告 + 功能入口标记</li>
+<li>界面优化：引导提示</li>
+<li>小幅文案优化：无需特别通知</li>
+</ul>
+<p><strong>内容审计日志示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>日期</th>
+<th>变更内容</th>
+<th>变更人</th>
+<th>审核人</th>
+<th>版本号</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2023-06-01</td>
+<td>更新用户协议第3条关于数据使用的说明</td>
+<td>张三</td>
+<td>李四</td>
+<td>v2.3</td>
+</tr>
+<tr>
+<td>2023-06-15</td>
+<td>修正积分规则中的兑换比例</td>
+<td>王五</td>
+<td>赵六</td>
+<td>v2.4</td>
+</tr>
+<tr>
+<td>2023-06-30</td>
+<td>更新隐私政策以符合新法规要求</td>
+<td>张三</td>
+<td>李四</td>
+<td>v3.0</td>
+</tr>
+</tbody>
+</table>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./collaboration.html">跨部门协作约束规则</a></li>
+<li><a href="./knowledge.html">产品知识管理约束规则</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">产品知识</title>
+    <id>https://ikecoolon.github.io/rules/knowledge/</id>
+    <link href="https://ikecoolon.github.io/rules/knowledge/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="产品知识"> 产品知识</h1>
+<h2 id="知识沉淀"> 知识沉淀</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>必须使用统一的文档管理系统</li>
+<li>文档必须分类存储，易于检索</li>
+<li>重要文档必须定期备份</li>
+<li>必须将产品经验形成可复用的知识</li>
+<li>必须记录典型问题和解决方案</li>
+<li>必须分享产品设计经验和教训</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p><strong>知识库结构示例</strong>：</p>
+<div><pre><code>产品知识库/
+├── 产品文档/
+│   ├── 需求文档/
+│   ├── 设计文档/
+│   ├── 会议记录/
+│   └── 产品规划/
+├── 行业研究/
+│   ├── 市场分析/
+│   ├── 竞品分析/
+│   └── 用户研究/
+├── 设计资产/
+│   ├── 原型文件/
+│   ├── 设计规范/
+│   └── 视觉资源/
+├── 最佳实践/
+│   ├── 产品设计模式/
+│   ├── 解决方案库/
+│   └── 案例研究/
+└── 培训资料/
+    ├── 新人引导/
+    ├── 技能培训/
+    └── 工具教程/
+</code></pre>
+<div><span>1</span><br><span>2</span><br><span>3</span><br><span>4</span><br><span>5</span><br><span>6</span><br><span>7</span><br><span>8</span><br><span>9</span><br><span>10</span><br><span>11</span><br><span>12</span><br><span>13</span><br><span>14</span><br><span>15</span><br><span>16</span><br><span>17</span><br><span>18</span><br><span>19</span><br><span>20</span><br><span>21</span><br><span>22</span><br></div><div><span>1</span><br><span>2</span><br><span>3</span><br><span>4</span><br><span>5</span><br><span>6</span><br><span>7</span><br><span>8</span><br><span>9</span><br><span>10</span><br><span>11</span><br><span>12</span><br><span>13</span><br><span>14</span><br><span>15</span><br><span>16</span><br><span>17</span><br><span>18</span><br><span>19</span><br><span>20</span><br><span>21</span><br><span>22</span><br></div></div><p><strong>文档命名规范</strong>：</p>
+<ul>
+<li>使用统一前缀：[文档类型]-[项目名]-[模块]-[版本]-[日期]</li>
+<li>示例：PRD-用户中心-登录注册-V2.0-20230615</li>
+</ul>
+<p><strong>文档版本控制</strong>：</p>
+<ul>
+<li>使用明确的版本号：主版本.次版本.修订版本</li>
+<li>记录每个版本的变更内容</li>
+<li>保留重要文档的历史版本</li>
+<li>遵循版本控制工作流程</li>
+</ul>
+<p><strong>经验沉淀模板</strong>：</p>
+<ul>
+<li>项目名称：</li>
+<li>背景与挑战：</li>
+<li>解决方案：</li>
+<li>实施过程：</li>
+<li>效果评估：</li>
+<li>经验与教训：</li>
+<li>可复用知识点：</li>
+</ul>
+<h2 id="知识共享"> 知识共享</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>必须建立产品知识共享机制</li>
+<li>必须定期组织产品分享会</li>
+<li>必须主动分享产品相关的行业动态</li>
+<li>必须对新成员进行产品知识培训</li>
+<li>必须制定产品知识学习路径</li>
+<li>必须建立产品经理能力提升机制</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p><strong>知识共享活动</strong>：</p>
+<ul>
+<li>每周产品午餐会：轮流分享产品设计、行业趋势</li>
+<li>月度产品复盘会：分享项目经验和教训</li>
+<li>季度行业分析会：分析市场动态和竞争格局</li>
+<li>专题研讨会：深入研究特定领域或技术</li>
+<li>跨部门交流会：与设计、技术、运营等团队知识共享</li>
+</ul>
+<p><strong>分享会记录模板</strong>：</p>
+<ul>
+<li>分享主题：</li>
+<li>分享人：</li>
+<li>时间地点：</li>
+<li>主要内容：</li>
+<li>讨论要点：</li>
+<li>行动建议：</li>
+<li>参考资料：</li>
+</ul>
+<p><strong>产品知识学习路径</strong>：</p>
+<p>初级产品经理（0-1年）：</p>
+<ol>
+<li>产品基础知识：用户需求、产品生命周期</li>
+<li>基础工具使用：原型工具、文档工具</li>
+<li>基本沟通技巧：需求收集、跨部门协作</li>
+<li>行业知识入门：市场概况、竞品分析</li>
+</ol>
+<p>中级产品经理（1-3年）：</p>
+<ol>
+<li>产品策略：商业模式、产品定位</li>
+<li>数据分析：用户行为分析、产品数据指标</li>
+<li>项目管理：敏捷开发、迭代管理</li>
+<li>专业领域深入：垂直行业知识、技术基础</li>
+</ol>
+<p>高级产品经理（3年以上）：</p>
+<ol>
+<li>产品战略：产品线规划、商业增长</li>
+<li>组织管理：团队建设、资源协调</li>
+<li>创新方法：设计思维、精益创业</li>
+<li>行业前沿：新技术趋势、商业模式创新</li>
+</ol>
+<h2 id="知识更新与维护"> 知识更新与维护</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>必须定期审核知识库内容</li>
+<li>必须更新过时的知识</li>
+<li>必须建立知识评价机制</li>
+<li>必须有明确的知识维护责任人</li>
+<li>必须制定知识管理流程</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>知识审核周期</strong>：</p>
+<ul>
+<li>产品文档：每季度审核一次</li>
+<li>行业研究：每半年更新一次</li>
+<li>最佳实践：每年系统性梳理</li>
+<li>培训资料：每次使用前检查更新</li>
+</ul>
+<p><strong>知识评价机制</strong>：</p>
+<ul>
+<li>内容评分：用户对知识内容进行评分</li>
+<li>使用频率：记录知识被访问和引用的次数</li>
+<li>反馈收集：用户可提交内容改进建议</li>
+<li>专家审核：定期由资深产品经理审核内容质量</li>
+</ul>
+<p><strong>知识维护流程</strong>：</p>
+<ol>
+<li>定期审核知识内容（责任人：知识管理员）</li>
+<li>识别需要更新的内容（责任人：知识管理员）</li>
+<li>分配更新任务（责任人：产品负责人）</li>
+<li>内容更新与创作（责任人：指定专家）</li>
+<li>内容审核与发布（责任人：知识管理员）</li>
+<li>更新通知（责任人：知识管理员）</li>
+</ol>
+<p><strong>知识更新记录示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>知识项</th>
+<th>上次更新时间</th>
+<th>更新内容</th>
+<th>更新人</th>
+<th>下次审核时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>产品设计流程指南</td>
+<td>2023-01-15</td>
+<td>增加敏捷设计方法章节</td>
+<td>张三</td>
+<td>2023-07-15</td>
+</tr>
+<tr>
+<td>用户研究方法手册</td>
+<td>2023-03-10</td>
+<td>更新用户访谈技巧</td>
+<td>李四</td>
+<td>2023-09-10</td>
+</tr>
+<tr>
+<td>竞品分析框架</td>
+<td>2022-11-20</td>
+<td>需全面更新（已过期）</td>
+<td>待定</td>
+<td>即刻</td>
+</tr>
+</tbody>
+</table>
+<h2 id="知识安全与访问控制"> 知识安全与访问控制</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>必须对敏感知识实施访问控制</li>
+<li>必须对知识库进行备份管理</li>
+<li>必须建立知识泄露预防机制</li>
+<li>必须明确知识产权归属</li>
+<li>必须制定离职员工知识交接规范</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>知识分级</strong>：</p>
+<ul>
+<li>L1（公开知识）：所有员工可访问</li>
+<li>L2（内部知识）：本部门员工可访问</li>
+<li>L3（保密知识）：需特定权限才能访问</li>
+<li>L4（高度机密）：仅核心成员可访问</li>
+</ul>
+<p><strong>访问控制矩阵</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>知识类别</th>
+<th>产品经理</th>
+<th>开发人员</th>
+<th>设计师</th>
+<th>测试人员</th>
+<th>运营人员</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>产品战略</td>
+<td>L1-L4</td>
+<td>L1-L2</td>
+<td>L1-L2</td>
+<td>L1</td>
+<td>L1-L2</td>
+</tr>
+<tr>
+<td>产品设计</td>
+<td>L1-L3</td>
+<td>L1-L3</td>
+<td>L1-L3</td>
+<td>L1-L2</td>
+<td>L1-L2</td>
+</tr>
+<tr>
+<td>技术方案</td>
+<td>L1-L2</td>
+<td>L1-L4</td>
+<td>L1</td>
+<td>L1-L2</td>
+<td>L1</td>
+</tr>
+<tr>
+<td>用户研究</td>
+<td>L1-L3</td>
+<td>L1-L2</td>
+<td>L1-L3</td>
+<td>L1</td>
+<td>L1-L3</td>
+</tr>
+<tr>
+<td>运营策略</td>
+<td>L1-L2</td>
+<td>L1</td>
+<td>L1</td>
+<td>L1</td>
+<td>L1-L4</td>
+</tr>
+</tbody>
+</table>
+<p><strong>知识交接清单</strong>：</p>
+<ul>
+<li>负责项目及进展状态</li>
+<li>关键决策记录及理由</li>
+<li>未解决问题及处理建议</li>
+<li>重要联系人及协作关系</li>
+<li>个人文档整理与归档</li>
+<li>知识库访问权限交接</li>
+</ul>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./content.html">产品文案与内容约束规则</a></li>
+<li><a href="./collaboration.html">跨部门协作约束规则</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">文档结构标准</title>
+    <id>https://ikecoolon.github.io/rules/document-structure/</id>
+    <link href="https://ikecoolon.github.io/rules/document-structure/"/>
+    <updated>2026-09-02T11:14:01.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="文档结构标准"> 文档结构标准</h1>
+<h2 id="prd框架"> PRD框架</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>PRD 应按管理端、小程序等稳定交付端拆分，直接保存在 <code>docs/prd/</code>，不设置日期或稿次目录</li>
+<li>必须包含文档信息、修订历史、目录和附录</li>
+<li>必须使用统一的文档模板，包含项目标识</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p>标准 PRD 文档结构应包含：</p>
+<ol>
+<li>文档信息（标题、版本、作者、日期）</li>
+<li>修订历史（版本、日期、修改人、修改内容）</li>
+<li>目录</li>
+<li>需求背景和目标</li>
+<li>核心功能描述
+<ul>
+<li>功能概述</li>
+<li>用户场景</li>
+<li>主要流程</li>
+<li>关键交互</li>
+<li>预期效果</li>
+</ul>
+</li>
+<li>详细设计
+<ul>
+<li>详细功能点</li>
+<li>业务规则</li>
+<li>交互细节</li>
+<li>异常处理</li>
+<li>非功能性需求</li>
+<li>上线标准</li>
+</ul>
+</li>
+<li>附录（术语表、参考资料等）</li>
+</ol>
+<h2 id="内容完整性"> 内容完整性</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>必须包含需求背景、产品目标、用户场景</li>
+<li>必须包含功能描述、业务规则、交互流程</li>
+<li>必须包含非功能性需求（性能、安全等）</li>
+<li>必须包含上线标准和验收条件</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p>一个完整的PRD文档应包含以下内容：</p>
+<p><strong>需求背景与目标</strong></p>
+<ul>
+<li>当前业务痛点</li>
+<li>市场和用户需求</li>
+<li>预期达成的业务目标</li>
+<li>成功指标</li>
+</ul>
+<p><strong>用户场景</strong></p>
+<ul>
+<li>目标用户描述</li>
+<li>用户旅程</li>
+<li>场景示例</li>
+</ul>
+<p><strong>功能描述</strong></p>
+<ul>
+<li>功能列表</li>
+<li>功能优先级</li>
+<li>功能详细说明</li>
+</ul>
+<p><strong>业务规则</strong></p>
+<ul>
+<li>核心业务规则</li>
+<li>计算逻辑</li>
+<li>限制条件</li>
+</ul>
+<p><strong>交互流程</strong></p>
+<ul>
+<li>用户操作流程</li>
+<li>系统处理流程</li>
+<li>异常处理流程</li>
+</ul>
+<p><strong>非功能性需求</strong></p>
+<ul>
+<li>性能要求</li>
+<li>安全要求</li>
+<li>兼容性要求</li>
+</ul>
+<p><strong>上线标准</strong></p>
+<ul>
+<li>功能验收标准</li>
+<li>性能验收标准</li>
+<li>上线条件</li>
+</ul>
+<h2 id="文档描述规范"> 文档描述规范</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>语言必须简洁清晰，避免模糊表述</li>
+<li>必须使用肯定句式描述功能和要求</li>
+<li>使用&quot;必须&quot;、&quot;应该&quot;、&quot;可以&quot;明确需求优先级</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p>良好的文档描述：</p>
+<ul>
+<li>&quot;系统必须支持用户通过手机号和验证码登录&quot;（清晰、肯定、明确优先级）</li>
+<li>&quot;订单列表应该显示订单号、金额、状态和创建时间&quot;（清晰、肯定、明确优先级）</li>
+<li>&quot;用户可以选择按订单时间或金额排序&quot;（清晰、肯定、明确优先级）</li>
+</ul>
+<p>不良的文档描述：</p>
+<ul>
+<li>&quot;可能需要支持用户登录功能&quot;（模糊、不确定）</li>
+<li>&quot;考虑是否显示订单详情&quot;（模糊、犹豫）</li>
+<li>&quot;后期再看是否排序&quot;（不明确、拖延）</li>
+</ul>
+<h2 id="图表使用"> 图表使用</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>复杂流程必须使用流程图表示</li>
+<li>结构关系必须使用结构图或思维导图</li>
+<li>数据分析必须使用图表直观展示</li>
+<li>所有图表必须有标题和必要的说明</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>流程图示例</strong></p>
+<div><pre><code>开始
+  |
+  v
+是否已登录? ----否----&gt; 跳转到登录页
+  |
+ 是
+  |
+  v
+加载订单列表
+  |
+  v
+订单列表为空? ----是----&gt; 显示空状态
+  |
+ 否
+  |
+  v
+显示订单列表
+  |
+  v
+结束
+</code></pre>
+<div><span>1</span><br><span>2</span><br><span>3</span><br><span>4</span><br><span>5</span><br><span>6</span><br><span>7</span><br><span>8</span><br><span>9</span><br><span>10</span><br><span>11</span><br><span>12</span><br><span>13</span><br><span>14</span><br><span>15</span><br><span>16</span><br><span>17</span><br><span>18</span><br><span>19</span><br><span>20</span><br></div><div><span>1</span><br><span>2</span><br><span>3</span><br><span>4</span><br><span>5</span><br><span>6</span><br><span>7</span><br><span>8</span><br><span>9</span><br><span>10</span><br><span>11</span><br><span>12</span><br><span>13</span><br><span>14</span><br><span>15</span><br><span>16</span><br><span>17</span><br><span>18</span><br><span>19</span><br><span>20</span><br></div></div><p>所有图表必须包含：</p>
+<ul>
+<li>明确的标题（如&quot;用户下单流程&quot;）</li>
+<li>必要的图例说明</li>
+<li>关键节点的注释</li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">跨部门协作</title>
+    <id>https://ikecoolon.github.io/rules/collaboration/</id>
+    <link href="https://ikecoolon.github.io/rules/collaboration/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="跨部门协作"> 跨部门协作</h1>
+<h2 id="与技术团队协作"> 与技术团队协作</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>必须与技术团队进行需求预沟通</li>
+<li>必须在PRD中明确技术可行性评估结果</li>
+<li>技术方案必须由产品经理确认符合产品需求</li>
+<li>必须参与技术评审会议</li>
+<li>必须及时回答开发过程中的产品问题</li>
+<li>必须定期与开发团队同步进度</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p><strong>需求预沟通流程</strong>：</p>
+<ol>
+<li>产品经理完成需求初步分析</li>
+<li>与技术负责人进行1对1沟通</li>
+<li>技术负责人提供初步可行性评估</li>
+<li>产品经理根据技术反馈调整需求</li>
+<li>形成预沟通结论记录</li>
+</ol>
+<p><strong>可行性评估记录示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>功能点</th>
+<th>技术评估结论</th>
+<th>工作量估计</th>
+<th>潜在风险</th>
+<th>建议方案</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>实时消息推送</td>
+<td>可行</td>
+<td>中等</td>
+<td>需考虑高并发场景</td>
+<td>使用WebSocket技术，结合消息队列</td>
+</tr>
+<tr>
+<td>AI图像识别</td>
+<td>基本可行</td>
+<td>较大</td>
+<td>准确率可能不稳定</td>
+<td>先做MVP验证效果，同时考虑第三方服务</td>
+</tr>
+<tr>
+<td>海量数据处理</td>
+<td>需调研</td>
+<td>较大</td>
+<td>性能和成本压力</td>
+<td>建议分阶段实现，先满足核心场景</td>
+</tr>
+</tbody>
+</table>
+<p><strong>技术评审会议记录模板</strong>：</p>
+<ul>
+<li>会议主题：支付功能技术方案评审</li>
+<li>时间：2023-06-15 14:00-16:00</li>
+<li>参与人：产品、开发、测试、运维</li>
+<li>方案概述：基于微服务架构的支付系统设计</li>
+<li>讨论要点：
+<ul>
+<li>支付流程设计是否符合业务需求</li>
+<li>安全性考虑是否充分</li>
+<li>异常处理机制是否完善</li>
+<li>扩展性和维护性评估</li>
+</ul>
+</li>
+<li>结论：方案基本可行，需加强异常处理</li>
+<li>下一步计划：完善方案细节，一周后再次评审</li>
+</ul>
+<h2 id="与设计团队协作"> 与设计团队协作</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>必须提供明确的设计需求和参考资料</li>
+<li>必须确定设计优先级和时间要求</li>
+<li>必须与设计团队沟通确认用户体验目标</li>
+<li>必须参与设计评审</li>
+<li>必须确认设计与产品需求的一致性</li>
+<li>必须确认设计与品牌风格的统一性</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p><strong>设计需求文档示例</strong>：</p>
+<p><strong>项目背景</strong>：</p>
+<ul>
+<li>项目名称：企业管理系统重设计</li>
+<li>目标用户：企业管理人员、财务人员</li>
+<li>设计目标：提升系统易用性，统一设计风格，优化核心流程</li>
+</ul>
+<p><strong>设计范围</strong>：</p>
+<ul>
+<li>仪表盘页面重设计</li>
+<li>用户管理模块重设计</li>
+<li>报表分析模块重设计</li>
+<li>系统设置模块重设计</li>
+</ul>
+<p><strong>设计参考</strong>：</p>
+<ul>
+<li>竞品参考：[链接列表]</li>
+<li>设计规范：[公司设计规范链接]</li>
+<li>原型参考：[原型文件链接]</li>
+</ul>
+<p><strong>设计优先级</strong>：</p>
+<ol>
+<li>仪表盘页面（高）- 需求：6月15日前完成</li>
+<li>用户管理模块（高）- 需求：6月20日前完成</li>
+<li>报表分析模块（中）- 需求：6月30日前完成</li>
+<li>系统设置模块（低）- 需求：7月15日前完成</li>
+</ol>
+<p><strong>设计评审检查清单</strong>：</p>
+<ul>
+<li><input type="checkbox" id="task-item-0" disabled="disabled"><label for="task-item-0"> 是否符合用户使用场景</label></li>
+<li><input type="checkbox" id="task-item-1" disabled="disabled"><label for="task-item-1"> 是否满足功能需求</label></li>
+<li><input type="checkbox" id="task-item-2" disabled="disabled"><label for="task-item-2"> 是否遵循交互设计规范</label></li>
+<li><input type="checkbox" id="task-item-3" disabled="disabled"><label for="task-item-3"> 是否保持视觉风格一致</label></li>
+<li><input type="checkbox" id="task-item-4" disabled="disabled"><label for="task-item-4"> 是否考虑边界和异常情况</label></li>
+<li><input type="checkbox" id="task-item-5" disabled="disabled"><label for="task-item-5"> 是否考虑可访问性要求</label></li>
+</ul>
+<h2 id="与测试团队协作"> 与测试团队协作</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>必须参与测试用例评审</li>
+<li>必须确认测试用例覆盖所有功能点</li>
+<li>必须针对关键路径提供特别测试建议</li>
+<li>必须及时确认和处理测试发现的缺陷</li>
+<li>必须进行缺陷优先级评估</li>
+<li>必须跟踪关键缺陷的修复情况</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>测试用例评审记录</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>功能模块</th>
+<th>测试用例数</th>
+<th>覆盖率评估</th>
+<th>产品建议</th>
+<th>调整结果</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户登录</td>
+<td>15</td>
+<td>完整</td>
+<td>增加弱网环境测试</td>
+<td>已增加2个弱网测试用例</td>
+</tr>
+<tr>
+<td>订单管理</td>
+<td>32</td>
+<td>基本完整</td>
+<td>增加订单合并场景</td>
+<td>已增加3个合并场景测试</td>
+</tr>
+<tr>
+<td>支付流程</td>
+<td>28</td>
+<td>不完整</td>
+<td>缺少退款失败场景</td>
+<td>已增加5个异常场景测试</td>
+</tr>
+</tbody>
+</table>
+<p><strong>缺陷管理流程</strong>：</p>
+<ol>
+<li>测试团队发现并记录缺陷</li>
+<li>产品经理评估缺陷优先级</li>
+<li>开发团队修复P0优先级缺陷</li>
+<li>测试团队验证缺陷修复</li>
+<li>产品经理确认缺陷修复结果</li>
+</ol>
+<p><strong>缺陷优先级定义</strong>：</p>
+<ul>
+<li>P0（阻塞）：阻碍系统正常运行，必须立即修复</li>
+<li>P1（严重）：核心功能异常，必须在发布前修复</li>
+<li>P2（普通）：影响用户体验但有替代方案，可考虑后续版本修复</li>
+<li>P3（轻微）：轻微UI问题或体验优化点，可作为后续优化项</li>
+</ul>
+<h2 id="与运营团队协作"> 与运营团队协作</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>必须提前与运营团队沟通功能上线计划</li>
+<li>必须提供清晰的功能说明和运营指南</li>
+<li>必须配合运营团队制定推广策略</li>
+<li>必须及时响应运营反馈的用户问题</li>
+<li>必须定期分析运营数据并优化产品</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>功能上线通知模板</strong>：</p>
+<ul>
+<li>功能名称：会员积分系统</li>
+<li>上线时间：2023-07-01</li>
+<li>功能概述：用户可通过购物、签到等行为获取积分，积分可用于兑换优惠券或实物礼品</li>
+<li>目标用户：全部注册用户</li>
+<li>预期效果：提升用户活跃度和复购率</li>
+<li>运营配合：需准备积分规则说明、积分兑换活动、用户引导文案</li>
+</ul>
+<p><strong>运营指南内容</strong>：</p>
+<ol>
+<li>功能详细说明</li>
+<li>用户操作流程</li>
+<li>常见问题与解答</li>
+<li>数据监控指标</li>
+<li>活动策划建议</li>
+<li>紧急联系人</li>
+</ol>
+<p><strong>运营数据分析例会</strong>：</p>
+<ul>
+<li>频率：每周一次</li>
+<li>参与人：产品、运营、数据分析师</li>
+<li>议题：
+<ul>
+<li>上周关键指标回顾</li>
+<li>用户反馈分析</li>
+<li>功能使用情况分析</li>
+<li>问题识别与改进建议</li>
+<li>下周运营活动计划</li>
+</ul>
+</li>
+</ul>
+<h2 id="跨部门会议管理"> 跨部门会议管理</h2>
+<h3 id="要求-5"> 要求</h3>
+<ul>
+<li>必须建立定期的跨部门沟通机制</li>
+<li>会议必须有明确议题和预期产出</li>
+<li>会议必须形成决议和行动项</li>
+<li>必须跟踪行动项完成情况</li>
+<li>会议记录必须在24小时内分享给相关方</li>
+</ul>
+<h3 id="示例-5"> 示例</h3>
+<p><strong>跨部门例会机制</strong>：</p>
+<ul>
+<li>产品周会：每周一次，同步产品计划和进展</li>
+<li>项目日会：每日15分钟，同步当日工作和阻碍</li>
+<li>迭代评审会：每两周一次，评审迭代成果</li>
+<li>迭代规划会：每两周一次，规划下一迭代内容</li>
+<li>月度战略会：每月一次，对齐业务目标和产品方向</li>
+</ul>
+<p><strong>会议邀请模板</strong>：</p>
+<ul>
+<li>会议名称：[项目名] 第3次迭代评审会</li>
+<li>时间：2023-06-30 14:00-16:00</li>
+<li>地点：会议室A/线上会议链接</li>
+<li>参会人：产品、设计、开发、测试、运营（必须）；市场、客服（可选）</li>
+<li>会议目的：评审第3次迭代开发成果，确认是否满足上线标准</li>
+<li>会前准备：
+<ul>
+<li>开发团队：功能演示准备</li>
+<li>测试团队：测试报告准备</li>
+<li>产品经理：评审清单准备</li>
+</ul>
+</li>
+<li>会议议程：
+<ol>
+<li>迭代目标回顾（5分钟）</li>
+<li>功能演示（30分钟）</li>
+<li>测试结果汇报（15分钟）</li>
+<li>问题讨论（30分钟）</li>
+<li>上线决策（10分钟）</li>
+<li>下一步计划（15分钟）</li>
+</ol>
+</li>
+</ul>
+<p><strong>会议记录模板</strong>：</p>
+<ul>
+<li>会议名称：[项目名] 第3次迭代评审会</li>
+<li>时间：2023-06-30 14:00-16:00</li>
+<li>参会人：[实际参会人列表]</li>
+<li>主要讨论内容：[摘要记录]</li>
+<li>决议事项：
+<ol>
+<li>同意用户管理模块上线</li>
+<li>订单导出功能暂缓上线，需修复已知问题</li>
+<li>下一迭代增加数据分析功能</li>
+</ol>
+</li>
+<li>行动项：
+<ol>
+<li>张三：准备用户管理模块上线方案（6月31日前）</li>
+<li>李四：修复订单导出功能问题（7月5日前）</li>
+<li>王五：准备数据分析功能需求文档（7月10日前）</li>
+</ol>
+</li>
+</ul>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./launch.html">产品上线约束规则</a></li>
+<li><a href="./content.html">产品文案与内容约束规则</a></li>
+<li><a href="./knowledge.html">产品知识管理约束规则</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">上线</title>
+    <id>https://ikecoolon.github.io/rules/launch/</id>
+    <link href="https://ikecoolon.github.io/rules/launch/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="上线"> 上线</h1>
+<h2 id="上线前准备"> 上线前准备</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>必须制定上线前检查清单</li>
+<li>清单必须包含功能测试、性能测试和安全测试项</li>
+<li>必须由产品经理逐项确认</li>
+<li>必须进行上线风险评估</li>
+<li>必须制定应急预案</li>
+<li>高风险项必须有明确的处理方案</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p><strong>上线前检查清单</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>检查类别</th>
+<th>检查项</th>
+<th>负责人</th>
+<th>状态</th>
+<th>备注</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>功能测试</strong></td>
+<td>核心功能测试</td>
+<td>测试主管</td>
+<td>✅ 通过</td>
+<td>所有测试用例通过</td>
+</tr>
+<tr>
+<td></td>
+<td>边界条件测试</td>
+<td>测试主管</td>
+<td>✅ 通过</td>
+<td>2个次要问题已修复</td>
+</tr>
+<tr>
+<td></td>
+<td>兼容性测试</td>
+<td>测试主管</td>
+<td>✅ 通过</td>
+<td>已测试主流浏览器/设备</td>
+</tr>
+<tr>
+<td><strong>性能测试</strong></td>
+<td>负载测试</td>
+<td>性能工程师</td>
+<td>✅ 通过</td>
+<td>承载1000并发无问题</td>
+</tr>
+<tr>
+<td></td>
+<td>压力测试</td>
+<td>性能工程师</td>
+<td>✅ 通过</td>
+<td>峰值响应时间&lt;300ms</td>
+</tr>
+<tr>
+<td></td>
+<td>长稳测试</td>
+<td>性能工程师</td>
+<td>✅ 通过</td>
+<td>运行48小时无异常</td>
+</tr>
+<tr>
+<td><strong>安全测试</strong></td>
+<td>漏洞扫描</td>
+<td>安全工程师</td>
+<td>✅ 通过</td>
+<td>未发现高危漏洞</td>
+</tr>
+<tr>
+<td></td>
+<td>数据安全审计</td>
+<td>安全工程师</td>
+<td>✅ 通过</td>
+<td>敏感数据加密存储</td>
+</tr>
+<tr>
+<td></td>
+<td>权限测试</td>
+<td>安全工程师</td>
+<td>✅ 通过</td>
+<td>权限控制有效</td>
+</tr>
+<tr>
+<td><strong>灰度准备</strong></td>
+<td>灰度策略制定</td>
+<td>产品经理</td>
+<td>✅ 完成</td>
+<td>按用户地域分批灰度</td>
+</tr>
+<tr>
+<td></td>
+<td>监控配置</td>
+<td>运维工程师</td>
+<td>✅ 完成</td>
+<td>核心指标监控已配置</td>
+</tr>
+<tr>
+<td></td>
+<td>回滚机制</td>
+<td>开发负责人</td>
+<td>✅ 完成</td>
+<td>回滚方案已测试</td>
+</tr>
+</tbody>
+</table>
+<p><strong>风险评估矩阵</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>风险项</th>
+<th>可能性(1-5)</th>
+<th>影响(1-5)</th>
+<th>风险等级</th>
+<th>应对策略</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>服务器负载过高</td>
+<td>3</td>
+<td>5</td>
+<td>P0</td>
+<td>1. 提前扩容<br>2. 配置弹性伸缩<br>3. 配置限流机制</td>
+</tr>
+<tr>
+<td>数据迁移出错</td>
+<td>2</td>
+<td>4</td>
+<td>P1</td>
+<td>1. 提前演练<br>2. 数据备份<br>3. 准备回滚脚本</td>
+</tr>
+<tr>
+<td>用户反馈功能不符预期</td>
+<td>3</td>
+<td>3</td>
+<td>P1</td>
+<td>1. 灰度发布<br>2. 收集用户反馈<br>3. 准备快速迭代方案</td>
+</tr>
+<tr>
+<td>第三方API不稳定</td>
+<td>2</td>
+<td>3</td>
+<td>P1</td>
+<td>1. 增加重试机制<br>2. 实现优雅降级<br>3. 准备备选方案</td>
+</tr>
+</tbody>
+</table>
+<h2 id="上线过程管理"> 上线过程管理</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>上线必须按照标准流程执行</li>
+<li>必须有明确的上线时间表</li>
+<li>必须设置回滚点</li>
+<li>上线后必须实时监控关键指标</li>
+<li>必须设置异常预警机制</li>
+<li>必须及时响应问题反馈</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p><strong>上线流程图</strong>：</p>
+<div><pre><code>准备阶段 --&gt; 预发布测试 --&gt; 灰度发布 --&gt; 全量发布 --&gt; 上线后监控
+   |               |            |             |           |
+   V               V            V             V           V
+风险评估       验证功能      收集反馈       确认稳定     持续监控
+</code></pre>
+<div><span>1</span><br><span>2</span><br><span>3</span><br><span>4</span><br></div><div><span>1</span><br><span>2</span><br><span>3</span><br><span>4</span><br></div></div><p><strong>上线时间表</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>时间点</th>
+<th>操作内容</th>
+<th>负责人</th>
+<th>判断标准</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>T-2天</td>
+<td>代码冻结，完成最后修改</td>
+<td>开发团队</td>
+<td>所有代码提交完成</td>
+</tr>
+<tr>
+<td>T-1天</td>
+<td>预发布环境测试</td>
+<td>测试团队</td>
+<td>所有测试用例通过</td>
+</tr>
+<tr>
+<td>T日10:00</td>
+<td>灰度发布（5%用户）</td>
+<td>运维团队</td>
+<td>部署成功，无报错</td>
+</tr>
+<tr>
+<td>T日14:00</td>
+<td>灰度扩大（20%用户）</td>
+<td>运维团队</td>
+<td>核心指标正常，无用户投诉</td>
+</tr>
+<tr>
+<td>T日16:00</td>
+<td>全量发布</td>
+<td>运维团队</td>
+<td>灰度阶段无重大问题</td>
+</tr>
+<tr>
+<td>T日16:00-20:00</td>
+<td>密集监控期</td>
+<td>监控团队</td>
+<td>系统稳定，指标正常</td>
+</tr>
+<tr>
+<td>T+1日</td>
+<td>上线总结会</td>
+<td>产品经理</td>
+<td>收集各方反馈</td>
+</tr>
+</tbody>
+</table>
+<p><strong>监控与预警配置</strong>：</p>
+<ul>
+<li>系统监控指标：CPU使用率、内存占用、磁盘IO、网络流量</li>
+<li>应用监控指标：请求响应时间、错误率、并发数、队列长度</li>
+<li>业务监控指标：注册转化率、订单完成率、支付成功率</li>
+<li>预警阈值：错误率&gt;1%触发红色预警，响应时间&gt;500ms触发黄色预警</li>
+<li>预警通知方式：短信+邮件+工作群通知</li>
+</ul>
+<h2 id="上线后评估"> 上线后评估</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>上线一周内必须进行初步效果评估</li>
+<li>上线一个月内必须进行全面效果评估</li>
+<li>必须与上线前设定的目标进行对比</li>
+<li>必须记录上线后发现的所有问题</li>
+<li>必须对问题进行分类和优先级排序</li>
+<li>必须形成问题处理计划</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>效果评估报告</strong>：</p>
+<p><strong>基本信息</strong>：</p>
+<ul>
+<li>项目名称：用户中心改版</li>
+<li>上线日期：2023-06-01</li>
+<li>评估周期：2023-06-01至2023-06-30</li>
+<li>评估负责人：张三</li>
+</ul>
+<p><strong>目标达成情况</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>目标指标</th>
+<th>预期目标</th>
+<th>实际效果</th>
+<th>达成率</th>
+<th>分析说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户注册转化率</td>
+<td>提升20%</td>
+<td>提升25%</td>
+<td>125%</td>
+<td>新的引导流程效果显著</td>
+</tr>
+<tr>
+<td>页面加载速度</td>
+<td>&lt;2秒</td>
+<td>1.8秒</td>
+<td>110%</td>
+<td>图片优化和CDN调整效果好</td>
+</tr>
+<tr>
+<td>用户活跃度</td>
+<td>提升15%</td>
+<td>提升10%</td>
+<td>67%</td>
+<td>新功能发现度不足，需优化入口</td>
+</tr>
+<tr>
+<td>系统错误率</td>
+<td>&lt;0.1%</td>
+<td>0.08%</td>
+<td>125%</td>
+<td>异常处理机制有效</td>
+</tr>
+</tbody>
+</table>
+<p><strong>问题记录与分类</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>问题ID</th>
+<th>问题描述</th>
+<th>类别</th>
+<th>优先级</th>
+<th>状态</th>
+<th>负责人</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P001</td>
+<td>特定机型图片显示异常</td>
+<td>UI兼容性</td>
+<td>P1</td>
+<td>已修复</td>
+<td>李四</td>
+</tr>
+<tr>
+<td>P002</td>
+<td>高峰期偶发超时</td>
+<td>性能问题</td>
+<td>P0</td>
+<td>修复中</td>
+<td>王五</td>
+</tr>
+<tr>
+<td>P003</td>
+<td>部分老用户数据迁移不完整</td>
+<td>数据问题</td>
+<td>P0</td>
+<td>已修复</td>
+<td>赵六</td>
+</tr>
+<tr>
+<td>P004</td>
+<td>新功能使用率低于预期</td>
+<td>产品设计</td>
+<td>P1</td>
+<td>分析中</td>
+<td>张三</td>
+</tr>
+</tbody>
+</table>
+<p><strong>改进计划</strong>：</p>
+<ol>
+<li>
+<p>短期改进（1周内）：</p>
+<ul>
+<li>修复剩余P0优先级BUG</li>
+<li>优化性能瓶颈</li>
+<li>完成数据修复脚本</li>
+</ul>
+</li>
+<li>
+<p>中期改进（1个月内）：</p>
+<ul>
+<li>优化新功能入口和引导</li>
+<li>增强数据监控维度</li>
+<li>完善自动化测试覆盖</li>
+</ul>
+</li>
+<li>
+<p>长期改进（3个月内）：</p>
+<ul>
+<li>重构性能关键路径</li>
+<li>提升系统可扩展性</li>
+<li>优化用户体验流程</li>
+</ul>
+</li>
+</ol>
+<h2 id="应急处理流程"> 应急处理流程</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>必须建立上线应急响应机制</li>
+<li>必须定义明确的问题等级和响应时间</li>
+<li>必须组建应急处理小组</li>
+<li>必须进行应急演练</li>
+<li>必须记录应急处理过程和结果</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>问题分级标准</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>等级</th>
+<th>定义</th>
+<th>示例</th>
+<th>响应时间</th>
+<th>解决时间</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>P0</td>
+<td>系统不可用或核心功能不可用</td>
+<td>系统宕机、无法登录、无法支付</td>
+<td>5分钟内</td>
+<td>2小时内</td>
+</tr>
+<tr>
+<td>P1</td>
+<td>重要功能不可用或严重性能问题</td>
+<td>订单无法提交、页面加载超过10秒</td>
+<td>15分钟内</td>
+<td>4小时内</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>非核心功能异常或轻微性能问题</td>
+<td>非关键数据显示异常、页面加载超过5秒</td>
+<td>30分钟内</td>
+<td>24小时内</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>界面或体验问题</td>
+<td>样式错位、提示文案不明确</td>
+<td>24小时内</td>
+<td>一周内</td>
+</tr>
+</tbody>
+</table>
+<p><strong>应急处理流程</strong>：</p>
+<ol>
+<li>问题发现与报告（监控报警或用户反馈）</li>
+<li>问题分级与通知相关人员</li>
+<li>应急小组集结与问题分析</li>
+<li>制定解决方案（修复或回滚）</li>
+<li>方案实施与验证</li>
+<li>恢复正常与持续监控</li>
+<li>事后复盘与总结报告</li>
+</ol>
+<p><strong>应急小组组成</strong>：</p>
+<ul>
+<li>总协调人：产品负责人</li>
+<li>技术负责人：开发团队负责人</li>
+<li>运维负责人：负责部署和系统维护</li>
+<li>监控负责人：负责系统监控和数据收集</li>
+<li>沟通负责人：负责内外部信息同步</li>
+</ul>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./iteration.html">产品迭代管理约束规则</a></li>
+<li><a href="./collaboration.html">跨部门协作约束规则</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">产品设计</title>
+    <id>https://ikecoolon.github.io/rules/product-design/</id>
+    <link href="https://ikecoolon.github.io/rules/product-design/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="产品设计"> 产品设计</h1>
+<h2 id="产品设计流程"> 产品设计流程</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>产品设计必须经过概念设计、详细设计、评审三个阶段</li>
+<li>每个阶段必须有明确的输出物和时间节点</li>
+<li>阶段间必须有明确的检查点和验收标准</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p><strong>产品设计阶段划分</strong>：</p>
+<ol>
+<li>
+<p><strong>概念设计阶段</strong></p>
+<ul>
+<li>输出物：功能概述、核心流程、低保真原型</li>
+<li>时间节点：需求确认后3-5个工作日</li>
+<li>验收标准：产品方向明确，核心流程可行</li>
+</ul>
+</li>
+<li>
+<p><strong>详细设计阶段</strong></p>
+<ul>
+<li>输出物：详细功能说明、完整交互流程、中高保真原型</li>
+<li>时间节点：概念设计通过后5-7个工作日</li>
+<li>验收标准：所有功能点明确，交互流程完整</li>
+</ul>
+</li>
+<li>
+<p><strong>评审阶段</strong></p>
+<ul>
+<li>输出物：评审记录、修改清单、最终设计方案</li>
+<li>时间节点：详细设计完成后2个工作日内</li>
+<li>验收标准：各方达成一致，无重大问题</li>
+</ul>
+</li>
+</ol>
+<h2 id="设计评审机制"> 设计评审机制</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>重要功能设计必须经过至少2轮评审</li>
+<li>评审必须邀请产品、技术、设计、测试等相关角色参与</li>
+<li>评审必须形成记录，包含问题点和修改建议</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p><strong>评审角色分工</strong>：</p>
+<ul>
+<li>产品经理：主持评审，介绍设计方案</li>
+<li>技术负责人：评估技术可行性和实现成本</li>
+<li>设计师：评估交互体验和视觉效果</li>
+<li>测试负责人：评估测试难度和覆盖度</li>
+<li>业务方代表：评估是否满足业务需求</li>
+</ul>
+<p><strong>评审记录模板</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>评审项</th>
+<th>评审结果</th>
+<th>问题描述</th>
+<th>修改建议</th>
+<th>责任人</th>
+<th>截止日期</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>登录流程</td>
+<td>通过</td>
+<td>无</td>
+<td>无</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>支付功能</td>
+<td>待修改</td>
+<td>未考虑支付失败场景</td>
+<td>增加支付失败处理和重试机制</td>
+<td>张三</td>
+<td>2023-06-15</td>
+</tr>
+<tr>
+<td>数据报表</td>
+<td>重新设计</td>
+<td>数据维度不满足分析需求</td>
+<td>根据业务需求重新设计数据维度</td>
+<td>李四</td>
+<td>2023-06-20</td>
+</tr>
+</tbody>
+</table>
+<h2 id="交互设计规范"> 交互设计规范</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>相同功能模块必须保持布局一致</li>
+<li>导航结构必须符合用户习惯和产品风格</li>
+<li>重要功能的入口必须突出且易于找到</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>页面布局一致性原则</strong>：</p>
+<ul>
+<li>导航位置统一（如顶部导航、侧边栏）</li>
+<li>功能按钮位置统一（如保存按钮总是在右下角）</li>
+<li>表单结构统一（如标签位置、必填项标识）</li>
+<li>信息展示方式统一（如卡片、列表、表格）</li>
+</ul>
+<p><strong>操作流设计原则</strong>：</p>
+<ul>
+<li>用户操作路径不超过3步</li>
+<li>频繁使用的功能必须在首屏或易于访问的位置</li>
+<li>操作反馈必须及时且明确</li>
+<li>必须提供操作撤销机制</li>
+</ul>
+<p><strong>交互标准化示例</strong>：</p>
+<ul>
+<li>肯定操作按钮统一使用主色调</li>
+<li>危险操作按钮统一使用警示色</li>
+<li>表单提交后必须有成功/失败反馈</li>
+<li>数据加载中必须有加载状态指示</li>
+</ul>
+<h2 id="设计规格检查清单"> 设计规格检查清单</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>设计方案必须通过规格检查</li>
+<li>必须包含功能完整性、交互一致性和体验评估</li>
+<li>检查结果必须记录并跟踪处理</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>设计规格检查清单</strong>：</p>
+<ol>
+<li>
+<p><strong>功能完整性</strong></p>
+<ul>
+<li><input type="checkbox" id="task-item-0" disabled="disabled"><label for="task-item-0"> 所有需求点是否覆盖</label></li>
+<li><input type="checkbox" id="task-item-1" disabled="disabled"><label for="task-item-1"> 是否包含异常处理流程</label></li>
+<li><input type="checkbox" id="task-item-2" disabled="disabled"><label for="task-item-2"> 是否考虑边界条件</label></li>
+<li><input type="checkbox" id="task-item-3" disabled="disabled"><label for="task-item-3"> 是否考虑不同角色和权限</label></li>
+</ul>
+</li>
+<li>
+<p><strong>交互一致性</strong></p>
+<ul>
+<li><input type="checkbox" id="task-item-4" disabled="disabled"><label for="task-item-4"> 是否符合产品交互规范</label></li>
+<li><input type="checkbox" id="task-item-5" disabled="disabled"><label for="task-item-5"> 是否与现有功能交互方式一致</label></li>
+<li><input type="checkbox" id="task-item-6" disabled="disabled"><label for="task-item-6"> 是否遵循行业通用交互模式</label></li>
+<li><input type="checkbox" id="task-item-7" disabled="disabled"><label for="task-item-7"> 是否考虑多端适配</label></li>
+</ul>
+</li>
+<li>
+<p><strong>用户体验评估</strong></p>
+<ul>
+<li><input type="checkbox" id="task-item-8" disabled="disabled"><label for="task-item-8"> 是否简化用户操作步骤</label></li>
+<li><input type="checkbox" id="task-item-9" disabled="disabled"><label for="task-item-9"> 是否提供明确的操作反馈</label></li>
+<li><input type="checkbox" id="task-item-10" disabled="disabled"><label for="task-item-10"> 是否考虑容错和纠错机制</label></li>
+<li><input type="checkbox" id="task-item-11" disabled="disabled"><label for="task-item-11"> 是否考虑首次使用的引导</label></li>
+</ul>
+</li>
+</ol>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./requirement-analysis.html">需求收集与分析约束规则</a></li>
+<li><a href="./document-structure.html">文档结构标准</a></li>
+<li><a href="./business-logic.html">业务逻辑设计规则</a></li>
+<li><a href="./prototype.html">产品原型约束规则</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">产品原型</title>
+    <id>https://ikecoolon.github.io/rules/prototype/</id>
+    <link href="https://ikecoolon.github.io/rules/prototype/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="产品原型"> 产品原型</h1>
+<h2 id="原型详细程度"> 原型详细程度</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>概念阶段：必须提供低保真线框图</li>
+<li>详细设计阶段：必须提供中保真交互原型</li>
+<li>开发阶段：必须提供高保真设计稿和标注</li>
+<li>原型必须包含所有功能元素</li>
+<li>必须标注关键元素的尺寸和间距</li>
+<li>必须提供各状态下的页面展示</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p><strong>不同阶段原型要求</strong>：</p>
+<ol>
+<li>
+<p><strong>低保真原型（概念阶段）</strong></p>
+<ul>
+<li>主要用于表达页面布局和功能分区</li>
+<li>可使用线框图或手绘草图</li>
+<li>无需考虑视觉设计和精确尺寸</li>
+<li>示例：灰度线框图，表示主要功能区块和信息架构</li>
+</ul>
+</li>
+<li>
+<p><strong>中保真原型（详细设计阶段）</strong></p>
+<ul>
+<li>包含完整的交互流程和功能点</li>
+<li>使用接近真实的数据和内容</li>
+<li>可交互，能够展示页面流转</li>
+<li>示例：Figma/Axure交互原型，可点击体验核心流程</li>
+</ul>
+</li>
+<li>
+<p><strong>高保真原型（开发阶段）</strong></p>
+<ul>
+<li>包含精确的视觉设计和组件样式</li>
+<li>提供精确的尺寸和间距标注</li>
+<li>包含所有状态和边界情况</li>
+<li>示例：完整设计稿+标注，可直接用于开发实现</li>
+</ul>
+</li>
+</ol>
+<h2 id="原型交互规范"> 原型交互规范</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>必须展示完整的交互流程</li>
+<li>必须包含正常流程和异常流程</li>
+<li>复杂交互必须提供操作说明</li>
+<li>原型必须按功能模块组织</li>
+<li>必须提供清晰的导航和标注</li>
+<li>必须有原型地图或目录</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p><strong>交互流程示例</strong>：</p>
+<ol>
+<li>
+<p><strong>正常流程（用户提交表单）</strong></p>
+<ul>
+<li>页面1：用户填写表单</li>
+<li>页面2：用户点击提交按钮</li>
+<li>页面3：显示提交成功页面</li>
+<li>页面4：返回列表页面</li>
+</ul>
+</li>
+<li>
+<p><strong>异常流程（表单验证失败）</strong></p>
+<ul>
+<li>页面1：用户填写表单（部分字段未填）</li>
+<li>页面2：用户点击提交按钮</li>
+<li>页面3：显示错误提示，标红未填字段</li>
+<li>页面4：用户修正后重新提交</li>
+</ul>
+</li>
+</ol>
+<p><strong>原型组织结构</strong>：</p>
+<ul>
+<li>按功能模块分组（用户管理、订单管理等）</li>
+<li>每个模块内按流程顺序排列页面</li>
+<li>提供全局导航和页面间的连接关系</li>
+<li>使用页面命名约定：[模块]-[功能]-[状态]</li>
+</ul>
+<h2 id="原型与prd的一致性"> 原型与PRD的一致性</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>原型中的功能必须与PRD保持一致</li>
+<li>原型中的业务规则必须与PRD描述一致</li>
+<li>发现不一致时，必须同步更新两者</li>
+<li>原型更新必须同步更新PRD</li>
+<li>更新必须使用版本控制</li>
+<li>更新必须通知相关方</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>一致性检查清单</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>检查项</th>
+<th>PRD描述</th>
+<th>原型展示</th>
+<th>是否一致</th>
+<th>处理意见</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户搜索功能</td>
+<td>支持按姓名、ID、部门搜索</td>
+<td>仅实现姓名和ID搜索</td>
+<td>否</td>
+<td>更新原型，增加部门搜索</td>
+</tr>
+<tr>
+<td>订单分类</td>
+<td>分为待付款、待发货、已完成三类</td>
+<td>包含四类：待付款、待发货、待收货、已完成</td>
+<td>否</td>
+<td>更新PRD，增加待收货状态描述</td>
+</tr>
+<tr>
+<td>权限控制</td>
+<td>管理员可查看所有数据，普通用户只能查看自己的数据</td>
+<td>与PRD一致</td>
+<td>是</td>
+<td>无需处理</td>
+</tr>
+</tbody>
+</table>
+<p><strong>版本控制示例</strong>：</p>
+<ul>
+<li>原型版本命名：[项目]-[模块]-[版本号]</li>
+<li>每次重大更新增加主版本号</li>
+<li>每次小调整增加次版本号</li>
+<li>原型文件中包含版本历史记录</li>
+<li>最新版本必须明确标识</li>
+</ul>
+<p><strong>更新通知流程</strong>：</p>
+<ol>
+<li>原型更新后立即通知产品经理</li>
+<li>产品经理确认更新并同步PRD</li>
+<li>通知所有相关方（开发、测试等）</li>
+<li>记录更新内容和原因</li>
+</ol>
+<h2 id="原型工具与资源"> 原型工具与资源</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>必须使用规定的原型设计工具</li>
+<li>必须使用公司组件库和设计系统</li>
+<li>必须遵循可访问性设计标准</li>
+<li>必须确保原型可在多设备上预览</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>标准工具清单</strong>：</p>
+<ul>
+<li>低保真原型：Balsamiq, Sketch</li>
+<li>中保真交互原型：Figma, Axure RP</li>
+<li>高保真设计：Figma, Sketch, Adobe XD</li>
+</ul>
+<p><strong>设计资源</strong>：</p>
+<ul>
+<li>公司UI组件库地址：[内部链接]</li>
+<li>设计规范文档：[内部链接]</li>
+<li>图标资源库：[内部链接]</li>
+<li>常用模板库：[内部链接]</li>
+</ul>
+<p><strong>可访问性检查项</strong>：</p>
+<ul>
+<li>色彩对比度符合WCAG 2.0标准</li>
+<li>提供足够的点击热区（建议至少44x44px）</li>
+<li>表单元素有清晰的标签和提示</li>
+<li>交互元素有明确的焦点状态</li>
+</ul>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./product-design.html">产品设计约束规则</a></li>
+<li><a href="./document-structure.html">文档结构标准</a></li>
+<li><a href="./business-logic.html">业务逻辑设计规则</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">需求收集与分析</title>
+    <id>https://ikecoolon.github.io/rules/requirement-analysis/</id>
+    <link href="https://ikecoolon.github.io/rules/requirement-analysis/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="需求收集与分析"> 需求收集与分析</h1>
+<h2 id="需求来源管理"> 需求来源管理</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>需求必须来自明确的渠道：业务方需求、用户反馈、数据分析、竞品分析和公司战略</li>
+<li>所有需求必须记录在需求池中，包含来源、提出人和提出时间</li>
+<li>需求收集必须使用标准化模板，确保信息完整</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p>标准需求收集模板应包含：</p>
+<ul>
+<li>需求ID：唯一标识</li>
+<li>提出人：需求提出者姓名和部门</li>
+<li>提出时间：YYYY-MM-DD格式</li>
+<li>需求来源：业务方/用户反馈/数据分析/竞品分析/公司战略</li>
+<li>需求描述：详细说明需求内容</li>
+<li>需求背景：为什么提出此需求</li>
+<li>预期效果：实现此需求预期达到的效果</li>
+<li>紧急程度：高/中/低</li>
+</ul>
+<h2 id="需求初步筛选"> 需求初步筛选</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>提出的需求必须经过初步评估，判断是否符合产品方向</li>
+<li>评估维度必须包括：业务价值、用户价值、技术可行性和ROI</li>
+<li>筛选结果必须形成文档，并与需求提出方沟通</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p>需求评估表格示例：</p>
+<table>
+<thead>
+<tr>
+<th>评估维度</th>
+<th>评分(1-5)</th>
+<th>评估说明</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>业务价值</td>
+<td>4</td>
+<td>此功能能够显著提升业务转化率</td>
+</tr>
+<tr>
+<td>用户价值</td>
+<td>3</td>
+<td>解决了部分用户的痛点问题</td>
+</tr>
+<tr>
+<td>技术可行性</td>
+<td>5</td>
+<td>技术实现难度低，已有类似功能</td>
+</tr>
+<tr>
+<td>ROI</td>
+<td>4</td>
+<td>投入成本低，预期收益高</td>
+</tr>
+<tr>
+<td>总分</td>
+<td>16/20</td>
+<td>建议采纳，列入下一迭代</td>
+</tr>
+</tbody>
+</table>
+<h2 id="用户分析"> 用户分析</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>每个核心需求必须明确目标用户群体</li>
+<li>必须通过用户画像、用户旅程等方法验证需求</li>
+<li>用户需求必须量化，支持数据</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>用户画像示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>特征</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>角色</td>
+<td>企业财务主管</td>
+</tr>
+<tr>
+<td>年龄</td>
+<td>30-45岁</td>
+</tr>
+<tr>
+<td>技能水平</td>
+<td>熟练使用办公软件，初级财务系统使用经验</td>
+</tr>
+<tr>
+<td>使用场景</td>
+<td>工作日处理公司报销和财务审批</td>
+</tr>
+<tr>
+<td>痛点</td>
+<td>1. 报销流程繁琐 2. 单据管理混乱 3. 审批流程不透明</td>
+</tr>
+<tr>
+<td>需求</td>
+<td>希望简化报销流程，提高审批效率，清晰查看审批进度</td>
+</tr>
+</tbody>
+</table>
+<p><strong>用户旅程示例</strong>：</p>
+<ol>
+<li>查看待处理的报销申请列表</li>
+<li>打开申请详情查看报销信息</li>
+<li>查看上传的票据凭证</li>
+<li>进行审批操作（通过/驳回/退回补充）</li>
+<li>添加审批意见</li>
+<li>提交审批结果</li>
+<li>查看审批进度</li>
+</ol>
+<h2 id="竞品分析"> 竞品分析</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>重要功能必须进行竞品分析，至少包含3个主要竞品</li>
+<li>竞品分析必须包含功能对比、优缺点和可借鉴点</li>
+<li>竞品分析结果必须形成标准化文档</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>竞品功能对比表</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>功能点</th>
+<th>我们的产品</th>
+<th>竞品A</th>
+<th>竞品B</th>
+<th>竞品C</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>用户注册</td>
+<td>手机号+验证码</td>
+<td>手机号+密码</td>
+<td>多渠道注册</td>
+<td>仅手机号</td>
+</tr>
+<tr>
+<td>数据导出</td>
+<td>Excel格式</td>
+<td>Excel/PDF</td>
+<td>多种格式</td>
+<td>不支持</td>
+</tr>
+<tr>
+<td>报表分析</td>
+<td>基础图表</td>
+<td>丰富图表</td>
+<td>可视化大屏</td>
+<td>简单统计</td>
+</tr>
+</tbody>
+</table>
+<p><strong>竞品优缺点分析</strong>：</p>
+<p>竞品A优点：</p>
+<ul>
+<li>多样化的数据导出格式，满足不同场景</li>
+<li>丰富的数据可视化展示</li>
+<li>良好的多端同步体验</li>
+</ul>
+<p>竞品A缺点：</p>
+<ul>
+<li>操作流程复杂，上手难度高</li>
+<li>核心功能需付费使用</li>
+<li>移动端体验较差</li>
+</ul>
+<p>可借鉴点：</p>
+<ul>
+<li>多样化的数据导出功能</li>
+<li>数据可视化的实现方式</li>
+<li>简化部分复杂操作流程</li>
+</ul>
+<h2 id="数据支持"> 数据支持</h2>
+<h3 id="要求-5"> 要求</h3>
+<ul>
+<li>产品决策必须有数据支持</li>
+<li>数据来源必须明确且可追溯</li>
+<li>数据分析方法必须科学合理</li>
+</ul>
+<h3 id="示例-5"> 示例</h3>
+<p><strong>数据收集方法</strong>：</p>
+<ul>
+<li>用户行为日志分析</li>
+<li>功能使用频率统计</li>
+<li>用户调研问卷</li>
+<li>A/B测试结果</li>
+<li>用户反馈与评价</li>
+</ul>
+<p><strong>数据分析报告示例</strong>：</p>
+<ul>
+<li>分析目标：评估新功能的使用情况和效果</li>
+<li>数据来源：产品后台统计、用户反馈</li>
+<li>数据周期：2023.1.1-2023.3.1</li>
+<li>关键指标：
+<ul>
+<li>功能使用率：56%（较上月增长15%）</li>
+<li>用户满意度：4.2/5分（较上月提升0.5分）</li>
+<li>任务完成时间：平均减少30%</li>
+</ul>
+</li>
+<li>结论与建议：
+<ul>
+<li>新功能普遍受到用户欢迎</li>
+<li>建议优化移动端适配</li>
+<li>建议增加批量处理功能</li>
+</ul>
+</li>
+</ul>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./product-design.html">产品设计约束规则</a></li>
+<li><a href="./document-structure.html">文档结构标准</a></li>
+<li><a href="./business-logic.html">业务逻辑设计规则</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">产品迭代</title>
+    <id>https://ikecoolon.github.io/rules/iteration/</id>
+    <link href="https://ikecoolon.github.io/rules/iteration/"/>
+    <updated>2025-09-01T14:39:08.000Z</updated>
+    <content type="html"><![CDATA[<h1 id="产品迭代"> 产品迭代</h1>
+<h2 id="迭代计划规范"> 迭代计划规范</h2>
+<h3 id="要求"> 要求</h3>
+<ul>
+<li>标准迭代周期为2周</li>
+<li>迭代计划必须基于业务优先级和资源可用性</li>
+<li>必须预留20%的缓冲时间</li>
+<li>功能必须拆分为可独立交付的最小单元</li>
+<li>每个功能必须有明确的优先级</li>
+<li>必须区分&quot;必须有&quot;、&quot;应该有&quot;和&quot;可以有&quot;三个层级</li>
+</ul>
+<h3 id="示例"> 示例</h3>
+<p><strong>迭代计划示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>迭代编号</th>
+<th>时间周期</th>
+<th>主要目标</th>
+<th>计划功能点</th>
+<th>责任人</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sprint 1</td>
+<td>2023.6.1-2023.6.14</td>
+<td>完成用户管理基础功能</td>
+<td>1. 用户注册登录（必须有）<br>2. 用户资料管理（必须有）<br>3. 权限配置（应该有）<br>4. 用户数据导出（可以有）</td>
+<td>张三</td>
+</tr>
+<tr>
+<td>Sprint 2</td>
+<td>2023.6.15-2023.6.28</td>
+<td>完成订单管理基础功能</td>
+<td>1. 订单创建（必须有）<br>2. 订单列表展示（必须有）<br>3. 订单详情查看（必须有）<br>4. 订单状态流转（应该有）</td>
+<td>李四</td>
+</tr>
+</tbody>
+</table>
+<p><strong>功能拆分示例</strong>：</p>
+<p>大功能：用户管理系统
+拆分为最小可交付单元：</p>
+<ol>
+<li>用户注册模块
+<ul>
+<li>手机号注册功能</li>
+<li>邮箱注册功能</li>
+<li>第三方账号绑定功能</li>
+</ul>
+</li>
+<li>用户验证模块
+<ul>
+<li>短信验证功能</li>
+<li>邮箱验证功能</li>
+<li>二次认证功能</li>
+</ul>
+</li>
+<li>用户资料模块
+<ul>
+<li>基础信息管理功能</li>
+<li>安全设置功能</li>
+<li>偏好设置功能</li>
+</ul>
+</li>
+</ol>
+<h2 id="迭代执行跟踪"> 迭代执行跟踪</h2>
+<h3 id="要求-2"> 要求</h3>
+<ul>
+<li>必须使用项目管理工具跟踪进度</li>
+<li>必须每日更新任务状态</li>
+<li>必须记录并处理阻碍项</li>
+<li>迭代中的变更必须通过变更流程审批</li>
+<li>变更必须评估影响并调整计划</li>
+<li>必须通知所有相关方</li>
+</ul>
+<h3 id="示例-2"> 示例</h3>
+<p><strong>任务看板示例</strong>：</p>
+<table>
+<thead>
+<tr>
+<th>待处理</th>
+<th>进行中</th>
+<th>待验证</th>
+<th>已完成</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>订单导出功能</td>
+<td>订单创建表单</td>
+<td>用户登录功能</td>
+<td>用户注册功能</td>
+</tr>
+<tr>
+<td>数据统计报表</td>
+<td>订单列表分页</td>
+<td></td>
+<td>用户资料编辑</td>
+</tr>
+<tr>
+<td></td>
+<td></td>
+<td></td>
+<td>权限管理基础框架</td>
+</tr>
+</tbody>
+</table>
+<p><strong>每日站会记录模板</strong>：</p>
+<ul>
+<li>日期：2023-06-05</li>
+<li>团队成员：张三、李四、王五</li>
+<li>昨日完成：
+<ul>
+<li>张三：完成用户注册接口对接</li>
+<li>李四：完成用户列表分页功能</li>
+<li>王五：完成权限管理基础框架</li>
+</ul>
+</li>
+<li>今日计划：
+<ul>
+<li>张三：开始用户登录功能开发</li>
+<li>李四：解决用户列表搜索BUG</li>
+<li>王五：继续角色权限配置功能</li>
+</ul>
+</li>
+<li>阻碍项：
+<ul>
+<li>第三方登录API尚未提供</li>
+<li>需要确认权限模型设计</li>
+</ul>
+</li>
+</ul>
+<p><strong>变更管理流程</strong>：</p>
+<ol>
+<li>提出变更申请，包含原因和影响分析</li>
+<li>评估变更对范围、时间和资源的影响</li>
+<li>由产品负责人和技术负责人审批</li>
+<li>调整迭代计划并通知团队</li>
+<li>记录变更决策和原因</li>
+</ol>
+<h2 id="迭代回顾与复盘"> 迭代回顾与复盘</h2>
+<h3 id="要求-3"> 要求</h3>
+<ul>
+<li>每个迭代必须组织回顾会议</li>
+<li>必须分析成功经验和问题</li>
+<li>必须制定改进计划</li>
+<li>必须形成迭代复盘报告</li>
+<li>报告必须包含计划完成情况、问题分析和经验总结</li>
+<li>必须共享给团队成员</li>
+</ul>
+<h3 id="示例-3"> 示例</h3>
+<p><strong>迭代回顾会议议程</strong>：</p>
+<ol>
+<li>回顾迭代目标和实际完成情况（15分钟）</li>
+<li>团队成员分享本迭代的积极经验（15分钟）</li>
+<li>讨论遇到的问题和挑战（20分钟）</li>
+<li>头脑风暴解决方案（20分钟）</li>
+<li>确定下一步改进计划（20分钟）</li>
+<li>总结和下一迭代预告（10分钟）</li>
+</ol>
+<p><strong>迭代复盘报告模板</strong>：</p>
+<p><strong>迭代信息</strong>：</p>
+<ul>
+<li>迭代编号：Sprint 3</li>
+<li>时间周期：2023.7.1-2023.7.14</li>
+<li>迭代目标：完成支付功能模块</li>
+</ul>
+<p><strong>计划完成情况</strong>：</p>
+<ul>
+<li>计划功能点：5项</li>
+<li>实际完成：4项</li>
+<li>完成率：80%</li>
+<li>未完成原因：第三方支付接口联调延迟</li>
+</ul>
+<p><strong>成功经验</strong>：</p>
+<ul>
+<li>提前进行技术预研，减少技术风险</li>
+<li>拆分任务粒度合理，便于并行开发</li>
+<li>每日站会及时解决问题，保持高效沟通</li>
+</ul>
+<p><strong>问题与挑战</strong>：</p>
+<ul>
+<li>需求变更较多，影响开发进度</li>
+<li>测试环境不稳定，影响测试效率</li>
+<li>文档不完善，造成理解偏差</li>
+</ul>
+<p><strong>改进计划</strong>：</p>
+<ul>
+<li>加强需求评审，减少后期变更</li>
+<li>升级测试环境，提高稳定性</li>
+<li>完善技术文档模板和编写规范</li>
+</ul>
+<h2 id="迭代质量控制"> 迭代质量控制</h2>
+<h3 id="要求-4"> 要求</h3>
+<ul>
+<li>每个迭代必须设定明确的质量目标</li>
+<li>必须建立持续集成和自动化测试机制</li>
+<li>必须在迭代中进行多次内部测试</li>
+<li>必须在迭代结束前进行回归测试</li>
+</ul>
+<h3 id="示例-4"> 示例</h3>
+<p><strong>质量控制指标</strong>：</p>
+<ul>
+<li>代码覆盖率≥80%</li>
+<li>关键流程自动化测试覆盖率100%</li>
+<li>P0级bug修复率100%，P1级bug修复率≥90%</li>
+<li>性能指标：页面加载时间&lt;3秒，API响应时间&lt;200ms</li>
+</ul>
+<p><strong>质量保障活动</strong>：</p>
+<ol>
+<li>每日构建和自动化测试</li>
+<li>代码审查（至少2人评审）</li>
+<li>每周一次内部测试日</li>
+<li>迭代末次全量回归测试</li>
+<li>性能和安全测试</li>
+</ol>
+<h2 id="相关文档"> 相关文档</h2>
+<ul>
+<li><a href="./product-design.html">产品设计约束规则</a></li>
+<li><a href="./prototype.html">产品原型约束规则</a></li>
+<li><a href="./launch.html">产品上线约束规则</a></li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2025-09-01T14:39:08.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">Pet Eden 管理端列表统一使用 BasicTable</title>
+    <id>https://ikecoolon.github.io/adr/0033-use-basic-table-for-pet-eden-admin-lists/</id>
+    <link href="https://ikecoolon.github.io/adr/0033-use-basic-table-for-pet-eden-admin-lists/"/>
+    <updated>2026-09-06T06:55:50.348Z</updated>
+    <content type="html"><![CDATA[<h1 id="pet-eden-管理端列表统一使用-basictable"> Pet Eden 管理端列表统一使用 BasicTable</h1>
+<p>Pet Eden 新增的管理端列表页统一采用 Rondo 现有兼容层的 <code>ListPage + BasicTable/useTable</code>，不采用商城新页面使用的 VXE Grid。静态原型不引入 Vue 组件，但搜索区、工具栏、表格、分页、状态与行操作必须按同一可见契约呈现，避免原型与后续真实实现使用两套页面结构。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">宠物健康模块复用平台会员身份</title>
+    <id>https://ikecoolon.github.io/adr/0034-reuse-member-identities-in-pet-health/</id>
+    <link href="https://ikecoolon.github.io/adr/0034-reuse-member-identities-in-pet-health/"/>
+    <updated>2026-09-06T06:55:50.348Z</updated>
+    <content type="html"><![CDATA[<h1 id="宠物健康模块复用平台会员身份"> 宠物健康模块复用平台会员身份</h1>
+<p>宠物健康模块不建立独立客户实体，而是通过会员模块 API 查询、校验和发起最小创建，并在自身模块内维护宠物及用户宠物关联。未注册客户以必填手机号和可选姓名发起创建，同一身份域内同手机号已有用户直接复用；创建后基础资料只读，具备相应权限时进入现有会员管理修改。这样可以扩展宠物关系能力，同时不复制或改写会员资料、等级、积分、余额等原平台基础功能。</p>
+<p>现有跨模块 API 尚缺最小创建、分页及部分身份投影，真实实现需补接口，由健康模块提供宠物/报告聚合；本次静态原型不修改真实平台。首次报告访问须通过既有已验证手机号登录取得对应会员身份，普通微信登录不能保证复用；历史绑定冲突不自动合并，列入真实联调边界。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">报告编制与审核采用可组合权限</title>
+    <id>https://ikecoolon.github.io/adr/0035-separate-composable-report-permissions/</id>
+    <link href="https://ikecoolon.github.io/adr/0035-separate-composable-report-permissions/"/>
+    <updated>2026-09-06T06:55:50.348Z</updated>
+    <content type="html"><![CDATA[<h1 id="报告编制与审核采用可组合权限"> 报告编制与审核采用可组合权限</h1>
+<p>管理端将登记、导入、完善、分析确认和提交审核划入编制权限，将待审核时的审核修订、退回和发布划入审核权限，两组权限可分别授予，也可由同一后台账号同时拥有。这样可以复用现有平台权限体系并支持不同规模的运营团队，同时不增加强制提交人与审核人分离的业务规则。</p>
+<p>仅有编制权限的人员能够完成提交前的菌门确认；待审核的普通编制修改须由原提交人撤回后进行，审核人员仍可留痕修订。后台操作员身份与被服务的平台用户身份分开，撤回按提交者身份判断，双权限账号可审核自己提交的报告。</p>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+  <entry>
+    <title type="html">Pet Eden 管理端原型实施方案</title>
+    <id>https://ikecoolon.github.io/product-design/pet-health-admin-implementation-plan/</id>
+    <link href="https://ikecoolon.github.io/product-design/pet-health-admin-implementation-plan/"/>
+    <updated>2026-09-06T06:55:50.349Z</updated>
+    <content type="html"><![CDATA[<h1 id="pet-eden-管理端原型实施方案"> Pet Eden 管理端原型实施方案</h1>
+<p>本方案承接已确认的访谈决策及 2026-09-05 复审修正。它是本次原型实施与验收依据，不代表真实后端、微信登录或专业规则已完成验收。</p>
+<h2 id="_1-范围与基线"> 1. 范围与基线</h2>
+<ul>
+<li>修改本仓库 <code>docs/.vuepress/public/prototype/admin/</code>、直接依赖的 <code>shared/</code> Mock 与定向测试，以及产品文档。进度墙只同步 <code>data.js</code> 中相应任务内容，不把原型完成写成研发完成。</li>
+<li>真实项目 <code>/Users/zhaoyanlong/Documents/personal/pet-eden/rondo-ui/rondo-ui-admin-vben5</code> 只读，继承其现有管理端组件与布局风格。</li>
+<li>保留静态 HTML / JavaScript，不迁移 React/Vue，不建设第二套客户身份，不修改真实会员管理、商城或登录代码，不提交或推送仓库。</li>
+<li>Pet Eden 品牌、浅色工作区与真实 Rondo 主色保持一致。PC 优先：1440、1280、1024px；小于 768px 保留导航、查看、填写、保存等核心能力，不另做移动后台。</li>
+<li>保留报告四个可操作主状态、六模块工作台、单页滚动小程序预览、人工宠物关联和既有专业规则；不新增领取、强制他人审核、规则审批或持久规则草稿。</li>
+</ul>
+<h2 id="_2-页面及组件契约"> 2. 页面及组件契约</h2>
+<p>真实组件参考根目录为上述 <code>rondo-ui-admin-vben5</code>，不把商城 VXE Grid 规范混入本次 BasicTable 选型。</p>
+<table>
+<thead>
+<tr>
+<th>原型结构</th>
+<th>真实参考</th>
+<th>实施约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>应用壳</td>
+<td><code>packages/@core/preferences/src/config.ts</code>、<code>packages/effects/layouts/src/basic/</code></td>
+<td>侧栏默认 224px、顶栏 50px、页签 38px；面包屑、页签、侧栏折叠与页面内容分层；页边距 16px</td>
+</tr>
+<tr>
+<td>列表</td>
+<td><code>apps/web-antd/src/components/Page/</code>、<code>components/Table/index.ts</code>、<code>components/Table/layout.ts</code></td>
+<td><code>ListPage + BasicTable/useTable</code> 可见契约：搜索卡、工具栏、small 表格、分页；工具栏最小 56px，不锁死高度</td>
+</tr>
+<tr>
+<td>搜索</td>
+<td><code>apps/web-antd/src/components/Form/layout.ts</code></td>
+<td>标签 80px、栅格间距 8px；普通桌面 2 条件加操作区、超宽 3 条件加操作区；高级筛选展开；有标签而非只靠 placeholder</td>
+</tr>
+<tr>
+<td>表格</td>
+<td><code>components/Table/layout.ts</code></td>
+<td>明确列宽与省略；操作列固定；横向滚动仅在表格容器内；工具支持搜索区切换、刷新、列配置、全屏；不提供无行为的图标按钮</td>
+</tr>
+<tr>
+<td>简单 CRUD</td>
+<td><code>apps/web-antd/src/components/Modal/index.ts</code></td>
+<td>标准 Modal、字段校验、提交 loading、防重、失败保留输入；焦点进入/约束/恢复；Esc、遮罩与取消统一经过关闭和防丢判断</td>
+</tr>
+<tr>
+<td>复杂编辑与详情</td>
+<td>真实路由与页签层</td>
+<td>报告工作台、规则编辑/测试、范围编辑、用户/宠物详情使用可直达内部路由，不增同级侧栏菜单</td>
+</tr>
+</tbody>
+</table>
+<p>主色以真实项目 <code>#0960bd</code> 为基线，字体、边框、圆角、状态色集中在共享 tokens，正文按紧凑管理端规格。不得通过 MutationObserver 扫描颜色类猜测按钮、卡片或状态语义；静态模板与动态生成节点均使用显式组件类和 ARIA。CSS 按 tokens/壳/组件与业务页面划分，禁止全后代通配覆盖小程序预览。</p>
+<p>页面映射：</p>
+<ul>
+<li>送检管理：标准表格与阶段视图，登记、行上导入、重新导入及追溯。</li>
+<li>报告中心：标准表格取代记录卡；保留现有状态视图、条件内计数、队列排序、主状态与更正副标签、单个主要行操作及更多。</li>
+<li>用户与宠物：唯一侧栏入口；内部分平台用户与宠物两个表格视图，详情由内部路由承载。</li>
+<li>专业基础资料：原字典管理更名，维护品种、检测指标与微生物分类，不混同平台系统字典。</li>
+<li>指标/参考范围：列表与独立内部编辑路由；保持范围只有上下限及既定来源规则。</li>
+<li>菌群科普：搜索列表与主从编辑；保留现有内容、关联及用户端中立科普语义。</li>
+<li>分析规则：列表、编辑与测试内部路由；规则候选与测试必须属于同一工作会话。</li>
+</ul>
+<h2 id="_3-平台用户与送检闭环"> 3. 平台用户与送检闭环</h2>
+<p>平台用户就是已有会员身份；后台账号是操作系统的人员账号，两者不能混用 ID 或权限。</p>
+<ul>
+<li>运营最小建号：手机号必填、姓名可选。同一平台身份域内手机号已存在时返回该用户，不创建重复身份、不用可选姓名覆盖已有资料、不静默启用禁用账号。重试与并发调用应得到同一账号。真实实现沿用会员初始化及创建事件。</li>
+<li>用户基础字段创建后在健康模块只读；只展示真实会员已有字段和明确的宠物业务汇总，不新增地址、微信号等自建客户字段。缺失值正常显示为空。</li>
+<li>新模块通过自己的业务权限查询最小用户资料；仅具备相应会员权限时展示“前往会员管理”。静态原型不伪装已连通真实会员后台，入口需说明真实实现去向。</li>
+<li>真实会员跨模块 API 目前缺创建、分页及部分资料投影；这些是后续真实实现的接口增量，不是现成能力。会员模块提供最小身份查询/创建，健康模块提供宠物、送检、报告聚合；不得直接跨模块写会员表。</li>
+<li>首次访问报告通过既有微信手机号登录或其他已验证手机号登录取得同一会员 ID。普通微信登录可能另建无手机号身份；历史微信绑定冲突需在真实联调中验证，不自动合并，不增加用户认领流程。手机号用于身份匹配，宠物关联仍由运营人工维护。</li>
+<li>登记送检在一个操作上下文内选择/创建用户、选择/填写宠物、填写送检资料。创建宠物与登记送检一起确认，取消或校验失败不留孤儿宠物/记录；最小用户创建是独立、可复用动作。</li>
+<li>用户详情进入登记时带入用户；宠物详情进入时带入用户及宠物。宠物表格的新增行为转为登记送检，不再独立生成无履约空档案。</li>
+<li>样本编号允许线下补填，不要求 Excel 携带，也不用于文件自动匹配；沿用现有送检类型与机构、日期校验。</li>
+<li>新建宠物必须选择平台用户；历史未关联或人工纠错解除关联属于既有例外，可由运营维护，不作为新建默认路径，也不因此新增发布阻断项。</li>
+</ul>
+<h2 id="_4-编审动作边界"> 4. 编审动作边界</h2>
+<p>下表中的权限作用于后台账号；同一账号允许同时拥有编制和审核权限，不强制他人审核。只读账号不具备任何写操作。原型以测试 fixture 注入权限，不添加正式业务角色切换菜单。</p>
+<table>
+<thead>
+<tr>
+<th>状态/动作</th>
+<th>编制权限</th>
+<th>审核权限</th>
+<th>身份与约束</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>登记、导入及重导</td>
+<td>允许</td>
+<td>仅审核权限不包含</td>
+<td>仍从送检记录发起</td>
+</tr>
+<tr>
+<td>待完善/更正待完善：编辑、分析、菌门确认、暂存与提交</td>
+<td>允许</td>
+<td>仅审核权限不包含</td>
+<td>菌门确认是提交前编制动作，不要求先找审核人员</td>
+</tr>
+<tr>
+<td>待审核/更正待审核：普通编制编辑</td>
+<td>不允许</td>
+<td>—</td>
+<td>原提交人可撤回后修改</td>
+</tr>
+<tr>
+<td>待审核：审核修订、确认、暂存</td>
+<td>不允许</td>
+<td>允许</td>
+<td>留痕；专业依据改变仍需重新分析及确认</td>
+</tr>
+<tr>
+<td>待审核：撤回</td>
+<td>仅原提交人</td>
+<td>不能因审核权限代替别人撤回</td>
+<td>按稳定后台账号 ID 判断，不按展示名</td>
+</tr>
+<tr>
+<td>待审核：退回、审核并发布</td>
+<td>不允许</td>
+<td>允许</td>
+<td>退回原因必填；双权限账号可审核自己的提交</td>
+</tr>
+<tr>
+<td>已发布：专业内容修改</td>
+<td>不直接允许</td>
+<td>不直接允许</td>
+<td>先由编制进入更正，再依同一流程审核发布</td>
+</tr>
+<tr>
+<td>已发布：作废</td>
+<td>不允许</td>
+<td>允许</td>
+<td>确认及原因，保留追溯</td>
+</tr>
+<tr>
+<td>商品配置</td>
+<td>编制权限可配置</td>
+<td>审核权限可配置</td>
+<td>独立配置动作；已作废不可修改；不因发布状态强制创建更正</td>
+</tr>
+</tbody>
+</table>
+<p>真实平台后续可细化权限码，但不得让健康业务查询依赖整套会员管理授权。原型服务层也检查动作资格，不能只隐藏按钮。</p>
+<h2 id="_5-保存与会话"> 5. 保存与会话</h2>
+<table>
+<thead>
+<tr>
+<th>动作</th>
+<th>写入及生效</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>暂存报告</td>
+<td>一次原子保存整份专业工作版本；不改变主状态或已发布版；失败不得半份写入</td>
+</tr>
+<tr>
+<td>提交审核</td>
+<td>保存当前工作版本并检查阻断；成功进入待审核；失败保留输入及可解释检查结果</td>
+</tr>
+<tr>
+<td>保存并启用规则</td>
+<td>原子创建启用版本、归档旧版；不增加规则持久草稿或规则审核流程</td>
+</tr>
+<tr>
+<td>保存商品配置（更新用户端）</td>
+<td>当前报告商品关联独立写入并更新用户端；不建更正版本、不影响其他报告；选商品期间先保留会话修改，明确保存后生效</td>
+</tr>
+</tbody>
+</table>
+<p>商品推荐不是报告专业暂存的一部分。报告专业暂存不得把未保存商品改动顺带上线，商品保存不得发布专业草稿。工作台预览允许展示会话修改，但必须与已保存/当前线上状态区分。</p>
+<ul>
+<li>切换工作台模块、应用页签、规则编辑/测试子路由保留对应会话。列表返回保留查询、分页、排序及合理的滚动位置。</li>
+<li>同一业务对象使用稳定页签身份，重复打开激活原页签；不同报告/规则不串数据。关闭页签、关闭其他/全部、刷新或覆盖同一编辑对象时统一判断 dirty。离开浏览器使用 beforeunload。</li>
+<li>规则测试使用未保存候选，不得要求先保存启用。测试往返不改已启用规则及正式报告结果；刷新或直达缺少候选时明确只用当前启用基线，不伪装恢复了修改。</li>
+<li>所有编辑明确保存与未保存状态，无自动保存；页签保留只是内存会话，不引入浏览器持久业务草稿。</li>
+<li>旧 hash 与查询参数继续可用，旧用户/宠物列表入口映射到唯一菜单的对应视图；内部详情仍可复制链接直达。</li>
+</ul>
+<h2 id="_6-工作台与预览隔离"> 6. 工作台与预览隔离</h2>
+<ul>
+<li>保留六模块左导航与双向预览定位，不为了统一列表样式重做专业工作区。</li>
+<li>按可用容器宽度决定三栏布局，编辑区不足时优先收起预览，必要时收起模块导航；侧栏展开/收起都要验证。不能只用视口 1100px 断点导致 1280px 下编辑区过窄。</li>
+<li>小程序预览有独立命名空间/样式入口；保留原等级主题、内容与点击联动，管理端的蓝色控件不得渗入。</li>
+<li>表格的横向滚动在本表容器；不能用全页 overflow-x:hidden 掩盖被裁剪的内容。低高度窗口仍可访问表单底部、弹窗按钮和工作台动作。</li>
+</ul>
+<h2 id="_7-执行及验收"> 7. 执行及验收</h2>
+<p>先完成共享 tokens、组件、路由会话与 Mock 边界，再迁移报告列表和工作台作为样板，随后迁移剩余页面。共享层未稳定前不让多个执行器同时改调用方；文档同步可与实现并行。</p>
+<p>验收清单：</p>
+<ul>
+<li>定向语法检查，原有 <code>shared/mock-store-smoke.js</code> 与新增回归；保留既有数据兼容，不清空用户本地 Mock。</li>
+<li>同手机号重复创建返回同一 ID、已有资料不覆盖、禁用用户不静默启用。</li>
+<li>登记新宠成功闭环、取消/失败无孤儿数据、已有宠物归属校验。</li>
+<li>编制/审核/双权限/只读与非提交人撤回，包含更正草稿状态。</li>
+<li>专业暂存原子性；发布后独立商品保存不创建更正、没有专业草稿泄露。</li>
+<li>规则未保存编辑 → 测试 → 返回保持候选；页签关闭防丢；列表状态恢复；不同对象隔离。</li>
+<li>全部菜单、内部详情/编辑及旧 URL，加载/空/错误状态与重试、分页、搜索、列配置、全屏及 Modal 键盘路径。</li>
+<li>1440/1280/1024px 与 390px 窄屏，至少一次低高度窗口；报告中心、登记送检、用户与宠物、规则编辑测试、工作台预览均有浏览器验证。</li>
+<li>完成后一次 VuePress 构建，一次 UI detector；截图集中检查，必要修正一次后复验，不无限润色。</li>
+<li>明确区分源码检查、Mock、浏览器与未运行的真实 API/微信/专业验收。截图是当前构建证据，历史截图不能替代；不把原型更新标记为真实研发完成。</li>
+</ul>
+]]></content>
+    <author>
+      <name>Pet Eden</name>
+    </author>
+    <contributor>
+      <name>Pet Eden</name>
+    </contributor>
+    <published>2026-09-05T00:00:00.000Z</published>
+    <rights>Copyright by Pet Eden</rights>
+  </entry>
+</feed>
